@@ -2,11 +2,26 @@ import { API_BASE_URL } from "./apiservice"
 
 //role data
 export const getRoleById = async (id: number): Promise<any[]> => {
-  const response = await fetch(`${API_BASE_URL}/roles/${id}`)
-  if (!response.ok) {
-    throw new Error("Network response was not ok")
+  const url = `${API_BASE_URL}/roles/${id}`
+  console.log('Fetching role by ID:', url)
+  
+  try {
+    const response = await fetch(url)
+    console.log('Response status:', response.status, response.statusText)
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('API Error:', errorText)
+      throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`)
+    }
+    
+    const data = await response.json()
+    console.log('Role data received:', data)
+    return data
+  } catch (error) {
+    console.error('Fetch error for getRoleById:', error)
+    throw error
   }
-  return response.json()
 }
 
 export const getRolesByProjectId = async (id: number): Promise<any[]> => {
