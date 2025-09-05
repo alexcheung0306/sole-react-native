@@ -10,6 +10,7 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      initialRouteName="index"
       screenOptions={{
         tabBarActiveTintColor: colors.tabBarActiveTint,
         tabBarInactiveTintColor: colors.tabBarInactiveTint,
