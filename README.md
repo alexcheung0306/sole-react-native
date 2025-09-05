@@ -38,7 +38,7 @@ git switch -c feature/profile-page
 git add .
 
  4. Commit your changes
-git commit -m "Add explore page grid layout"
+git commit -m "Add profile page grid layout"
 
  5. Push the new branch to remote repository
 git push -u origin feature/profile-page
