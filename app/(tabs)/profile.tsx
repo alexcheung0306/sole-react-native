@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { FlatList, ScrollView, Text, TouchableOpacity, View, Dimensions } from 'react-native';
 
 
@@ -8,6 +8,8 @@ const { width } = Dimensions.get('window');
 const IMAGE_SIZE = width / 3;
 
 export default function ProfileScreen() {
+  const [imageSize, setImageSize] = useState(Dimensions.get('window').width / 3);
+
   const userStats = [
     { label: 'Stickers Created', value: '127', icon: 'happy' },
     { label: 'Photos Edited', value: '89', icon: 'images' },
@@ -40,15 +42,27 @@ export default function ProfileScreen() {
     uri: `https://picsum.photos/300/300?random=${i}`,
   }));
 
+  // Update image size when screen dimensions change
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setImageSize(window.width / 3);
+    });
+    
+    return () => {
+      subscription?.remove();
+    };
+  }, []);
+
   const renderImage = ({ item }: { item: { id: string; uri: string } }) => (
     <View className="p-0.5">
       <ExpoImage 
         source={{ uri: item.uri }} 
         style={{ 
-          width: IMAGE_SIZE - 4, 
-          height: IMAGE_SIZE - 4 
+          width: imageSize - 4, 
+          height: imageSize - 4 
         }}
-        className="rounded"
+        className="rounded-3xl"
+        contentFit="cover"
       />
     </View>
   );
@@ -132,14 +146,17 @@ export default function ProfileScreen() {
       </View>
 
       {/* Posted Photos */}
-      <View className="flex-1 bg-white">
-      <FlatList
-        data={images}
-        renderItem={renderImage}
-        numColumns={3}
-        keyExtractor={(item) => item.id}
-        showsVerticalScrollIndicator={false}
-      />
+      <View className="mx-4 my-0">
+        <Text className="text-lg font-bold text-white mb-4">Posted Photos</Text>
+        <FlatList
+          data={images}
+          renderItem={renderImage}
+          numColumns={3}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          scrollEnabled={false} // Important: disable scrolling since it's inside ScrollView
+          className="mb-4"
+        />
       </View>
 
       {/* Quick Actions */}
