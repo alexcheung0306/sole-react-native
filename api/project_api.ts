@@ -1,8 +1,8 @@
 // project data
 
-import { compressImage } from "@/utils/image-compression"
+import { compressImage } from "../utils/image-compression"
 
-import { API_BASE_URL } from "../apiservice"
+import { API_BASE_URL } from "./apiservice"
 
 //talent search api
 //http://localhost:8080/api/project/search?isPrivate=false&status=published&pageNo=1&pageSize=2&orderBy=id&orderSeq=dec
@@ -75,7 +75,7 @@ export const getProjectByID = async (projectid: number): Promise<any> => {
   }
 }
 
-export const createProject = async (soleUserId: string, values) => {
+export const createProject = async (soleUserId: string, values: any) => {
   const formData = new FormData()
   if (values.projectImage) {
     const compressedImage = await compressImage(values?.projectImage)
@@ -94,7 +94,7 @@ export const createProject = async (soleUserId: string, values) => {
     "isPrivate",
     values.isPrivate !== undefined ? values.isPrivate.toString() : "true"
   )
-  for (const [key, value] of formData.entries()) {
+  for (const [key, value] of Object.entries(formData)) {
     console.log(key, value) // Log FormData entries for debugging
   }
   try {
@@ -116,7 +116,7 @@ export const createProject = async (soleUserId: string, values) => {
 
 export const updateProject = async (
   projectId: number,
-  soleUserId,
+  soleUserId: string,
   values: any
 ) => {
   const formData = new FormData()
@@ -135,7 +135,7 @@ export const updateProject = async (
     "isPrivate",
     values.isPrivate !== undefined ? values.isPrivate.toString() : "true"
   )
-  for (const [key, value] of formData.entries()) {
+  for (const [key, value] of Object.entries(formData)) {
     console.log(key, value) // Log FormData entries for debugging
   }
   try {

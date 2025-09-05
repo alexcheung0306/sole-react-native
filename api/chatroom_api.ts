@@ -2,7 +2,7 @@
 
 /////////////////////////////////////Chatroom/////////////////////////////////////
 
-import { ChatMessage } from "~/types/chat"
+import { ChatMessage } from "../types/chat"
 import { API_BASE_URL } from "./apiservice"
 
 export interface CreateIndividualChatroomRequest {

@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "../apiservice"
+import { API_BASE_URL } from "./apiservice"
 
 export const getAllFollowRecords = async (): Promise<any> => {
   const response = await fetch(`${API_BASE_URL}/follow`)

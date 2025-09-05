@@ -1,6 +1,6 @@
-import { API_BASE_URL } from "../apiservice"
+import { API_BASE_URL } from "./apiservice"
 
-export const createComcard = async (formData) => {
+export const createComcard = async (formData: any) => {
   try {
     const response = await fetch(`${API_BASE_URL}/comcard`, {
       method: "POST",

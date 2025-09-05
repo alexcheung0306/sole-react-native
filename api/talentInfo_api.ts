@@ -1,6 +1,5 @@
-import { logFormData } from "@/app/(home)/_components/userProfile/_talentProfileComponents/talent-profile-form"
+import { API_BASE_URL, getSoleUserByUserName } from "./apiservice"
 
-import { API_BASE_URL, getSoleUserByUserName } from "../apiservice"
 
 //talent info
 export const getTalentInfoById = async (id: number): Promise<any[]> => {
@@ -17,7 +16,7 @@ export const getTalentInfoById = async (id: number): Promise<any[]> => {
   // Check if the response is empty
   if (!text) {
     console.log("No content returned for the requested talent ID.")
-    return null // Or handle as needed, like returning an empty object
+    return [] // Or handle as needed, like returning an empty object
   }
 
   // Parse the non-empty response as JSON
@@ -25,7 +24,7 @@ export const getTalentInfoById = async (id: number): Promise<any[]> => {
     const data = JSON.parse(text)
     return data
   } catch (error) {
-    throw new Error("Failed to parse JSON response: " + error.message)
+    throw new Error("Failed to parse JSON response: " + (error as Error).message)
   }
 }
 
@@ -42,13 +41,13 @@ export const getTalentInfoByUsername = async (
   const text = await response.text()
   if (!text) {
     console.log("No content returned for the requested talent ID.")
-    return null // Or handle as needed, like returning an empty object
+    return [] // Or handle as needed, like returning an empty object
   }
   try {
     const data = JSON.parse(text)
     return data
   } catch (error) {
-    throw new Error("Failed to parse JSON response: " + error.message)
+    throw new Error("Failed to parse JSON response: " + (error as Error).message)
   }
 }
 
@@ -70,9 +69,9 @@ export const getTalentInfoBySoleUserId = async (
 }
 
 export const createTalentInfoWithComcard = async (
-  soleUserId,
-  talentData,
-  comcardData
+  soleUserId: string,
+  talentData: any,
+  comcardData: any
 ) => {
   try {
     const formData = new FormData()
@@ -106,7 +105,7 @@ export const createTalentInfoWithComcard = async (
     }
     // Append comcardInfo
     formData.append("comcard.configId", "1")
-    comcardData.photoConfig?.forEach((blob, index) => {
+    comcardData.photoConfig?.forEach((blob: any, index: number) => {
       if (blob instanceof File) {
         formData.append("comcard.comcardImages", blob)
       } else {
@@ -119,7 +118,7 @@ export const createTalentInfoWithComcard = async (
     formData.append("comcard.pdf", comcardData.pdf || "")
     formData.append("comcard.bucket", "comcards")
     formData.append("comcard.comcardImageName", soleUserId || "")
-    logFormData("formData", formData)
+    console.log("formData", formData)
     const response = await fetch(`${API_BASE_URL}/talent-info/with-comcard`, {
       method: "POST",
       body: formData,
@@ -173,7 +172,7 @@ export const updateTalentInfoWithComcardBySoleUserId = async ({
     }
     // Append comcardInfo
     formData.append("comcard.configId", "1")
-    comcardData.photoConfig?.forEach((blob, index) => {
+    comcardData.photoConfig?.forEach((blob: any, index: number) => {
       if (blob instanceof File) {
         formData.append("comcard.comcardImages", blob)
       } else {
@@ -185,7 +184,7 @@ export const updateTalentInfoWithComcardBySoleUserId = async ({
     formData.append("comcard.pdf", comcardData.pdf || "")
     formData.append("comcard.bucket", "comcards")
     formData.append("comcard.comcardImageName", soleUserId || "")
-    logFormData("EditformData", formData)
+    console.log("EditformData", formData)
 
     const response = await fetch(
       `${API_BASE_URL}/talent-info/with-comcard/sole-user/${soleUserId}`,

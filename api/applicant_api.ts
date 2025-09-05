@@ -1,6 +1,7 @@
 //applicant data
 
-import { API_BASE_URL } from "../apiservice"
+import { API_BASE_URL } from "./apiservice"
+
 
 export const getRoleApplicants = async () => {
   const response = await fetch(`${API_BASE_URL}/job-applicants`)
@@ -98,7 +99,7 @@ export const updateApplicantProcessById = async (values: any, id: number) => {
   }
 }
 
-export const deleteApplicantById = async (id) => {
+export const deleteApplicantById = async (id: number) => {
   try {
     const response = await fetch(`${API_BASE_URL}/job-applicants/${id}`, {
       method: "DELETE",

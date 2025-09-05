@@ -3,9 +3,8 @@
 import { env } from '../env.mjs';
 
 // Construct API base URL properly for React Native
-export const API_BASE_URL = env.EXPO_PUBLIC_API_URL 
-  ? `${env.EXPO_PUBLIC_API_URL}/api`
-  : 'http://localhost:3000/api'; // fallback for development
+// export const API_BASE_URL = `http://${process.env.PUBLIC_PUBLIC_API_KEY}/api`
+export const API_BASE_URL = `http://localhost:8080/api`
 
 //soleUser
 export const getSoleUsers = async () => {

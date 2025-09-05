@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "../apiservice"
+import { API_BASE_URL } from "./apiservice"
 
 //role data
 export const getRoleById = async (id: number): Promise<any[]> => {

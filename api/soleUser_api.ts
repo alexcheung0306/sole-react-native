@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "../apiservice"
+import { API_BASE_URL } from "./apiservice"
 
 interface ComCard {
   id: number
@@ -52,7 +52,7 @@ export interface UserProfileData {
   talentLevel: string | null
 }
 export const getUserProfileByUsername = async (
-  username
+  username: string
 ): Promise<UserProfileData> => {
   try {
     const response = await fetch(
@@ -72,9 +72,9 @@ export const getUserProfileByUsername = async (
     try {
       const result = JSON.parse(text)
       return result // Return the fetched result
-    } catch (parseError) {
+    } catch (parseError: any) {
       console.error("Invalid JSON response:", text)
-      throw new Error(`Invalid JSON response: ${parseError.message}`)
+      throw new Error(`Invalid JSON response: ${parseError.message as string}`)
     }
   } catch (error) {
     console.error("Error fetching data:", error)
