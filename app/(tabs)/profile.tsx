@@ -89,6 +89,23 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        <View className="flex-row justify-center items-center m-4">
+          <TouchableOpacity className="items-center px-6">
+            <Text className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>1,234</Text>
+            <Text className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Posts</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity className="items-center px-6">
+            <Text className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>5,678</Text>
+            <Text className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Followers</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity className="items-center px-6">
+            <Text className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>1,234</Text>
+            <Text className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Following</Text>
+          </TouchableOpacity>
+        </View>
+
         <View className="flex-row gap-3">
           <TouchableOpacity className={`border px-4 py-2 rounded-lg ${isDark ? 'border-gray-600' : 'border-gray-300'}`}>
             <Text className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
@@ -155,7 +172,7 @@ export default function ProfileScreen() {
       </View>
 
       {/* Posted Photos */}
-      <View className="mx-4">
+      <View>
         <Text className={`text-lg font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
           Posted Photos
         </Text>
