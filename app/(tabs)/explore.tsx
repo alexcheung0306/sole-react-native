@@ -1,10 +1,11 @@
 import { Stack } from 'expo-router';
-import { View, FlatList, Image, Dimensions } from 'react-native';
-
-const { width } = Dimensions.get('window');
-const IMAGE_SIZE = width / 3;
+import { View, FlatList, Image } from 'react-native';
+import React from 'react';
+import { useImageSize } from '../../hooks/useImageSize';
 
 export default function Explore() {
+  const imageSize = useImageSize(3, 4);
+
   const images = Array.from({ length: 30 }, (_, i) => ({
     id: i.toString(),
     uri: `https://picsum.photos/300/300?random=${i}`,
@@ -15,8 +16,8 @@ export default function Explore() {
       <Image 
         source={{ uri: item.uri }} 
         style={{ 
-          width: IMAGE_SIZE - 4, 
-          height: IMAGE_SIZE - 4 
+          width: imageSize, 
+          height: imageSize 
         }}
         className="rounded"
       />

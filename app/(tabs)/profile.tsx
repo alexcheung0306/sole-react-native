@@ -1,14 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
-import React, { useState, useEffect } from 'react';
-import { FlatList, ScrollView, Text, TouchableOpacity, View, Dimensions } from 'react-native';
-
-
-const { width } = Dimensions.get('window');
-const IMAGE_SIZE = width / 3;
+import React from 'react';
+import { FlatList, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useImageSize } from '../../hooks/useImageSize';
 
 export default function ProfileScreen() {
-  const [imageSize, setImageSize] = useState(Dimensions.get('window').width / 3);
+  const imageSize = useImageSize(3, 5); 
 
   const userStats = [
     { label: 'Stickers Created', value: '127', icon: 'happy' },
@@ -42,24 +39,13 @@ export default function ProfileScreen() {
     uri: `https://picsum.photos/300/300?random=${i}`,
   }));
 
-  // Update image size when screen dimensions change
-  useEffect(() => {
-    const subscription = Dimensions.addEventListener('change', ({ window }) => {
-      setImageSize(window.width / 3);
-    });
-    
-    return () => {
-      subscription?.remove();
-    };
-  }, []);
-
   const renderImage = ({ item }: { item: { id: string; uri: string } }) => (
     <View className="p-0.5">
       <ExpoImage 
         source={{ uri: item.uri }} 
         style={{ 
-          width: imageSize - 4, 
-          height: imageSize - 4 
+          width: imageSize, 
+          height: imageSize 
         }}
         className="rounded-3xl"
         contentFit="cover"
@@ -146,7 +132,7 @@ export default function ProfileScreen() {
       </View>
 
       {/* Posted Photos */}
-      <View className="mx-4 my-0">
+      <View>
         <Text className="text-lg font-bold text-white mb-4">Posted Photos</Text>
         <FlatList
           data={images}
@@ -180,7 +166,7 @@ export default function ProfileScreen() {
       {/* App Info */}
       <View className="mx-4 my-4 p-5 bg-gray-800/30 rounded-2xl border border-gray-700/50">
         <View className="items-center">
-          <Text className="text-gray-400 mb-1">Sole - Sticker Creator</Text>
+          <Text className="text-gray-400 mb-1">Sole - Find your next model</Text>
           <Text className="text-xs text-gray-500">Version 1.0.0</Text>
         </View>
       </View>

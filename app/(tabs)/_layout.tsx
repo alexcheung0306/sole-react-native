@@ -2,6 +2,7 @@ import { Link, Tabs } from 'expo-router';
 
 import { HeaderButton } from '../../components/HeaderButton';
 import { TabBarIcon } from '../../components/TabBarIcon';
+import { ChatButton } from '~/components/ChatButton';
 
 export default function TabLayout() {
   return (
@@ -16,7 +17,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
           headerRight: () => (
             <Link href="/chat" asChild>
-              <HeaderButton />
+              <ChatButton />
             </Link>
           ),
         }}
