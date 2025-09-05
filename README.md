@@ -29,7 +29,7 @@ npm install --save-dev tailwindcss
 
 # Git flow
  1. Create and switch to new branch
-git switch -c feature/explore-page
+git switch -c feature/profile-page
 
  2. Make changes to your code
  Edit files, add new features, etc.
@@ -41,13 +41,13 @@ git add .
 git commit -m "Add explore page grid layout"
 
  5. Push the new branch to remote repository
-git push -u origin feature/explore-page
+git push -u origin feature/profile-page
 
  6. Later, switch back to main branch
 git switch main
 
  7. Merge your feature branch (when ready)
-git merge feature/explore-page
+git merge feature/profile-page
 
 # git commands
  List all branches
