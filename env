@@ -1,8 +1,0 @@
-EXPO_PUBLIC_APP_URL=https://localhost:3000
-EXPO_PUBLIC_API_URL=https://localhost:8080
-DATABASE_URL=postgresql://sole_admin:Vertex@2022!@vertexinnotech.dsmynas.com:5437/sole
-SHADOW_DATABASE_URL=postgresql://sole_admin:Vertex@2022!@vertexinnotech.dsmynas.com:5437/sole_shadow?schema=public
-MINIO_BUCKET_NAME=sole
-MINIO_ENDPOINT=vertexinnotech.dsmynas.com:10901
-MINIO_ACCESS_KEY=PqhjUJIsaIWru21Xy3vb
-MINIO_SECRET_KEY=5Lxqn4JwKnW9lju0DvT9FFrlJolEH5QXHYhL102P
