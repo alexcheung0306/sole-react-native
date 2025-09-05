@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import React, { useState, useEffect } from 'react';
-import { FlatList, ScrollView, Text, TouchableOpacity, View, Dimensions } from 'react-native';
+import { FlatList, ScrollView, Text, TouchableOpacity, View, Dimensions, Alert } from 'react-native';
+import { useAuth, useUser, useClerk } from '@clerk/clerk-expo';
+import { SignOutButton } from '@clerk/clerk-react'
 
 
 const { width } = Dimensions.get('window');
@@ -9,6 +11,39 @@ const IMAGE_SIZE = width / 3;
 
 export default function ProfileScreen() {
   const [imageSize, setImageSize] = useState(Dimensions.get('window').width / 3);
+  const { signOut } = useAuth();
+  const { user } = useUser();
+  const clerk = useClerk();
+
+  const handleSignOut = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              console.log('Attempting to sign out...');
+              // Try both methods
+              await signOut();
+              // Alternative method if the first doesn't work
+              // await clerk.signOut();
+              console.log('Sign out successful');
+            } catch (error) {
+              console.error('Sign out error:', error);
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const userStats = [
     { label: 'Stickers Created', value: '127', icon: 'happy' },
@@ -26,6 +61,7 @@ export default function ProfileScreen() {
     { title: 'Settings', icon: 'settings-outline', onPress: () => {} },
     { title: 'Help & Support', icon: 'help-circle-outline', onPress: () => {} },
     { title: 'Rate App', icon: 'star-outline', onPress: () => {} },
+    { title: 'Sign Out', icon: 'log-out-outline', onPress: handleSignOut, isDestructive: true },
   ];
 
   const getBadgeColor = (type: string) => {
@@ -72,7 +108,10 @@ export default function ProfileScreen() {
   return (
     <ScrollView className="flex-1 bg-gray-900" showsVerticalScrollIndicator={false}>
       {/* Profile Header */}
+
       <View className="mx-4 my-4 p-5 bg-gray-800/30 rounded-2xl border border-gray-700/50 items-center">
+      <SignOutButton />
+      
         <View className="mb-4">
           <ExpoImage
             source={require('../../assets/profile/baldman.jpg')} 
@@ -166,11 +205,24 @@ export default function ProfileScreen() {
           {quickActions.map((action, index) => (
             <TouchableOpacity 
               key={index} 
-              className="flex-row items-center p-3 border border-gray-700/50 rounded-lg"
+              className={`flex-row items-center p-3 border rounded-lg ${
+                action.isDestructive 
+                  ? 'border-red-500/50 bg-red-500/10' 
+                  : 'border-gray-700/50'
+              }`}
               onPress={action.onPress}
             >
-              <Ionicons name={action.icon as any} size={20} color="#fff" className="mr-3" />
-              <Text className="flex-1 text-white font-medium">{action.title}</Text>
+              <Ionicons 
+                name={action.icon as any} 
+                size={20} 
+                color={action.isDestructive ? "#ef4444" : "#fff"} 
+                className="mr-3" 
+              />
+              <Text className={`flex-1 font-medium ${
+                action.isDestructive ? 'text-red-400' : 'text-white'
+              }`}>
+                {action.title}
+              </Text>
               <Ionicons name="chevron-forward" size={16} color="#6B7280" />
             </TouchableOpacity>
           ))}
