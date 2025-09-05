@@ -1,9 +1,12 @@
 import { forwardRef } from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Pressable } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 
 export const ChatButton = forwardRef<typeof Pressable, { onPress?: () => void }>(
   ({ onPress }, ref) => {
+    const { isDark } = useTheme();
+    
     return (
       <Pressable 
         onPress={onPress}
@@ -12,7 +15,7 @@ export const ChatButton = forwardRef<typeof Pressable, { onPress?: () => void }>
         <FontAwesome
           name="comment-o"
           size={25}
-          color="black"
+          color={isDark ? '#FFFFFF': '#111827'}
         />
       </Pressable>
     );

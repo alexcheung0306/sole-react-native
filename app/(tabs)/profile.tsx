@@ -3,8 +3,10 @@ import { Image as ExpoImage } from 'expo-image';
 import React from 'react';
 import { FlatList, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useImageSize } from '../../hooks/useImageSize';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function ProfileScreen() {
+  const { isDark, theme, toggleTheme } = useTheme();
   const imageSize = useImageSize(3, 5); 
 
   const userStats = [
@@ -21,6 +23,7 @@ export default function ProfileScreen() {
 
   const quickActions = [
     { title: 'Settings', icon: 'settings-outline', onPress: () => {} },
+    { title: 'Theme', icon: theme === 'dark' ? 'sunny-outline' : 'moon-outline', onPress: toggleTheme },
     { title: 'Help & Support', icon: 'help-circle-outline', onPress: () => {} },
     { title: 'Rate App', icon: 'star-outline', onPress: () => {} },
   ];
@@ -56,9 +59,9 @@ export default function ProfileScreen() {
   
 
   return (
-    <ScrollView className="flex-1 bg-gray-900" showsVerticalScrollIndicator={false}>
+    <ScrollView className={`flex-1 ${isDark ? 'bg-gray-900' : 'bg-white'}`} showsVerticalScrollIndicator={false}>
       {/* Profile Header */}
-      <View className="mx-4 my-4 p-5 bg-gray-800/30 rounded-2xl border border-gray-700/50 items-center">
+      <View className={`mx-4 my-4 p-5 rounded-2xl border items-center ${isDark ? 'bg-gray-800/30 border-gray-700/50' : 'bg-gray-50 border-gray-200'}`}>
         <View className="mb-4">
           <ExpoImage
             source={require('../../assets/profile/baldman.jpg')} 
@@ -68,8 +71,12 @@ export default function ProfileScreen() {
         </View>
         
         <View className="items-center mb-5">
-          <Text className="text-2xl font-bold text-white mb-1">Alex Chen</Text>
-          <Text className="text-sm text-gray-400 mb-2">Sticker Creator & Photo Editor</Text>
+          <Text className={`text-2xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            Alex Chen
+          </Text>
+          <Text className={`text-sm mb-2 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+            Sticker Creator & Photo Editor
+          </Text>
           
         </View>
 
@@ -83,48 +90,64 @@ export default function ProfileScreen() {
         </View>
 
         <View className="flex-row gap-3">
-          <TouchableOpacity className="border border-gray-500 px-4 py-2 rounded-lg">
-            <Text className="text-white font-medium">Edit Profile</Text>
+          <TouchableOpacity className={`border px-4 py-2 rounded-lg ${isDark ? 'border-gray-600' : 'border-gray-300'}`}>
+            <Text className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              Edit Profile
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity className="bg-blue-500 px-4 py-2 rounded-lg">
-            <Text className="text-white font-medium">Share Profile</Text>
+            <Text className="text-white font-medium">
+              Share Profile
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Stats Section */}
-      <View className="mx-4 my-0 p-5 bg-gray-800/30 rounded-2xl border border-gray-700/50">
-        <Text className="text-lg font-bold text-white mb-4">Your Stats</Text>
+      <View className={`mx-4 my-0 p-5 rounded-2xl border ${isDark ? 'bg-gray-800/30 border-gray-700/50' : 'bg-gray-50 border-gray-200'}`}>
+        <Text className={`text-lg font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          Your Stats
+        </Text>
         <View className="flex-row justify-between">
           {userStats.map((stat, index) => (
             <View key={index} className="flex-1 items-center">
               <View className="w-12 h-12 rounded-full bg-blue-500/20 justify-center items-center mb-2">
                 <Ionicons name={stat.icon as any} size={24} color="#1DA1F2" />
               </View>
-              <Text className="text-xl font-bold text-white mb-1">{stat.value}</Text>
-              <Text className="text-xs text-gray-400 text-center">{stat.label}</Text>
+              <Text className={`text-xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                {stat.value}
+              </Text>
+              <Text className={`text-xs text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                {stat.label}
+              </Text>
             </View>
           ))}
         </View>
       </View>
 
       {/* Recent Activity */}
-      <View className="mx-4 my-4 p-5 bg-gray-800/30 rounded-2xl border border-gray-700/50">
-        <Text className="text-lg font-bold text-white mb-4">Recent Activity</Text>
+      <View className={`mx-4 my-4 p-5 rounded-2xl border ${isDark ? 'bg-gray-800/30 border-gray-700/50' : 'bg-gray-50 border-gray-200'}`}>
+        <Text className={`text-lg font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          Recent Activity
+        </Text>
         <View className="gap-3">
           {recentActivity.map((activity, index) => (
             <View key={index}>
               <View className="flex-row justify-between items-center">
                 <View className="flex-1">
-                  <Text className="text-white mb-1">{activity.action}</Text>
-                  <Text className="text-xs text-gray-500">{activity.time}</Text>
+                  <Text className={`mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    {activity.action}
+                  </Text>
+                  <Text className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {activity.time}
+                  </Text>
                 </View>
                 <View className={`${getBadgeColor(activity.type)} px-2 py-1 rounded`}>
                   <Text className="text-xs font-semibold text-white uppercase">{activity.type}</Text>
                 </View>
               </View>
               {index < recentActivity.length - 1 && (
-                <View className="h-px bg-gray-700/50 mt-3" />
+                <View className={`h-px mt-3 ${isDark ? 'bg-gray-700/50' : 'bg-gray-200'}`} />
               )}
             </View>
           ))}
@@ -132,8 +155,10 @@ export default function ProfileScreen() {
       </View>
 
       {/* Posted Photos */}
-      <View>
-        <Text className="text-lg font-bold text-white mb-4">Posted Photos</Text>
+      <View className="mx-4">
+        <Text className={`text-lg font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          Posted Photos
+        </Text>
         <FlatList
           data={images}
           renderItem={renderImage}
@@ -146,28 +171,45 @@ export default function ProfileScreen() {
       </View>
 
       {/* Quick Actions */}
-      <View className="mx-4 my-0 p-5 bg-gray-800/30 rounded-2xl border border-gray-700/50">
-        <Text className="text-lg font-bold text-white mb-4">Quick Actions</Text>
+      <View className={`mx-4 my-0 p-5 rounded-2xl border ${isDark ? 'bg-gray-800/30 border-gray-700/50' : 'bg-gray-50 border-gray-200'}`}>
+        <Text className={`text-lg font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          Quick Actions
+        </Text>
         <View className="gap-2">
           {quickActions.map((action, index) => (
             <TouchableOpacity 
               key={index} 
-              className="flex-row items-center p-3 border border-gray-700/50 rounded-lg"
+              className={`flex-row items-center p-3 border rounded-lg mb-2 ${isDark ? 'border-gray-700/50' : 'border-gray-200'}`}
               onPress={action.onPress}
             >
-              <Ionicons name={action.icon as any} size={20} color="#fff" className="mr-3" />
-              <Text className="flex-1 text-white font-medium">{action.title}</Text>
-              <Ionicons name="chevron-forward" size={16} color="#6B7280" />
+              <Ionicons 
+                name={action.icon as any} 
+                size={20} 
+                color={isDark ? '#fff' : '#000'} 
+                className="mr-3" 
+              />
+              <Text className={`flex-1 font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                {action.title}
+              </Text>
+              <Ionicons 
+                name="chevron-forward" 
+                size={16} 
+                color={isDark ? '#9CA3AF' : '#6B7280'} 
+              />
             </TouchableOpacity>
           ))}
         </View>
       </View>
 
       {/* App Info */}
-      <View className="mx-4 my-4 p-5 bg-gray-800/30 rounded-2xl border border-gray-700/50">
+      <View className={`mx-4 my-4 p-5 rounded-2xl border ${isDark ? 'bg-gray-800/30 border-gray-700/50' : 'bg-gray-50 border-gray-200'}`}>
         <View className="items-center">
-          <Text className="text-gray-400 mb-1">Sole - Find your next model</Text>
-          <Text className="text-xs text-gray-500">Version 1.0.0</Text>
+          <Text className={`mb-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+            Sole - Find your next model
+          </Text>
+          <Text className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            Version 1.0.0
+          </Text>
         </View>
       </View>
     </ScrollView>

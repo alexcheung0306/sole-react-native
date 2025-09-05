@@ -3,12 +3,24 @@ import { Link, Tabs } from 'expo-router';
 import { HeaderButton } from '../../components/HeaderButton';
 import { TabBarIcon } from '../../components/TabBarIcon';
 import { ChatButton } from '~/components/ChatButton';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function TabLayout() {
+  const { colors, isDark } = useTheme();
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: 'black',
+        tabBarActiveTintColor: colors.tabBarActiveTint,
+        tabBarInactiveTintColor: colors.tabBarInactiveTint,
+        tabBarStyle: {
+          backgroundColor: isDark ? '#111827' : '#FFFFFF',
+          borderTopColor: isDark ? '#374151' : '#E5E7EB',
+        },
+        headerStyle: {
+          backgroundColor: isDark ? '#111827' : '#FFFFFF',
+        },
+        headerTintColor: colors.headerTint,
       }}>
       <Tabs.Screen
         name="index"

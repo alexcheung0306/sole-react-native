@@ -2,8 +2,10 @@ import { Stack } from 'expo-router';
 import { View, FlatList, Image } from 'react-native';
 import React from 'react';
 import { useImageSize } from '../../hooks/useImageSize';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function Explore() {
+  const { isDark } = useTheme();
   const imageSize = useImageSize(3, 4);
 
   const images = Array.from({ length: 30 }, (_, i) => ({
@@ -27,7 +29,7 @@ export default function Explore() {
   return (
     <>
       <Stack.Screen options={{ title: 'Explore' }} />
-      <View className="flex-1 bg-white">
+      <View className={`flex-1 ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
         <FlatList
           data={images}
           renderItem={renderImage}
