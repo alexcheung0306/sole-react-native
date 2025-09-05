@@ -25,3 +25,45 @@ npm install expo
 # Install NativeWind dependencies
 npm install nativewind
 npm install --save-dev tailwindcss
+
+
+# Git flow
+ 1. Create and switch to new branch
+git switch -c feature/explore-page
+
+ 2. Make changes to your code
+ Edit files, add new features, etc.
+
+ 3. Stage your changes
+git add .
+
+ 4. Commit your changes
+git commit -m "Add explore page grid layout"
+
+ 5. Push the new branch to remote repository
+git push -u origin feature/explore-page
+
+ 6. Later, switch back to main branch
+git switch main
+
+ 7. Merge your feature branch (when ready)
+git merge feature/explore-page
+
+# git commands
+ List all branches
+git branch
+
+ List all remote branches
+git branch -r
+
+ List all branches (local and remote)
+git branch -a
+
+ Switch to existing branch
+git switch branch-name
+
+ Delete local branch
+git branch -d branch-name
+
+ Delete remote branch
+git push origin --delete branch-name

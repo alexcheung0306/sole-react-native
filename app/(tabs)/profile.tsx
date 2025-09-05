@@ -1,7 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import React from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, ScrollView, Text, TouchableOpacity, View, Dimensions } from 'react-native';
+
+
+const { width } = Dimensions.get('window');
+const IMAGE_SIZE = width / 3;
 
 export default function ProfileScreen() {
   const userStats = [
@@ -31,14 +35,34 @@ export default function ProfileScreen() {
     }
   };
 
+  const images = Array.from({ length: 9 }, (_, i) => ({
+    id: i.toString(),
+    uri: `https://picsum.photos/300/300?random=${i}`,
+  }));
+
+  const renderImage = ({ item }: { item: { id: string; uri: string } }) => (
+    <View className="p-0.5">
+      <ExpoImage 
+        source={{ uri: item.uri }} 
+        style={{ 
+          width: IMAGE_SIZE - 4, 
+          height: IMAGE_SIZE - 4 
+        }}
+        className="rounded"
+      />
+    </View>
+  );
+
+  
+
   return (
     <ScrollView className="flex-1 bg-gray-900" showsVerticalScrollIndicator={false}>
       {/* Profile Header */}
       <View className="mx-4 my-4 p-5 bg-gray-800/30 rounded-2xl border border-gray-700/50 items-center">
         <View className="mb-4">
           <ExpoImage
-            source={{ uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face' }}
-            className="w-20 h-20 rounded-full border-4 border-blue-500"
+            source={require('../../assets/profile/baldman.jpg')} 
+            className="w-20 h-20 rounded-full border-4 border-white"
             placeholder="Alex Chen"
           />
         </View>
@@ -46,8 +70,15 @@ export default function ProfileScreen() {
         <View className="items-center mb-5">
           <Text className="text-2xl font-bold text-white mb-1">Alex Chen</Text>
           <Text className="text-sm text-gray-400 mb-2">Sticker Creator & Photo Editor</Text>
+          
+        </View>
+
+        <View className="flex-row gap-3 mb-5">
           <View className="bg-green-500 px-3 py-1 rounded-full">
-            <Text className="text-xs font-semibold text-white">Pro Member</Text>
+            <Text className="text-xs font-semibold text-white">Verified</Text>
+          </View>
+          <View className="bg-blue-400 px-3 py-1 rounded-full">
+            <Text className="text-xs font-semibold text-white">Actor/Actress</Text>
           </View>
         </View>
 
@@ -98,6 +129,17 @@ export default function ProfileScreen() {
             </View>
           ))}
         </View>
+      </View>
+
+      {/* Posted Photos */}
+      <View className="flex-1 bg-white">
+      <FlatList
+        data={images}
+        renderItem={renderImage}
+        numColumns={3}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
+      />
       </View>
 
       {/* Quick Actions */}
