@@ -7,7 +7,6 @@
     "ios": "expo start --ios",
     "start": "expo start",
     "start2": "expo start --clear",
-
     "prebuild": "expo prebuild",
     "lint": "eslint \"**/*.{js,jsx,ts,tsx}\" && prettier -c \"**/*.{js,jsx,ts,tsx,json}\"",
     "format": "eslint \"**/*.{js,jsx,ts,tsx}\" --fix && prettier \"**/*.{js,jsx,ts,tsx,json}\" --write",
@@ -18,6 +17,8 @@
     "@expo/vector-icons": "^14.0.0",
     "@react-navigation/native": "^7.0.3",
     "@t3-oss/env-core": "^0.13.8",
+    "@tanstack/react-query": "^5.87.1",
+    "@tanstack/react-query-devtools": "^5.87.1",
     "dotenv": "^17.2.2",
     "expo": "^53.0.22",
     "expo-constants": "~17.1.4",
