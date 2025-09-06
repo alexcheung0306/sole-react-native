@@ -1,14 +1,22 @@
 import { Stack } from 'expo-router';
-import { View, FlatList, Image, Dimensions } from 'react-native';
+import { View, FlatList, Image, Dimensions, TouchableOpacity, Text } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = width / 3;
 
 export default function Explore() {
+  const router = useRouter();
+  
   const images = Array.from({ length: 30 }, (_, i) => ({
     id: i.toString(),
     uri: `https://picsum.photos/300/300?random=${i}`,
   }));
+
+  const handleUsersPress = () => {
+    router.push('/users');
+  };
 
   const renderImage = ({ item }: { item: { id: string; uri: string } }) => (
     <View className="p-0.5">
@@ -25,7 +33,16 @@ export default function Explore() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Explore' }} />
+      <Stack.Screen 
+        options={{ 
+          title: 'Explore',
+          headerRight: () => (
+            <TouchableOpacity onPress={handleUsersPress} style={{ padding: 8 }}>
+              <Ionicons name="people-outline" size={24} color="#000" />
+            </TouchableOpacity>
+          ),
+        }} 
+      />
       <View className="flex-1 bg-white">
         <FlatList
           data={images}

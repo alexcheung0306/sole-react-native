@@ -28,28 +28,31 @@ export default function RootLayout() {
       <QueryProvider>
         <AppContextProvider>
           <SoleUserProvider>
-            <Stack>
-              {/* Authentication screens - accessible without login */}
-              <Stack.Screen 
-                name="sign-in" 
-                options={{ 
-                  headerShown: false,
-                  presentation: 'modal'
-                }} 
-              />
-              <Stack.Screen 
-                name="sign-up" 
-                options={{ 
-                  headerShown: false,
-                  presentation: 'modal'
-                }} 
-              />
-              
-              {/* Protected screens - require authentication */}
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-              <Stack.Screen name="chat" options={{ headerShown: false }} />
-            </Stack>
+              <Stack>
+                {/* Authentication screens - accessible without login */}
+                <Stack.Screen
+                  name="sign-in"
+                  options={{
+                    headerShown: false,
+                    presentation: 'modal'
+                  }}
+                />
+                <Stack.Screen
+                  name="sign-up"
+                  options={{
+                    headerShown: false,
+                    presentation: 'modal'
+                  }}
+                />
+
+                {/* Protected screens - require authentication */}
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+                <Stack.Screen name="chat" options={{ headerShown: false }} />
+                <Stack.Screen name="users" options={{ headerShown: false }} />
+                <Stack.Screen name="user/[username]" options={{ headerShown: false }} />
+
+              </Stack>
           </SoleUserProvider>
         </AppContextProvider>
       </QueryProvider>

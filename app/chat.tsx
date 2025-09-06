@@ -23,15 +23,13 @@ export default function ChatScreen() {
     <AuthWrapper>
       <View style={styles.container}>
         {/* Header */}
-        {/* <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.headerButton} onPress={handleBackPress}>
+            <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Messages</Text>
-          <TouchableOpacity style={styles.newChatButton}>
-            <Ionicons name="create-outline" size={24} color="#1DA1F2" />
-          </TouchableOpacity>
-        </View> */}
+          <Text style={styles.headerTitle}>Users</Text>
+          <View style={styles.headerButton} />
+        </View>
 
         {/* Chat List */}
         <ScrollView style={styles.chatList} showsVerticalScrollIndicator={false}>
@@ -162,5 +160,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  headerButton: {
+    padding: 8,
+    minWidth: 40,
   },
 });
