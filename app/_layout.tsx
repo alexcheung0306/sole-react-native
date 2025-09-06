@@ -8,6 +8,8 @@ import { AppContextProvider } from '~/context/AppContext';
 import { SoleUserProvider } from '~/context/SoleUserContext';
 import { QueryProvider } from '~/context/QueryProvider';
 
+import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
+
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
   initialRouteName: 'sign-in',
@@ -24,7 +26,9 @@ const tokenCache = {
 
 export default function RootLayout() {
   return (
-    <ClerkProvider publishableKey={PUBLISHABLE_KEY} tokenCache={tokenCache}>
+    
+    <GluestackUIProvider mode="light">
+      <ClerkProvider publishableKey={PUBLISHABLE_KEY} tokenCache={tokenCache}>
       <QueryProvider>
         <AppContextProvider>
           <SoleUserProvider>
@@ -57,5 +61,7 @@ export default function RootLayout() {
         </AppContextProvider>
       </QueryProvider>
     </ClerkProvider>
+    </GluestackUIProvider>
+  
   );
 }
