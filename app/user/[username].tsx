@@ -8,8 +8,9 @@ import { getUserProfileByUsername } from '~/api/soleUser_api';
 import { useSoleUserContext } from '~/context/SoleUserContext';
 import { useUser } from '@clerk/clerk-expo';
 import { useState } from 'react';
+import { UserInfo } from '~/components/profile/userInfo';
 
-export default function UserProfileScreen( ) {
+export default function UserProfileScreen() {
   const router = useRouter();
   const { soleUserId } = useSoleUserContext()
   const [isUser, setIsUser] = useState(false)
@@ -88,7 +89,6 @@ export default function UserProfileScreen( ) {
 
   console.log('userProfileData', userProfileData);
 
-
   return (
     <AuthWrapper>
       <View style={styles.container}>
@@ -102,6 +102,12 @@ export default function UserProfileScreen( ) {
             <Ionicons name="chatbubble-outline" size={24} color="#000" />
           </TouchableOpacity> */}
         </View>
+
+        <UserInfo
+          username={username}
+          isUser={isUser}
+          userInfo={userProfileData}
+          isLoading={userProfileIsLoading} />
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           scroll

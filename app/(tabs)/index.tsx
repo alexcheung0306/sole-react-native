@@ -13,8 +13,8 @@ export default function Home() {
         <ScreenContent path="app/(tabs)/index.tsx" title="Tab One" />
       </View>
       <Button variant="solid" size="md" action="primary" onPress={() => console.log('Button pressed')}>
-      <ButtonText>Click me</ButtonText>
-    </Button>
+        <ButtonText>Click me</ButtonText>
+      </Button>
     </>
   );
 }
