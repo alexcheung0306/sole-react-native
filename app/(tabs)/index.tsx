@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { ScreenContent } from '~/components/ScreenContent';
 import { useTheme } from '../../contexts/ThemeContext';
+import { Button, ButtonText } from '~/components/ui/button';
 
 export default function Home() {
   const { isDark } = useTheme();
@@ -13,6 +14,9 @@ export default function Home() {
       <Stack.Screen options={{ title: 'Tab One' }} />
       <View className={`flex-1 p-6 ${isDark ? 'bg-gray-900' : 'bg-white'}`}>
         <ScreenContent path="app/(tabs)/index.tsx" title="Tab One" />
+        <Button variant="solid" size="md" action="primary" onPress={() => console.log('Button pressed')}>
+          <ButtonText>Click me</ButtonText>
+        </Button>
       </View>
     </>
   );
