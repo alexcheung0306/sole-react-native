@@ -5,8 +5,9 @@ import { Slot } from 'expo-router';
 import { QueryProvider } from './context/QueryProvider';
 import { AppContextProvider } from './context/AppContext';
 import { SoleUserProvider } from './context/SoleUserContext';
+import { EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY } from '@env';
 
-const PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const PUBLISHABLE_KEY = EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 console.log('Clerk PUBLISHABLE_KEY:', PUBLISHABLE_KEY ? 'Loaded' : 'NOT LOADED');
 

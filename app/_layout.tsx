@@ -14,7 +14,8 @@ import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: 'sign-in',
+  // initialRouteName: 'sign-in',
+  initialRouteName: '(tabs)',
 };
 
 const PUBLISHABLE_KEY = EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;

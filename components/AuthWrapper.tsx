@@ -12,6 +12,10 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
 
   console.log('AuthWrapper - isLoaded:', isLoaded, 'isSignedIn:', isSignedIn, 'userId:', userId);
 
+  // Temporarily disable authentication check for development
+  // TODO: Re-enable authentication when ready
+  return <>{children}</>;
+
   // Show loading spinner while Clerk is initializing
   if (!isLoaded) {
     console.log('AuthWrapper - Showing loading spinner');
