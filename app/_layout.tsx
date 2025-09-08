@@ -53,7 +53,6 @@ export default function RootLayout() {
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
                 <Stack.Screen name="chat" options={{ headerShown: false }} />
-                <Stack.Screen name="users" options={{ headerShown: false }} />
                 <Stack.Screen name="user/[username]" options={{ headerShown: false }} />
 
               </Stack>

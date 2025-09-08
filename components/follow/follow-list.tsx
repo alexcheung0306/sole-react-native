@@ -47,11 +47,6 @@ export default function FollowList({
     staleTime: Infinity,
   });
 
-  console.log('followingData', followingData);
-  console.log('followersData', followersData);
-  console.log('soleUser', soleUser);
-  console.log('soleUserId', soleUserId);
-
   const handlePress = () => {
     const pageType = type === 'follower' ? 'followers' : 'following';
     router.push(`/user/${username}/${pageType}`);

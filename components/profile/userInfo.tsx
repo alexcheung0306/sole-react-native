@@ -11,6 +11,7 @@ import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { useSoleUserContext } from '@/context/SoleUserContext';
+import { UserAvatar } from './user-avatar';
 
 export function UserInfo({
   username,
@@ -51,25 +52,12 @@ export function UserInfo({
               {/* user */}
               <View>
                 <Skeleton className="rounded-lg" isLoaded={!isLoading}>
-                  {/* <User
-                                        avatarProps={{
-                                            src: userInfo?.profilePic
-                                                ? userInfo.profilePic
-                                                : user?.imageUrl,
-                                        }}
-                                        description={
-                                            <Link isExternal href={`/user/${username}`} size="md">
-                                                @{username}
-                                            </Link>
-                                        }
-                                        name={userInfo?.name}
-                                    /> */}
-                  UserIcon and Username
+                  <UserAvatar userInfo={userInfo} username={username} />
                 </Skeleton>
               </View>
 
               {/* Followers and Following */}
-              <View className="col-span-3 ml-4 flex justify-center gap-5 text-sm">
+              <View className="col-span-3 ml-4 flex flex-row justify-center gap-5 text-sm">
                 <View className="flex flex-col items-center">
                   <Skeleton className="rounded-lg" isLoaded={!isLoading}>
                     <Text className="text-sm">100</Text>
@@ -113,18 +101,17 @@ export function UserInfo({
           <View className="col-span-4 flex items-center justify-center">
             <Skeleton className="rounded-lg" isLoaded={!isLoading}>
               {isUser && userInfo && filteredCategoryCHip ? (
-                // <UserInfoForm
-                //     username={username}
-                //     categoryValue={filteredCategoryCHip}
-                //     userInfo={userInfo}
-                //     isLoading={isLoading}
-                // />
                 <>User Info Form</>
               ) : (
                 userInfo &&
                 filteredCategoryCHip && (
-                  <View className="flex w-full gap-2">
-                    <FollowButton size="md" username={username} isUser={isUser} soleUserId={soleUserId as string} />
+                  <View className="flex flex-row flex-wrap w-full gap-2">
+                    <FollowButton
+                      size="md"
+                      username={username}
+                      isUser={isUser}
+                      soleUserId={soleUserId as string}
+                    />
                     <Button
                       onPress={() => router.push(`/chatroom/${username}` as any)}
                       style={{ width: '100%' }}>

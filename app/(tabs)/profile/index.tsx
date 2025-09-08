@@ -114,7 +114,7 @@ export default function ProfileScreen() {
       
         <View className="mb-4">
           <ExpoImage
-            source={require('../../assets/profile/baldman.jpg')} 
+            source={require('../../../assets/profile/baldman.jpg')} 
             className="w-20 h-20 rounded-full border-4 border-white"
             placeholder="Alex Chen"
           />
