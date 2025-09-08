@@ -10,10 +10,9 @@ import { createFollowRecord as apiCreateFollowRecord, updateFollowRecord as apiU
 
 
 
-export function FollowButton({ size, username, isUser }: { size: string, username: string, isUser: boolean }) {
+export function FollowButton({soleUserId, size, username, isUser }: { soleUserId: string, size: string, username: string, isUser: boolean }) {
   const [status, setStatus] = useState<string | undefined>(undefined)
-  const { soleUserId } = useSoleUserContext()
-
+ 
   const queryClient = useQueryClient()
   const { data: followData } = useQuery({
     queryKey: ["singleFollowData", username],
