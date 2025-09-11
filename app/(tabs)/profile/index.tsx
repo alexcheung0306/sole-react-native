@@ -2,8 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import React, { useState, useEffect } from 'react';
 import { FlatList, ScrollView, Text, TouchableOpacity, View, Dimensions, Alert } from 'react-native';
-import { useAuth, useUser, useClerk } from '@clerk/clerk-expo';
-import { SignOutButton } from '@clerk/clerk-react'
+import { useAuth, useUser } from '@clerk/clerk-expo';
+import { router } from 'expo-router';
 
 
 const { width } = Dimensions.get('window');
@@ -13,36 +13,32 @@ export default function ProfileScreen() {
   const [imageSize, setImageSize] = useState(Dimensions.get('window').width / 3);
   const { signOut } = useAuth();
   const { user } = useUser();
-  const clerk = useClerk();
 
   const handleSignOut = async () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              console.log('Attempting to sign out...');
-              // Try both methods
-              await signOut();
-              // Alternative method if the first doesn't work
-              // await clerk.signOut();
-              console.log('Sign out successful');
-            } catch (error) {
-              console.error('Sign out error:', error);
-              Alert.alert('Error', 'Failed to sign out. Please try again.');
-            }
-          },
-        },
-      ]
-    );
+    console.log('handleSignOut called');
+    
+    // Simple confirmation first
+    const confirmed = window.confirm('Are you sure you want to sign out?');
+    if (!confirmed) {
+      console.log('Sign out cancelled');
+      return;
+    }
+    
+    try {
+      console.log('Attempting to sign out...');
+      await signOut();
+      console.log('Sign out successful');
+      
+      // Clear any cached data
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Navigate to sign-in screen
+      router.replace('/sign-in');
+    } catch (error) {
+      console.error('Sign out error:', error);
+      alert('Failed to sign out. Please try again.');
+    }
   };
 
   const userStats = [
@@ -61,7 +57,10 @@ export default function ProfileScreen() {
     { title: 'Settings', icon: 'settings-outline', onPress: () => {} },
     { title: 'Help & Support', icon: 'help-circle-outline', onPress: () => {} },
     { title: 'Rate App', icon: 'star-outline', onPress: () => {} },
-    { title: 'Sign Out', icon: 'log-out-outline', onPress: handleSignOut, isDestructive: true },
+    { title: 'Sign Out', icon: 'log-out-outline', onPress: () => {
+      console.log('Sign Out button pressed'); // Debug log
+      handleSignOut();
+    }, isDestructive: true },
   ];
 
   const getBadgeColor = (type: string) => {
@@ -110,19 +109,28 @@ export default function ProfileScreen() {
       {/* Profile Header */}
 
       <View className="mx-4 my-4 p-5 bg-gray-800/30 rounded-2xl border border-gray-700/50 items-center">
-      <SignOutButton />
-      
         <View className="mb-4">
           <ExpoImage
-            source={require('../../../assets/profile/baldman.jpg')} 
+            source={
+              user?.imageUrl 
+                ? { uri: user.imageUrl }
+                : require('../../../assets/profile/baldman.jpg')
+            } 
             className="w-20 h-20 rounded-full border-4 border-white"
-            placeholder="Alex Chen"
+            placeholder={user?.firstName || 'User'}
           />
         </View>
         
         <View className="items-center mb-5">
-          <Text className="text-2xl font-bold text-white mb-1">Alex Chen</Text>
-          <Text className="text-sm text-gray-400 mb-2">Sticker Creator & Photo Editor</Text>
+          <Text className="text-2xl font-bold text-white mb-1">
+            {user?.firstName && user?.lastName 
+              ? `${user.firstName} ${user.lastName}` 
+              : user?.username || 'User'
+            }
+          </Text>
+          <Text className="text-sm text-gray-400 mb-2">
+            {user?.primaryEmailAddress?.emailAddress || 'No email'}
+          </Text>
           
         </View>
 
@@ -210,7 +218,11 @@ export default function ProfileScreen() {
                   ? 'border-red-500/50 bg-red-500/10' 
                   : 'border-gray-700/50'
               }`}
-              onPress={action.onPress}
+              onPress={() => {
+                console.log(`Button pressed: ${action.title}`); // Debug log
+                action.onPress();
+              }}
+              activeOpacity={0.7}
             >
               <Ionicons 
                 name={action.icon as any} 
