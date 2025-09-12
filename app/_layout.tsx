@@ -26,26 +26,25 @@ const tokenCache = {
 
 export default function RootLayout() {
   return (
-    
     <GluestackUIProvider mode="light">
       <ClerkProvider publishableKey={PUBLISHABLE_KEY} tokenCache={tokenCache}>
-      <QueryProvider>
-        <AppContextProvider>
-          <SoleUserProvider>
+        <QueryProvider>
+          <AppContextProvider>
+            <SoleUserProvider>
               <Stack>
                 {/* Authentication screens - accessible without login */}
                 <Stack.Screen
                   name="sign-in"
                   options={{
                     headerShown: false,
-                    presentation: 'modal'
+                    presentation: 'modal',
                   }}
                 />
                 <Stack.Screen
                   name="sign-up"
                   options={{
                     headerShown: false,
-                    presentation: 'modal'
+                    presentation: 'modal',
                   }}
                 />
 
@@ -54,13 +53,11 @@ export default function RootLayout() {
                 <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
                 <Stack.Screen name="chat" options={{ headerShown: false }} />
                 <Stack.Screen name="user/[username]" options={{ headerShown: false }} />
-
               </Stack>
-          </SoleUserProvider>
-        </AppContextProvider>
-      </QueryProvider>
-    </ClerkProvider>
+            </SoleUserProvider>
+          </AppContextProvider>
+        </QueryProvider>
+      </ClerkProvider>
     </GluestackUIProvider>
-  
   );
 }
