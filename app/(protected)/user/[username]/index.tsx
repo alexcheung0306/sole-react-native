@@ -2,8 +2,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'rea
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { AuthWrapper } from '../../../components/AuthWrapper';
-import { getSoleUserBySoleUserId } from '../../../api/apiservice';
+import { getSoleUserBySoleUserId } from '~/api/apiservice';
 import { getUserProfileByUsername } from '~/api/soleUser_api';
 import { useSoleUserContext } from '~/context/SoleUserContext';
 import { useUser } from '@clerk/clerk-expo';
@@ -61,63 +60,57 @@ export default function UserProfileScreen() {
 
   if (userProfileIsLoading) {
     return (
-      <AuthWrapper>
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color="#000" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Loading...</Text>
-          </View>
-          <View style={styles.loadingContainer}>
-            <Text>Loading user profile...</Text>
-          </View>
-        </View>
-      </AuthWrapper>
-    );
-  }
-
-  if (userProfileError) {
-    return (
-      <AuthWrapper>
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color="#000" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Error</Text>
-          </View>
-          <View style={styles.errorContainer}>
-            <Text>Error loading user profile</Text>
-            <TouchableOpacity onPress={() => refetch()} style={styles.retryButton}>
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </AuthWrapper>
-    );
-  }
-
-  return (
-    <AuthWrapper>
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>@{username}</Text>
+          <Text style={styles.headerTitle}>Loading...</Text>
         </View>
-
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          <UserInfo
-            username={username}
-            isUser={isUser}
-            userInfo={userProfileData}
-            isLoading={userProfileIsLoading}
-          />
-        </ScrollView>
+        <View style={styles.loadingContainer}>
+          <Text>Loading user profile...</Text>
+        </View>
       </View>
-    </AuthWrapper>
+    );
+  }
+
+  if (userProfileError) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Error</Text>
+        </View>
+        <View style={styles.errorContainer}>
+          <Text>Error loading user profile</Text>
+          <TouchableOpacity onPress={() => refetch()} style={styles.retryButton}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>@{username}</Text>
+      </View>
+
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <UserInfo
+          username={username}
+          isUser={isUser}
+          userInfo={userProfileData}
+          isLoading={userProfileIsLoading}
+        />
+      </ScrollView>
+    </View>
   );
 }
 

@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { View, FlatList, Image, Dimensions, Button, Text, Alert } from 'react-native';
 import { useState } from 'react';
-import { getRoleById } from '../../api/role_api';
+import { getRoleById } from '../../../api/role_api';
 
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = width / 3;

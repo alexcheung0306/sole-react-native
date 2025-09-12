@@ -92,14 +92,24 @@ export const getUserProfileByUsername = async (
 
 export const createUser = async (user: CreateUser) => {
   try{
+    console.log('Creating user with data:', user);
     const response = await fetch(`${API_BASE_URL}/sole-users`, {
       method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(user),
     })
+    
+    console.log('Create user response status:', response.status);
+    
     if (!response.ok) {
-      throw new Error(`Error: ${response.statusText}`)
+      const errorText = await response.text();
+      console.error('Create user error response:', errorText);
+      throw new Error(`Error: ${response.status} - ${errorText}`)
     }
     const result = await response.json()
+    console.log('User created successfully:', result);
     return result
   } catch (error) {
     console.error("Error creating user:", error)

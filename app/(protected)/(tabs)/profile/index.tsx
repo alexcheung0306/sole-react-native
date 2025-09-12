@@ -114,7 +114,7 @@ export default function ProfileScreen() {
             source={
               user?.imageUrl 
                 ? { uri: user.imageUrl }
-                : require('../../../assets/profile/baldman.jpg')
+                : require('../../../../assets/profile/baldman.jpg')
             } 
             className="w-20 h-20 rounded-full border-4 border-white"
             placeholder={user?.firstName || 'User'}

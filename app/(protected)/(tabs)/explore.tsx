@@ -15,7 +15,7 @@ export default function Explore() {
   }));
 
   const handleUsersPress = () => {
-    router.push('/users');
+    // router.push('/users');
   };
 
   const renderImage = ({ item }: { item: { id: string; uri: string } }) => (

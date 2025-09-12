@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { AuthWrapper } from '../components/AuthWrapper';
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -20,48 +19,46 @@ export default function ChatScreen() {
   };
 
   return (
-    <AuthWrapper>
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.headerButton} onPress={handleBackPress}>
-            <Ionicons name="arrow-back" size={24} color="#000" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Users</Text>
-          <View style={styles.headerButton} />
-        </View>
-
-        {/* Chat List */}
-        <ScrollView style={styles.chatList} showsVerticalScrollIndicator={false}>
-          {chatRooms.map((chat) => (
-            <TouchableOpacity key={chat.id} style={styles.chatItem}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {chat.name.charAt(0)}
-                </Text>
-              </View>
-              
-              <View style={styles.chatInfo}>
-                <View style={styles.chatHeader}>
-                  <Text style={styles.chatName}>{chat.name}</Text>
-                  <Text style={styles.chatTime}>{chat.time}</Text>
-                </View>
-                <View style={styles.chatFooter}>
-                  <Text style={styles.lastMessage} numberOfLines={1}>
-                    {chat.lastMessage}
-                  </Text>
-                  {chat.unread > 0 && (
-                    <View style={styles.unreadBadge}>
-                      <Text style={styles.unreadText}>{chat.unread}</Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.headerButton} onPress={handleBackPress}>
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Users</Text>
+        <View style={styles.headerButton} />
       </View>
-    </AuthWrapper>
+
+      {/* Chat List */}
+      <ScrollView style={styles.chatList} showsVerticalScrollIndicator={false}>
+        {chatRooms.map((chat) => (
+          <TouchableOpacity key={chat.id} style={styles.chatItem}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {chat.name.charAt(0)}
+              </Text>
+            </View>
+            
+            <View style={styles.chatInfo}>
+              <View style={styles.chatHeader}>
+                <Text style={styles.chatName}>{chat.name}</Text>
+                <Text style={styles.chatTime}>{chat.time}</Text>
+              </View>
+              <View style={styles.chatFooter}>
+                <Text style={styles.lastMessage} numberOfLines={1}>
+                  {chat.lastMessage}
+                </Text>
+                {chat.unread > 0 && (
+                  <View style={styles.unreadBadge}>
+                    <Text style={styles.unreadText}>{chat.unread}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
   );
 }
 

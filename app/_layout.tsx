@@ -7,6 +7,7 @@ import { AuthWrapper } from '../components/AuthWrapper';
 import { AppContextProvider } from '~/context/AppContext';
 import { SoleUserProvider } from '~/context/SoleUserContext';
 import { QueryProvider } from '~/context/QueryProvider';
+import { env } from '~/env.mjs';
 
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 
@@ -27,7 +28,12 @@ const tokenCache = {
 export default function RootLayout() {
   return (
     <GluestackUIProvider mode="light">
-      <ClerkProvider publishableKey={PUBLISHABLE_KEY} tokenCache={tokenCache}>
+      <ClerkProvider 
+        publishableKey={PUBLISHABLE_KEY} 
+        tokenCache={tokenCache}
+        signInFallbackRedirectUrl={env.CLERK_SIGN_IN_FORCE_REDIRECT_URL}
+        signUpFallbackRedirectUrl={env.CLERK_SIGN_UP_FORCE_REDIRECT_URL}
+      >
         <QueryProvider>
           <AppContextProvider>
             <SoleUserProvider>
@@ -49,10 +55,7 @@ export default function RootLayout() {
                 />
 
                 {/* Protected screens - require authentication */}
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-                <Stack.Screen name="chat" options={{ headerShown: false }} />
-                <Stack.Screen name="user/[username]" options={{ headerShown: false }} />
+                <Stack.Screen name="(protected)" options={{ headerShown: false }} />
               </Stack>
             </SoleUserProvider>
           </AppContextProvider>

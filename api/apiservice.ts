@@ -32,6 +32,12 @@ export const getSoleUserByClerkId = async (clerkid: string): Promise<any> => {
       `${API_BASE_URL}/sole-users/clerkId/${clerkid}`
     )
 
+    console.log('response', response);
+
+    if (response.status === 404) {
+      return response.status;
+    }
+
     if (!response.ok) {
       throw new Error(`Error: ${response.statusText}`)
     }

@@ -1,18 +1,19 @@
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { getFollowerListByUsername } from '../../../api/follow_api';
-import { useSoleUserContext } from '../../../context/SoleUserContext';
-import { FollowButton } from '../../../components/follow/follow-button';
+import { getFollowingListByUsername } from '~/api/follow_api';
+import { FollowButton } from '~/components/follow/follow-button';
+import { useSoleUserContext } from '~/context/SoleUserContext';
+ 
 
-export default function FollowersPage() {
+export default function FollowingPage() {
   const { username } = useLocalSearchParams();
   const { soleUser, soleUserId } = useSoleUserContext();
 
-  const { data: followersData, isLoading } = useQuery({
-    queryKey: ['FollowerList', username],
+  const { data: followingData, isLoading } = useQuery({
+    queryKey: ['FollowingList', username],
     queryFn: async () => {
-      const result = await getFollowerListByUsername(username as string);
+      const result = await getFollowingListByUsername(username as string);
       return result;
     },
     enabled: !!username,
@@ -27,20 +28,20 @@ export default function FollowersPage() {
           <View className="p-4">
             <Text className="text-gray-500 text-center">Loading...</Text>
           </View>
-        ) : followersData?.length > 0 ? (
+        ) : followingData?.length > 0 ? (
           <View className="p-4">
-            {followersData.map((follower: any) => {
-              const isUser = follower?.username === soleUser?.username;
+            {followingData.map((following: any) => {
+              const isUser = following?.username === soleUser?.username;
               return (
                 <View
-                  key={follower.followRecord.id}
+                  key={following.followRecord.id}
                   className="flex-row items-center justify-between p-4 border-b border-gray-100">
                   <View className="flex-row items-center flex-1">
                     <View className="w-10 h-10 bg-gray-300 rounded-full mr-3" />
                     <View className="flex-1">
-                      <Text className="text-lg font-medium">@{follower?.username}</Text>
-                      {follower?.name && (
-                        <Text className="text-gray-500">{follower.name}</Text>
+                      <Text className="text-lg font-medium">@{following?.username}</Text>
+                      {following?.name && (
+                        <Text className="text-gray-500">{following.name}</Text>
                       )}
                     </View>
                   </View>
@@ -48,7 +49,7 @@ export default function FollowersPage() {
                     <FollowButton
                       soleUserId={soleUserId as string}
                       size="sm"
-                      username={follower?.username}
+                      username={following?.username}
                       isUser={isUser}
                     />
                   )}
@@ -59,7 +60,7 @@ export default function FollowersPage() {
         ) : (
           <View className="p-8">
             <Text className="text-gray-500 text-center text-lg">
-              No followers yet
+              Not following anyone yet
             </Text>
           </View>
         )}
