@@ -14,6 +14,7 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
   const { user: clerkUser } = useUser();
   const [userError, setUserError] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Debug logging
   console.log('AuthWrapper - State:', {
@@ -27,23 +28,30 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
 
   useEffect(() => {
     const initializeUser = async () => {
-      if (isSignedIn && userId && clerkUser) {
+      // Only run once when auth data becomes available
+      if (isSignedIn && userId && clerkUser && !hasInitialized && !isInitializing) {
+        console.log('AuthWrapper - Starting user initialization');
         setIsInitializing(true);
         setUserError(null);
+        
         try {
           const existingUser = await getSoleUserByClerkId(userId);
           if (existingUser && existingUser !== 404) {
             console.log('AuthWrapper - User found in Sole DB:', existingUser.id);
+            setHasInitialized(true);
             setIsInitializing(false);
             return;
           }
+          
+          console.log('AuthWrapper - Creating new user in Sole DB');
           const newUser = await createUser({
             username: clerkUser.username || 'New User',
             email: clerkUser.emailAddresses?.[0]?.emailAddress || 'default@example.com',
             clerkId: userId,
-            image:  clerkUser.imageUrl || '',
+            image: clerkUser.imageUrl || '',
           });
           console.log('AuthWrapper - New user created:', newUser.id);
+          setHasInitialized(true);
           setIsInitializing(false);
         } catch (error) {
           console.error('AuthWrapper - Error initializing user:', error);
@@ -54,7 +62,7 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
     };
 
     initializeUser();
-  }, [isSignedIn, userId, clerkUser]);
+  }, [isSignedIn, userId, clerkUser, hasInitialized, isInitializing]);
 
   if (!isLoaded) {
     console.log('AuthWrapper - Showing loading spinner (auth not loaded)');
@@ -75,8 +83,8 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
     return <Redirect href="/sign-in" />;
   }
 
-  if (isInitializing) {
-    console.log('AuthWrapper - Showing loading spinner (user not ready or initializing)');
+  if (isInitializing || (isSignedIn && !hasInitialized)) {
+    console.log('AuthWrapper - Showing loading spinner (initializing or not initialized)');
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#000" />
