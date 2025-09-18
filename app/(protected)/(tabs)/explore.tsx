@@ -2,12 +2,17 @@ import { Stack } from 'expo-router';
 import { View, FlatList, Image, Dimensions, TouchableOpacity, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useScrollHeader } from '../../../hooks/useScrollHeader';
+import { CollapsibleHeader } from '../../../components/CollapsibleHeader';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = width / 3;
 
 export default function Explore() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { headerTranslateY, handleScroll } = useScrollHeader();
   
   const images = Array.from({ length: 30 }, (_, i) => ({
     id: i.toString(),
@@ -26,7 +31,7 @@ export default function Explore() {
           width: IMAGE_SIZE - 4, 
           height: IMAGE_SIZE - 4 
         }}
-        className="rounded"
+        className="rounded-lg"
       />
     </View>
   );
@@ -35,21 +40,31 @@ export default function Explore() {
     <>
       <Stack.Screen 
         options={{ 
-          title: 'Explore',
-          headerRight: () => (
-            <TouchableOpacity onPress={handleUsersPress} style={{ padding: 8 }}>
-              <Ionicons name="people-outline" size={24} color="#000" />
-            </TouchableOpacity>
-          ),
+          headerShown: false, // Hide the default header
         }} 
       />
-      <View className="flex-1 bg-white">
+      <View className="flex-1 bg-black">
+        <CollapsibleHeader
+          title="Explore"
+          headerRight={
+            <TouchableOpacity onPress={handleUsersPress} style={{ padding: 8 }}>
+              <Ionicons name="people-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+          }
+          translateY={headerTranslateY}
+          isDark={true}
+        />
         <FlatList
           data={images}
           renderItem={renderImage}
           numColumns={3}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          contentContainerStyle={{
+            paddingTop: insets.top + 72, // Increased to account for larger header
+          }}
         />
       </View>
     </>

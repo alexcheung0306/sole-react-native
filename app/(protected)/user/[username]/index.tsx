@@ -117,15 +117,18 @@ export default function UserProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#0a0a0a',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 60, // Account for status bar
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    minHeight: 72, // Match the collapsible header height
   },
   backButton: {
     padding: 8,
@@ -134,7 +137,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000',
+    color: '#fff',
   },
   scrollView: {
     flex: 1,
@@ -153,8 +156,10 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
+    backgroundColor: 'rgba(59, 130, 246, 0.8)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
   },
   retryButtonText: {
     color: '#fff',

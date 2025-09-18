@@ -22,11 +22,11 @@ export default function FollowersPage() {
   });
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-black">
       <ScrollView className="flex-1">
         {isLoading ? (
           <View className="p-4">
-            <Text className="text-gray-500 text-center">Loading...</Text>
+            <Text className="text-gray-400 text-center">Loading...</Text>
           </View>
         ) : followersData?.length > 0 ? (
           <View className="p-4">
@@ -35,13 +35,13 @@ export default function FollowersPage() {
               return (
                 <View
                   key={follower.followRecord.id}
-                  className="flex-row items-center justify-between p-4 border-b border-gray-100">
+                  className="flex-row items-center justify-between p-4 border-b border-gray-800 bg-gray-900/30 rounded-lg mx-2 mb-2">
                   <View className="flex-row items-center flex-1">
                     <View className="w-10 h-10 bg-gray-300 rounded-full mr-3" />
                     <View className="flex-1">
-                      <Text className="text-lg font-medium">@{follower?.username}</Text>
+                      <Text className="text-lg font-medium text-white">@{follower?.username}</Text>
                       {follower?.name && (
-                        <Text className="text-gray-500">{follower.name}</Text>
+                        <Text className="text-gray-400">{follower.name}</Text>
                       )}
                     </View>
                   </View>
@@ -59,7 +59,7 @@ export default function FollowersPage() {
           </View>
         ) : (
           <View className="p-8">
-            <Text className="text-gray-500 text-center text-lg">
+            <Text className="text-gray-400 text-center text-lg">
               No followers yet
             </Text>
           </View>

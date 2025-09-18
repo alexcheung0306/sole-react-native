@@ -1,16 +1,16 @@
 import { forwardRef } from 'react';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet } from 'react-native';
 
 export const HeaderButton = forwardRef<typeof Pressable, { onPress?: () => void }>(
   ({ onPress }, ref) => {
     return (
-      <Pressable onPress={onPress}>
+      <Pressable onPress={onPress} style={styles.buttonContainer}>
         {({ pressed }) => (
-          <FontAwesome
-            name="info-circle"
-            size={25}
-            color="gray"
+          <Ionicons
+            name="chatbubble-outline"
+            size={24}
+            color="#fff"
             style={[
               styles.headerRight,
               {
@@ -27,7 +27,12 @@ export const HeaderButton = forwardRef<typeof Pressable, { onPress?: () => void 
 HeaderButton.displayName = 'HeaderButton';
 
 export const styles = StyleSheet.create({
+  buttonContainer: {
+    padding: 8, // Add padding for better touch target and alignment
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   headerRight: {
-    marginRight: 15,
+    // Icon styling is handled by the icon component
   },
 });
