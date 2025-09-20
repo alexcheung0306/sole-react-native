@@ -3,7 +3,10 @@ import { Image as ExpoImage } from 'expo-image';
 import React, { useState, useEffect } from 'react';
 import { FlatList, ScrollView, Text, TouchableOpacity, View, Dimensions, Alert } from 'react-native';
 import { useAuth, useUser } from '@clerk/clerk-expo';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
+import { useScrollHeader } from '../../../../hooks/useScrollHeader';
+import { CollapsibleHeader } from '../../../../components/CollapsibleHeader';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 
 const { width } = Dimensions.get('window');
@@ -13,6 +16,8 @@ export default function ProfileScreen() {
   const [imageSize, setImageSize] = useState(Dimensions.get('window').width / 3);
   const { signOut } = useAuth();
   const { user } = useUser();
+  const insets = useSafeAreaInsets();
+  const { headerTranslateY, handleScroll } = useScrollHeader();
 
   const handleSignOut = async () => {
     console.log('handleSignOut called');
@@ -105,10 +110,36 @@ export default function ProfileScreen() {
   
 
   return (
-    <ScrollView className="flex-1 bg-gray-900" showsVerticalScrollIndicator={false}>
-      {/* Profile Header */}
-
-      <View className="mx-4 my-4 p-5 bg-gray-800/30 rounded-2xl border border-gray-700/50 items-center">
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View className="flex-1 bg-black">
+        <CollapsibleHeader
+          title="Profile"
+          headerRight={
+            <TouchableOpacity
+              style={{ padding: 8 }}
+              onPress={() => {
+                // Add settings functionality here
+                console.log('Settings pressed');
+              }}
+            >
+              <Ionicons name="settings-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+          }
+          translateY={headerTranslateY}
+          isDark={true}
+        />
+        <ScrollView 
+          className="flex-1 bg-black" 
+          showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          contentContainerStyle={{
+            paddingTop: insets.top + 72, // Increased to account for larger header
+          }}
+        >
+          {/* Profile Header */}
+          <View className="mx-4 my-4 p-5 bg-gray-800/20 rounded-2xl border border-gray-700/30 items-center">
         <View className="mb-4">
           <ExpoImage
             source={
@@ -153,8 +184,8 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* Stats Section */}
-      <View className="mx-4 my-0 p-5 bg-gray-800/30 rounded-2xl border border-gray-700/50">
+          {/* Stats Section */}
+          <View className="mx-4 my-3 p-5 bg-gray-800/20 rounded-2xl border border-gray-700/30">
         <Text className="text-lg font-bold text-white mb-4">Your Stats</Text>
         <View className="flex-row justify-between">
           {userStats.map((stat, index) => (
@@ -169,8 +200,8 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* Recent Activity */}
-      <View className="mx-4 my-4 p-5 bg-gray-800/30 rounded-2xl border border-gray-700/50">
+          {/* Recent Activity */}
+          <View className="mx-4 my-3 p-5 bg-gray-800/20 rounded-2xl border border-gray-700/30">
         <Text className="text-lg font-bold text-white mb-4">Recent Activity</Text>
         <View className="gap-3">
           {recentActivity.map((activity, index) => (
@@ -192,22 +223,24 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* Posted Photos */}
-      <View className="mx-4 my-0">
-        <Text className="text-lg font-bold text-white mb-4">Posted Photos</Text>
-        <FlatList
-          data={images}
-          renderItem={renderImage}
-          numColumns={3}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          scrollEnabled={false} // Important: disable scrolling since it's inside ScrollView
-          className="mb-4"
-        />
-      </View>
+          {/* Posted Photos */}
+          <View className="mx-4 my-3 bg-gray-800/20 rounded-2xl border border-gray-700/30">
+            <View className="p-5 pb-0">
+              <Text className="text-lg font-bold text-white mb-4">Posted Photos</Text>
+            </View>
+            <View style={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              paddingHorizontal: 20,
+              paddingBottom: 20,
+              justifyContent: 'space-between'
+            }}>
+              {images.map((item) => renderImage({ item }))}
+            </View>
+          </View>
 
-      {/* Quick Actions */}
-      <View className="mx-4 my-0 p-5 bg-gray-800/30 rounded-2xl border border-gray-700/50">
+          {/* Quick Actions */}
+          <View className="mx-4 my-3 p-5 bg-gray-800/20 rounded-2xl border border-gray-700/30">
         <Text className="text-lg font-bold text-white mb-4">Quick Actions</Text>
         <View className="gap-2">
           {quickActions.map((action, index) => (
@@ -241,13 +274,15 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* App Info */}
-      <View className="mx-4 my-4 p-5 bg-gray-800/30 rounded-2xl border border-gray-700/50">
-        <View className="items-center">
-          <Text className="text-gray-400 mb-1">Sole - Sticker Creator</Text>
-          <Text className="text-xs text-gray-500">Version 1.0.0</Text>
-        </View>
+          {/* App Info */}
+          <View className="mx-4 my-4 p-5 bg-gray-800/20 rounded-2xl border border-gray-700/30">
+            <View className="items-center">
+              <Text className="text-gray-400 mb-1">Sole - Sticker Creator</Text>
+              <Text className="text-xs text-gray-500">Version 1.0.0</Text>
+            </View>
+          </View>
+        </ScrollView>
       </View>
-    </ScrollView>
+    </>
   );
 }
