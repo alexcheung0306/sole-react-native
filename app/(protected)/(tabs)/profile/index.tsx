@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import React, { useState, useEffect } from 'react';
-import { FlatList, ScrollView, Text, TouchableOpacity, View, Dimensions, Alert } from 'react-native';
+import { FlatList, ScrollView, Text, TouchableOpacity, View, Dimensions, Alert, Modal, Pressable } from 'react-native';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { router, Stack } from 'expo-router';
 import { useScrollHeader } from '../../../../hooks/useScrollHeader';
 import { CollapsibleHeader } from '../../../../components/CollapsibleHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SwitchInterface } from '../../../../components/profile/switch-interface';
 
 
 const { width } = Dimensions.get('window');
@@ -45,6 +46,8 @@ export default function ProfileScreen() {
       alert('Failed to sign out. Please try again.');
     }
   };
+
+ 
 
   const userStats = [
     { label: 'Stickers Created', value: '127', icon: 'happy' },
@@ -92,6 +95,13 @@ export default function ProfileScreen() {
       subscription?.remove();
     };
   }, []);
+  const [profileTypeModalVisible, setProfileTypeModalVisible] = useState(false);
+  const [userInterface, setUserInterface] =useState<string>('USER'); // Default to USER
+
+  // Monitor User_State_Interface changes
+  useEffect(() => {
+    console.log('User_State_Interface current value:', userInterface);
+  }, [userInterface]);
 
   const renderImage = ({ item }: { item: { id: string; uri: string } }) => (
     <View className="p-0.5">
@@ -116,15 +126,25 @@ export default function ProfileScreen() {
         <CollapsibleHeader
           title="Profile"
           headerRight={
-            <TouchableOpacity
-              style={{ padding: 8 }}
-              onPress={() => {
-                // Add settings functionality here
-                console.log('Settings pressed');
-              }}
-            >
-              <Ionicons name="settings-outline" size={24} color="#fff" />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TouchableOpacity
+                style={{ padding: 8, marginRight: 8 }}
+                onPress={() => {
+                  // Add notifications functionality here
+                  console.log('Notifications pressed');
+                }}
+              >
+                <Ionicons name="notifications-outline" size={24} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ padding: 8 }}
+                onPress={() => {
+                  setProfileTypeModalVisible(true);
+                }}
+              >
+                <Ionicons name="ellipsis-horizontal-outline" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
           }
           translateY={headerTranslateY}
           isDark={true}
@@ -172,6 +192,7 @@ export default function ProfileScreen() {
           <View className="bg-blue-400 px-3 py-1 rounded-full">
             <Text className="text-xs font-semibold text-white">Actor/Actress</Text>
           </View>
+       
         </View>
 
         <View className="flex-row gap-3">
@@ -282,6 +303,9 @@ export default function ProfileScreen() {
             </View>
           </View>
         </ScrollView>
+
+        {/* Profile Type Selection Modal */}
+   <SwitchInterface setProfileTypeModalVisible={setProfileTypeModalVisible} setUserInterface={undefined} profileTypeModalVisible={false} userInterface={''} />
       </View>
     </>
   );
