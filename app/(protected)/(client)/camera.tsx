@@ -4,14 +4,14 @@ import { View, FlatList, Image, Dimensions, Text } from 'react-native';
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = width / 3;
 
-export default function Camera() {
+export default function ClientCamera() {
  
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Camera' }} />
+      <Stack.Screen options={{ title: 'Client Camera' }} />
       <View className="flex-1 bg-white">
-        <Text>Camera</Text>
+        <Text>Client Camera</Text>
       </View>
     </>
   );

@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = width / 3;
 
-export default function Explore() {
+export default function ClientExplore() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { headerTranslateY, handleScroll } = useScrollHeader();
@@ -45,7 +45,7 @@ export default function Explore() {
       />
       <View className="flex-1 bg-black">
         <CollapsibleHeader
-          title="Explore"
+          title="Client Explore"
           headerRight={
             <TouchableOpacity onPress={handleUsersPress} style={{ padding: 8 }}>
               <Ionicons name="people-outline" size={24} color="#fff" />
