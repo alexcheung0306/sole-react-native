@@ -1,10 +1,9 @@
 import { Link, Tabs } from 'expo-router';
 import { View } from 'react-native';
-import { HeaderButton } from '../../../components/HeaderButton';
 import { TabBarIcon } from '../../../components/TabBarIcon';
 import { BriefcaseBusiness, Camera, Home, Plus, Search, UserCircle } from 'lucide-react-native';
 
-export default function TabLayout() {
+export default function ClientTabLayout() {
   return (
     <Tabs
       screenOptions={{
@@ -28,7 +27,7 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => <Home color={color} size={24} />,
-          headerShown: false, // Hide default header for collapsible header
+          headerShown: false,
         }}
       />
       <Tabs.Screen
@@ -36,7 +35,7 @@ export default function TabLayout() {
         options={{
           title: 'Explore',
           tabBarIcon: ({ color }) => <Search color={color} size={24} />,
-          headerShown: false, // Hide default header for collapsible header
+          headerShown: false,
         }}
       />
       <Tabs.Screen
@@ -58,7 +57,7 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color }) => <UserCircle color={color} size={24} />,
-          headerShown: false, // Hide default header for collapsible header
+          headerShown: false,
         }}
       />
     </Tabs>

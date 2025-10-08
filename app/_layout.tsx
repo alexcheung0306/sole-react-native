@@ -7,6 +7,7 @@ import { AuthWrapper } from '../components/AuthWrapper';
 import { AppContextProvider } from '~/context/AppContext';
 import { SoleUserProvider } from '~/context/SoleUserContext';
 import { QueryProvider } from '~/context/QueryProvider';
+import { NavigationProvider } from '~/context/NavigationContext';
 import { env } from '~/env.mjs';
 
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
@@ -37,7 +38,8 @@ export default function RootLayout() {
         <QueryProvider>
           <AppContextProvider>
             <SoleUserProvider>
-              <Stack>
+              <NavigationProvider>
+                <Stack>
                 {/* Authentication screens - accessible without login */}
                 <Stack.Screen
                   name="sign-in"
@@ -56,7 +58,8 @@ export default function RootLayout() {
 
                 {/* Protected screens - require authentication */}
                 <Stack.Screen name="(protected)" options={{ headerShown: false }} />
-              </Stack>
+                </Stack>
+              </NavigationProvider>
             </SoleUserProvider>
           </AppContextProvider>
         </QueryProvider>

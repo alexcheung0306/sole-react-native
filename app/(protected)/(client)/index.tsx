@@ -7,15 +7,15 @@ import { CollapsibleHeader } from '../../../components/CollapsibleHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HeaderButton } from '../../../components/HeaderButton';
 
-export default function Home() {
+export default function ClientHome() {
   const insets = useSafeAreaInsets();
   const { headerTranslateY, handleScroll } = useScrollHeader();
 
   // Create some dummy content to make it scrollable
   const dummyContent = Array.from({ length: 20 }, (_, i) => ({
     id: i,
-    title: `Content Item ${i + 1}`,
-    description: `This is a sample content item to demonstrate the collapsible header functionality.`,
+    title: `Client Content Item ${i + 1}`,
+    description: `This is a sample client content item to demonstrate the collapsible header functionality.`,
   }));
 
   return (
@@ -23,7 +23,7 @@ export default function Home() {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
         <CollapsibleHeader
-          title="Home"
+          title="Client Home"
           headerRight={
             <Link href="/(protected)/chat" asChild>
               <HeaderButton />
@@ -43,23 +43,23 @@ export default function Home() {
         >
           {/* Welcome Section */}
           <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeTitle}>Welcome Back</Text>
-            <Text style={styles.welcomeSubtitle}>Discover amazing content</Text>
+            <Text style={styles.welcomeTitle}>Client Dashboard</Text>
+            <Text style={styles.welcomeSubtitle}>Manage your client activities</Text>
           </View>
 
           {/* Quick Actions */}
           <View style={styles.quickActions}>
             <TouchableOpacity style={styles.actionButton}>
-              <Text style={styles.actionButtonText}>Create Post</Text>
+              <Text style={styles.actionButtonText}>Create Project</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionButton}>
-              <Text style={styles.actionButtonText}>Browse</Text>
+              <Text style={styles.actionButtonText}>Browse Jobs</Text>
             </TouchableOpacity>
           </View>
 
           {/* Recent Content */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Recent Activity</Text>
+            <Text style={styles.sectionTitle}>Client Activity</Text>
             {dummyContent.slice(0, 5).map((item) => (
               <View key={item.id} style={styles.contentItem}>
                 <Text style={styles.contentTitle}>{item.title}</Text>

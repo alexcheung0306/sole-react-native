@@ -6,7 +6,7 @@ import { getRoleById } from '../../../api/role_api';
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = width / 3;
 
-export default function Job() {
+export default function ClientJob() {
   const [loading, setLoading] = useState(false);
   const [roleData, setRoleData] = useState<any>(null);
 
@@ -48,7 +48,7 @@ export default function Job() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Job' }} />
+      <Stack.Screen options={{ title: 'Client Job' }} />
       <View className="flex-1 bg-white p-4">
         <Button 
           title={loading ? "Loading..." : "Get Role"} 
