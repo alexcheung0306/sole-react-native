@@ -39,19 +39,13 @@ export default function ClientTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="camera"
+        name="project"
         options={{
-          title: 'Camera',
-          tabBarIcon: ({ color }) => <Camera color={color} size={24} />,
-        }}
-      />
-      <Tabs.Screen
-        name="job"
-        options={{
-          title: 'Job',
+          title: 'Project',
           tabBarIcon: ({ color }) => <BriefcaseBusiness color={color} size={24} />,
         }}
       />
+      
       <Tabs.Screen
         name="profile"
         options={{
