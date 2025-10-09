@@ -7,15 +7,15 @@ import { CollapsibleHeader } from '../../../components/CollapsibleHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HeaderButton } from '../../../components/HeaderButton';
 
-export default function ClientHome() {
+export default function ClientDashboard() {
   const insets = useSafeAreaInsets();
   const { headerTranslateY, handleScroll } = useScrollHeader();
 
   // Create some dummy content to make it scrollable
   const dummyContent = Array.from({ length: 20 }, (_, i) => ({
     id: i,
-    title: `Client Content Item ${i + 1}`,
-    description: `This is a sample client content item to demonstrate the collapsible header functionality.`,
+    title: `Dashboard Item ${i + 1}`,
+    description: `This is a sample dashboard content item to demonstrate the collapsible header functionality.`,
   }));
 
   return (
@@ -23,7 +23,7 @@ export default function ClientHome() {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
         <CollapsibleHeader
-          title="Client Home"
+          title="Dashboard"
           headerRight={
             <Link href="/(protected)/chat" asChild>
               <HeaderButton />

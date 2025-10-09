@@ -1,7 +1,7 @@
 import { Link, Tabs } from 'expo-router';
 import { View } from 'react-native';
 import { TabBarIcon } from '../../../components/TabBarIcon';
-import { BriefcaseBusiness, Camera, Home, Plus, Search, UserCircle } from 'lucide-react-native';
+import { LayoutDashboard, Bookmark, Search, FolderKanban, UserCircle } from 'lucide-react-native';
 
 export default function ClientTabLayout() {
   return (
@@ -25,8 +25,16 @@ export default function ClientTabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <Home color={color} size={24} />,
+          title: 'Dashboard',
+          tabBarIcon: ({ color }) => <LayoutDashboard color={color} size={24} />,
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
+        name="bookmark"
+        options={{
+          title: 'Bookmark',
+          tabBarIcon: ({ color }) => <Bookmark color={color} size={24} />,
           headerShown: false,
         }}
       />
@@ -39,17 +47,11 @@ export default function ClientTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="camera"
+        name="project"
         options={{
-          title: 'Camera',
-          tabBarIcon: ({ color }) => <Camera color={color} size={24} />,
-        }}
-      />
-      <Tabs.Screen
-        name="job"
-        options={{
-          title: 'Job',
-          tabBarIcon: ({ color }) => <BriefcaseBusiness color={color} size={24} />,
+          title: 'Project',
+          tabBarIcon: ({ color }) => <FolderKanban color={color} size={24} />,
+          headerShown: false,
         }}
       />
       <Tabs.Screen
