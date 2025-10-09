@@ -9,9 +9,9 @@ export default function ClientCamera() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Client Camera' }} />
+      <Stack.Screen options={{ title: ' Camera' }} />
       <View className="flex-1 bg-white">
-        <Text>Client Camera</Text>
+        <Text> Camera</Text>
       </View>
     </>
   );

@@ -54,6 +54,7 @@ export default function ClientTabLayout() {
           headerShown: false,
         }}
       />
+      
       <Tabs.Screen
         name="profile"
         options={{
