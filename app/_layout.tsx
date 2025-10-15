@@ -9,8 +9,7 @@ import { SoleUserProvider } from '~/context/SoleUserContext';
 import { QueryProvider } from '~/context/QueryProvider';
 import { NavigationProvider } from '~/context/NavigationContext';
 import { env } from '~/env.mjs';
-
-import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
+import { GluestackUIProvider } from '~/components/ui/gluestack-ui-provider';
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.

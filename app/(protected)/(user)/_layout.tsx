@@ -1,9 +1,13 @@
-import { Link, Tabs } from 'expo-router';
+import { Link, Tabs, useRouter } from 'expo-router';
 import { View } from 'react-native';
 import { TabBarIcon } from '../../../components/TabBarIcon';
 import { BriefcaseBusiness, Camera, Home, Plus, Search, UserCircle } from 'lucide-react-native';
+import { useUser } from '@clerk/clerk-expo';
 
 export default function ClientTabLayout() {
+  const { user } = useUser();
+  const router = useRouter();
+
   return (
     <Tabs
       screenOptions={{
@@ -21,6 +25,15 @@ export default function ClientTabLayout() {
             backdropFilter: 'blur(20px)',
           }} />
         ),
+      }}
+      screenListeners={{
+        tabPress: (e) => {
+          // Intercept profile tab press to navigate with username
+          if (e.target?.includes('user/[username]') && user?.username) {
+            e.preventDefault();
+            router.push(`/(protected)/(user)/user/${user.username}` as any);
+          }
+        },
       }}>
       <Tabs.Screen
         name="index"
@@ -53,11 +66,15 @@ export default function ClientTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="user/[username]"
         options={{
           title: 'Profile',
           tabBarIcon: ({ color }) => <UserCircle color={color} size={24} />,
           headerShown: false,
+          href: user?.username ? {
+            pathname: '/(protected)/(user)/user/[username]',
+            params: { username: user.username }
+          } as any : null,
         }}
       />
     </Tabs>

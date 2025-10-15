@@ -1,6 +1,6 @@
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { getSoleUserByClerkId } from '~/api/apiservice';
-import { createUser } from '~/api/soleUser_api';
+import { createUser } from '~/api/apiservice/soleUser_api';
 
 export const authenticateUser = async () => {
   const { userId } = useAuth();

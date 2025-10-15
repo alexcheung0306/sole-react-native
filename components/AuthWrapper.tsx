@@ -3,7 +3,7 @@ import { useAuth, useUser } from '@clerk/clerk-expo';
 import { Redirect } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
 import { getSoleUserByClerkId } from '~/api/apiservice';
-import { createUser } from '~/api/soleUser_api';
+import { createUser } from '~/api/apiservice/soleUser_api';
 
 interface AuthWrapperProps {
   children: React.ReactNode;

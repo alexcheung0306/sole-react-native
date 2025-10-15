@@ -1,15 +1,15 @@
-import { API_BASE_URL } from "./apiservice"
+import { API_BASE_URL } from "../apiservice"
 
 interface ComCard {
   id: number
   configId: number
-  photoConfig: string[]
   isActive: boolean
   soleUserId: string
   pdf: string
   png: string
   bucket: string | null
   comcardImageName: string | null
+  length: number
 }
 
 interface TalentInfo {
@@ -52,7 +52,6 @@ interface CreateUser {
   image: string
 }
 
-
 export interface UserProfileData {
   comcard: ComCard | null
   talentInfo: TalentInfo | null
@@ -63,11 +62,31 @@ export const getUserProfileByUsername = async (
   username: string
 ): Promise<UserProfileData> => {
   try {
+    // Check if username is valid and not a fallback value
+    if (!username || username === "Unknown User" || username.trim() === "") {
+      console.warn(`Invalid or fallback username: ${username}`)
+      return {
+        comcard: null,
+        talentInfo: null,
+        userInfo: null,
+        talentLevel: null,
+      }
+    }
+
     const response = await fetch(
       `${API_BASE_URL}/sole-users/profile/username/${username}`
     )
 
     if (!response.ok) {
+      if (response.status === 404) {
+        console.warn(`User profile not found for username: ${username}`)
+        return {
+          comcard: null,
+          talentInfo: null,
+          userInfo: null,
+          talentLevel: null,
+        }
+      }
       throw new Error(`Error: ${response.statusText}`)
     }
 
@@ -80,36 +99,30 @@ export const getUserProfileByUsername = async (
     try {
       const result = JSON.parse(text)
       return result // Return the fetched result
-    } catch (parseError: any) {
+    } catch (parseError) {
       console.error("Invalid JSON response:", text)
-      throw new Error(`Invalid JSON response: ${parseError.message as string}`)
+      throw new Error(`Invalid JSON response: ${parseError instanceof Error ? parseError.message : String(parseError)}`)
     }
   } catch (error) {
     console.error("Error fetching data:", error)
     throw error // Rethrow the error for further handling
   }
 }
-
 export const createUser = async (user: CreateUser) => {
-  try{
-    console.log('Creating user with data:', user);
+  try {
     const response = await fetch(`${API_BASE_URL}/sole-users`, {
       method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(user),
     })
-    
-    console.log('Create user response status:', response.status);
-    
+
+    console.log("responsxxxxe", response)
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Create user error response:', errorText);
-      throw new Error(`Error: ${response.status} - ${errorText}`)
+      throw new Error(`Error: ${response.statusText}`)
     }
     const result = await response.json()
-    console.log('User created successfully:', result);
     return result
   } catch (error) {
     console.error("Error creating user:", error)

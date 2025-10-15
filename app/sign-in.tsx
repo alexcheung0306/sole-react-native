@@ -9,7 +9,7 @@ export default function SignInScreen() {
 
   // If already signed in, redirect to main app
   if (isSignedIn) {
-    return <Redirect href="/(tabs)" />;
+    return <Redirect href="/(protected)" />;
   }
   return (
     <View style={styles.container}>

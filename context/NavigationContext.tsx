@@ -13,18 +13,18 @@ interface NavigationContextType {
 const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
 
 export function NavigationProvider({ children }: { children: React.ReactNode }) {
-  const [currentMode, setCurrentMode] = useState<NavigationMode>('client');
+  const [currentMode, setCurrentMode] = useState<NavigationMode>('user');
 
   const switchToClient = () => {
     console.log('Switching to client mode');
     setCurrentMode('client');
-    router.replace('/(protected)/(client)/profile' as any);
+    router.replace('/(protected)/(client)' as any);
   };
 
   const switchToUser = () => {
     console.log('Switching to user mode');
     setCurrentMode('user');
-    router.replace('/(protected)/(user)/profile' as any);
+    router.replace('/(protected)/(user)' as any);
   };
 
   const toggleMode = () => {
