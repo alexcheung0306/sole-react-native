@@ -1,13 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import React, { useState, useEffect } from 'react';
-import { ScrollView, Text, TouchableOpacity, View, Dimensions } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View, Dimensions, ActivityIndicator } from 'react-native';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { CollapsibleHeader } from '~/components/CollapsibleHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SwitchInterface } from '~/components/profile/switch-interface';
+import { useQuery } from '@tanstack/react-query';
+import { getUserProfileByUsername } from '~/api/apiservice/soleUser_api';
 
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = width / 3;
@@ -18,10 +20,30 @@ export default function ProfileScreen() {
   const { user } = useUser();
   const insets = useSafeAreaInsets();
   const { headerTranslateY, handleScroll } = useScrollHeader();
-  const { username } = useLocalSearchParams();
+  const { username } = useLocalSearchParams<{ username: string }>();
   
   // Check if viewing own profile
   const isOwnProfile = user?.username === username;
+
+  // Fetch user profile data from API
+  const {
+    data: userProfileData,
+    isLoading: profileLoading,
+    error: profileError,
+    refetch,
+  } = useQuery({
+    queryKey: ["userProfile", username],
+    queryFn: async () => {
+      if (!username || typeof username !== 'string') {
+        throw new Error("Username not found");
+      }
+      const result = await getUserProfileByUsername(username);
+      return result;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!username,
+    refetchOnWindowFocus: false,
+  });
 
   const handleSignOut = async () => {
     console.log('handleSignOut called');
@@ -100,6 +122,13 @@ export default function ProfileScreen() {
     console.log('User_State_Interface current value:', userInterface);
   }, [userInterface]);
 
+  // Debug log for profile data
+  useEffect(() => {
+    if (userProfileData) {
+      console.log('Fetched profile data for', username, ':', userProfileData);
+    }
+  }, [userProfileData, username]);
+
   const renderImage = ({ item }: { item: { id: string; uri: string } }) => (
     <View className="p-0.5">
       <ExpoImage 
@@ -119,6 +148,55 @@ export default function ProfileScreen() {
       router.back();
     }
   };
+
+  // Loading state
+  if (profileLoading) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View className="flex-1 bg-black justify-center items-center">
+          <ActivityIndicator size="large" color="#fff" />
+          <Text className="text-white mt-4">Loading profile...</Text>
+        </View>
+      </>
+    );
+  }
+
+  // Error state
+  if (profileError) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View className="flex-1 bg-black justify-center items-center p-4">
+          <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
+          <Text className="text-white text-xl font-bold mt-4">Error Loading Profile</Text>
+          <Text className="text-gray-400 text-center mt-2">
+            Could not load profile for @{username}
+          </Text>
+          <TouchableOpacity 
+            onPress={() => refetch()}
+            className="mt-6 bg-blue-500 px-6 py-3 rounded-lg"
+          >
+            <Text className="text-white font-semibold">Try Again</Text>
+          </TouchableOpacity>
+          {!isOwnProfile && (
+            <TouchableOpacity 
+              onPress={() => router.back()}
+              className="mt-3"
+            >
+              <Text className="text-gray-400">Go Back</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </>
+    );
+  }
+
+  // Extract profile data
+  const profileName = userProfileData?.userInfo?.name || username || 'User';
+  const profileBio = userProfileData?.userInfo?.bio || 'No bio';
+  const profilePic = userProfileData?.userInfo?.profilePic || null;
+  const talentLevel = userProfileData?.talentLevel || null;
 
   return (
     <>
@@ -170,34 +248,46 @@ export default function ProfileScreen() {
             <View className="mb-4">
               <ExpoImage
                 source={
-                  user?.imageUrl 
+                  profilePic 
+                    ? { uri: profilePic }
+                    : isOwnProfile && user?.imageUrl
                     ? { uri: user.imageUrl }
                     : require('../../../../../assets/profile/baldman.jpg')
                 } 
                 className="w-20 h-20 rounded-full border-4 border-white"
-                placeholder={user?.firstName || 'User'}
+                placeholder={profileName}
+                contentFit="cover"
               />
             </View>
             
             <View className="items-center mb-5">
               <Text className="text-2xl font-bold text-white mb-1">
-                {user?.firstName && user?.lastName 
-                  ? `${user.firstName} ${user.lastName}` 
-                  : username || 'User'
-                }
+                {profileName}
               </Text>
               <Text className="text-sm text-gray-400 mb-2">
-                {user?.primaryEmailAddress?.emailAddress || 'No email'}
+                @{username}
               </Text>
+              {profileBio && profileBio !== 'No bio' && (
+                <Text className="text-sm text-gray-300 text-center mt-2">
+                  {profileBio}
+                </Text>
+              )}
             </View>
 
             <View className="flex-row gap-3 mb-5">
               <View className="bg-green-500 px-3 py-1 rounded-full">
                 <Text className="text-xs font-semibold text-white">Verified</Text>
               </View>
-              <View className="bg-blue-400 px-3 py-1 rounded-full">
-                <Text className="text-xs font-semibold text-white">Actor/Actress</Text>
-              </View>
+              {talentLevel && (
+                <View className="bg-blue-400 px-3 py-1 rounded-full">
+                  <Text className="text-xs font-semibold text-white">{talentLevel}</Text>
+                </View>
+              )}
+              {!talentLevel && (
+                <View className="bg-blue-400 px-3 py-1 rounded-full">
+                  <Text className="text-xs font-semibold text-white">Actor/Actress</Text>
+                </View>
+              )}
             </View>
 
             <View className="flex-row gap-3">
