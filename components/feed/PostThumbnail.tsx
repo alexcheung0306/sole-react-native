@@ -1,42 +1,105 @@
 import { View, Image, TouchableOpacity, Dimensions, Text } from 'react-native';
-import { Image as MultipleImages } from 'lucide-react-native';
+import { Image as MultipleImages, Heart, MessageCircle } from 'lucide-react-native';
+import { useState } from 'react';
 
 interface PostThumbnailProps {
   imageUrl: string;
   hasMultipleImages: boolean;
   onPress: () => void;
+  likeCount?: number;
+  commentCount?: number;
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const COLUMNS = SCREEN_WIDTH < 768 ? 2 : 3; // 2 columns on phones, 3 on tablets
-const GAP = 2;
+const GAP = 4;
 const THUMBNAIL_SIZE = (SCREEN_WIDTH - (GAP * (COLUMNS + 1))) / COLUMNS;
 
-export function PostThumbnail({ imageUrl, hasMultipleImages, onPress }: PostThumbnailProps) {
+export function PostThumbnail({ 
+  imageUrl, 
+  hasMultipleImages, 
+  onPress, 
+  likeCount = 0, 
+  commentCount = 0 
+}: PostThumbnailProps) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+
   return (
     <TouchableOpacity
       onPress={onPress}
-      activeOpacity={0.9}
-      style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE, margin: GAP / 2 }}
+      activeOpacity={0.85}
+      style={{ 
+        width: THUMBNAIL_SIZE, 
+        height: THUMBNAIL_SIZE, 
+        margin: GAP / 2,
+        borderRadius: 12,
+        overflow: 'hidden',
+        backgroundColor: '#1a1a1a',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 5,
+      }}
     >
-      {/* Image */}
-      <Image
-        source={{ uri: imageUrl }}
-        style={{ width: '100%', height: '100%' }}
-        resizeMode="cover"
-      />
+      {/* Image Container */}
+      <View className="flex-1 relative">
+        <Image
+          source={{ uri: imageUrl }}
+          style={{ 
+            width: '100%', 
+            height: '100%',
+            opacity: imageLoaded ? 1 : 0,
+          }}
+          resizeMode="cover"
+          onLoad={() => setImageLoaded(true)}
+        />
 
-      {/* Multiple Images Indicator */}
-      {hasMultipleImages && (
-        <View className="absolute top-2 right-2">
-          <View className="bg-black/60 p-1.5 rounded">
-            <MultipleImages size={14} color="#ffffff" />
+        {/* Loading placeholder */}
+        {!imageLoaded && (
+          <View className="absolute inset-0 bg-gray-800 animate-pulse" />
+        )}
+
+        {/* Gradient overlay for better text visibility */}
+        <View className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+        {/* Multiple Images Indicator */}
+        {hasMultipleImages && (
+          <View className="absolute top-3 right-3">
+            <View className="bg-black/70 backdrop-blur-sm px-2 py-1.5 rounded-full">
+              <MultipleImages size={12} color="#ffffff" />
+            </View>
           </View>
-        </View>
-      )}
+        )}
 
-      {/* Subtle overlay on press */}
-      <View className="absolute inset-0 bg-black/0 active:bg-black/10" />
+        {/* Engagement Stats */}
+        {(likeCount > 0 || commentCount > 0) && (
+          <View className="absolute bottom-3 left-3 right-3">
+            <View className="flex-row items-center justify-between">
+              {likeCount > 0 && (
+                <View className="flex-row items-center bg-black/70 backdrop-blur-sm px-2 py-1 rounded-full">
+                  <Heart size={10} color="#ef4444" fill="#ef4444" />
+                  <Text className="text-white text-xs font-medium ml-1">
+                    {likeCount}
+                  </Text>
+                </View>
+              )}
+              
+              {commentCount > 0 && (
+                <View className="flex-row items-center bg-black/70 backdrop-blur-sm px-2 py-1 rounded-full">
+                  <MessageCircle size={10} color="#3b82f6" />
+                  <Text className="text-white text-xs font-medium ml-1">
+                    {commentCount}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Hover effect overlay */}
+        <View className="absolute inset-0 bg-black/0 transition-all duration-200" />
+      </View>
     </TouchableOpacity>
   );
 }

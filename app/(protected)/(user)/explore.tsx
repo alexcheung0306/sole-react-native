@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { View, FlatList, ActivityIndicator, Text, RefreshControl, Dimensions, TouchableOpacity } from 'react-native';
+import { View, FlatList, ActivityIndicator, Text, RefreshControl, Dimensions, TouchableOpacity, TextInput } from 'react-native';
 import { useState, useCallback, useRef } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CollapsibleHeader } from '../../../components/CollapsibleHeader';
@@ -17,6 +17,7 @@ import { PostThumbnail, COLUMNS } from '../../../components/feed/PostThumbnail';
 import { PostModal } from '../../../components/feed/PostModal';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { CommentSheet } from '../../../components/feed/CommentSheet';
+import { Search, Filter, Grid3X3, List } from 'lucide-react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -30,6 +31,11 @@ export default function Explore() {
   // Modal state
   const [selectedPost, setSelectedPost] = useState<PostWithDetailsResponse | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  
+  // UI state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Fetch posts from real API with infinite scroll
   const {
@@ -42,14 +48,14 @@ export default function Explore() {
     error,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ['explorePagePosts', soleUserId],
+    queryKey: ['explorePagePosts', soleUserId, searchQuery],
     queryFn: async ({ pageParam = 0 }) => {
       console.log('Fetching explore posts page:', pageParam);
       const response = await searchPosts({
         soleUserId: '', // Empty = ALL users for explore
-        content: '',
+        content: searchQuery || '',
         pageNo: pageParam,
-        pageSize: 6, // 6 posts per page (2 cols = 3 rows, or 3 cols = 2 rows)
+        pageSize: 12, // More posts for better grid
         orderBy: 'createdAt',
         orderSeq: 'desc',
       });
@@ -181,6 +187,8 @@ export default function Explore() {
         imageUrl={firstImage}
         hasMultipleImages={(item.media?.length || 0) > 1}
         onPress={() => handleThumbnailPress(item)}
+        likeCount={item.likeCount}
+        commentCount={item.commentCount}
       />
     );
   };
@@ -240,22 +248,84 @@ export default function Explore() {
       <BottomSheetModalProvider>
         <Stack.Screen options={{ headerShown: false }} />
         <View className="flex-1 bg-black">
-          <CollapsibleHeader
-            title="Explore"
-            translateY={headerTranslateY}
-            isDark={true}
-          />
+          {/* Enhanced Header */}
+          <View className="bg-black">
+            <View 
+              className="pt-12 pb-4 px-4"
+              style={{ paddingTop: insets.top + 12 }}
+            >
+              {/* Top Row */}
+              <View className="flex-row items-center justify-between mb-4">
+                <Text className="text-2xl font-bold text-white">Explore</Text>
+                <View className="flex-row items-center gap-3">
+                  <TouchableOpacity
+                    onPress={() => setShowSearch(!showSearch)}
+                    className="p-2"
+                    activeOpacity={0.7}
+                  >
+                    <Search size={24} color="#ffffff" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+                    className="p-2"
+                    activeOpacity={0.7}
+                  >
+                    {viewMode === 'grid' ? (
+                      <List size={24} color="#ffffff" />
+                    ) : (
+                      <Grid3X3 size={24} color="#ffffff" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Search Bar */}
+              {showSearch && (
+                <View className="flex-row items-center bg-gray-800/50 rounded-xl px-4 py-3 mb-4">
+                  <Search size={20} color="#9ca3af" />
+                  <TextInput
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    placeholder="Search posts..."
+                    placeholderTextColor="#9ca3af"
+                    className="flex-1 text-white ml-3 text-base"
+                    autoFocus={showSearch}
+                  />
+                  {searchQuery.length > 0 && (
+                    <TouchableOpacity
+                      onPress={() => setSearchQuery('')}
+                      className="ml-2"
+                    >
+                      <Text className="text-gray-400 text-lg">×</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              {/* Stats */}
+              <View className="flex-row items-center gap-6">
+                <Text className="text-gray-400 text-sm">
+                  {totalPosts.toLocaleString()} posts
+                </Text>
+                <Text className="text-gray-400 text-sm">
+                  {posts.length} loaded
+                </Text>
+              </View>
+            </View>
+          </View>
           
+          {/* Grid/List Content */}
           <FlatList
             data={posts}
             renderItem={renderThumbnail}
             keyExtractor={(item) => item.id.toString()}
-            numColumns={COLUMNS}
-            key={`grid-${COLUMNS}`} // Force re-render if columns change
+            numColumns={viewMode === 'grid' ? COLUMNS : 1}
+            key={`${viewMode}-${COLUMNS}`}
             onScroll={handleScroll}
             scrollEventThrottle={16}
             contentContainerStyle={{
-              paddingTop: insets.top + 72,
+              paddingHorizontal: 4,
+              paddingBottom: insets.bottom + 20,
             }}
             onEndReached={loadMore}
             onEndReachedThreshold={0.5}
@@ -267,7 +337,7 @@ export default function Explore() {
                 onRefresh={onRefresh}
                 tintColor="#3b82f6"
                 colors={['#3b82f6']}
-                progressViewOffset={insets.top + 72}
+                progressViewOffset={insets.top + 120}
               />
             }
             showsVerticalScrollIndicator={false}
