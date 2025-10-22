@@ -77,7 +77,7 @@ export const SoleUserProvider = ({ children }: { children: React.ReactNode }) =>
   const [jobPagePjStatus, setJobPagePjStatus] = useState("")
   const [jobPageCurrentProjectPage, setJobPageCurrentProjectPage] = useState(0)
   const [jobPageSearchAPI, setJobPageSearchAPI] = useState(
-    `search?isPrivate=false&status=published&pageNo=${jobPageCurrentProjectPage}&pageSize=2&orderBy=id&orderSeq=dec`
+    `&status=Published&pageNo=${jobPageCurrentProjectPage}&pageSize=10&orderBy=id&orderSeq=dec`
   )
   const [jobPageIsSearching, setJobPageIsSearching] = useState(false)
   const [jobPageSearchInputValue, setJobPageSearchInputValue] = useState("")
@@ -86,7 +86,7 @@ export const SoleUserProvider = ({ children }: { children: React.ReactNode }) =>
     if (soleUser) {
       setSoleUserId(soleUser?.id)
       setJobPageSearchAPI(
-        `search?isPrivate=false&status=published&pageNo=${jobPageCurrentProjectPage}&pageSize=2&orderBy=id&orderSeq=dec`
+        `&status=Published&pageNo=${jobPageCurrentProjectPage}&pageSize=10&orderBy=id&orderSeq=dec`
       )
     }
   }, [soleUser, jobPagePjStatus, jobPageCurrentProjectPage])

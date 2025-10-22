@@ -22,11 +22,12 @@ export default function JobLayout() {
           headerShown: true,
           headerTitle: 'Jobs',
           headerStyle: {
-            backgroundColor: '#ffffff',
+            backgroundColor: '#000000',
           },
           headerTitleStyle: {
             fontSize: 18,
             fontWeight: 'bold',
+            color: '#ffffff',
           },
         }}
       >
@@ -35,22 +36,22 @@ export default function JobLayout() {
           options={{
             headerShown: true,
             header: () => (
-              <View className="bg-white">
+              <View className="bg-black">
                 <View className="pt-12 pb-2 px-4">
-                  <Text className="text-xl font-bold">Jobs</Text>
+                  <Text className="text-xl font-bold text-white">Jobs</Text>
                 </View>
-                <View className="flex-row border-b border-gray-200">
+                <View className="flex-row border-b border-gray-700/50">
                   {tabs.map((tab) => (
                     <TouchableOpacity
                       key={tab.path}
                       onPress={() => router.push(tab.path as any)}
                       className={`flex-1 py-3 ${
-                        isActive(tab.path) ? 'border-b-2 border-black' : ''
+                        isActive(tab.path) ? 'border-b-2 border-blue-500' : ''
                       }`}
                     >
                       <Text
                         className={`text-center font-semibold ${
-                          isActive(tab.path) ? 'text-black' : 'text-gray-500'
+                          isActive(tab.path) ? 'text-white' : 'text-gray-500'
                         }`}
                       >
                         {tab.name}
@@ -67,22 +68,22 @@ export default function JobLayout() {
           options={{
             headerShown: true,
             header: () => (
-              <View className="bg-white">
+              <View className="bg-black">
                 <View className="pt-12 pb-2 px-4">
-                  <Text className="text-xl font-bold">Jobs</Text>
+                  <Text className="text-xl font-bold text-white">Jobs</Text>
                 </View>
-                <View className="flex-row border-b border-gray-200">
+                <View className="flex-row border-b border-gray-700/50">
                   {tabs.map((tab) => (
                     <TouchableOpacity
                       key={tab.path}
                       onPress={() => router.push(tab.path as any)}
                       className={`flex-1 py-3 ${
-                        isActive(tab.path) ? 'border-b-2 border-black' : ''
+                        isActive(tab.path) ? 'border-b-2 border-blue-500' : ''
                       }`}
                     >
                       <Text
                         className={`text-center font-semibold ${
-                          isActive(tab.path) ? 'text-black' : 'text-gray-500'
+                          isActive(tab.path) ? 'text-white' : 'text-gray-500'
                         }`}
                       >
                         {tab.name}
@@ -99,22 +100,22 @@ export default function JobLayout() {
           options={{
             headerShown: true,
             header: () => (
-              <View className="bg-white">
+              <View className="bg-black">
                 <View className="pt-12 pb-2 px-4">
-                  <Text className="text-xl font-bold">Jobs</Text>
+                  <Text className="text-xl font-bold text-white">Jobs</Text>
                 </View>
-                <View className="flex-row border-b border-gray-200">
+                <View className="flex-row border-b border-gray-700/50">
                   {tabs.map((tab) => (
                     <TouchableOpacity
                       key={tab.path}
                       onPress={() => router.push(tab.path as any)}
                       className={`flex-1 py-3 ${
-                        isActive(tab.path) ? 'border-b-2 border-black' : ''
+                        isActive(tab.path) ? 'border-b-2 border-blue-500' : ''
                       }`}
                     >
                       <Text
                         className={`text-center font-semibold ${
-                          isActive(tab.path) ? 'text-black' : 'text-gray-500'
+                          isActive(tab.path) ? 'text-white' : 'text-gray-500'
                         }`}
                       >
                         {tab.name}
