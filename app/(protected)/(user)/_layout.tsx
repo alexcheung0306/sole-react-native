@@ -63,6 +63,7 @@ export default function ClientTabLayout() {
         options={{
           title: 'Job',
           tabBarIcon: ({ color }) => <BriefcaseBusiness color={color} size={24} />,
+          headerShown: false,
         }}
       />
       <Tabs.Screen
