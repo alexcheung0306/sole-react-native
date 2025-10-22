@@ -2,8 +2,8 @@
 import { env } from '../env.mjs'
 
 // Construct API base URL properly for React Native
-export const API_BASE_URL = `${env.EXPO_PUBLIC_API_URL}/api`
-// export const API_BASE_URL = `http://localhost:8080/api`
+// export const API_BASE_URL = `${env.EXPO_PUBLIC_API_URL}/api`
+export const API_BASE_URL = `http://localhost:8080/api`
 
 // Debug: Log the API base URL
 console.log('API_BASE_URL:', API_BASE_URL)
