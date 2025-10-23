@@ -15,10 +15,13 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 export default function PostDetail() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const postId = params.postId as string;
+  const postIdParam = params.postId as string;
   const { soleUserId } = useSoleUserContext();
   const queryClient = useQueryClient();
   const commentSheetRef = useRef<BottomSheet>(null);
+
+  // Extract actual post ID from the "postid{id}" format
+  const postId = postIdParam?.replace('postid', '') || postIdParam;
 
   // Fetch post data
   const {

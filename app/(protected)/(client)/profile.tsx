@@ -145,7 +145,7 @@ export default function ClientProfileScreen() {
         key={item.id}
         className="aspect-square bg-gray-800"
         style={{ width: IMAGE_SIZE, height: IMAGE_SIZE }}
-        onPress={() => router.push(`/(protected)/(user)/post/${item.id}` as any)}
+        onPress={() => router.push(`/(protected)/(user)/post/postid${item.id}` as any)}
       >
         {firstMedia ? (
           <ExpoImage

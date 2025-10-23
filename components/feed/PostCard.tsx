@@ -32,16 +32,15 @@ export function PostCard({ post, onLike, onAddComment, comments }: PostCardProps
   };
 
   const handleOpenComments = () => {
-    commentSheetRef.current?.snapToIndex(0);
+    // Navigate to post detail instead of opening comment sheet
+    router.push(`/(protected)/(user)/post/postid${post.id}` as any);
   };
 
   const handleUsernamePress = () => {
     router.push(`/(protected)/(user)/user/${post.soleUserInfo.username}` as any);
   };
 
-  const handlePostPress = () => {
-    router.push(`/(protected)/(user)/post/${post.id}` as any);
-  };
+  // Removed handlePostPress - now only comment button navigates to detail
 
   const renderCaption = () => {
     if (!post.content) return null;
@@ -122,9 +121,7 @@ export function PostCard({ post, onLike, onAddComment, comments }: PostCardProps
         </View>
 
         {/* Body: Image/Video */}
-        <TouchableOpacity onPress={handlePostPress} activeOpacity={0.9}>
-          <ImageCarousel media={post.media} />
-        </TouchableOpacity>
+        <ImageCarousel media={post.media} />
 
         {/* Footer: Actions & Caption */}
         <View className="px-4 py-3">
