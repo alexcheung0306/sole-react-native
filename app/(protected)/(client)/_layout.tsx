@@ -25,6 +25,12 @@ export default function ClientTabLayout() {
       <Tabs.Screen
         name="index"
         options={{
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="dashboard"
+        options={{
           title: 'Dashboard',
           tabBarIcon: ({ color }) => <LayoutDashboard color={color} size={24} />,
           headerShown: false,
