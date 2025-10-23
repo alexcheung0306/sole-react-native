@@ -8,6 +8,8 @@ import { useScrollHeader } from '../../../../hooks/useScrollHeader';
 import { CollapsibleHeader } from '../../../../components/CollapsibleHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SwitchInterface } from '../../../../components/profile/switch-interface';
+import { ProfileSwitchButton } from '../../../../components/ProfileSwitchButton';
+import { useNavigation } from '../../../../context/NavigationContext';
 
 
 const { width } = Dimensions.get('window');
@@ -19,6 +21,7 @@ export default function ProfileScreen() {
   const { user } = useUser();
   const insets = useSafeAreaInsets();
   const { headerTranslateY, handleScroll } = useScrollHeader();
+  const { currentMode } = useNavigation();
 
   const handleSignOut = async () => {
     console.log('handleSignOut called');
@@ -124,11 +127,12 @@ export default function ProfileScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-black">
         <CollapsibleHeader
-          title="Profile"
+          title="Talent Profile"
           headerRight={
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <ProfileSwitchButton />
               <TouchableOpacity
-                style={{ padding: 8, marginRight: 8 }}
+                style={{ padding: 8 }}
                 onPress={() => {
                   // Add notifications functionality here
                   console.log('Notifications pressed');
@@ -305,7 +309,12 @@ export default function ProfileScreen() {
         </ScrollView>
 
         {/* Profile Type Selection Modal */}
-   <SwitchInterface setProfileTypeModalVisible={setProfileTypeModalVisible} setUserInterface={undefined} profileTypeModalVisible={false} userInterface={''} />
+        <SwitchInterface 
+          setProfileTypeModalVisible={setProfileTypeModalVisible} 
+          setUserInterface={setUserInterface} 
+          profileTypeModalVisible={profileTypeModalVisible} 
+          userInterface={userInterface} 
+        />
       </View>
     </>
   );

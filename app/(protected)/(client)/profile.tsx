@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CollapsibleHeader } from '~/components/CollapsibleHeader';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { ProfileSwitchButton } from '~/components/ProfileSwitchButton';
+import { useNavigation } from '~/context/NavigationContext';
 
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = width / 3;
@@ -26,6 +27,7 @@ export default function ClientProfileScreen() {
   const { user } = useUser();
   const insets = useSafeAreaInsets();
   const { headerTranslateY, handleScroll } = useScrollHeader();
+  const { currentMode } = useNavigation();
 
   const handleSignOut = async () => {
     console.log('handleSignOut called');

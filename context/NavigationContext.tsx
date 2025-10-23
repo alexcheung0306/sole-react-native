@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { router } from 'expo-router';
+import { useUser } from '@clerk/clerk-expo';
 
 type NavigationMode = 'client' | 'user';
 
@@ -14,17 +15,22 @@ const NavigationContext = createContext<NavigationContextType | undefined>(undef
 
 export function NavigationProvider({ children }: { children: React.ReactNode }) {
   const [currentMode, setCurrentMode] = useState<NavigationMode>('user');
+  const { user } = useUser();
 
   const switchToClient = () => {
     console.log('Switching to client mode');
     setCurrentMode('client');
-    router.replace('/(protected)/(client)' as any);
+    router.replace('/(protected)/(client)/profile' as any);
   };
 
   const switchToUser = () => {
     console.log('Switching to user mode');
     setCurrentMode('user');
-    router.replace('/(protected)/(user)' as any);
+    if (user?.username) {
+      router.replace(`/(protected)/(user)/user/${user.username}` as any);
+    } else {
+      router.replace('/(protected)/(user)' as any);
+    }
   };
 
   const toggleMode = () => {

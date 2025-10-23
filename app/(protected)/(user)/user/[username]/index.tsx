@@ -8,6 +8,8 @@ import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { CollapsibleHeader } from '~/components/CollapsibleHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SwitchInterface } from '~/components/profile/switch-interface';
+import { ProfileSwitchButton } from '~/components/ProfileSwitchButton';
+import { useNavigation } from '~/context/NavigationContext';
 import { useQuery } from '@tanstack/react-query';
 import { getUserProfileByUsername } from '~/api/apiservice/soleUser_api';
 
@@ -21,6 +23,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { headerTranslateY, handleScroll } = useScrollHeader();
   const { username } = useLocalSearchParams<{ username: string }>();
+  const { currentMode } = useNavigation();
   
   // Check if viewing own profile
   const isOwnProfile = user?.username === username;
@@ -203,7 +206,7 @@ export default function ProfileScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-black">
         <CollapsibleHeader
-          title={isOwnProfile ? "Profile" : `@${username}`}
+          title={isOwnProfile ? "Talent Profile" : `@${username}`}
           headerLeft={!isOwnProfile ? (
             <TouchableOpacity onPress={handleBackPress} style={{ padding: 8 }}>
               <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -211,9 +214,10 @@ export default function ProfileScreen() {
           ) : undefined}
           headerRight={
             isOwnProfile ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <ProfileSwitchButton />
                 <TouchableOpacity
-                  style={{ padding: 8, marginRight: 8 }}
+                  style={{ padding: 8 }}
                   onPress={() => {
                     console.log('Notifications pressed');
                   }}
