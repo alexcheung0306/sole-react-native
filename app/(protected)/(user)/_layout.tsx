@@ -36,12 +36,6 @@ export default function ClientTabLayout() {
         },
       }}>
       <Tabs.Screen
-        name="index"
-        options={{
-          href: null, // Hide from tab bar
-        }}
-      />
-      <Tabs.Screen
         name="home"
         options={{
           title: 'Home',

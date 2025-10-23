@@ -39,6 +39,10 @@ export function PostCard({ post, onLike, onAddComment, comments }: PostCardProps
     router.push(`/(protected)/(user)/user/${post.soleUserInfo.username}` as any);
   };
 
+  const handlePostPress = () => {
+    router.push(`/(protected)/(user)/post/${post.id}` as any);
+  };
+
   const renderCaption = () => {
     if (!post.content) return null;
 
@@ -118,7 +122,9 @@ export function PostCard({ post, onLike, onAddComment, comments }: PostCardProps
         </View>
 
         {/* Body: Image/Video */}
-        <ImageCarousel media={post.media} />
+        <TouchableOpacity onPress={handlePostPress} activeOpacity={0.9}>
+          <ImageCarousel media={post.media} />
+        </TouchableOpacity>
 
         {/* Footer: Actions & Caption */}
         <View className="px-4 py-3">
