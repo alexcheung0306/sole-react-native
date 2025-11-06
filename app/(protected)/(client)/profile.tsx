@@ -9,6 +9,7 @@ import {
   View,
   Dimensions,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { router, Stack } from 'expo-router';
@@ -17,10 +18,13 @@ import { CollapsibleHeader } from '~/components/CollapsibleHeader';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { ProfileSwitchButton } from '~/components/ProfileSwitchButton';
 import { useNavigation } from '~/context/NavigationContext';
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getUserProfileByUsername } from '~/api/apiservice/soleUser_api';
 import { searchPosts } from '~/api/apiservice/post_api';
+import { updateUserInfoBySoleUserId } from '~/api/apiservice/userInfo_api';
+import { updateSoleUserByClerkId, getSoleUserByClerkId } from '~/api/apiservice';
 import { Grid, User, Briefcase, Heart, MessageCircle, MoreVertical, MapPin, FolderKanban, Star } from 'lucide-react-native';
+import { ProfileEditModal, ProfileFormValues } from '~/components/profile/ProfileEditModal';
 
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = width / 3;
@@ -31,11 +35,13 @@ export default function ClientProfileScreen() {
   const [imageSize, setImageSize] = useState(Dimensions.get('window').width / 3);
   const [profileTab, setProfileTab] = useState<TabKey>('posts');
   const [isUser, setIsUser] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const { signOut } = useAuth();
   const { user } = useUser();
   const insets = useSafeAreaInsets();
   const { headerTranslateY, handleScroll } = useScrollHeader();
   const { currentMode } = useNavigation();
+  const queryClient = useQueryClient();
 
   // Fetch user profile data from API
   const {
@@ -96,6 +102,106 @@ export default function ClientProfileScreen() {
     initialPageParam: 0,
   });
 
+  // Mutation for updating user_info
+  const updateUserInfoMutation = useMutation({
+    mutationFn: async (values: ProfileFormValues) => {
+      const soleUserId = userProfileData?.userInfo?.soleUserId;
+      if (!soleUserId) throw new Error('User ID not found');
+
+      const userInfoValues = {
+        ...values,
+        profilePic: values.profilePic || userInfo?.profilePic,
+        category: values.category.join(','), // Convert array to CSV
+        soleUserId,
+      };
+
+      return await updateUserInfoBySoleUserId(soleUserId, userInfoValues);
+    },
+    onSuccess: () => {
+      console.log('User Info updated successfully');
+    },
+    onError: (error) => {
+      console.error('Error updating User Info:', error);
+      throw error;
+    },
+  });
+
+  // Mutation for updating sole_user
+  const updateSoleUserMutation = useMutation({
+    mutationFn: async (values: ProfileFormValues) => {
+      if (!user?.id) throw new Error('Clerk ID not found');
+
+      // Get current data to preserve existing fields
+      const currentSoleUser = await getSoleUserByClerkId(user.id);
+
+      const soleUserValues = {
+        clerkId: user.id,
+        username: values.username,
+        email: currentSoleUser?.email || user.primaryEmailAddress?.emailAddress,
+        talentLevel: currentSoleUser?.talentLevel,
+        clientLevel: currentSoleUser?.clientLevel,
+        image: values.profilePic || currentSoleUser?.image,
+      };
+
+      return await updateSoleUserByClerkId(user.id, soleUserValues);
+    },
+    onSuccess: () => {
+      console.log('Sole User updated successfully');
+    },
+    onError: (error) => {
+      console.error('Error updating Sole User:', error);
+      throw error;
+    },
+  });
+
+  // Handle profile save
+  const handleProfileSave = async (values: ProfileFormValues) => {
+    try {
+      const usernameChanged = values.username !== user?.username;
+
+      // Execute both mutations in parallel
+      await Promise.all([
+        updateUserInfoMutation.mutateAsync(values),
+        updateSoleUserMutation.mutateAsync(values),
+      ]);
+
+      // Update Clerk profile
+      if (user) {
+        try {
+          await user.update({
+            username: values.username,
+          });
+
+          // Update profile image in Clerk if changed
+          if (values.profilePic && values.profilePic !== userInfo?.profilePic) {
+            // Note: Clerk profile image update would need proper blob conversion
+            // This is a simplified version
+          }
+        } catch (clerkError) {
+          console.error('Clerk update error:', clerkError);
+        }
+      }
+
+      // Invalidate queries to refresh data (both old and new username)
+      queryClient.invalidateQueries({ queryKey: ['clientProfile', user?.username] });
+      queryClient.invalidateQueries({ queryKey: ['userProfile', user?.username] });
+      queryClient.invalidateQueries({ queryKey: ['clientProfile', values.username] });
+      queryClient.invalidateQueries({ queryKey: ['userProfile', values.username] });
+
+      Alert.alert('Success', 'Profile updated successfully');
+      
+      // If username changed, redirect to new profile URL
+      if (usernameChanged) {
+        router.replace(`/(protected)/(user)/user/${values.username}` as any);
+      } else {
+        refetch();
+      }
+    } catch (error) {
+      console.error('Profile save error:', error);
+      throw error;
+    }
+  };
+
   const handleSignOut = async () => {
     console.log('handleSignOut called');
 
@@ -135,7 +241,7 @@ export default function ClientProfileScreen() {
   const categoryValue = typeof userInfo?.category === "string" 
     ? userInfo.category.split(",") 
     : [];
-  const filteredCategoryChips = categoryValue.filter((item) => item !== "");
+  const filteredCategoryChips = categoryValue.filter((item: string) => item !== "");
 
   const renderPost = ({ item, index }: { item: any; index: number }) => {
     const firstMedia = item.media && item.media.length > 0 ? item.media[0] : null;
@@ -320,7 +426,7 @@ export default function ClientProfileScreen() {
               {/* Category Chips */}
               {filteredCategoryChips.length > 0 && (
                 <View className="flex-row flex-wrap mb-3">
-                  {filteredCategoryChips.map((category, index) => (
+                  {filteredCategoryChips.map((category: string, index: number) => (
                     <View
                       key={index}
                       className="bg-gray-700 rounded-full px-3 py-1 mr-2 mb-1"
@@ -343,7 +449,10 @@ export default function ClientProfileScreen() {
 
               {/* Action Buttons */}
               <View className="flex-row gap-2">
-                <TouchableOpacity className="flex-1 bg-gray-700 rounded-lg py-2 px-4">
+                <TouchableOpacity 
+                  className="flex-1 bg-gray-700 rounded-lg py-2 px-4"
+                  onPress={() => setShowEditModal(true)}
+                >
                   <Text className="text-white text-center font-semibold">Edit Profile</Text>
                 </TouchableOpacity>
                 <TouchableOpacity className="flex-1 bg-blue-500 rounded-lg py-2 px-4">
@@ -388,6 +497,21 @@ export default function ClientProfileScreen() {
             {renderTabContent()}
           </View>
         </ScrollView>
+
+        {/* Profile Edit Modal */}
+        <ProfileEditModal
+          visible={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onSave={handleProfileSave}
+          initialValues={{
+            profilePic: userInfo?.profilePic || user?.imageUrl || '',
+            username: user?.username || '',
+            name: userInfo?.name || user?.firstName || '',
+            bio: userInfo?.bio || '',
+            category: filteredCategoryChips || [],
+          }}
+          isLoading={updateUserInfoMutation.isPending || updateSoleUserMutation.isPending}
+        />
       </View>
     </>
   );

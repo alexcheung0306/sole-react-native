@@ -1,6 +1,12 @@
-import { logFormData } from "@/app/(home)/_components/userProfile/_talentProfileComponents/talent-profile-form"
-
 import { API_BASE_URL, getSoleUserByUserName } from "../apiservice"
+
+// Helper function to log FormData contents for debugging
+const logFormData = (label: string, formData: FormData) => {
+  console.log(`=== ${label} ===`);
+  // Note: FormData entries() is not available in React Native
+  // This is just a placeholder for debugging
+  console.log('FormData prepared for submission');
+};
 
 //talent info
 export const getTalentInfoById = async (id: number): Promise<any[]> => {

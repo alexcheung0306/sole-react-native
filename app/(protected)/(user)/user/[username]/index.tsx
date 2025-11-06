@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import React, { useState, useEffect } from 'react';
-import { ScrollView, Text, TouchableOpacity, View, Dimensions, ActivityIndicator, FlatList } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View, Dimensions, ActivityIndicator, FlatList, Alert } from 'react-native';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
@@ -10,10 +10,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SwitchInterface } from '~/components/profile/switch-interface';
 import { ProfileSwitchButton } from '~/components/ProfileSwitchButton';
 import { useNavigation } from '~/context/NavigationContext';
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getUserProfileByUsername } from '~/api/apiservice/soleUser_api';
 import { searchPosts } from '~/api/apiservice/post_api';
-import { Grid, User, Briefcase, Heart, MessageCircle, MoreVertical, MapPin } from 'lucide-react-native';
+import { updateUserInfoBySoleUserId } from '~/api/apiservice/userInfo_api';
+import { updateSoleUserByClerkId, getSoleUserByClerkId } from '~/api/apiservice';
+import { updateTalentInfoWithComcardBySoleUserId } from '~/api/apiservice/talentInfo_api';
+import { Grid, User, Briefcase, Heart, MessageCircle, MoreVertical, MapPin, Edit2 } from 'lucide-react-native';
+import { ProfileEditModal, ProfileFormValues } from '~/components/profile/ProfileEditModal';
+import { TalentInfoEditModal, TalentFormValues } from '~/components/profile/TalentInfoEditModal';
 
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = width / 3;
@@ -25,12 +30,15 @@ export default function ProfileScreen() {
   const [profileTab, setProfileTab] = useState<TabKey>('posts');
   const [isUser, setIsUser] = useState(false);
   const [isTalent, setIsTalent] = useState(false);
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showEditTalentModal, setShowEditTalentModal] = useState(false);
   const { signOut } = useAuth();
   const { user } = useUser();
   const insets = useSafeAreaInsets();
   const { headerTranslateY, handleScroll } = useScrollHeader();
   const { username } = useLocalSearchParams<{ username: string }>();
   const { currentMode } = useNavigation();
+  const queryClient = useQueryClient();
   
   // Check if viewing own profile
   const isOwnProfile = user?.username === username;
@@ -107,6 +115,144 @@ export default function ProfileScreen() {
     },
     initialPageParam: 0,
   });
+
+  // Mutation for updating user_info
+  const updateUserInfoMutation = useMutation({
+    mutationFn: async (values: ProfileFormValues) => {
+      const soleUserId = userProfileData?.userInfo?.soleUserId;
+      if (!soleUserId) throw new Error('User ID not found');
+
+      const userInfoValues = {
+        ...values,
+        profilePic: values.profilePic || userInfo?.profilePic,
+        category: values.category.join(','),
+        soleUserId,
+      };
+
+      return await updateUserInfoBySoleUserId(soleUserId, userInfoValues);
+    },
+  });
+
+  // Mutation for updating sole_user
+  const updateSoleUserMutation = useMutation({
+    mutationFn: async (values: ProfileFormValues) => {
+      if (!user?.id) throw new Error('Clerk ID not found');
+
+      const currentSoleUser = await getSoleUserByClerkId(user.id);
+
+      const soleUserValues = {
+        clerkId: user.id,
+        username: values.username,
+        email: currentSoleUser?.email || user.primaryEmailAddress?.emailAddress,
+        talentLevel: currentSoleUser?.talentLevel,
+        clientLevel: currentSoleUser?.clientLevel,
+        image: values.profilePic || currentSoleUser?.image,
+      };
+
+      return await updateSoleUserByClerkId(user.id, soleUserValues);
+    },
+  });
+
+  // Mutation for updating talent_info
+  const updateTalentInfoMutation = useMutation({
+    mutationFn: async (values: TalentFormValues) => {
+      const soleUserId = userProfileData?.userInfo?.soleUserId;
+      if (!soleUserId) throw new Error('User ID not found');
+
+      const talentData = {
+        talentName: values.talentName,
+        gender: values.gender,
+        eyeColor: values.eyeColor,
+        hairColor: values.hairColor,
+        age: values.age,
+        height: values.height,
+        chest: values.chest,
+        waist: values.waist,
+        hip: values.hip,
+        shoes: values.shoes,
+        ethnic: values.ethnic,
+        region: values.region,
+        experience: values.experience,
+        bucket: 'talentinformation',
+        soleUserId: soleUserId,
+        snapshotHalfBody: values.snapshotHalfBody,
+        snapshotFullBody: values.snapshotFullBody,
+      };
+
+      const comcardData = {
+        id: userProfileData?.comcard?.id,
+        configId: '1',
+        photoConfig: [],
+        isActive: 'true',
+        soleUserId: soleUserId,
+        pdf: '',
+        bucket: 'comcards',
+        comcardImageName: soleUserId,
+        length: 5,
+        talentNameColor: 'black',
+      };
+
+      return await updateTalentInfoWithComcardBySoleUserId({
+        soleUserId,
+        talentData,
+        comcardData,
+      });
+    },
+  });
+
+  // Handle profile save
+  const handleProfileSave = async (values: ProfileFormValues) => {
+    try {
+      const usernameChanged = values.username !== username;
+
+      await Promise.all([
+        updateUserInfoMutation.mutateAsync(values),
+        updateSoleUserMutation.mutateAsync(values),
+      ]);
+
+      if (user) {
+        try {
+          await user.update({
+            username: values.username,
+          });
+        } catch (clerkError) {
+          console.error('Clerk update error:', clerkError);
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['userProfile', username] });
+      queryClient.invalidateQueries({ queryKey: ['profilePagePosts', username] });
+      queryClient.invalidateQueries({ queryKey: ['userProfile', values.username] });
+      queryClient.invalidateQueries({ queryKey: ['profilePagePosts', values.username] });
+
+      Alert.alert('Success', 'Profile updated successfully');
+      
+      // If username changed, redirect to new profile URL
+      if (usernameChanged) {
+        router.replace(`/(protected)/(user)/user/${values.username}` as any);
+      } else {
+        refetch();
+      }
+    } catch (error) {
+      console.error('Profile save error:', error);
+      throw error;
+    }
+  };
+
+  // Handle talent info save
+  const handleTalentInfoSave = async (values: TalentFormValues) => {
+    try {
+      await updateTalentInfoMutation.mutateAsync(values);
+
+      queryClient.invalidateQueries({ queryKey: ['userProfile', username] });
+
+      Alert.alert('Success', 'Talent profile updated successfully');
+      refetch();
+    } catch (error) {
+      console.error('Talent info save error:', error);
+      throw error;
+    }
+  };
 
   const handleSignOut = async () => {
     console.log('handleSignOut called');
@@ -193,7 +339,15 @@ export default function ProfileScreen() {
     if (!talentInfo) {
       return (
         <View className="p-4 items-center">
-          <Text className="text-gray-400">No talent profile available</Text>
+          <Text className="text-gray-400 text-lg mb-4">No talent profile available</Text>
+          {isOwnProfile && (
+            <TouchableOpacity 
+              className="bg-blue-500 rounded-lg py-3 px-6"
+              onPress={() => setShowEditTalentModal(true)}
+            >
+              <Text className="text-white font-semibold">Create Talent Profile</Text>
+            </TouchableOpacity>
+          )}
         </View>
       );
     }
@@ -201,63 +355,126 @@ export default function ProfileScreen() {
     return (
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="p-4">
-          {/* Physical Stats */}
+          {/* Edit Button (for own profile) */}
+          {isOwnProfile && (
+            <TouchableOpacity 
+              className="bg-blue-500 rounded-lg py-3 px-4 mb-6 flex-row items-center justify-center"
+              onPress={() => setShowEditTalentModal(true)}
+            >
+              <Edit2 size={18} color="#ffffff" style={{ marginRight: 8 }} />
+              <Text className="text-white font-semibold">Edit Talent Profile</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Personal Information */}
           <View className="mb-6">
-            <Text className="text-white text-lg font-semibold mb-4">Physical Stats</Text>
+            <Text className="text-white text-xl font-bold mb-4">Personal Information</Text>
             <View className="bg-gray-800/50 rounded-lg p-4">
-              <View className="flex-row justify-between mb-2">
-                <Text className="text-gray-300">Age</Text>
-                <Text className="text-white">{talentInfo.age || 'N/A'}</Text>
+              <View className="flex-row justify-between mb-3 pb-3 border-b border-gray-700">
+                <Text className="text-gray-300">Talent Name</Text>
+                <Text className="text-white font-medium">{talentInfo.talentName || 'N/A'}</Text>
               </View>
-              <View className="flex-row justify-between mb-2">
-                <Text className="text-gray-300">Height</Text>
-                <Text className="text-white">{talentInfo.height || 'N/A'} cm</Text>
-              </View>
-              <View className="flex-row justify-between mb-2">
+              <View className="flex-row justify-between mb-3 pb-3 border-b border-gray-700">
                 <Text className="text-gray-300">Gender</Text>
-                <Text className="text-white">{talentInfo.gender || 'N/A'}</Text>
+                <Text className="text-white font-medium">{talentInfo.gender || 'N/A'}</Text>
               </View>
-              <View className="flex-row justify-between mb-2">
+              <View className="flex-row justify-between mb-3 pb-3 border-b border-gray-700">
                 <Text className="text-gray-300">Eye Color</Text>
-                <Text className="text-white">{talentInfo.eyeColor || 'N/A'}</Text>
+                <Text className="text-white font-medium">{talentInfo.eyeColor || 'N/A'}</Text>
               </View>
-              <View className="flex-row justify-between mb-2">
+              <View className="flex-row justify-between mb-3 pb-3 border-b border-gray-700">
                 <Text className="text-gray-300">Hair Color</Text>
-                <Text className="text-white">{talentInfo.hairColor || 'N/A'}</Text>
+                <Text className="text-white font-medium">{talentInfo.hairColor || 'N/A'}</Text>
+              </View>
+              <View className="flex-row justify-between">
+                <Text className="text-gray-300">Age</Text>
+                <Text className="text-white font-medium">{talentInfo.age || 'N/A'}</Text>
               </View>
             </View>
           </View>
 
-          {/* Measurements */}
+          {/* Physical Measurements */}
           <View className="mb-6">
-            <Text className="text-white text-lg font-semibold mb-4">Measurements</Text>
+            <Text className="text-white text-xl font-bold mb-4">Physical Measurements</Text>
             <View className="bg-gray-800/50 rounded-lg p-4">
-              <View className="flex-row justify-between mb-2">
+              <View className="flex-row justify-between mb-3 pb-3 border-b border-gray-700">
+                <Text className="text-gray-300">Height</Text>
+                <Text className="text-white font-medium">{talentInfo.height || 'N/A'} cm</Text>
+              </View>
+              <View className="flex-row justify-between mb-3 pb-3 border-b border-gray-700">
                 <Text className="text-gray-300">Chest</Text>
-                <Text className="text-white">{talentInfo.chest || 'N/A'} cm</Text>
+                <Text className="text-white font-medium">{talentInfo.chest || 'N/A'} cm</Text>
               </View>
-              <View className="flex-row justify-between mb-2">
+              <View className="flex-row justify-between mb-3 pb-3 border-b border-gray-700">
                 <Text className="text-gray-300">Waist</Text>
-                <Text className="text-white">{talentInfo.waist || 'N/A'} cm</Text>
+                <Text className="text-white font-medium">{talentInfo.waist || 'N/A'} cm</Text>
               </View>
-              <View className="flex-row justify-between mb-2">
+              <View className="flex-row justify-between mb-3 pb-3 border-b border-gray-700">
                 <Text className="text-gray-300">Hip</Text>
-                <Text className="text-white">{talentInfo.hip || 'N/A'} cm</Text>
+                <Text className="text-white font-medium">{talentInfo.hip || 'N/A'} cm</Text>
               </View>
-              <View className="flex-row justify-between mb-2">
-                <Text className="text-gray-300">Shoes</Text>
-                <Text className="text-white">{talentInfo.shoes || 'N/A'}</Text>
+              <View className="flex-row justify-between">
+                <Text className="text-gray-300">Shoes (EU)</Text>
+                <Text className="text-white font-medium">{talentInfo.shoes || 'N/A'}</Text>
               </View>
             </View>
           </View>
 
-          {/* Experience */}
+          {/* Background Information */}
           <View className="mb-6">
-            <Text className="text-white text-lg font-semibold mb-4">Experience</Text>
+            <Text className="text-white text-xl font-bold mb-4">Background</Text>
             <View className="bg-gray-800/50 rounded-lg p-4">
-              <Text className="text-white">{talentInfo.experience || 'No experience listed'}</Text>
+              <View className="flex-row justify-between mb-3 pb-3 border-b border-gray-700">
+                <Text className="text-gray-300">Ethnicity</Text>
+                <Text className="text-white font-medium">{talentInfo.ethnic || 'N/A'}</Text>
+              </View>
+              <View className="flex-row justify-between">
+                <Text className="text-gray-300">Region</Text>
+                <Text className="text-white font-medium">{talentInfo.region || 'N/A'}</Text>
+              </View>
             </View>
           </View>
+
+          {/* Professional Experience */}
+          <View className="mb-6">
+            <Text className="text-white text-xl font-bold mb-4">Professional Experience</Text>
+            <View className="bg-gray-800/50 rounded-lg p-4">
+              <Text className="text-white leading-6">
+                {talentInfo.experience || 'No experience listed'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Portfolio Snapshots */}
+          {(talentInfo.snapshotHalfBody || talentInfo.snapshotFullBody) && (
+            <View className="mb-6">
+              <Text className="text-white text-xl font-bold mb-4">Portfolio Snapshots</Text>
+              <View className="flex-row gap-3">
+                {talentInfo.snapshotHalfBody && (
+                  <View className="flex-1">
+                    <Text className="text-gray-300 text-sm mb-2">Half-Body</Text>
+                    <ExpoImage
+                      source={{ uri: talentInfo.snapshotHalfBody }}
+                      className="w-full rounded-lg"
+                      style={{ aspectRatio: 3/4 }}
+                      contentFit="cover"
+                    />
+                  </View>
+                )}
+                {talentInfo.snapshotFullBody && (
+                  <View className="flex-1">
+                    <Text className="text-gray-300 text-sm mb-2">Full-Body</Text>
+                    <ExpoImage
+                      source={{ uri: talentInfo.snapshotFullBody }}
+                      className="w-full rounded-lg"
+                      style={{ aspectRatio: 3/4 }}
+                      contentFit="cover"
+                    />
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
         </View>
       </ScrollView>
     );
@@ -428,7 +645,10 @@ export default function ProfileScreen() {
 
               {/* Action Buttons */}
               {isOwnProfile ? (
-                <TouchableOpacity className="bg-gray-700 rounded-lg py-2 px-4">
+                <TouchableOpacity 
+                  className="bg-gray-700 rounded-lg py-2 px-4"
+                  onPress={() => setShowEditProfileModal(true)}
+                >
                   <Text className="text-white text-center font-semibold">Edit Profile</Text>
                 </TouchableOpacity>
               ) : (
@@ -479,6 +699,47 @@ export default function ProfileScreen() {
             {renderTabContent()}
           </View>
         </ScrollView>
+
+        {/* Profile Edit Modal */}
+        <ProfileEditModal
+          visible={showEditProfileModal}
+          onClose={() => setShowEditProfileModal(false)}
+          onSave={handleProfileSave}
+          initialValues={{
+            profilePic: userInfo?.profilePic || user?.imageUrl || '',
+            username: username || '',
+            name: userInfo?.name || user?.firstName || '',
+            bio: userInfo?.bio || '',
+            category: filteredCategoryChips || [],
+          }}
+          isLoading={updateUserInfoMutation.isPending || updateSoleUserMutation.isPending}
+        />
+
+        {/* Talent Info Edit Modal */}
+        {isTalent && (
+          <TalentInfoEditModal
+            visible={showEditTalentModal}
+            onClose={() => setShowEditTalentModal(false)}
+            onSave={handleTalentInfoSave}
+            initialValues={{
+              talentName: talentInfo?.talentName || '',
+              gender: talentInfo?.gender || '',
+              eyeColor: talentInfo?.eyeColor || '',
+              hairColor: talentInfo?.hairColor || '',
+              age: talentInfo?.age?.toString() || '',
+              height: talentInfo?.height?.toString() || '',
+              chest: talentInfo?.chest?.toString() || '',
+              waist: talentInfo?.waist?.toString() || '',
+              hip: talentInfo?.hip?.toString() || '',
+              shoes: talentInfo?.shoes?.toString() || '',
+              ethnic: talentInfo?.ethnic || '',
+              region: talentInfo?.region || '',
+              experience: talentInfo?.experience || '',
+              snapshotHalfBody: talentInfo?.snapshotHalfBody,
+              snapshotFullBody: talentInfo?.snapshotFullBody,
+            }}
+          />
+        )}
       </View>
     </>
   );

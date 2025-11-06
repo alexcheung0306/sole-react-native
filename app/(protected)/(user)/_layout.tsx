@@ -78,6 +78,13 @@ export default function ClientTabLayout() {
           } as any : null,
         }}
       />
+      //hidden tab
+      <Tabs.Screen
+        name="post/[postId]"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
