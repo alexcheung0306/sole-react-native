@@ -74,12 +74,25 @@ export const updateUserInfoBySoleUserId = async (
     // Add all the user info fields to form data
     Object.keys(values).forEach((key) => {
       if (key === "profilePic" && values[key]) {
-        // Handle profile picture - if it's a base64 string, convert to blob
-        if (
+        // Handle profile picture for React Native
+        if (typeof values[key] === "string" && 
+            (values[key].startsWith("file://") || 
+             values[key].startsWith("content://") || 
+             values[key].startsWith("ph://"))) {
+          // React Native URI format (file://, content://, or ph://)
+          const uriParts = values[key].split('.');
+          const fileType = uriParts[uriParts.length - 1] || 'jpg';
+          
+          formData.append("profilePic", {
+            uri: values[key],
+            name: `profile-pic.${fileType}`,
+            type: `image/${fileType}`,
+          } as any);
+        } else if (
           typeof values[key] === "string" &&
           values[key].startsWith("data:")
         ) {
-          // Convert base64 to blob
+          // Convert base64 to blob (web)
           const base64Data = values[key].split(",")[1]
           const byteCharacters = atob(base64Data)
           const byteNumbers = new Array(byteCharacters.length)
@@ -90,6 +103,7 @@ export const updateUserInfoBySoleUserId = async (
           const blob = new Blob([byteArray], { type: "image/jpeg" })
           formData.append("profilePic", blob, "profile-pic.jpg")
         } else if (values[key] instanceof File) {
+          // Web File object
           formData.append("profilePic", values[key])
         }
       } else if (key !== "profilePic") {

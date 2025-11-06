@@ -100,17 +100,49 @@ export const createTalentInfoWithComcard = async (
     formData.append("talentInfo.bucket", talentData.bucket)
     formData.append("talentInfo.soleUserId", soleUserId)
 
+    // Handle snapshot images for React Native
     if (talentData.snapshotHalfBody) {
-      formData.append(
-        "talentInfo.snapshotHalfBodyImage",
-        talentData.snapshotHalfBody
-      )
+      if (typeof talentData.snapshotHalfBody === "string" && 
+          (talentData.snapshotHalfBody.startsWith("file://") || 
+           talentData.snapshotHalfBody.startsWith("content://") || 
+           talentData.snapshotHalfBody.startsWith("ph://"))) {
+        // React Native URI format
+        const uriParts = talentData.snapshotHalfBody.split('.');
+        const fileType = uriParts[uriParts.length - 1] || 'jpg';
+        
+        formData.append("talentInfo.snapshotHalfBodyImage", {
+          uri: talentData.snapshotHalfBody,
+          name: `halfbody.${fileType}`,
+          type: `image/${fileType}`,
+        } as any);
+      } else {
+        formData.append(
+          "talentInfo.snapshotHalfBodyImage",
+          talentData.snapshotHalfBody
+        )
+      }
     }
+    
     if (talentData.snapshotFullBody) {
-      formData.append(
-        "talentInfo.snapshotFullBodyImage",
-        talentData.snapshotFullBody
-      )
+      if (typeof talentData.snapshotFullBody === "string" && 
+          (talentData.snapshotFullBody.startsWith("file://") || 
+           talentData.snapshotFullBody.startsWith("content://") || 
+           talentData.snapshotFullBody.startsWith("ph://"))) {
+        // React Native URI format
+        const uriParts = talentData.snapshotFullBody.split('.');
+        const fileType = uriParts[uriParts.length - 1] || 'jpg';
+        
+        formData.append("talentInfo.snapshotFullBodyImage", {
+          uri: talentData.snapshotFullBody,
+          name: `fullbody.${fileType}`,
+          type: `image/${fileType}`,
+        } as any);
+      } else {
+        formData.append(
+          "talentInfo.snapshotFullBodyImage",
+          talentData.snapshotFullBody
+        )
+      }
     }
 
     // Append nested comcard fields (using request.comcard.field pattern)
@@ -176,17 +208,50 @@ export const updateTalentInfoWithComcardBySoleUserId = async ({
     formData.append("talentInfo.experience", talentData.experience)
     formData.append("talentInfo.bucket", talentData.bucket)
     formData.append("talentInfo.soleUserId", soleUserId)
+    
+    // Handle snapshot images for React Native
     if (talentData.snapshotHalfBody) {
-      formData.append(
-        "talentInfo.snapshotHalfBodyImage",
-        talentData.snapshotHalfBody
-      )
+      if (typeof talentData.snapshotHalfBody === "string" && 
+          (talentData.snapshotHalfBody.startsWith("file://") || 
+           talentData.snapshotHalfBody.startsWith("content://") || 
+           talentData.snapshotHalfBody.startsWith("ph://"))) {
+        // React Native URI format
+        const uriParts = talentData.snapshotHalfBody.split('.');
+        const fileType = uriParts[uriParts.length - 1] || 'jpg';
+        
+        formData.append("talentInfo.snapshotHalfBodyImage", {
+          uri: talentData.snapshotHalfBody,
+          name: `halfbody.${fileType}`,
+          type: `image/${fileType}`,
+        } as any);
+      } else {
+        formData.append(
+          "talentInfo.snapshotHalfBodyImage",
+          talentData.snapshotHalfBody
+        )
+      }
     }
+    
     if (talentData.snapshotFullBody) {
-      formData.append(
-        "talentInfo.snapshotFullBodyImage",
-        talentData.snapshotFullBody
-      )
+      if (typeof talentData.snapshotFullBody === "string" && 
+          (talentData.snapshotFullBody.startsWith("file://") || 
+           talentData.snapshotFullBody.startsWith("content://") || 
+           talentData.snapshotFullBody.startsWith("ph://"))) {
+        // React Native URI format
+        const uriParts = talentData.snapshotFullBody.split('.');
+        const fileType = uriParts[uriParts.length - 1] || 'jpg';
+        
+        formData.append("talentInfo.snapshotFullBodyImage", {
+          uri: talentData.snapshotFullBody,
+          name: `fullbody.${fileType}`,
+          type: `image/${fileType}`,
+        } as any);
+      } else {
+        formData.append(
+          "talentInfo.snapshotFullBodyImage",
+          talentData.snapshotFullBody
+        )
+      }
     }
 
     // Append nested comcard fields (using request.comcard.field pattern)

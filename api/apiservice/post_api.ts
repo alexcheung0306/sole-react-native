@@ -155,6 +155,132 @@ export const getPostComments = async (postId: number): Promise<any[]> => {
 }
 
 /**
+ * Create a new post with multiple media files
+ * POST /api/post
+ */
+export interface PostMedia {
+  file?: any | null
+  uri?: string
+  cropData?: {
+    x: number
+    y: number
+    width: number
+    height: number
+    zoom: number
+    naturalWidth?: number
+    naturalHeight?: number
+  }
+  isVideo: boolean
+}
+
+export interface CreatePostRequest {
+  soleUserId: string
+  postMedias: PostMedia[]
+  content: string
+}
+
+export const createPost = async (postData: CreatePostRequest): Promise<PostWithDetailsResponse> => {
+  try {
+    const formData = new FormData()
+
+    // 1. Add soleUserId
+    if (postData.soleUserId) {
+      formData.append("soleUserId", postData.soleUserId)
+    }
+    
+    // 2. Add content (caption)
+    formData.append("content", postData.content || "")
+
+    // 3. Append postMedias with nested fields
+    let mediaFileIndex = 0
+    postData.postMedias?.forEach((media, index) => {
+      
+      // 3a. Append crop data with nested notation
+      if (media.cropData) {
+        formData.append(
+          `postMedias[${index}].cropData.x`,
+          media.cropData.x?.toString() || "0"
+        )
+        formData.append(
+          `postMedias[${index}].cropData.y`,
+          media.cropData.y?.toString() || "0"
+        )
+        formData.append(
+          `postMedias[${index}].cropData.width`,
+          media.cropData.width?.toString() || "0"
+        )
+        formData.append(
+          `postMedias[${index}].cropData.height`,
+          media.cropData.height?.toString() || "0"
+        )
+        formData.append(
+          `postMedias[${index}].cropData.zoom`,
+          media.cropData.zoom?.toString() || "1"
+        )
+        if (media.cropData.naturalWidth) {
+          formData.append(
+            `postMedias[${index}].cropData.naturalWidth`,
+            media.cropData.naturalWidth.toString()
+          )
+        }
+        if (media.cropData.naturalHeight) {
+          formData.append(
+            `postMedias[${index}].cropData.naturalHeight`,
+            media.cropData.naturalHeight.toString()
+          )
+        }
+      }
+
+      // 3b. Append isVideo flag
+      formData.append(
+        `postMedias[${index}].isVideo`,
+        media.isVideo?.toString() || "false"
+      )
+
+      // 3c. Append file (React Native format)
+      if (media.uri) {
+        const uriParts = media.uri.split('.');
+        const fileType = uriParts[uriParts.length - 1] || 'jpg';
+        const mimeType = media.isVideo ? `video/${fileType}` : `image/${fileType}`;
+        
+        formData.append(`postMedias[${index}].file`, {
+          uri: media.uri,
+          name: `post_${index}.${fileType}`,
+          type: mimeType,
+        } as any);
+        
+        formData.append(
+          `postMedias[${index}].fileIndex`,
+          mediaFileIndex.toString()
+        )
+        mediaFileIndex++
+      }
+    })
+
+    console.log(`Creating post with ${mediaFileIndex} media files`)
+
+    // 4. Send to backend
+    const response = await fetch(`${API_BASE_URL}/post`, {
+      method: "POST",
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Create post error:', errorText)
+      throw new Error(`Failed to create post: ${response.statusText}`)
+    }
+
+    const result = await response.json()
+    console.log('Post created successfully:', result)
+    return result
+  } catch (error) {
+    console.error("Error creating post:", error)
+    throw error
+  }
+}
+
+/**
  * Create a comment on a post
  * POST /api/post-comments
  */

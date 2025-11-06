@@ -95,6 +95,7 @@ export function TalentInfoEditModal({
       });
 
       if (!result.canceled && result.assets[0]) {
+        console.log(`${type} image selected:`, result.assets[0].uri);
         if (type === 'halfBody') {
           setFormValues({ ...formValues, snapshotHalfBody: result.assets[0].uri });
         } else {

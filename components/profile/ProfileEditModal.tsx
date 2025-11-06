@@ -74,6 +74,7 @@ export function ProfileEditModal({
       });
 
       if (!result.canceled && result.assets[0]) {
+        console.log('Image selected:', result.assets[0].uri);
         setFormValues({ ...formValues, profilePic: result.assets[0].uri });
       }
     } catch (error) {

@@ -1,16 +1,8 @@
-'use client';
-
 import { useSoleUserContext } from '@/context/SoleUserContext';
-
 import { useQuery } from '@tanstack/react-query';
-
-import { getFollowingListByUsername } from '~/api/follow_api';
-
-import { FollowButton } from './follow-button';
-import { getFollowerListByUsername } from '~/api/follow_api';
-import { Skeleton } from '../ui/skeleton';
+import { getFollowingListByUsername, getFollowerListByUsername } from '~/api/apiservice/follow_api';
 import { useRouter } from 'expo-router';
-import { Text, TouchableOpacity } from 'react-native';
+import { Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 
 export default function FollowList({
   username,
@@ -48,20 +40,31 @@ export default function FollowList({
   });
 
   const handlePress = () => {
+    console.log('FollowList handlePress called');
+    console.log('Type:', type);
+    console.log('Username:', username);
     const pageType = type === 'follower' ? 'followers' : 'following';
-    router.push(`/user/${username}/${pageType}`);
+    const route = `/(protected)/(user)/user/${username}/${pageType}`;
+    console.log('Navigating to:', route);
+    router.push(route as any);
   };
 
+  const count = type === 'follower' ? (followersData?.length || 0) : (followingData?.length || 0);
+  const label = type === 'follower' ? 'Followers' : 'Following';
+
   return (
-    <TouchableOpacity className="flex flex-col items-center" onPress={handlePress}>
-      <Skeleton className=" rounded-lg" isLoaded={!isLoading}>
-        <Text className="text-sm">
-          {type == 'follower' ? followersData?.length || 0 : followingData?.length || 0}
-        </Text>
-      </Skeleton>
-      <Skeleton className=" rounded-lg" isLoaded={!isLoading}>
-        <Text className="text-sm">{type == 'follower' ? 'Follower' : 'Following'}</Text>
-      </Skeleton>
+    <TouchableOpacity 
+      className="flex flex-col items-center" 
+      onPress={handlePress}
+      activeOpacity={0.7}
+      disabled={isLoading}
+    >
+      {isLoading ? (
+        <ActivityIndicator size="small" color="#3b82f6" />
+      ) : (
+        <Text className="text-white text-lg font-bold">{count}</Text>
+      )}
+      <Text className="text-gray-400 text-sm">{label}</Text>
     </TouchableOpacity>
   );
 }

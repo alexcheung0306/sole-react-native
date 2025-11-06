@@ -19,6 +19,7 @@ import { updateTalentInfoWithComcardBySoleUserId } from '~/api/apiservice/talent
 import { Grid, User, Briefcase, Heart, MessageCircle, MoreVertical, MapPin, Edit2 } from 'lucide-react-native';
 import { ProfileEditModal, ProfileFormValues } from '~/components/profile/ProfileEditModal';
 import { TalentInfoEditModal, TalentFormValues } from '~/components/profile/TalentInfoEditModal';
+import FollowList from '~/components/follow/follow-list';
 
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = width / 3;
@@ -609,14 +610,16 @@ export default function ProfileScreen() {
                   <Text className="text-white text-lg font-bold">{totalPosts}</Text>
                   <Text className="text-gray-400 text-sm">Posts</Text>
                 </View>
-                <View className="items-center">
-                  <Text className="text-white text-lg font-bold">0</Text>
-                  <Text className="text-gray-400 text-sm">Followers</Text>
-                </View>
-                <View className="items-center">
-                  <Text className="text-white text-lg font-bold">0</Text>
-                  <Text className="text-gray-400 text-sm">Following</Text>
-                </View>
+                <FollowList
+                  username={username || ''}
+                  isLoading={profileLoading}
+                  type="follower"
+                />
+                <FollowList
+                  username={username || ''}
+                  isLoading={profileLoading}
+                  type="following"
+                />
               </View>
             </View>
 

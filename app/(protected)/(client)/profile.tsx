@@ -25,6 +25,7 @@ import { updateUserInfoBySoleUserId } from '~/api/apiservice/userInfo_api';
 import { updateSoleUserByClerkId, getSoleUserByClerkId } from '~/api/apiservice';
 import { Grid, User, Briefcase, Heart, MessageCircle, MoreVertical, MapPin, FolderKanban, Star } from 'lucide-react-native';
 import { ProfileEditModal, ProfileFormValues } from '~/components/profile/ProfileEditModal';
+import FollowList from '~/components/follow/follow-list';
 
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = width / 3;
@@ -403,14 +404,16 @@ export default function ClientProfileScreen() {
                   <Text className="text-white text-lg font-bold">{totalPosts}</Text>
                   <Text className="text-gray-400 text-sm">Posts</Text>
                 </View>
-                <View className="items-center">
-                  <Text className="text-white text-lg font-bold">0</Text>
-                  <Text className="text-gray-400 text-sm">Projects</Text>
-                </View>
-                <View className="items-center">
-                  <Text className="text-white text-lg font-bold">0</Text>
-                  <Text className="text-gray-400 text-sm">Contracts</Text>
-                </View>
+                <FollowList
+                  username={user?.username || ''}
+                  isLoading={profileLoading}
+                  type="follower"
+                />
+                <FollowList
+                  username={user?.username || ''}
+                  isLoading={profileLoading}
+                  type="following"
+                />
               </View>
             </View>
 

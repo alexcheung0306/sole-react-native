@@ -110,6 +110,22 @@ export const updateFollowRecord = async (
     throw error
   }
 }
+export const deleteFollowRecord = async (recordId: number) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/follow/delete/${recordId}`, {
+      method: "DELETE",
+    })
+    if (!response.ok) {
+      throw new Error("Failed to delete follow record")
+    }
+    const result = await response.json()
+    return result
+  } catch (error) {
+    console.error("Error deleting follow record:", error)
+    throw error
+  }
+}
+
 export interface FollowRecord {
   status: string // Add other statuses as needed
   collaborated: boolean // Change to boolean type
