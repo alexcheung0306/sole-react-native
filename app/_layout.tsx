@@ -3,6 +3,8 @@ import '../global.css';
 import { Stack } from 'expo-router';
 import { ClerkProvider } from '@clerk/clerk-expo';
 import * as SecureStore from 'expo-secure-store';
+import * as WebBrowser from 'expo-web-browser';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthWrapper } from '../components/AuthWrapper';
 import { AppContextProvider } from '~/context/AppContext';
 import { SoleUserProvider } from '~/context/SoleUserContext';
@@ -12,10 +14,8 @@ import { CreatePostProvider } from '~/context/CreatePostContext';
 import { env } from '~/env.mjs';
 import { GluestackUIProvider } from '~/components/ui/gluestack-ui-provider';
 
-export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: 'sign-in',
-};
+// Complete the OAuth flow in the browser (should only be called once at app level)
+WebBrowser.maybeCompleteAuthSession();
 
 const PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
@@ -28,8 +28,9 @@ const tokenCache = {
 
 export default function RootLayout() {
   return (
-    <GluestackUIProvider mode="light">
-      <ClerkProvider 
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <GluestackUIProvider mode="light">
+        <ClerkProvider 
         publishableKey={PUBLISHABLE_KEY} 
         tokenCache={tokenCache}
         signInFallbackRedirectUrl={env.CLERK_SIGN_IN_FORCE_REDIRECT_URL}
@@ -40,7 +41,11 @@ export default function RootLayout() {
             <SoleUserProvider>
               <NavigationProvider>
                 <CreatePostProvider>
-                  <Stack>
+                  <Stack
+                    screenOptions={{
+                      headerShown: false,
+                    }}
+                  >
                 {/* Authentication screens - accessible without login */}
                 <Stack.Screen
                   name="sign-in"
@@ -67,5 +72,6 @@ export default function RootLayout() {
         </QueryProvider>
       </ClerkProvider>
     </GluestackUIProvider>
+    </GestureHandlerRootView>
   );
 }

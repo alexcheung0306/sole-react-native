@@ -29,9 +29,15 @@ export default function ClientTabLayout() {
       screenListeners={{
         tabPress: (e) => {
           // Intercept profile tab press to navigate with username
-          if (e.target?.includes('user/[username]') && user?.username) {
-            e.preventDefault();
-            router.push(`/(protected)/(user)/user/${user.username}` as any);
+          if (e.target?.includes('user/[username]')) {
+            if (user?.username) {
+              e.preventDefault();
+              router.push(`/(protected)/(user)/user/${user.username}` as any);
+            } else {
+              // If not logged in, redirect to sign-in
+              e.preventDefault();
+              router.push('/sign-in' as any);
+            }
           }
         },
       }}>
@@ -75,10 +81,16 @@ export default function ClientTabLayout() {
           href: user?.username ? {
             pathname: '/(protected)/(user)/user/[username]',
             params: { username: user.username }
-          } as any : null,
+          } as any : '/sign-in',
         }}
       />
-      //hidden tab
+      {/* Hidden tabs */}
+      <Tabs.Screen
+        name="create-post"
+        options={{
+          href: null,
+        }}
+      />
       <Tabs.Screen
         name="post/[postId]"
         options={{
