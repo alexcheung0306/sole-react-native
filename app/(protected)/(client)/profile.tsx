@@ -10,6 +10,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { router, Stack } from 'expo-router';
@@ -37,6 +38,7 @@ export default function ClientProfileScreen() {
   const [profileTab, setProfileTab] = useState<TabKey>('posts');
   const [isUser, setIsUser] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const { signOut } = useAuth();
   const { user } = useUser();
   const insets = useSafeAreaInsets();
@@ -155,6 +157,33 @@ export default function ClientProfileScreen() {
     },
   });
 
+  // Handle sign out
+  const handleSignOut = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut();
+              router.replace('/sign-in' as any);
+            } catch (error) {
+              console.error('Sign out error:', error);
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // Handle profile save
   const handleProfileSave = async (values: ProfileFormValues) => {
     try {
@@ -200,33 +229,6 @@ export default function ClientProfileScreen() {
     } catch (error) {
       console.error('Profile save error:', error);
       throw error;
-    }
-  };
-
-  const handleSignOut = async () => {
-    console.log('handleSignOut called');
-
-    // Simple confirmation first
-    const confirmed = window.confirm('Are you sure you want to sign out?');
-    if (!confirmed) {
-      console.log('Sign out cancelled');
-      return;
-    }
-
-    try {
-      console.log('Attempting to sign out...');
-      await signOut();
-      console.log('Sign out successful');
-
-      // Clear any cached data
-      localStorage.clear();
-      sessionStorage.clear();
-
-      // Navigate to sign-in screen
-      router.replace('/sign-in');
-    } catch (error) {
-      console.error('Sign out error:', error);
-      alert('Failed to sign out. Please try again.');
     }
   };
 
@@ -357,14 +359,12 @@ export default function ClientProfileScreen() {
               >
                 <Ionicons name="notifications-outline" size={24} color="#fff" />
               </TouchableOpacity>
-              <TouchableOpacity
-                style={{ padding: 8 }}
-                onPress={() => {
-                  console.log('Settings pressed');
-                }}
-              >
-                <Ionicons name="ellipsis-horizontal-outline" size={24} color="#fff" />
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ padding: 8 }}
+                  onPress={() => setShowSettingsModal(true)}
+                >
+                  <Ionicons name="ellipsis-horizontal-outline" size={24} color="#fff" />
+                </TouchableOpacity>
             </View>
           }
           translateY={headerTranslateY}
@@ -515,6 +515,86 @@ export default function ClientProfileScreen() {
           }}
           isLoading={updateUserInfoMutation.isPending || updateSoleUserMutation.isPending}
         />
+
+        {/* Settings Modal */}
+        <Modal
+          visible={showSettingsModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowSettingsModal(false)}
+        >
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              justifyContent: 'flex-end',
+            }}
+            activeOpacity={1}
+            onPress={() => setShowSettingsModal(false)}
+          >
+            <View
+              style={{
+                backgroundColor: '#1f2937',
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+                paddingBottom: insets.bottom,
+              }}
+              onStartShouldSetResponder={() => true}
+            >
+              <View
+                style={{
+                  width: 40,
+                  height: 4,
+                  backgroundColor: '#6b7280',
+                  borderRadius: 2,
+                  alignSelf: 'center',
+                  marginTop: 12,
+                  marginBottom: 8,
+                }}
+              />
+              <TouchableOpacity
+                style={{
+                  paddingVertical: 16,
+                  paddingHorizontal: 20,
+                  borderBottomWidth: 1,
+                  borderBottomColor: '#374151',
+                }}
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  // Add settings functionality here
+                }}
+              >
+                <Text style={{ color: '#ffffff', fontSize: 16 }}>Settings</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  paddingVertical: 16,
+                  paddingHorizontal: 20,
+                  borderBottomWidth: 1,
+                  borderBottomColor: '#374151',
+                }}
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  // Add help functionality here
+                }}
+              >
+                <Text style={{ color: '#ffffff', fontSize: 16 }}>Help & Support</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  paddingVertical: 16,
+                  paddingHorizontal: 20,
+                }}
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  handleSignOut();
+                }}
+              >
+                <Text style={{ color: '#ef4444', fontSize: 16, fontWeight: '600' }}>Sign Out</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </View>
     </>
   );

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import React, { useState, useEffect } from 'react';
-import { ScrollView, Text, TouchableOpacity, View, Dimensions, ActivityIndicator, FlatList, Alert } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View, Dimensions, ActivityIndicator, FlatList, Alert, Modal } from 'react-native';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
@@ -33,6 +33,7 @@ export default function ProfileScreen() {
   const [isTalent, setIsTalent] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showEditTalentModal, setShowEditTalentModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const { signOut } = useAuth();
   const { user } = useUser();
   const insets = useSafeAreaInsets();
@@ -240,6 +241,33 @@ export default function ProfileScreen() {
     }
   };
 
+  // Handle sign out
+  const handleSignOut = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut();
+              router.replace('/sign-in' as any);
+            } catch (error) {
+              console.error('Sign out error:', error);
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // Handle talent info save
   const handleTalentInfoSave = async (values: TalentFormValues) => {
     try {
@@ -252,30 +280,6 @@ export default function ProfileScreen() {
     } catch (error) {
       console.error('Talent info save error:', error);
       throw error;
-    }
-  };
-
-  const handleSignOut = async () => {
-    console.log('handleSignOut called');
-    
-    const confirmed = window.confirm('Are you sure you want to sign out?');
-    if (!confirmed) {
-      console.log('Sign out cancelled');
-      return;
-    }
-    
-    try {
-      console.log('Attempting to sign out...');
-      await signOut();
-      console.log('Sign out successful');
-      
-      localStorage.clear();
-      sessionStorage.clear();
-      
-      router.replace('/sign-in');
-    } catch (error) {
-      console.error('Sign out error:', error);
-      alert('Failed to sign out. Please try again.');
     }
   };
 
@@ -564,9 +568,7 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={{ padding: 8 }}
-                  onPress={() => {
-                    console.log('Settings pressed');
-                  }}
+                  onPress={() => setShowSettingsModal(true)}
                 >
                   <Ionicons name="ellipsis-horizontal-outline" size={24} color="#fff" />
                 </TouchableOpacity>
@@ -743,6 +745,86 @@ export default function ProfileScreen() {
             }}
           />
         )}
+
+        {/* Settings Modal */}
+        <Modal
+          visible={showSettingsModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowSettingsModal(false)}
+        >
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              justifyContent: 'flex-end',
+            }}
+            activeOpacity={1}
+            onPress={() => setShowSettingsModal(false)}
+          >
+            <View
+              style={{
+                backgroundColor: '#1f2937',
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+                paddingBottom: insets.bottom,
+              }}
+              onStartShouldSetResponder={() => true}
+            >
+              <View
+                style={{
+                  width: 40,
+                  height: 4,
+                  backgroundColor: '#6b7280',
+                  borderRadius: 2,
+                  alignSelf: 'center',
+                  marginTop: 12,
+                  marginBottom: 8,
+                }}
+              />
+              <TouchableOpacity
+                style={{
+                  paddingVertical: 16,
+                  paddingHorizontal: 20,
+                  borderBottomWidth: 1,
+                  borderBottomColor: '#374151',
+                }}
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  // Add settings functionality here
+                }}
+              >
+                <Text style={{ color: '#ffffff', fontSize: 16 }}>Settings</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  paddingVertical: 16,
+                  paddingHorizontal: 20,
+                  borderBottomWidth: 1,
+                  borderBottomColor: '#374151',
+                }}
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  // Add help functionality here
+                }}
+              >
+                <Text style={{ color: '#ffffff', fontSize: 16 }}>Help & Support</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  paddingVertical: 16,
+                  paddingHorizontal: 20,
+                }}
+                onPress={() => {
+                  setShowSettingsModal(false);
+                  handleSignOut();
+                }}
+              >
+                <Text style={{ color: '#ef4444', fontSize: 16, fontWeight: '600' }}>Sign Out</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </View>
     </>
   );

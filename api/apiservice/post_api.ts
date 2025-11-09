@@ -137,20 +137,67 @@ export const togglePostLike = async (postId: number, soleUserId: string): Promis
 
 /**
  * Get comments for a post
- * GET /api/post-comments/{postId}
+ * GET /api/post-comments/post/{postId}/paginated?page=0&size=10&sortDirection=desc
+ * 
+ * Backend returns:
+ * {
+ *   content: [
+ *     {
+ *       id: number,
+ *       postId: number,
+ *       soleUserId: string,
+ *       comment: string,  // Note: backend uses 'comment' not 'content'
+ *       username: string,
+ *       profilePic: string,
+ *       createdAt: string,
+ *       updatedAt: string,
+ *     }
+ *   ],
+ *   totalElements: number,
+ *   ...
+ * }
  */
-export const getPostComments = async (postId: number): Promise<any[]> => {
+export const getPostComments = async (postId: number, page: number = 0, size: number = 50, sortDirection: string = 'desc'): Promise<any[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/post-comments/${postId}`)
+    const response = await fetch(
+      `${API_BASE_URL}/post-comments/post/${postId}/paginated?page=${page}&size=${size}&sortDirection=${sortDirection}`
+    )
     
     if (!response.ok) {
-      throw new Error(`Error: ${response.statusText}`)
+      // If 404, return empty array (no comments yet)
+      if (response.status === 404) {
+        return []
+      }
+      const errorText = await response.text()
+      console.error(`Error fetching post comments: ${response.status} ${response.statusText}`, errorText)
+      // Return empty array on error instead of throwing
+      return []
     }
     
-    return await response.json()
+    const data = await response.json()
+    // Backend returns paginated response with 'content' array
+    const comments = data.content || data || []
+    
+    // Transform backend response to match Comment interface
+    // Backend uses 'comment' field, but frontend expects 'content'
+    // Backend has username/profilePic directly, but frontend expects soleUserInfo object
+    return comments.map((comment: any) => ({
+      id: comment.id?.toString() || '',
+      postId: comment.postId?.toString() || '',
+      soleUserId: comment.soleUserId || '',
+      content: comment.comment || comment.content || '', // Backend uses 'comment', frontend expects 'content'
+      createdAt: comment.createdAt || '',
+      soleUserInfo: {
+        soleUserId: comment.soleUserId || '',
+        username: comment.username || '',
+        name: comment.username || '', // Use username as name if name not available
+        profilePic: comment.profilePic || null,
+      },
+    }))
   } catch (error) {
     console.error("Error fetching post comments:", error)
-    throw error
+    // Return empty array on error instead of throwing
+    return []
   }
 }
 
@@ -283,6 +330,13 @@ export const createPost = async (postData: CreatePostRequest): Promise<PostWithD
 /**
  * Create a comment on a post
  * POST /api/post-comments
+ * 
+ * Backend expects:
+ * {
+ *   "postId": number,
+ *   "soleUserId": string,
+ *   "comment": string  // Note: backend uses 'comment' not 'content'
+ * }
  */
 export const createPostComment = async (commentData: {
   postId: number
@@ -290,16 +344,25 @@ export const createPostComment = async (commentData: {
   content: string
 }): Promise<any> => {
   try {
+    // Transform frontend format to backend format
+    const backendData = {
+      postId: commentData.postId,
+      soleUserId: commentData.soleUserId,
+      comment: commentData.content, // Backend expects 'comment' field
+    }
+    
     const response = await fetch(`${API_BASE_URL}/post-comments`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(commentData),
+      body: JSON.stringify(backendData),
     })
     
     if (!response.ok) {
-      throw new Error(`Error: ${response.statusText}`)
+      const errorText = await response.text()
+      console.error(`Error creating post comment: ${response.status} ${response.statusText}`, errorText)
+      throw new Error(`Error: ${response.statusText || 'Failed to create comment'}`)
     }
     
     return await response.json()

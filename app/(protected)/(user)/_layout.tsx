@@ -1,4 +1,4 @@
-import { Link, Tabs, useRouter } from 'expo-router';
+import { Link, Tabs } from 'expo-router';
 import { View } from 'react-native';
 import { TabBarIcon } from '../../../components/TabBarIcon';
 import { BriefcaseBusiness, Camera, Home, Plus, Search, UserCircle } from 'lucide-react-native';
@@ -6,7 +6,6 @@ import { useUser } from '@clerk/clerk-expo';
 
 export default function ClientTabLayout() {
   const { user } = useUser();
-  const router = useRouter();
 
   return (
     <Tabs
@@ -26,21 +25,7 @@ export default function ClientTabLayout() {
           }} />
         ),
       }}
-      screenListeners={{
-        tabPress: (e) => {
-          // Intercept profile tab press to navigate with username
-          if (e.target?.includes('user/[username]')) {
-            if (user?.username) {
-              e.preventDefault();
-              router.push(`/(protected)/(user)/user/${user.username}` as any);
-            } else {
-              // If not logged in, redirect to sign-in
-              e.preventDefault();
-              router.push('/sign-in' as any);
-            }
-          }
-        },
-      }}>
+    >
       <Tabs.Screen
         name="home"
         options={{

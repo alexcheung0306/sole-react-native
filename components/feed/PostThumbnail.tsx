@@ -43,7 +43,7 @@ export function PostThumbnail({
       }}
     >
       {/* Image Container */}
-      <View className="flex-1 relative">
+      <View style={{ flex: 1, position: 'relative' }}>
         <Image
           source={{ uri: imageUrl }}
           style={{ 
@@ -57,16 +57,39 @@ export function PostThumbnail({
 
         {/* Loading placeholder */}
         {!imageLoaded && (
-          <View className="absolute inset-0 bg-gray-800 animate-pulse" />
+          <View style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: '#1f2937',
+          }} />
         )}
 
         {/* Gradient overlay for better text visibility */}
-        <View className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'transparent',
+        }} />
 
         {/* Multiple Images Indicator */}
         {hasMultipleImages && (
-          <View className="absolute top-3 right-3">
-            <View className="bg-black/70 backdrop-blur-sm px-2 py-1.5 rounded-full">
+          <View style={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+          }}>
+            <View style={{
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              paddingHorizontal: 8,
+              paddingVertical: 6,
+              borderRadius: 9999,
+            }}>
               <MultipleImages size={12} color="#ffffff" />
             </View>
           </View>
@@ -74,21 +97,54 @@ export function PostThumbnail({
 
         {/* Engagement Stats */}
         {(likeCount > 0 || commentCount > 0) && (
-          <View className="absolute bottom-3 left-3 right-3">
-            <View className="flex-row items-center justify-between">
+          <View style={{
+            position: 'absolute',
+            bottom: 12,
+            left: 12,
+            right: 12,
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
               {likeCount > 0 && (
-                <View className="flex-row items-center bg-black/70 backdrop-blur-sm px-2 py-1 rounded-full">
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 9999,
+                }}>
                   <Heart size={10} color="#ef4444" fill="#ef4444" />
-                  <Text className="text-white text-xs font-medium ml-1">
+                  <Text style={{
+                    color: '#ffffff',
+                    fontSize: 12,
+                    fontWeight: '500',
+                    marginLeft: 4,
+                  }}>
                     {likeCount}
                   </Text>
                 </View>
               )}
               
               {commentCount > 0 && (
-                <View className="flex-row items-center bg-black/70 backdrop-blur-sm px-2 py-1 rounded-full">
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 9999,
+                }}>
                   <MessageCircle size={10} color="#3b82f6" />
-                  <Text className="text-white text-xs font-medium ml-1">
+                  <Text style={{
+                    color: '#ffffff',
+                    fontSize: 12,
+                    fontWeight: '500',
+                    marginLeft: 4,
+                  }}>
                     {commentCount}
                   </Text>
                 </View>
@@ -96,9 +152,6 @@ export function PostThumbnail({
             </View>
           </View>
         )}
-
-        {/* Hover effect overlay */}
-        <View className="absolute inset-0 bg-black/0 transition-all duration-200" />
       </View>
     </TouchableOpacity>
   );
