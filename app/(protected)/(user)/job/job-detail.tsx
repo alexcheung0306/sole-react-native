@@ -8,6 +8,7 @@ import { getRolesByProjectId } from '~/api/apiservice/role_api';
 import { getJobApplicantsByProjectIdAndSoleUserId } from '~/api/apiservice/applicant_api';
 import { getJobContractsWithProfileByProjectIdAndTalentId } from '~/api/apiservice/jobContracts_api';
 import { useState } from 'react';
+import { API_BASE_URL } from '~/api/apiservice';
 
 export default function JobDetail() {
   const router = useRouter();
@@ -172,16 +173,71 @@ export default function JobDetail() {
 
         <ScrollView className="flex-1">
           {/* Details Tab */}
-          {selectedTab === 'details' && (
-            <View className="p-4">
-              {/* Project Image */}
-              {project.projectImage && (
-                <Image
-                  source={{ uri: project.projectImage }}
-                  className="w-full h-64 rounded-2xl mb-4"
-                  resizeMode="cover"
-                />
-              )}
+          {selectedTab === 'details' && (() => {
+            // Fix imageUrl if it uses localhost (for physical devices)
+            const getImageUrl = (url: string | undefined): string | undefined => {
+              if (!url) return undefined;
+              
+              // Filter out invalid/default image URLs
+              const invalidUrls = ['default_image_url', 'default', 'null', 'undefined', ''];
+              if (invalidUrls.includes(url.toLowerCase().trim())) {
+                console.log('Skipping invalid image URL in job detail:', url);
+                return undefined;
+              }
+              
+              // Extract base URL from API_BASE_URL (remove /api suffix if present)
+              const baseUrl = API_BASE_URL.replace(/\/api\/?$/, '');
+              
+              // Replace localhost with the API base URL host if needed
+              if (url.includes('localhost:8080') || url.includes('127.0.0.1:8080')) {
+                try {
+                  const apiUrl = new URL(baseUrl);
+                  const fixedUrl = url.replace(/https?:\/\/[^\/]+/, `${apiUrl.protocol}//${apiUrl.host}`);
+                  console.log('Fixed localhost URL in job detail:', { original: url, fixed: fixedUrl });
+                  return fixedUrl;
+                } catch (e) {
+                  console.error('Error fixing URL in job detail:', e, url);
+                  return undefined;
+                }
+              }
+              // If it's a relative URL, prepend base URL
+              if (url.startsWith('/')) {
+                const fullUrl = `${baseUrl}${url}`;
+                console.log('Fixed relative URL in job detail:', { original: url, full: fullUrl });
+                return fullUrl;
+              }
+              
+              // Check if it's a valid URL format
+              try {
+                new URL(url);
+                return url;
+              } catch (e) {
+                console.log('Invalid URL format in job detail, skipping:', url);
+                return undefined;
+              }
+            };
+            
+            const fixedImageUrl = project.projectImage ? getImageUrl(project.projectImage) : null;
+            
+            return (
+              <View className="p-4">
+                {/* Project Image */}
+                {fixedImageUrl && (
+                  <Image
+                    source={{ uri: fixedImageUrl }}
+                    className="w-full h-64 rounded-2xl mb-4"
+                    resizeMode="cover"
+                    onLoad={() => {
+                      console.log('Job detail image loaded successfully:', fixedImageUrl);
+                    }}
+                    onError={(error) => {
+                      console.error('Job detail image load error:', error.nativeEvent.error, {
+                        url: fixedImageUrl,
+                        originalUrl: project.projectImage,
+                      });
+                    }}
+                  />
+                )}
 
               {/* Project Name */}
               <Text className="text-2xl font-bold text-white mb-4">
@@ -222,8 +278,9 @@ export default function JobDetail() {
                   <Text className="text-gray-300 italic">{project.remarks}</Text>
                 </View>
               )}
-            </View>
-          )}
+              </View>
+            );
+          })()}
 
           {/* Roles Tab */}
           {selectedTab === 'roles' && (

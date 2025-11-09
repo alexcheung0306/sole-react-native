@@ -16,6 +16,7 @@ import {
   createPostComment,
   PostWithDetailsResponse 
 } from '~/api/apiservice/post_api';
+import { API_BASE_URL } from '~/api/apiservice';
 
 export default function UserHome() {
   const insets = useSafeAreaInsets();
@@ -45,6 +46,17 @@ export default function UserHome() {
         orderBy: 'createdAt',
         orderSeq: 'desc',
       });
+      // Debug: Log post media URLs
+      if (response.data && response.data.length > 0) {
+        console.log('Home posts fetched:', response.data.length);
+        response.data.forEach((post: any) => {
+          if (post.media && post.media.length > 0) {
+            console.log(`Home Post ${post.id} media URLs:`, post.media.map((m: any) => m.mediaUrl));
+          } else {
+            console.log(`Home Post ${post.id} has no media`);
+          }
+        });
+      }
       return response;
     },
     getNextPageParam: (lastPage) => {
@@ -120,6 +132,34 @@ export default function UserHome() {
     refetch();
   }, [refetch]);
 
+  // Fix mediaUrl if it uses localhost (for physical devices)
+  const getMediaUrl = (url: string | undefined): string | undefined => {
+    if (!url) return undefined;
+    
+    // Extract base URL from API_BASE_URL (remove /api suffix if present)
+    const baseUrl = API_BASE_URL.replace(/\/api\/?$/, '');
+    
+    // Replace localhost with the API base URL host if needed
+    if (url.includes('localhost:8080') || url.includes('127.0.0.1:8080')) {
+      try {
+        const apiUrl = new URL(baseUrl);
+        const fixedUrl = url.replace(/https?:\/\/[^\/]+/, `${apiUrl.protocol}//${apiUrl.host}`);
+        console.log('Fixed localhost URL in home:', { original: url, fixed: fixedUrl });
+        return fixedUrl;
+      } catch (e) {
+        console.error('Error fixing URL in home:', e, url);
+        return url;
+      }
+    }
+    // If it's a relative URL, prepend base URL
+    if (url.startsWith('/')) {
+      const fullUrl = `${baseUrl}${url}`;
+      console.log('Fixed relative URL in home:', { original: url, full: fullUrl });
+      return fullUrl;
+    }
+    return url;
+  };
+
   // Transform backend response to component format with defensive null checks
   const transformPost = (backendPost: PostWithDetailsResponse) => {
     // DEFENSIVE CHECK: Handle missing soleUserInfo
@@ -144,7 +184,7 @@ export default function UserHome() {
       createdAt: backendPost.createdAt,
       media: (backendPost.media || []).map(m => ({
         id: m.id.toString(),
-        mediaUrl: m.mediaUrl,
+        mediaUrl: getMediaUrl(m.mediaUrl) || m.mediaUrl, // Fix URL if needed
         mediaType: (m.mediaType as 'image' | 'video') || 'image',
         displayOrder: m.displayOrder,
       })),

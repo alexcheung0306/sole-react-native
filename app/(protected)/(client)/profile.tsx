@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Image,
 } from 'react-native';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { router, Stack } from 'expo-router';
@@ -21,6 +22,7 @@ import { ProfileSwitchButton } from '~/components/ProfileSwitchButton';
 import { useNavigation } from '~/context/NavigationContext';
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getUserProfileByUsername } from '~/api/apiservice/soleUser_api';
+import { API_BASE_URL } from '~/api/apiservice';
 import { searchPosts } from '~/api/apiservice/post_api';
 import { updateUserInfoBySoleUserId } from '~/api/apiservice/userInfo_api';
 import { updateSoleUserByClerkId, getSoleUserByClerkId } from '~/api/apiservice';
@@ -238,7 +240,41 @@ export default function ClientProfileScreen() {
 
   const userInfo = userProfileData?.userInfo;
   const profileBio = userInfo?.bio || 'No bio available';
-  const profilePic = userInfo?.profilePic || user?.imageUrl;
+  
+  // Priority: 1. Backend-stored image (bucket + profilePicName), 2. Backend profilePic (if not Clerk URL), 3. Clerk image
+  let profilePic: string | undefined = undefined;
+  
+  // First, check if backend has a stored image (bucket + profilePicName)
+  if (userInfo?.bucket && userInfo?.profilePicName) {
+    // Backend has bucket and filename, construct URL
+    // This depends on your backend storage (MinIO, S3, Cloudinary, etc.)
+    const baseUrl = API_BASE_URL.replace('/api', ''); // Remove /api from base URL
+    profilePic = `${baseUrl}/files/${userInfo.bucket}/${userInfo.profilePicName}`;
+  } else if (userInfo?.profilePic && userInfo.profilePic.trim() !== '') {
+    // Check if profilePic is a backend-stored URL (not a Clerk URL)
+    const isClerkUrl = userInfo.profilePic.includes('img.clerk.com');
+    if (!isClerkUrl) {
+      // Backend has a non-Clerk URL (backend-stored image)
+      profilePic = userInfo.profilePic;
+    } else {
+      // Backend profilePic is a Clerk URL, fallback to Clerk image
+      profilePic = user?.imageUrl;
+    }
+  } else {
+    // No backend image, use Clerk image
+    profilePic = user?.imageUrl;
+  }
+  
+  // Debug logging
+  console.log('Client Profile Image Debug:', {
+    backendProfilePic: userInfo?.profilePic,
+    backendBucket: userInfo?.bucket,
+    backendProfilePicName: userInfo?.profilePicName,
+    clerkImageUrl: user?.imageUrl,
+    finalProfilePic: profilePic,
+    hasUserInfo: !!userInfo,
+    userInfo: userInfo,
+  });
 
   // Parse categories from CSV
   const categoryValue = typeof userInfo?.category === "string" 
@@ -387,10 +423,19 @@ export default function ClientProfileScreen() {
               {/* Avatar */}
               <View className="mr-4">
                 {profilePic ? (
-                  <ExpoImage
-                    source={{ uri: profilePic }}
-                    className="w-20 h-20 rounded-full border-2 border-gray-600"
-                  />
+                  <View className="w-20 h-20 rounded-full border-2 border-gray-600 overflow-hidden">
+                    <Image
+                      source={{ uri: profilePic }}
+                      style={{ width: '100%', height: '100%' }}
+                      resizeMode="cover"
+                      onError={(error) => {
+                        console.error('Client profile image load error:', error, profilePic);
+                      }}
+                      onLoad={() => {
+                        console.log('Client profile image loaded successfully:', profilePic);
+                      }}
+                    />
+                  </View>
                 ) : (
                   <View className="w-20 h-20 rounded-full bg-gray-700 border-2 border-gray-600 items-center justify-center">
                     <User size={32} color="#9ca3af" />

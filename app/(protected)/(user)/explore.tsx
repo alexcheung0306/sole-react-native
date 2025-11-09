@@ -18,6 +18,7 @@ import { PostModal } from '../../../components/feed/PostModal';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { CommentSheet } from '../../../components/feed/CommentSheet';
 import { Search, Filter, Grid3X3, List } from 'lucide-react-native';
+import { API_BASE_URL } from '~/api/apiservice';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -59,6 +60,17 @@ export default function Explore() {
         orderBy: 'createdAt',
         orderSeq: 'desc',
       });
+      // Debug: Log post media URLs
+      if (response.data && response.data.length > 0) {
+        console.log('Explore posts fetched:', response.data.length);
+        response.data.forEach((post: any) => {
+          if (post.media && post.media.length > 0) {
+            console.log(`Explore Post ${post.id} media URLs:`, post.media.map((m: any) => m.mediaUrl));
+          } else {
+            console.log(`Explore Post ${post.id} has no media`);
+          }
+        });
+      }
       return response;
     },
     getNextPageParam: (lastPage) => {
@@ -177,14 +189,48 @@ export default function Explore() {
     };
   };
 
+  // Fix mediaUrl if it uses localhost (for physical devices)
+  const getMediaUrl = (url: string | undefined): string | undefined => {
+    if (!url) return undefined;
+    
+    // Extract base URL from API_BASE_URL (remove /api suffix if present)
+    const baseUrl = API_BASE_URL.replace(/\/api\/?$/, '');
+    
+    // Replace localhost with the API base URL host if needed
+    if (url.includes('localhost:8080') || url.includes('127.0.0.1:8080')) {
+      try {
+        const apiUrl = new URL(baseUrl);
+        const fixedUrl = url.replace(/https?:\/\/[^\/]+/, `${apiUrl.protocol}//${apiUrl.host}`);
+        console.log('Fixed localhost URL in explore:', { original: url, fixed: fixedUrl });
+        return fixedUrl;
+      } catch (e) {
+        console.error('Error fixing URL in explore:', e, url);
+        return url;
+      }
+    }
+    // If it's a relative URL, prepend base URL
+    if (url.startsWith('/')) {
+      const fullUrl = `${baseUrl}${url}`;
+      console.log('Fixed relative URL in explore:', { original: url, full: fullUrl });
+      return fullUrl;
+    }
+    return url;
+  };
+
   // Render thumbnail
   const renderThumbnail = ({ item }: { item: PostWithDetailsResponse }) => {
     const firstImage = item.media?.[0]?.mediaUrl;
-    if (!firstImage) return null;
+    if (!firstImage) {
+      console.log('Post has no media:', item.id);
+      return null;
+    }
+
+    const fixedImageUrl = getMediaUrl(firstImage);
+    if (!fixedImageUrl) return null;
 
     return (
       <PostThumbnail
-        imageUrl={firstImage}
+        imageUrl={fixedImageUrl}
         hasMultipleImages={(item.media?.length || 0) > 1}
         onPress={() => handleThumbnailPress(item)}
         likeCount={item.likeCount}

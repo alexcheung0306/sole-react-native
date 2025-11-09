@@ -52,7 +52,15 @@ export function PostThumbnail({
             opacity: imageLoaded ? 1 : 0,
           }}
           resizeMode="cover"
-          onLoad={() => setImageLoaded(true)}
+          onLoad={() => {
+            setImageLoaded(true);
+            console.log('PostThumbnail image loaded successfully:', imageUrl);
+          }}
+          onError={(error) => {
+            console.error('PostThumbnail image load error:', error.nativeEvent.error, {
+              url: imageUrl,
+            });
+          }}
         />
 
         {/* Loading placeholder */}

@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useSoleUserContext } from '~/context/SoleUserContext';
 import { getProject } from '~/api/apiservice/project_api';
 import { useRouter } from 'expo-router';
+import { API_BASE_URL } from '~/api/apiservice';
 
 type FilterType = 'projectName' | 'projectId' | 'publisherUsername';
 
@@ -114,11 +115,55 @@ export default function JobPosts() {
     }
   };
 
+  // Fix imageUrl if it uses localhost (for physical devices)
+  const getImageUrl = (url: string | undefined): string | undefined => {
+    if (!url) return undefined;
+    
+    // Filter out invalid/default image URLs
+    const invalidUrls = ['default_image_url', 'default', 'null', 'undefined', ''];
+    if (invalidUrls.includes(url.toLowerCase().trim())) {
+      console.log('Skipping invalid image URL:', url);
+      return undefined;
+    }
+    
+    // Extract base URL from API_BASE_URL (remove /api suffix if present)
+    const baseUrl = API_BASE_URL.replace(/\/api\/?$/, '');
+    
+    // Replace localhost with the API base URL host if needed
+    if (url.includes('localhost:8080') || url.includes('127.0.0.1:8080')) {
+      try {
+        const apiUrl = new URL(baseUrl);
+        const fixedUrl = url.replace(/https?:\/\/[^\/]+/, `${apiUrl.protocol}//${apiUrl.host}`);
+        console.log('Fixed localhost URL in job posts:', { original: url, fixed: fixedUrl });
+        return fixedUrl;
+      } catch (e) {
+        console.error('Error fixing URL in job posts:', e, url);
+        return undefined;
+      }
+    }
+    // If it's a relative URL, prepend base URL
+    if (url.startsWith('/')) {
+      const fullUrl = `${baseUrl}${url}`;
+      console.log('Fixed relative URL in job posts:', { original: url, full: fullUrl });
+      return fullUrl;
+    }
+    
+    // Check if it's a valid URL format
+    try {
+      new URL(url);
+      return url;
+    } catch (e) {
+      console.log('Invalid URL format, skipping:', url);
+      return undefined;
+    }
+  };
+
   const renderJobPost = ({ item }: { item: any }) => {
     const project = item.project || item;
     const userInfoName = item.userInfoName || 'Unknown Client';
     const userInfoProfilePic = item.userInfoProfilePic;
     const soleUserName = item.soleUserName;
+    const fixedImageUrl = project.projectImage ? getImageUrl(project.projectImage) : null;
 
     return (
       <TouchableOpacity
@@ -127,11 +172,20 @@ export default function JobPosts() {
         activeOpacity={0.7}
       >
         {/* Project Image */}
-        {project.projectImage && (
+        {fixedImageUrl && (
           <Image
-            source={{ uri: project.projectImage }}
+            source={{ uri: fixedImageUrl }}
             className="w-full h-40 rounded-xl mb-3"
             resizeMode="cover"
+            onLoad={() => {
+              console.log('Job post image loaded successfully:', fixedImageUrl);
+            }}
+            onError={(error) => {
+              console.error('Job post image load error:', error.nativeEvent.error, {
+                url: fixedImageUrl,
+                originalUrl: project.projectImage,
+              });
+            }}
           />
         )}
 

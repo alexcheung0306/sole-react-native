@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import React, { useState, useEffect } from 'react';
-import { ScrollView, Text, TouchableOpacity, View, Dimensions, ActivityIndicator, FlatList, Alert, Modal } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View, Dimensions, ActivityIndicator, FlatList, Alert, Modal, Image } from 'react-native';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
@@ -12,6 +12,7 @@ import { ProfileSwitchButton } from '~/components/ProfileSwitchButton';
 import { useNavigation } from '~/context/NavigationContext';
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getUserProfileByUsername } from '~/api/apiservice/soleUser_api';
+import { API_BASE_URL } from '~/api/apiservice';
 import { searchPosts } from '~/api/apiservice/post_api';
 import { updateUserInfoBySoleUserId } from '~/api/apiservice/userInfo_api';
 import { updateSoleUserByClerkId, getSoleUserByClerkId } from '~/api/apiservice';
@@ -100,6 +101,17 @@ export default function ProfileScreen() {
         orderBy: "createdAt",
         orderSeq: "desc",
       });
+      // Debug: Log post media URLs
+      if (response.data && response.data.length > 0) {
+        console.log('Posts fetched:', response.data.length);
+        response.data.forEach((post: any) => {
+          if (post.media && post.media.length > 0) {
+            console.log(`Post ${post.id} media URLs:`, post.media.map((m: any) => m.mediaUrl));
+          } else {
+            console.log(`Post ${post.id} has no media`);
+          }
+        });
+      }
       return response;
     },
     enabled: !!userProfileData?.userInfo?.soleUserId,
@@ -294,7 +306,41 @@ export default function ProfileScreen() {
   const userInfo = userProfileData?.userInfo;
   const talentInfo = userProfileData?.talentInfo;
   const profileBio = userInfo?.bio || 'No bio available';
-  const profilePic = userInfo?.profilePic || user?.imageUrl;
+  
+  // Priority: 1. Backend-stored image (bucket + profilePicName), 2. Backend profilePic (if not Clerk URL), 3. Clerk image
+  let profilePic: string | undefined = undefined;
+  
+  // First, check if backend has a stored image (bucket + profilePicName)
+  if (userInfo?.bucket && userInfo?.profilePicName) {
+    // Backend has bucket and filename, construct URL
+    // This depends on your backend storage (MinIO, S3, Cloudinary, etc.)
+    const baseUrl = API_BASE_URL.replace('/api', ''); // Remove /api from base URL
+    profilePic = `${baseUrl}/files/${userInfo.bucket}/${userInfo.profilePicName}`;
+  } else if (userInfo?.profilePic && userInfo.profilePic.trim() !== '') {
+    // Check if profilePic is a backend-stored URL (not a Clerk URL)
+    const isClerkUrl = userInfo.profilePic.includes('img.clerk.com');
+    if (!isClerkUrl) {
+      // Backend has a non-Clerk URL (backend-stored image)
+      profilePic = userInfo.profilePic;
+    } else {
+      // Backend profilePic is a Clerk URL, fallback to Clerk image
+      profilePic = user?.imageUrl;
+    }
+  } else {
+    // No backend image, use Clerk image
+    profilePic = user?.imageUrl;
+  }
+  
+  // Debug logging
+  console.log('Profile Image Debug:', {
+    backendProfilePic: userInfo?.profilePic,
+    backendBucket: userInfo?.bucket,
+    backendProfilePicName: userInfo?.profilePicName,
+    clerkImageUrl: user?.imageUrl,
+    finalProfilePic: profilePic,
+    hasUserInfo: !!userInfo,
+    userInfo: userInfo,
+  });
   const talentLevel = userProfileData?.talentLevel || null;
 
   // Parse categories from CSV
@@ -318,6 +364,36 @@ export default function ProfileScreen() {
   const renderPost = ({ item, index }: { item: any; index: number }) => {
     const firstMedia = item.media && item.media.length > 0 ? item.media[0] : null;
     
+    // Fix mediaUrl if it uses localhost (for physical devices)
+    const getMediaUrl = (url: string | undefined): string | undefined => {
+      if (!url) return undefined;
+      
+      // Extract base URL from API_BASE_URL (remove /api suffix if present)
+      const baseUrl = API_BASE_URL.replace(/\/api\/?$/, '');
+      
+      // Replace localhost with the API base URL host if needed
+      if (url.includes('localhost:8080') || url.includes('127.0.0.1:8080')) {
+        try {
+          const apiUrl = new URL(baseUrl);
+          const fixedUrl = url.replace(/https?:\/\/[^\/]+/, `${apiUrl.protocol}//${apiUrl.host}`);
+          console.log('Fixed localhost URL:', { original: url, fixed: fixedUrl });
+          return fixedUrl;
+        } catch (e) {
+          console.error('Error fixing URL:', e, url);
+          return url;
+        }
+      }
+      // If it's a relative URL, prepend base URL
+      if (url.startsWith('/')) {
+        const fullUrl = `${baseUrl}${url}`;
+        console.log('Fixed relative URL:', { original: url, full: fullUrl });
+        return fullUrl;
+      }
+      return url;
+    };
+    
+    const mediaUrl = firstMedia ? getMediaUrl(firstMedia.mediaUrl) : null;
+    
     return (
       <TouchableOpacity
         key={item.id}
@@ -325,12 +401,80 @@ export default function ProfileScreen() {
         style={{ width: IMAGE_SIZE, height: IMAGE_SIZE }}
         onPress={() => router.push(`/(protected)/(user)/post/postid${item.id}` as any)}
       >
-        {firstMedia ? (
-          <ExpoImage
-            source={{ uri: firstMedia.mediaUrl }}
-            className="w-full h-full"
-            contentFit="cover"
-          />
+        {mediaUrl ? (
+          <View style={{ width: '100%', height: '100%', position: 'relative' }}>
+            <Image
+              source={{ uri: mediaUrl }}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="cover"
+              onError={(error) => {
+                console.error('Post image load error:', error.nativeEvent.error, {
+                  originalUrl: firstMedia?.mediaUrl,
+                  fixedUrl: mediaUrl,
+                  postId: item.id,
+                });
+              }}
+              onLoad={() => {
+                console.log('Post image loaded successfully:', {
+                  postId: item.id,
+                  url: mediaUrl,
+                });
+              }}
+            />
+            {/* Engagement Stats Overlay */}
+            {(item.likeCount > 0 || item.commentCount > 0) && (
+              <View style={{
+                position: 'absolute',
+                bottom: 4,
+                left: 4,
+                right: 4,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+                {item.likeCount > 0 && (
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    paddingHorizontal: 6,
+                    paddingVertical: 3,
+                    borderRadius: 9999,
+                  }}>
+                    <Heart size={10} color="#ef4444" fill="#ef4444" />
+                    <Text style={{
+                      color: '#ffffff',
+                      fontSize: 10,
+                      fontWeight: '500',
+                      marginLeft: 4,
+                    }}>
+                      {item.likeCount}
+                    </Text>
+                  </View>
+                )}
+                {item.commentCount > 0 && (
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    paddingHorizontal: 6,
+                    paddingVertical: 3,
+                    borderRadius: 9999,
+                  }}>
+                    <MessageCircle size={10} color="#3b82f6" />
+                    <Text style={{
+                      color: '#ffffff',
+                      fontSize: 10,
+                      fontWeight: '500',
+                      marginLeft: 4,
+                    }}>
+                      {item.commentCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
         ) : (
           <View className="w-full h-full bg-gray-700 items-center justify-center">
             <Text className="text-gray-400 text-xs">No Image</Text>
@@ -525,6 +669,7 @@ export default function ProfileScreen() {
                   ) : null
                 }
                 showsVerticalScrollIndicator={false}
+                nestedScrollEnabled={true}
               />
             ) : (
               <View className="flex-1 items-center justify-center">
@@ -535,7 +680,178 @@ export default function ProfileScreen() {
           </View>
         );
       case 'talent':
-        return renderTalentProfile();
+        return (
+          <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+            <View className="p-4">
+              {/* Talent Information Section */}
+              {talentInfo ? (
+                <>
+                  {/* Edit Button (for own profile) */}
+                  {isOwnProfile && (
+                    <TouchableOpacity 
+                      className="bg-blue-500 rounded-lg py-3 px-4 mb-6 flex-row items-center justify-center"
+                      onPress={() => setShowEditTalentModal(true)}
+                    >
+                      <Edit2 size={18} color="#ffffff" style={{ marginRight: 8 }} />
+                      <Text className="text-white font-semibold">Edit Talent Profile</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Personal Information */}
+                  <View className="mb-6">
+                    <Text className="text-white text-xl font-bold mb-4">Personal Information</Text>
+                    <View className="bg-gray-800/50 rounded-lg p-4">
+                      <View className="flex-row justify-between mb-3 pb-3 border-b border-gray-700">
+                        <Text className="text-gray-300">Talent Name</Text>
+                        <Text className="text-white font-medium">{talentInfo.talentName || 'N/A'}</Text>
+                      </View>
+                      <View className="flex-row justify-between mb-3 pb-3 border-b border-gray-700">
+                        <Text className="text-gray-300">Gender</Text>
+                        <Text className="text-white font-medium">{talentInfo.gender || 'N/A'}</Text>
+                      </View>
+                      <View className="flex-row justify-between mb-3 pb-3 border-b border-gray-700">
+                        <Text className="text-gray-300">Eye Color</Text>
+                        <Text className="text-white font-medium">{talentInfo.eyeColor || 'N/A'}</Text>
+                      </View>
+                      <View className="flex-row justify-between mb-3 pb-3 border-b border-gray-700">
+                        <Text className="text-gray-300">Hair Color</Text>
+                        <Text className="text-white font-medium">{talentInfo.hairColor || 'N/A'}</Text>
+                      </View>
+                      <View className="flex-row justify-between">
+                        <Text className="text-gray-300">Age</Text>
+                        <Text className="text-white font-medium">{talentInfo.age || 'N/A'}</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Physical Measurements */}
+                  <View className="mb-6">
+                    <Text className="text-white text-xl font-bold mb-4">Physical Measurements</Text>
+                    <View className="bg-gray-800/50 rounded-lg p-4">
+                      <View className="flex-row justify-between mb-3 pb-3 border-b border-gray-700">
+                        <Text className="text-gray-300">Height</Text>
+                        <Text className="text-white font-medium">{talentInfo.height || 'N/A'} cm</Text>
+                      </View>
+                      <View className="flex-row justify-between mb-3 pb-3 border-b border-gray-700">
+                        <Text className="text-gray-300">Chest</Text>
+                        <Text className="text-white font-medium">{talentInfo.chest || 'N/A'} cm</Text>
+                      </View>
+                      <View className="flex-row justify-between mb-3 pb-3 border-b border-gray-700">
+                        <Text className="text-gray-300">Waist</Text>
+                        <Text className="text-white font-medium">{talentInfo.waist || 'N/A'} cm</Text>
+                      </View>
+                      <View className="flex-row justify-between mb-3 pb-3 border-b border-gray-700">
+                        <Text className="text-gray-300">Hip</Text>
+                        <Text className="text-white font-medium">{talentInfo.hip || 'N/A'} cm</Text>
+                      </View>
+                      <View className="flex-row justify-between">
+                        <Text className="text-gray-300">Shoes (EU)</Text>
+                        <Text className="text-white font-medium">{talentInfo.shoes || 'N/A'}</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Background Information */}
+                  <View className="mb-6">
+                    <Text className="text-white text-xl font-bold mb-4">Background</Text>
+                    <View className="bg-gray-800/50 rounded-lg p-4">
+                      <View className="flex-row justify-between mb-3 pb-3 border-b border-gray-700">
+                        <Text className="text-gray-300">Ethnicity</Text>
+                        <Text className="text-white font-medium">{talentInfo.ethnic || 'N/A'}</Text>
+                      </View>
+                      <View className="flex-row justify-between">
+                        <Text className="text-gray-300">Region</Text>
+                        <Text className="text-white font-medium">{talentInfo.region || 'N/A'}</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Professional Experience */}
+                  <View className="mb-6">
+                    <Text className="text-white text-xl font-bold mb-4">Professional Experience</Text>
+                    <View className="bg-gray-800/50 rounded-lg p-4">
+                      <Text className="text-white leading-6">
+                        {talentInfo.experience || 'No experience listed'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Portfolio Snapshots */}
+                  {(talentInfo.snapshotHalfBody || talentInfo.snapshotFullBody) && (
+                    <View className="mb-6">
+                      <Text className="text-white text-xl font-bold mb-4">Portfolio Snapshots</Text>
+                      <View className="flex-row gap-3">
+                        {talentInfo.snapshotHalfBody && (
+                          <View className="flex-1">
+                            <Text className="text-gray-300 text-sm mb-2">Half-Body</Text>
+                            <ExpoImage
+                              source={{ uri: talentInfo.snapshotHalfBody }}
+                              className="w-full rounded-lg"
+                              style={{ aspectRatio: 3/4 }}
+                              contentFit="cover"
+                            />
+                          </View>
+                        )}
+                        {talentInfo.snapshotFullBody && (
+                          <View className="flex-1">
+                            <Text className="text-gray-300 text-sm mb-2">Full-Body</Text>
+                            <ExpoImage
+                              source={{ uri: talentInfo.snapshotFullBody }}
+                              className="w-full rounded-lg"
+                              style={{ aspectRatio: 3/4 }}
+                              contentFit="cover"
+                            />
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  )}
+                </>
+              ) : (
+                <View className="p-4 items-center">
+                  <Text className="text-gray-400 text-lg mb-4">No talent profile available</Text>
+                  {isOwnProfile && (
+                    <TouchableOpacity 
+                      className="bg-blue-500 rounded-lg py-3 px-6"
+                      onPress={() => setShowEditTalentModal(true)}
+                    >
+                      <Text className="text-white font-semibold">Create Talent Profile</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+              
+              {/* Posts Section */}
+              <View className="mt-6">
+                <Text className="text-white text-xl font-bold mb-4">Posts</Text>
+                {userIsLoading ? (
+                  <View className="items-center py-8">
+                    <ActivityIndicator size="large" color="#3b82f6" />
+                    <Text className="text-gray-400 mt-2">Loading posts...</Text>
+                  </View>
+                ) : posts.length > 0 ? (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -2 }}>
+                    {posts.map((item, index) => (
+                      <View key={item.id.toString()} style={{ width: IMAGE_SIZE, height: IMAGE_SIZE, margin: 2 }}>
+                        {renderPost({ item, index })}
+                      </View>
+                    ))}
+                    {userIsFetchingNextPage && (
+                      <View className="w-full py-4 items-center">
+                        <ActivityIndicator size="small" color="#3b82f6" />
+                      </View>
+                    )}
+                  </View>
+                ) : (
+                  <View className="items-center py-8">
+                    <Text className="text-gray-400 text-lg">No posts yet</Text>
+                    <Text className="text-gray-500 text-sm mt-2">Start sharing your work!</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          </ScrollView>
+        );
       case 'jobs':
         return renderJobsProfile();
       default:
@@ -595,10 +911,19 @@ export default function ProfileScreen() {
               {/* Avatar */}
               <View className="mr-4">
                 {profilePic ? (
-                  <ExpoImage
-                    source={{ uri: profilePic }}
-                    className="w-20 h-20 rounded-full border-2 border-gray-600"
-                  />
+                  <View className="w-20 h-20 rounded-full border-2 border-gray-600 overflow-hidden">
+                    <Image
+                      source={{ uri: profilePic }}
+                      style={{ width: '100%', height: '100%' }}
+                      resizeMode="cover"
+                      onError={(error) => {
+                        console.error('Profile image load error:', error, profilePic);
+                      }}
+                      onLoad={() => {
+                        console.log('Profile image loaded successfully:', profilePic);
+                      }}
+                    />
+                  </View>
                 ) : (
                   <View className="w-20 h-20 rounded-full bg-gray-700 border-2 border-gray-600 items-center justify-center">
                     <User size={32} color="#9ca3af" />

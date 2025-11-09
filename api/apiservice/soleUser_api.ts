@@ -45,6 +45,15 @@ export const getUserProfileByUsername = async (
     }
 
     const result = JSON.parse(text);
+    
+    // Debug logging to see what backend returns
+    console.log('getUserProfileByUsername - Backend Response:', {
+      username,
+      userInfo: result.userInfo,
+      profilePic: result.userInfo?.profilePic,
+      hasUserInfo: !!result.userInfo,
+    });
+    
     return result;
   } catch (error) {
     console.error("Error fetching user profile:", error);

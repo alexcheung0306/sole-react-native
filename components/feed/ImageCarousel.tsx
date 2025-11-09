@@ -52,6 +52,14 @@ export function ImageCarousel({ media }: ImageCarouselProps) {
           source={{ uri: media[0].mediaUrl }}
           style={{ width: '100%', height: '100%' }}
           resizeMode="cover"
+          onLoad={() => {
+            console.log('ImageCarousel image loaded successfully:', media[0].mediaUrl);
+          }}
+          onError={(error) => {
+            console.error('ImageCarousel image load error:', error.nativeEvent.error, {
+              url: media[0].mediaUrl,
+            });
+          }}
         />
       </View>
     );
@@ -65,6 +73,14 @@ export function ImageCarousel({ media }: ImageCarouselProps) {
         source={{ uri: media[currentIndex].mediaUrl }}
         style={{ width: '100%', height: '100%' }}
         resizeMode="cover"
+        onLoad={() => {
+          console.log('ImageCarousel image loaded successfully:', media[currentIndex].mediaUrl);
+        }}
+        onError={(error) => {
+          console.error('ImageCarousel image load error:', error.nativeEvent.error, {
+            url: media[currentIndex].mediaUrl,
+          });
+        }}
       />
 
       {/* Navigation Arrows */}
