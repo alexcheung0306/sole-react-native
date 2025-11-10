@@ -1,8 +1,8 @@
 import { Tabs } from 'expo-router';
 import { View } from 'react-native';
 import { LayoutDashboard, Bookmark, Search, FolderKanban } from 'lucide-react-native';
-import { ProfileTabButton } from '~/components/ProfileTabButton';
 import { useUser } from '@clerk/clerk-expo';
+import { AccountDropDownMenu } from '~/components/AccountDropDownMenu';
 
 export default function ClientTabLayout() {
   const { user } = useUser();
@@ -62,9 +62,9 @@ export default function ClientTabLayout() {
       <Tabs.Screen
         name="client/[username]"
         options={{
-          title: 'Client Profile',
+          title: 'Client',
           tabBarIcon: ({ color, focused }) => (
-            <ProfileTabButton color={color} focused={focused} onPress={() => {}} />
+            <AccountDropDownMenu color={color} focused={focused} onPress={() => {}} />
           ),
           headerShown: false,
           href: user?.username

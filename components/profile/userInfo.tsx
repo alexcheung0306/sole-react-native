@@ -1,129 +1,97 @@
 'use client';
 
 import { useRouter } from 'expo-router';
-import { View, Text } from 'react-native';
-
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import FollowList from '../follow/follow-list';
-import { FollowButton } from '../follow/follow-button';
 import { useUser } from '@clerk/clerk-expo';
-import { Card } from '../ui/card';
-import { Skeleton } from '../ui/skeleton';
-import { Badge } from '../ui/badge';
-import { Button } from '../ui/button';
-import { useSoleUserContext } from '@/context/SoleUserContext';
-import { UserAvatar } from './user-avatar';
+import { User } from 'lucide-react-native';
+import { ProfileEditModal } from './UserInfo-form';
 
 export function UserInfo({
+  userPostsData,
   username,
-  isUser,
-  userInfo,
-  isLoading,
+  userProfileData,
 }: {
+  userPostsData: any;
   username: string;
-  isUser: boolean;
-  userInfo: any;
-  isLoading: boolean;
+  userProfileData: any;
 }) {
-  const { soleUserId } = useSoleUserContext();
   const { user } = useUser();
-  const router = useRouter();
-  const DisplayTextWithBreaks = ({ text }: { text: string }) => {
-    return (
-      <Text>
-        {text.split('\n').map((line, index) => (
-          <Text key={index}>
-            {line}
-            {index < text.split('\n').length - 1 && '\n'}
-          </Text>
-        ))}
-      </Text>
-    );
-  };
-  const categoryValue = typeof userInfo?.category === 'string' ? userInfo.category.split(',') : [];
+  const userInfo = userProfileData?.userInfo;
+  const soleUser = userProfileData?.soleUser;
+  
+  const profilePic = userInfo?.profilePic || user?.imageUrl;
+  const totalPosts = userPostsData?.pages[0]?.total ?? 0;
+  const profileLoading = userPostsData?.isLoading;
+  const profileBio = userInfo?.bio || 'No bio available';
+  const filteredCategoryChips =
+    userInfo?.category?.split(',').filter((item: string) => item !== '') || [];
+  const isOwnProfile = user?.username === username;
 
-  const filteredCategoryCHip = categoryValue.filter((item: any) => item !== '');
+  console.log('UserInfo - soleUser:', soleUser);
+  console.log('UserInfo - userInfo:', userInfo);
 
   return (
-    <View className="w-full">
-      <Card className="mx-auto rounded-lg  transition-shadow duration-200 hover:shadow-xl ">
-        <View className="grid grid-cols-4 gap-2">
-          <View className="col-span-4 flex flex-col justify-between ">
-            <View className="grid grid-cols-3 items-center gap-2">
-              {/* user */}
-              <View>
-                <Skeleton className="rounded-lg" isLoaded={!isLoading}>
-                  <UserAvatar userInfo={userInfo} username={username} />
-                </Skeleton>
-              </View>
-
-              {/* Followers and Following */}
-              <View className="col-span-3 ml-4 flex flex-row justify-center gap-5 text-sm">
-                <View className="flex flex-col items-center">
-                  <Skeleton className="rounded-lg" isLoaded={!isLoading}>
-                    <Text className="text-sm">100</Text>
-                  </Skeleton>
-                  <Skeleton className="rounded-lg" isLoaded={!isLoading}>
-                    <Text className="text-sm">Posts</Text>
-                  </Skeleton>
-                </View>
-
-                <FollowList username={username} isLoading={isLoading} type="follower" />
-
-                <FollowList username={username} isLoading={isLoading} type="following" />
-              </View>
+    <View className="px-4 py-4">
+      {/* User Info Row */}
+      <View className="mb-4 flex-row items-center">
+        {/* Avatar */}
+        <View className="mr-4">
+          {profilePic ? (
+            <Image
+              source={{ uri: profilePic }}
+              className="h-20 w-20 rounded-full border-2 border-gray-600"
+            />
+          ) : (
+            <View className="h-20 w-20 items-center justify-center rounded-full border-2 border-gray-600 bg-gray-700">
+              <User size={32} color="#9ca3af" />
             </View>
-          </View>
-
-          {/* Chips */}
-          <View className="col-span-4 text-sm text-gray-600">
-            <Skeleton className="rounded-lg" isLoaded={!isLoading}>
-              {filteredCategoryCHip && filteredCategoryCHip != '' ? (
-                <View>
-                  {filteredCategoryCHip &&
-                    filteredCategoryCHip.map((category: any, index: any) => (
-                      <Badge variant="bordered" key={index} className="mb-2 mr-2">
-                        {category}
-                      </Badge>
-                    ))}
-                </View>
-              ) : null}
-            </Skeleton>
-          </View>
-
-          {/* Bio */}
-          <View className="col-span-4 text-sm text-gray-600">
-            <Skeleton className="rounded-lg" isLoaded={!isLoading}>
-              {userInfo?.bio && <DisplayTextWithBreaks text={userInfo?.bio || ''} />}
-            </Skeleton>
-          </View>
-
-          {/* Button */}
-          <View className="col-span-4 flex items-center justify-center">
-            <Skeleton className="rounded-lg" isLoaded={!isLoading}>
-              {isUser && userInfo && filteredCategoryCHip ? (
-                <>User Info Form</>
-              ) : (
-                userInfo &&
-                filteredCategoryCHip && (
-                  <View className="flex flex-row flex-wrap w-full gap-2">
-                    <FollowButton
-                      size="md"
-                      username={username}
-                      isUser={isUser}
-                      soleUserId={soleUserId as string}
-                    />
-                    <Button
-                      onPress={() => router.push(`/chatroom/${username}` as any)}
-                      style={{ width: '100%' }}>
-                      Message
-                    </Button>
-                  </View>
-                )
-              )}
-            </Skeleton>
-          </View>
+          )}
         </View>
-      </Card>
+
+        {/* Stats */}
+        <View className="flex-1 flex-row justify-around">
+          <View className="items-center">
+            <Text className="text-lg font-bold text-white">{totalPosts}</Text>
+            <Text className="text-sm text-gray-400">Posts</Text>
+          </View>
+          <FollowList username={username || ''} isLoading={profileLoading} type="follower" />
+          <FollowList username={username || ''} isLoading={profileLoading} type="following" />
+        </View>
+      </View>
+
+      {/* Name and Bio */}
+      <View className="mb-4">
+        <Text className="mb-1 text-sm font-semibold text-white">
+          {userInfo?.name || user?.firstName || 'Unknown User'}
+        </Text>
+        <Text className="mb-2 text-sm text-white">{profileBio}</Text>
+
+        {/* Category Chips */}
+        {filteredCategoryChips?.length > 0 && (
+          <View className="mb-3 flex-row flex-wrap">
+            {filteredCategoryChips.map((category: string, index: number) => (
+              <View key={index} className="mb-1 mr-2 rounded-full bg-gray-700 px-3 py-1">
+                <Text className="text-xs text-white">{category.trim()}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Action Buttons */}
+        {isOwnProfile ? (
+          <ProfileEditModal userProfileData={userProfileData} />
+        ) : (
+          <View className="flex-row gap-2">
+            <TouchableOpacity className="flex-1 rounded-lg bg-gray-700 px-4 py-2">
+              <Text className="text-center font-semibold text-white">Follow</Text>
+            </TouchableOpacity>
+            <TouchableOpacity className="flex-1 rounded-lg bg-gray-700 px-4 py-2">
+              <Text className="text-center font-semibold text-white">Message</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
     </View>
   );
 }

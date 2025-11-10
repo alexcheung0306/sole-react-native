@@ -1,42 +1,30 @@
 import { Image as ExpoImage } from 'expo-image';
-import { Edit2 } from 'lucide-react-native';
-import { View, TouchableOpacity, ScrollView, Text } from 'react-native';
+import { View, ScrollView, Text } from 'react-native';
+import { TalentInfoEditModal } from './TalentInfo-form';
 
 export default function TalentProfile({
+  talentLevel,
   talentInfo,
   isOwnProfile,
-  setShowEditTalentModal,
+  userProfileData,
 }: {
+  userProfileData: any;
+  talentLevel: number;
   talentInfo: any;
   isOwnProfile: boolean;
-  setShowEditTalentModal: (show: boolean) => void;
 }) {
-  if (!talentInfo) {
-    return (
-      <View className="items-center p-4">
-        <Text className="mb-4 text-lg text-gray-400">No talent profile available</Text>
-        {isOwnProfile && (
-          <TouchableOpacity
-            className="rounded-lg bg-blue-500 px-6 py-3"
-            onPress={() => setShowEditTalentModal(true)}>
-            <Text className="font-semibold text-white">Create Talent Profile</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    );
-  }
+ 
 
   return (
     <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
       <View className="p-4">
         {/* Edit Button (for own profile) */}
         {isOwnProfile && (
-          <TouchableOpacity
-            className="mb-6 flex-row items-center justify-center rounded-lg bg-blue-500 px-4 py-3"
-            onPress={() => setShowEditTalentModal(true)}>
-            <Edit2 size={18} color="#ffffff" style={{ marginRight: 8 }} />
-            <Text className="font-semibold text-white">Edit Talent Profile</Text>
-          </TouchableOpacity>
+          <TalentInfoEditModal
+            talentLevel={talentLevel}
+            talentInfo={talentInfo}
+            userProfileData={userProfileData}
+          />
         )}
 
         {/* Personal Information */}

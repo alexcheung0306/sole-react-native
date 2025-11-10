@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { TabBarIcon } from '../../../components/TabBarIcon';
 import { BriefcaseBusiness, Camera, Home, Plus, Search, UserCircle } from 'lucide-react-native';
 import { useUser } from '@clerk/clerk-expo';
-import { ProfileTabButton } from '../../../components/ProfileTabButton';
+import { AccountDropDownMenu } from '../../../components/AccountDropDownMenu';
 
 export default function ClientTabLayout() {
   const { user } = useUser();
@@ -19,14 +19,15 @@ export default function ClientTabLayout() {
           borderTopWidth: 1,
         },
         tabBarBackground: () => (
-          <View style={{
-            flex: 1,
-            backgroundColor: 'rgba(0, 0, 0, 0.9)',
-            backdropFilter: 'blur(20px)',
-          }} />
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0, 0, 0, 0.9)',
+              backdropFilter: 'blur(20px)',
+            }}
+          />
         ),
-      }}
-    >
+      }}>
       <Tabs.Screen
         name="home"
         options={{
@@ -61,19 +62,17 @@ export default function ClientTabLayout() {
       <Tabs.Screen
         name="user/[username]"
         options={{
-          title: 'Profile',
+          title: 'User',
           tabBarIcon: ({ color, focused }) => (
-            <ProfileTabButton
-              color={color}
-              focused={focused}
-              onPress={() => {}}
-            />
+            <AccountDropDownMenu color={color} focused={focused} onPress={() => {}} />
           ),
           headerShown: false,
-          href: user?.username ? {
-            pathname: '/(protected)/(user)/user/[username]',
-            params: { username: user.username }
-          } as any : '/sign-in',
+          href: user?.username
+            ? ({
+                pathname: '/(protected)/(user)/user/[username]',
+                params: { username: user.username },
+              } as any)
+            : '/sign-in',
         }}
       />
       {/* Hidden tabs */}

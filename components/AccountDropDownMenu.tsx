@@ -6,13 +6,13 @@ import { useAuth, useUser } from '@clerk/clerk-expo';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ProfileSwitchButton } from './ProfileSwitchButton';
 
-interface ProfileTabButtonProps {
+interface AccountDropDownMenuProps {
   color: string;
   focused: boolean;
   onPress: () => void;
 }
 
-export function ProfileTabButton({ color, focused, onPress }: ProfileTabButtonProps) {
+export function AccountDropDownMenu({ color, focused, onPress }: AccountDropDownMenuProps) {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
