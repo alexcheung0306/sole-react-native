@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Image, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ScrollView, ActivityIndicator } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, MoreVertical, MapPin, MessageCircle, Heart } from 'lucide-react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -9,8 +9,6 @@ import BottomSheet from '@gorhom/bottom-sheet';
 import { CommentSheet } from '~/components/feed/CommentSheet';
 import { ImageCarousel } from '~/components/feed/ImageCarousel';
 import { LikeButton } from '~/components/feed/LikeButton';
-
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 export default function PostDetail() {
   const router = useRouter();
@@ -177,7 +175,7 @@ export default function PostDetail() {
             <TouchableOpacity
               onPress={() => {
                 console.log('Navigating back from post detail');
-                router.replace('/(protected)/(user)/home' as any);
+                router.back();
               }}
               className="flex-row items-center"
             >
@@ -218,7 +216,7 @@ export default function PostDetail() {
                   <Text className="text-gray-400 text-xs">
                     {formatTimeAgo(post.createdAt)}
                   </Text>
-                  {post.location && (
+                  {/* {post.location && (
                     <>
                       <Text className="text-gray-500 text-xs mx-1">•</Text>
                       <View className="flex-row items-center">
@@ -228,16 +226,14 @@ export default function PostDetail() {
                         </Text>
                       </View>
                     </>
-                  )}
+                  )} */}
                 </View>
               </View>
             </TouchableOpacity>
           </View>
 
           {/* Media */}
-          <View style={{ height: screenHeight * 0.6 }}>
-            <ImageCarousel media={post.media || []} />
-          </View>
+          <ImageCarousel media={post.media || []} />
 
           {/* Actions & Caption */}
           <View className="px-4 py-3">

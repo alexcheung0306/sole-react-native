@@ -1,5 +1,12 @@
 import { Stack } from 'expo-router';
-import { View, FlatList, ActivityIndicator, Text, RefreshControl, TouchableOpacity } from 'react-native';
+import {
+  View,
+  FlatList,
+  ActivityIndicator,
+  Text,
+  RefreshControl,
+  TouchableOpacity,
+} from 'react-native';
 import { useCallback } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CollapsibleHeader } from '../../../components/CollapsibleHeader';
@@ -9,12 +16,12 @@ import { useSoleUserContext } from '~/context/SoleUserContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  searchPosts, 
-  togglePostLike, 
-  getPostComments, 
+import {
+  searchPosts,
+  togglePostLike,
+  getPostComments,
   createPostComment,
-  PostWithDetailsResponse 
+  PostWithDetailsResponse,
 } from '~/api/apiservice/post_api';
 
 export default function UserHome() {
@@ -50,7 +57,6 @@ export default function UserHome() {
     getNextPageParam: (lastPage) => {
       const currentPage = lastPage.page;
       const totalPages = Math.ceil(lastPage.total / lastPage.pageSize);
-      
       // If there are more pages, return next page number
       if (currentPage + 1 < totalPages) {
         return currentPage + 1;
@@ -65,7 +71,7 @@ export default function UserHome() {
 
   // Mutation for liking posts
   const likeMutation = useMutation({
-    mutationFn: ({ postId, userId }: { postId: number; userId: string }) => 
+    mutationFn: ({ postId, userId }: { postId: number; userId: string }) =>
       togglePostLike(postId, userId),
     onSuccess: () => {
       // Invalidate and refetch posts to get updated like counts
@@ -75,8 +81,15 @@ export default function UserHome() {
 
   // Mutation for adding comments
   const commentMutation = useMutation({
-    mutationFn: ({ postId, userId, content }: { postId: number; userId: string; content: string }) =>
-      createPostComment({ postId, soleUserId: userId, content }),
+    mutationFn: ({
+      postId,
+      userId,
+      content,
+    }: {
+      postId: number;
+      userId: string;
+      content: string;
+    }) => createPostComment({ postId, soleUserId: userId, content }),
     onSuccess: () => {
       // Invalidate and refetch posts to get updated comment counts
       queryClient.invalidateQueries({ queryKey: ['homePagePosts'] });
@@ -84,13 +97,13 @@ export default function UserHome() {
   });
 
   // Flatten all pages into single array
-  const posts = postsData?.pages.flatMap(page => page.data) ?? [];
+  const posts = postsData?.pages.flatMap((page) => page.data) ?? [];
   const totalPosts = postsData?.pages[0]?.total ?? 0;
 
   // Handle like
   const handleLike = (postId: string) => {
     if (!soleUserId) return;
-    
+
     likeMutation.mutate({
       postId: parseInt(postId),
       userId: soleUserId,
@@ -100,7 +113,6 @@ export default function UserHome() {
   // Handle add comment
   const handleAddComment = (postId: string, content: string) => {
     if (!soleUserId) return;
-    
     commentMutation.mutate({
       postId: parseInt(postId),
       userId: soleUserId,
@@ -108,17 +120,7 @@ export default function UserHome() {
     });
   };
 
-  // Load more posts
-  const loadMore = () => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  };
-
-  // Pull to refresh
-  const onRefresh = useCallback(() => {
-    refetch();
-  }, [refetch]);
+ 
 
   // Transform backend response to component format with defensive null checks
   const transformPost = (backendPost: PostWithDetailsResponse) => {
@@ -142,7 +144,7 @@ export default function UserHome() {
       soleUserId: backendPost.soleUserId,
       content: backendPost.content || '',
       createdAt: backendPost.createdAt,
-      media: (backendPost.media || []).map(m => ({
+      media: (backendPost.media || []).map((m) => ({
         id: m.id.toString(),
         mediaUrl: m.mediaUrl,
         mediaType: (m.mediaType as 'image' | 'video') || 'image',
@@ -160,44 +162,12 @@ export default function UserHome() {
     };
   };
 
-  const renderPost = ({ item }: { item: PostWithDetailsResponse }) => {
-    const transformedPost = transformPost(item);
-    return (
-      <PostCard
-        post={transformedPost}
-        onLike={handleLike}
-        onAddComment={handleAddComment}
-        comments={[]} // Comments will be fetched when sheet opens
-      />
-    );
-  };
-
-  const renderFooter = () => {
-    if (!isFetchingNextPage) return null;
-    return (
-      <View className="py-4 items-center">
-        <ActivityIndicator size="large" color="#3b82f6" />
-      </View>
-    );
-  };
-
-  const renderEmpty = () => {
-    if (isLoading) return null;
-    
-    return (
-      <View className="items-center justify-center py-20">
-        <Text className="text-gray-400 text-lg">No posts yet</Text>
-        <Text className="text-gray-500 text-sm mt-2">Be the first to create a post!</Text>
-      </View>
-    );
-  };
-
   // Loading state
   if (isLoading) {
     return (
-      <View className="flex-1 bg-black justify-center items-center">
+      <View className="flex-1 items-center justify-center bg-black">
         <ActivityIndicator size="large" color="#3b82f6" />
-        <Text className="text-gray-400 mt-4">Loading feed...</Text>
+        <Text className="mt-4 text-gray-400">Loading feed...</Text>
       </View>
     );
   }
@@ -205,18 +175,13 @@ export default function UserHome() {
   // Error state
   if (isError) {
     return (
-      <View className="flex-1 bg-black justify-center items-center p-4">
-        <Text className="text-red-400 text-center mb-4">
-          Failed to load posts
-        </Text>
-        <Text className="text-gray-400 text-center mb-4">
+      <View className="flex-1 items-center justify-center bg-black p-4">
+        <Text className="mb-4 text-center text-red-400">Failed to load posts</Text>
+        <Text className="mb-4 text-center text-gray-400">
           {error?.message || 'Please check your connection and try again'}
         </Text>
-        <TouchableOpacity
-          onPress={() => refetch()}
-          className="bg-blue-500 px-6 py-3 rounded-lg"
-        >
-          <Text className="text-white font-semibold">Try Again</Text>
+        <TouchableOpacity onPress={() => refetch()} className="rounded-lg bg-blue-500 px-6 py-3">
+          <Text className="font-semibold text-white">Try Again</Text>
         </TouchableOpacity>
       </View>
     );
@@ -227,29 +192,54 @@ export default function UserHome() {
       <BottomSheetModalProvider>
         <Stack.Screen options={{ headerShown: false }} />
         <View className="flex-1 bg-black">
-          <CollapsibleHeader
-            title="Feed"
-            translateY={headerTranslateY}
-            isDark={true}
-          />
-          
+          <CollapsibleHeader title="Feed" translateY={headerTranslateY} isDark={true} />
+
           <FlatList
             data={posts}
-            renderItem={renderPost}
+            renderItem={({ item }) => {
+              const transformedPost = transformPost(item);
+              return (
+                <PostCard
+                  post={transformedPost}
+                  onLike={handleLike}
+                  onAddComment={handleAddComment}
+                  comments={[]} // Comments will be fetched when sheet opens
+                />
+              );
+            }}
             keyExtractor={(item) => item.id.toString()}
             onScroll={handleScroll}
             scrollEventThrottle={16}
             contentContainerStyle={{
               paddingTop: insets.top + 72,
             }}
-            onEndReached={loadMore}
+            onEndReached={() => {
+              if (hasNextPage && !isFetchingNextPage) {
+                fetchNextPage();
+              }
+            }}
             onEndReachedThreshold={0.5}
-            ListFooterComponent={renderFooter}
-            ListEmptyComponent={renderEmpty}
+            ListFooterComponent={() => {
+              if (!isFetchingNextPage) return null;
+              return (
+                <View className="items-center py-4">
+                  <ActivityIndicator size="large" color="#3b82f6" />
+                </View>
+              );
+            }}
+            ListEmptyComponent={() => {
+              if (isLoading) return null;
+              return (
+                <View className="items-center justify-center py-20">
+                  <Text className="text-lg text-gray-400">No posts yet</Text>
+                  <Text className="mt-2 text-sm text-gray-500">Be the first to create a post!</Text>
+                </View>
+              );
+            }}
             refreshControl={
               <RefreshControl
                 refreshing={false}
-                onRefresh={onRefresh}
+                onRefresh={() => refetch()}
                 tintColor="#3b82f6"
                 colors={['#3b82f6']}
                 progressViewOffset={insets.top + 72}

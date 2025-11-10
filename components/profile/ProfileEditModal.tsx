@@ -39,7 +39,6 @@ export interface ProfileFormValues {
 }
 
 export function ProfileEditModal({
-  visible,
   onClose,
   onSave,
   initialValues,
@@ -49,20 +48,24 @@ export function ProfileEditModal({
   const [errors, setErrors] = useState<Partial<ProfileFormValues>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [showCategorySelector, setShowCategorySelector] = useState(false);
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
 
   // Reset form when modal opens
   React.useEffect(() => {
-    if (visible) {
+    if (showEditProfileModal) {
       setFormValues(initialValues);
       setErrors({});
     }
-  }, [visible, initialValues]);
+  }, [showEditProfileModal, initialValues]);
 
   const pickImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please grant photo library access to change profile picture');
+        Alert.alert(
+          'Permission needed',
+          'Please grant photo library access to change profile picture'
+        );
         return;
       }
 
@@ -138,173 +141,169 @@ export function ProfileEditModal({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      onRequestClose={onClose}
-    >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1 bg-black"
-      >
-        {/* Header */}
-        <View className="flex-row items-center justify-between px-4 pt-12 pb-3 border-b border-gray-800">
-          <TouchableOpacity onPress={onClose} className="p-2">
-            <X size={24} color="#ffffff" />
-          </TouchableOpacity>
-          <Text className="text-white font-semibold text-lg">Edit Profile</Text>
-          <TouchableOpacity
-            onPress={handleSave}
-            disabled={isSaving}
-            className={`p-2 ${isSaving ? 'opacity-50' : ''}`}
-          >
-            {isSaving ? (
-              <ActivityIndicator size="small" color="#3b82f6" />
-            ) : (
-              <Text className="text-blue-500 font-semibold">Save</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-          {/* Profile Picture */}
-          <View className="items-center py-6">
-            <TouchableOpacity onPress={pickImage} className="relative">
-              {formValues.profilePic ? (
-                <ExpoImage
-                  source={{ uri: formValues.profilePic }}
-                  className="w-24 h-24 rounded-full border-2 border-gray-600"
-                />
-              ) : (
-                <View className="w-24 h-24 rounded-full bg-gray-700 border-2 border-gray-600 items-center justify-center">
-                  <UserIcon size={32} color="#9ca3af" />
-                </View>
-              )}
-              <View className="absolute bottom-0 right-0 bg-blue-500 rounded-full p-2">
-                <Camera size={16} color="#ffffff" />
-              </View>
+    <>
+      <TouchableOpacity
+        className="rounded-lg bg-gray-700 px-4 py-2"
+        onPress={() => setShowEditProfileModal(true)}>
+        <Text className="text-center font-semibold text-white">Edit Profile</Text>
+      </TouchableOpacity>
+      <Modal
+        visible={showEditProfileModal}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={onClose}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1 bg-black">
+          {/* Header */}
+          <View className="flex-row items-center justify-between border-b border-gray-800 px-4 pb-3 pt-12">
+            <TouchableOpacity onPress={onClose} className="p-2">
+              <X size={24} color="#ffffff" />
             </TouchableOpacity>
-            <Text className="text-gray-400 text-sm mt-2">Tap to change photo</Text>
+            <Text className="text-lg font-semibold text-white">Edit Profile</Text>
+            <TouchableOpacity
+              onPress={handleSave}
+              disabled={isSaving}
+              className={`p-2 ${isSaving ? 'opacity-50' : ''}`}>
+              {isSaving ? (
+                <ActivityIndicator size="small" color="#3b82f6" />
+              ) : (
+                <Text className="font-semibold text-blue-500">Save</Text>
+              )}
+            </TouchableOpacity>
           </View>
 
-          {/* Form Fields */}
-          <View className="px-4">
-            {/* Username */}
-            <View className="mb-4">
-              <Text className="text-white text-sm font-medium mb-2">
-                Username <Text className="text-red-500">*</Text>
-              </Text>
-              <View className="bg-gray-800 rounded-lg px-4 py-3 border border-gray-700">
-                <TextInput
-                  className="text-white text-base"
-                  value={formValues.username}
-                  onChangeText={(text) => setFormValues({ ...formValues, username: text })}
-                  placeholder="Enter username"
-                  placeholderTextColor="#6b7280"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-              {errors.username && (
-                <Text className="text-red-500 text-xs mt-1">{errors.username}</Text>
-              )}
-            </View>
-
-            {/* Name */}
-            <View className="mb-4">
-              <Text className="text-white text-sm font-medium mb-2">
-                Name <Text className="text-red-500">*</Text>
-              </Text>
-              <View className="bg-gray-800 rounded-lg px-4 py-3 border border-gray-700">
-                <TextInput
-                  className="text-white text-base"
-                  value={formValues.name}
-                  onChangeText={(text) => setFormValues({ ...formValues, name: text })}
-                  placeholder="Enter your name"
-                  placeholderTextColor="#6b7280"
-                />
-              </View>
-              {errors.name && (
-                <Text className="text-red-500 text-xs mt-1">{errors.name}</Text>
-              )}
-            </View>
-
-            {/* Bio */}
-            <View className="mb-4">
-              <Text className="text-white text-sm font-medium mb-2">Bio</Text>
-              <View className="bg-gray-800 rounded-lg px-4 py-3 border border-gray-700">
-                <TextInput
-                  className="text-white text-base"
-                  value={formValues.bio}
-                  onChangeText={(text) => setFormValues({ ...formValues, bio: text })}
-                  placeholder="Tell us about yourself..."
-                  placeholderTextColor="#6b7280"
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                  style={{ minHeight: 100 }}
-                />
-              </View>
-              {errors.bio && (
-                <Text className="text-red-500 text-xs mt-1">{errors.bio}</Text>
-              )}
-              <Text className="text-gray-500 text-xs mt-1">
-                {formValues.bio.length}/500 characters
-              </Text>
-            </View>
-
-            {/* Categories */}
-            <View className="mb-6">
-              <Text className="text-white text-sm font-medium mb-2">
-                Categories (Max 5)
-              </Text>
-              <View className="flex-row flex-wrap mb-2">
-                {formValues.category.map((cat, index) => (
-                  <View
-                    key={index}
-                    className="bg-blue-500/20 border border-blue-500 rounded-full px-3 py-1 mr-2 mb-2 flex-row items-center"
-                  >
-                    <Text className="text-blue-400 text-xs mr-1">{cat}</Text>
-                    <TouchableOpacity
-                      onPress={() => {
-                        const newCategories = formValues.category.filter((_, i) => i !== index);
-                        setFormValues({ ...formValues, category: newCategories });
-                      }}
-                    >
-                      <X size={14} color="#60a5fa" />
-                    </TouchableOpacity>
+          <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+            {/* Profile Picture */}
+            <View className="items-center py-6">
+              <TouchableOpacity onPress={pickImage} className="relative">
+                {formValues.profilePic ? (
+                  <ExpoImage
+                    source={{ uri: formValues.profilePic }}
+                    className="h-24 w-24 rounded-full border-2 border-gray-600"
+                  />
+                ) : (
+                  <View className="h-24 w-24 items-center justify-center rounded-full border-2 border-gray-600 bg-gray-700">
+                    <UserIcon size={32} color="#9ca3af" />
                   </View>
-                ))}
-              </View>
-              <TouchableOpacity
-                onPress={() => setShowCategorySelector(true)}
-                className="bg-gray-800 rounded-lg px-4 py-3 border border-gray-700 items-center"
-              >
-                <Text className="text-blue-500 font-medium">
-                  {formValues.category.length === 0 ? 'Add Categories' : 'Edit Categories'}
-                </Text>
+                )}
+                <View className="absolute bottom-0 right-0 rounded-full bg-blue-500 p-2">
+                  <Camera size={16} color="#ffffff" />
+                </View>
               </TouchableOpacity>
-              {errors.category && (
-                <Text className="text-red-500 text-xs mt-1">{errors.category as string}</Text>
-              )}
+              <Text className="mt-2 text-sm text-gray-400">Tap to change photo</Text>
             </View>
-          </View>
-        </ScrollView>
 
-        {/* Category Selector Modal */}
-        <CategorySelector
-          visible={showCategorySelector}
-          onClose={() => setShowCategorySelector(false)}
-          selectedCategories={formValues.category}
-          onSave={(categories) => {
-            setFormValues({ ...formValues, category: categories });
-            setShowCategorySelector(false);
-          }}
-          maxSelections={5}
-        />
-      </KeyboardAvoidingView>
-    </Modal>
+            {/* Form Fields */}
+            <View className="px-4">
+              {/* Username */}
+              <View className="mb-4">
+                <Text className="mb-2 text-sm font-medium text-white">
+                  Username <Text className="text-red-500">*</Text>
+                </Text>
+                <View className="rounded-lg border border-gray-700 bg-gray-800 px-4 py-3">
+                  <TextInput
+                    className="text-base text-white"
+                    value={formValues.username}
+                    onChangeText={(text) => setFormValues({ ...formValues, username: text })}
+                    placeholder="Enter username"
+                    placeholderTextColor="#6b7280"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </View>
+                {errors.username && (
+                  <Text className="mt-1 text-xs text-red-500">{errors.username}</Text>
+                )}
+              </View>
+
+              {/* Name */}
+              <View className="mb-4">
+                <Text className="mb-2 text-sm font-medium text-white">
+                  Name <Text className="text-red-500">*</Text>
+                </Text>
+                <View className="rounded-lg border border-gray-700 bg-gray-800 px-4 py-3">
+                  <TextInput
+                    className="text-base text-white"
+                    value={formValues.name}
+                    onChangeText={(text) => setFormValues({ ...formValues, name: text })}
+                    placeholder="Enter your name"
+                    placeholderTextColor="#6b7280"
+                  />
+                </View>
+                {errors.name && <Text className="mt-1 text-xs text-red-500">{errors.name}</Text>}
+              </View>
+
+              {/* Bio */}
+              <View className="mb-4">
+                <Text className="mb-2 text-sm font-medium text-white">Bio</Text>
+                <View className="rounded-lg border border-gray-700 bg-gray-800 px-4 py-3">
+                  <TextInput
+                    className="text-base text-white"
+                    value={formValues.bio}
+                    onChangeText={(text) => setFormValues({ ...formValues, bio: text })}
+                    placeholder="Tell us about yourself..."
+                    placeholderTextColor="#6b7280"
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                    style={{ minHeight: 100 }}
+                  />
+                </View>
+                {errors.bio && <Text className="mt-1 text-xs text-red-500">{errors.bio}</Text>}
+                <Text className="mt-1 text-xs text-gray-500">
+                  {formValues.bio.length}/500 characters
+                </Text>
+              </View>
+
+              {/* Categories */}
+              <View className="mb-6">
+                <Text className="mb-2 text-sm font-medium text-white">Categories (Max 5)</Text>
+                <View className="mb-2 flex-row flex-wrap">
+                  {formValues.category.map((cat, index) => (
+                    <View
+                      key={index}
+                      className="mb-2 mr-2 flex-row items-center rounded-full border border-blue-500 bg-blue-500/20 px-3 py-1">
+                      <Text className="mr-1 text-xs text-blue-400">{cat}</Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          const newCategories = formValues.category.filter((_, i) => i !== index);
+                          setFormValues({ ...formValues, category: newCategories });
+                        }}>
+                        <X size={14} color="#60a5fa" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowCategorySelector(true)}
+                  className="items-center rounded-lg border border-gray-700 bg-gray-800 px-4 py-3">
+                  <Text className="font-medium text-blue-500">
+                    {formValues.category.length === 0 ? 'Add Categories' : 'Edit Categories'}
+                  </Text>
+                </TouchableOpacity>
+                {errors.category && (
+                  <Text className="mt-1 text-xs text-red-500">
+                    {errors.category as unknown as string}
+                  </Text>
+                )}
+              </View>
+            </View>
+          </ScrollView>
+
+          {/* Category Selector Modal */}
+          <CategorySelector
+            visible={showCategorySelector}
+            onClose={() => setShowCategorySelector(false)}
+            selectedCategories={formValues.category}
+            onSave={(categories) => {
+              setFormValues({ ...formValues, category: categories });
+              setShowCategorySelector(false);
+            }}
+            maxSelections={5}
+          />
+        </KeyboardAvoidingView>
+      </Modal>
+    </>
   );
 }
-

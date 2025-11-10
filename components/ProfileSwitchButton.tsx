@@ -1,50 +1,86 @@
 import React from 'react';
-import { TouchableOpacity, Alert } from 'react-native';
-import { UserCircle } from 'lucide-react-native';
+import { TouchableOpacity, View, Text } from 'react-native';
+import { User, Briefcase } from 'lucide-react-native';
 import { useNavigation } from '~/context/NavigationContext';
 
 interface ProfileSwitchButtonProps {
-  color?: string;
-  size?: number;
   style?: any;
 }
 
-export function ProfileSwitchButton({ 
-  color = '#fff', 
-  size = 24, 
-  style 
-}: ProfileSwitchButtonProps) {
+export function ProfileSwitchButton({ style }: ProfileSwitchButtonProps) {
   const { currentMode, toggleMode } = useNavigation();
 
   const handlePress = () => {
-    console.log('ProfileSwitchButton clicked, current mode:', currentMode);
-    console.log('Directly switching mode...');
     toggleMode();
   };
 
   return (
-    <TouchableOpacity
-      onPress={handlePress}
-      style={[
-        {
-          padding: 8,
-          borderRadius: 20,
-          backgroundColor: currentMode === 'client' 
-            ? 'rgba(59, 130, 246, 0.2)' 
-            : 'rgba(34, 197, 94, 0.2)',
+    <View className="rounded-lg border border-gray-700 bg-gray-800 p-4 ">
+      <Text style={{ color: '#9ca3af', fontSize: 12, marginBottom: 8, fontWeight: '500' }}>
+        SWITCH MODE
+      </Text>
+
+      {/* Toggle Container */}
+      <View
+        style={{
+          flexDirection: 'row',
+          backgroundColor: '#111827',
+          borderRadius: 8,
+          padding: 4,
           borderWidth: 1,
-          borderColor: currentMode === 'client' 
-            ? 'rgba(59, 130, 246, 0.5)' 
-            : 'rgba(34, 197, 94, 0.5)',
-        },
-        style,
-      ]}
-      activeOpacity={0.7}
-    >
-      <UserCircle 
-        color={currentMode === 'client' ? '#3B82F6' : '#22C55E'} 
-        size={size} 
-      />
-    </TouchableOpacity>
+          borderColor: '#374151',
+        }}>
+        {/* User Option */}
+        <TouchableOpacity
+          onPress={() => currentMode !== 'user' && handlePress()}
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 8,
+            paddingHorizontal: 12,
+            borderRadius: 6,
+            backgroundColor: currentMode === 'user' ? '#3b82f6' : 'transparent',
+          }}
+          activeOpacity={0.7}>
+          <User
+            size={16}
+            color={currentMode === 'user' ? '#ffffff' : '#6b7280'}
+            style={{ marginRight: 6 }}
+          />
+          <Text className="text-sm font-medium text-white">User</Text>
+        </TouchableOpacity>
+
+        {/* Client Option */}
+        <TouchableOpacity
+          onPress={() => currentMode !== 'client' && handlePress()}
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 8,
+            paddingHorizontal: 12,
+            borderRadius: 6,
+            backgroundColor: currentMode === 'client' ? '#3b82f6' : 'transparent',
+          }}
+          activeOpacity={0.7}>
+          <Briefcase
+            size={16}
+            color={currentMode === 'client' ? '#ffffff' : '#6b7280'}
+            style={{ marginRight: 6 }}
+          />
+          <Text
+            style={{
+              color: currentMode === 'client' ? '#ffffff' : '#6b7280',
+              fontSize: 14,
+              fontWeight: currentMode === 'client' ? '600' : '400',
+            }}>
+            Client
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }

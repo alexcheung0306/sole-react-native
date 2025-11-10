@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { TabBarIcon } from '../../../components/TabBarIcon';
 import { BriefcaseBusiness, Camera, Home, Plus, Search, UserCircle } from 'lucide-react-native';
 import { useUser } from '@clerk/clerk-expo';
+import { ProfileTabButton } from '../../../components/ProfileTabButton';
 
 export default function ClientTabLayout() {
   const { user } = useUser();
@@ -61,7 +62,13 @@ export default function ClientTabLayout() {
         name="user/[username]"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <UserCircle color={color} size={24} />,
+          tabBarIcon: ({ color, focused }) => (
+            <ProfileTabButton
+              color={color}
+              focused={focused}
+              onPress={() => {}}
+            />
+          ),
           headerShown: false,
           href: user?.username ? {
             pathname: '/(protected)/(user)/user/[username]',

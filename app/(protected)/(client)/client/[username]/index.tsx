@@ -1,14 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   ScrollView,
   Text,
   TouchableOpacity,
   View,
   Dimensions,
-  ActivityIndicator,
-  FlatList,
   Alert,
   Modal,
 } from 'react-native';
@@ -17,8 +15,6 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { CollapsibleHeader } from '~/components/CollapsibleHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SwitchInterface } from '~/components/profile/switch-interface';
-import { ProfileSwitchButton } from '~/components/ProfileSwitchButton';
 import { useNavigation } from '~/context/NavigationContext';
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getUserProfileByUsername } from '~/api/apiservice/soleUser_api';
@@ -30,11 +26,6 @@ import {
   Grid,
   User,
   Briefcase,
-  Heart,
-  MessageCircle,
-  MoreVertical,
-  MapPin,
-  Edit2,
 } from 'lucide-react-native';
 import { ProfileEditModal, ProfileFormValues } from '~/components/profile/ProfileEditModal';
 import { TalentInfoEditModal, TalentFormValues } from '~/components/profile/TalentInfoEditModal';
@@ -48,7 +39,7 @@ const IMAGE_SIZE = width / 3;
 
 type TabKey = 'posts' | 'talent' | 'jobs';
 
-export default function ProfileScreen() {
+export default function ClientProfileScreen() {
   const [imageSize, setImageSize] = useState(Dimensions.get('window').width / 3);
   const [profileTab, setProfileTab] = useState<TabKey>('posts');
   const [isUser, setIsUser] = useState(false);
@@ -321,7 +312,7 @@ export default function ProfileScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-black">
         <CollapsibleHeader
-          title={isOwnProfile ? 'Talent Profile' : `@${username}`}
+          title={isOwnProfile ? 'Client Profile' : `@${username}`}
           headerLeft={
             !isOwnProfile ? (
               <TouchableOpacity onPress={handleBackPress} style={{ padding: 8 }}>
