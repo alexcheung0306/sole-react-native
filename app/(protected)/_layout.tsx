@@ -14,9 +14,6 @@ export default function ProtectedLayout() {
         <Stack.Screen name="(user)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
         <Stack.Screen name="chat" options={{ headerShown: false }} />
-        <Stack.Screen name="user/[username]" options={{ headerShown: false }} />
-        <Stack.Screen name="client/[username]" options={{ headerShown: false }} />
-        <Stack.Screen name="post/[postId]" options={{ headerShown: false }} />
       </Stack>
     </AuthWrapper>
   );

@@ -12,7 +12,7 @@ import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Image as ExpoImage } from 'expo-image';
 import { X, Search, User as UserIcon, UserCheck, UserMinus, UserPlus } from 'lucide-react-native';
-import { getFollowerListByUsername, getSingleFollowRecordByFollowerAndFollowingId, createFollowRecord, updateFollowRecord, FollowRecord } from '~/api/apiservice/follow_api';
+import { getFollowerListByUsername, getSingleFollowRecordByFollowerAndFollowingId, createFollowRecord, updateFollowRecord, FollowRecord, getFollowingListByUsername } from '~/api/apiservice/follow_api';
 import { useUser } from '@clerk/clerk-expo';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSoleUserContext } from '~/context/SoleUserContext';

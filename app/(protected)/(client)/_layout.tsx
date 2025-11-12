@@ -51,9 +51,9 @@ export default function ClientTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="project"
+        name="projects"
         options={{
-          title: 'Project',
+          title: 'Projects',
           tabBarIcon: ({ color }) => <FolderKanban color={color} size={24} />,
           headerShown: false,
         }}

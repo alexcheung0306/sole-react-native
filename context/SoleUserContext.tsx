@@ -9,6 +9,7 @@ import WebSocketService from "~/components/socket/WebSocketService"
 
 import { useAppContext } from "~/context/AppContext"
 import { getSoleUserByClerkId } from "~/api/apiservice"
+import { env } from "~/env.mjs"
 
 interface SoleUserContextType {
   //user search
@@ -34,7 +35,7 @@ interface SoleUserContextType {
   manageProjectPageSearchInputValue: string
   setManageProjectPageSearchInputValue: (API: string) => void
   //global data
-  soleUserId: string | null
+  soleUserId: string 
   soleUser: any
   clerkId: string | undefined
 }
@@ -50,7 +51,7 @@ const SoleUserContext = createContext<SoleUserContextType | undefined>(
 export const SoleUserProvider = ({ children }: { children: React.ReactNode }) => {
   const { contextType } = useAppContext()
   const { user } = useUser()
-  const [soleUserId, setSoleUserId] = useState(null)
+  const [soleUserId, setSoleUserId] = useState("")
   const clerkId = user?.id
   const {
     data: soleUser = [],
