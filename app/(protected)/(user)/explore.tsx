@@ -17,13 +17,17 @@ import {
   autocompleteUsers,
   UserSearchResult 
 } from '~/api/apiservice/user_search_api';
-import { PostThumbnail, COLUMNS } from '../../../components/feed/PostThumbnail';
+import { PostThumbnail } from '../../../components/feed/PostThumbnail';
 import { PostModal } from '../../../components/feed/PostModal';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { CommentSheet } from '../../../components/feed/CommentSheet';
 import { Search, Grid3X3, List } from 'lucide-react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const EXPLORE_COLUMNS = 3; // 3 columns for explore page
+const GAP = 4;
+// Calculate thumbnail size for 3 columns
+const EXPLORE_THUMBNAIL_SIZE = (SCREEN_WIDTH - (GAP * (EXPLORE_COLUMNS + 1))) / EXPLORE_COLUMNS;
 
 export default function Explore() {
   const insets = useSafeAreaInsets();
@@ -261,6 +265,7 @@ export default function Explore() {
         onPress={() => handleThumbnailPress(item)}
         likeCount={item.likeCount}
         commentCount={item.commentCount}
+        size={EXPLORE_THUMBNAIL_SIZE}
       />
     );
   };
@@ -466,8 +471,8 @@ export default function Explore() {
             data={posts}
             renderItem={renderThumbnail}
             keyExtractor={(item, index) => item?.id?.toString() ?? `post-${index}`}
-            numColumns={viewMode === 'grid' ? COLUMNS : 1}
-            key={`${viewMode}-${COLUMNS}`}
+            numColumns={viewMode === 'grid' ? EXPLORE_COLUMNS : 1}
+            key={`${viewMode}-${EXPLORE_COLUMNS}`}
             onScroll={handleScroll}
             scrollEventThrottle={16}
             contentContainerStyle={{

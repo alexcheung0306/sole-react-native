@@ -17,7 +17,7 @@ export function AccountDropDownMenu({ color, focused, onPress }: AccountDropDown
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
   const { signOut } = useAuth();
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = Dimensions.get('window');
   
@@ -129,20 +129,22 @@ export function AccountDropDownMenu({ color, focused, onPress }: AccountDropDown
               borderColor: '#374151',
             }}>
             {/* User Info Header */}
-            <View
-              style={{
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                borderBottomWidth: 1,
-                borderBottomColor: '#374151',
-              }}>
-              <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '600' }}>
-                {user?.firstName || 'User'}
-              </Text>
-              <Text style={{ color: '#9ca3af', fontSize: 14, marginTop: 2 }}>
-                @{user?.username || 'username'}
-              </Text>
-            </View>
+            {isLoaded && user && (
+              <View
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  borderBottomWidth: 1,
+                  borderBottomColor: '#374151',
+                }}>
+                <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '600' }}>
+                  {user?.firstName || user?.primaryEmailAddress?.emailAddress?.split('@')[0] || 'User'}
+                </Text>
+                <Text style={{ color: '#9ca3af', fontSize: 14, marginTop: 2 }}>
+                  @{user?.username || user?.primaryEmailAddress?.emailAddress?.split('@')[0] || 'username'}
+                </Text>
+              </View>
+            )}
             <ProfileSwitchButton />
 
 

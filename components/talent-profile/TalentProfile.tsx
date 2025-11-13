@@ -13,7 +13,20 @@ export default function TalentProfile({
   talentInfo: any;
   isOwnProfile: boolean;
 }) {
- 
+  // Handle null talentInfo
+  if (!talentInfo) {
+    return (
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        <View className="p-4">
+          <View className="rounded-lg bg-gray-800/50 p-4">
+            <Text className="text-center text-gray-400">
+              No talent profile information available
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
@@ -33,23 +46,23 @@ export default function TalentProfile({
           <View className="rounded-lg bg-gray-800/50 p-4">
             <View className="mb-3 flex-row justify-between border-b border-gray-700 pb-3">
               <Text className="text-gray-300">Talent Name</Text>
-              <Text className="font-medium text-white">{talentInfo.talentName || 'N/A'}</Text>
+              <Text className="font-medium text-white">{talentInfo?.talentName || 'N/A'}</Text>
             </View>
             <View className="mb-3 flex-row justify-between border-b border-gray-700 pb-3">
               <Text className="text-gray-300">Gender</Text>
-              <Text className="font-medium text-white">{talentInfo.gender || 'N/A'}</Text>
+              <Text className="font-medium text-white">{talentInfo?.gender || 'N/A'}</Text>
             </View>
             <View className="mb-3 flex-row justify-between border-b border-gray-700 pb-3">
               <Text className="text-gray-300">Eye Color</Text>
-              <Text className="font-medium text-white">{talentInfo.eyeColor || 'N/A'}</Text>
+              <Text className="font-medium text-white">{talentInfo?.eyeColor || 'N/A'}</Text>
             </View>
             <View className="mb-3 flex-row justify-between border-b border-gray-700 pb-3">
               <Text className="text-gray-300">Hair Color</Text>
-              <Text className="font-medium text-white">{talentInfo.hairColor || 'N/A'}</Text>
+              <Text className="font-medium text-white">{talentInfo?.hairColor || 'N/A'}</Text>
             </View>
             <View className="flex-row justify-between">
               <Text className="text-gray-300">Age</Text>
-              <Text className="font-medium text-white">{talentInfo.age || 'N/A'}</Text>
+              <Text className="font-medium text-white">{talentInfo?.age || 'N/A'}</Text>
             </View>
           </View>
         </View>
@@ -60,23 +73,23 @@ export default function TalentProfile({
           <View className="rounded-lg bg-gray-800/50 p-4">
             <View className="mb-3 flex-row justify-between border-b border-gray-700 pb-3">
               <Text className="text-gray-300">Height</Text>
-              <Text className="font-medium text-white">{talentInfo.height || 'N/A'} cm</Text>
+              <Text className="font-medium text-white">{talentInfo?.height || 'N/A'} cm</Text>
             </View>
             <View className="mb-3 flex-row justify-between border-b border-gray-700 pb-3">
               <Text className="text-gray-300">Chest</Text>
-              <Text className="font-medium text-white">{talentInfo.chest || 'N/A'} cm</Text>
+              <Text className="font-medium text-white">{talentInfo?.chest || 'N/A'} cm</Text>
             </View>
             <View className="mb-3 flex-row justify-between border-b border-gray-700 pb-3">
               <Text className="text-gray-300">Waist</Text>
-              <Text className="font-medium text-white">{talentInfo.waist || 'N/A'} cm</Text>
+              <Text className="font-medium text-white">{talentInfo?.waist || 'N/A'} cm</Text>
             </View>
             <View className="mb-3 flex-row justify-between border-b border-gray-700 pb-3">
               <Text className="text-gray-300">Hip</Text>
-              <Text className="font-medium text-white">{talentInfo.hip || 'N/A'} cm</Text>
+              <Text className="font-medium text-white">{talentInfo?.hip || 'N/A'} cm</Text>
             </View>
             <View className="flex-row justify-between">
               <Text className="text-gray-300">Shoes (EU)</Text>
-              <Text className="font-medium text-white">{talentInfo.shoes || 'N/A'}</Text>
+              <Text className="font-medium text-white">{talentInfo?.shoes || 'N/A'}</Text>
             </View>
           </View>
         </View>
@@ -87,11 +100,11 @@ export default function TalentProfile({
           <View className="rounded-lg bg-gray-800/50 p-4">
             <View className="mb-3 flex-row justify-between border-b border-gray-700 pb-3">
               <Text className="text-gray-300">Ethnicity</Text>
-              <Text className="font-medium text-white">{talentInfo.ethnic || 'N/A'}</Text>
+              <Text className="font-medium text-white">{talentInfo?.ethnic || 'N/A'}</Text>
             </View>
             <View className="flex-row justify-between">
               <Text className="text-gray-300">Region</Text>
-              <Text className="font-medium text-white">{talentInfo.region || 'N/A'}</Text>
+              <Text className="font-medium text-white">{talentInfo?.region || 'N/A'}</Text>
             </View>
           </View>
         </View>
@@ -101,17 +114,17 @@ export default function TalentProfile({
           <Text className="mb-4 text-xl font-bold text-white">Professional Experience</Text>
           <View className="rounded-lg bg-gray-800/50 p-4">
             <Text className="leading-6 text-white">
-              {talentInfo.experience || 'No experience listed'}
+              {talentInfo?.experience || 'No experience listed'}
             </Text>
           </View>
         </View>
 
         {/* Portfolio Snapshots */}
-        {(talentInfo.snapshotHalfBody || talentInfo.snapshotFullBody) && (
+        {(talentInfo?.snapshotHalfBody || talentInfo?.snapshotFullBody) && (
           <View className="mb-6">
             <Text className="mb-4 text-xl font-bold text-white">Portfolio Snapshots</Text>
             <View className="flex-row gap-3">
-              {talentInfo.snapshotHalfBody && (
+              {talentInfo?.snapshotHalfBody && (
                 <View className="flex-1">
                   <Text className="mb-2 text-sm text-gray-300">Half-Body</Text>
                   <ExpoImage
@@ -122,7 +135,7 @@ export default function TalentProfile({
                   />
                 </View>
               )}
-              {talentInfo.snapshotFullBody && (
+              {talentInfo?.snapshotFullBody && (
                 <View className="flex-1">
                   <Text className="mb-2 text-sm text-gray-300">Full-Body</Text>
                   <ExpoImage

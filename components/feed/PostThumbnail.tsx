@@ -8,6 +8,7 @@ interface PostThumbnailProps {
   onPress: () => void;
   likeCount?: number;
   commentCount?: number;
+  size?: number; // Optional custom size override
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -20,17 +21,19 @@ export function PostThumbnail({
   hasMultipleImages, 
   onPress, 
   likeCount = 0, 
-  commentCount = 0 
+  commentCount = 0,
+  size 
 }: PostThumbnailProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const thumbnailSize = size || THUMBNAIL_SIZE;
 
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.85}
       style={{ 
-        width: THUMBNAIL_SIZE, 
-        height: THUMBNAIL_SIZE, 
+        width: thumbnailSize, 
+        height: thumbnailSize, 
         margin: GAP / 2,
         borderRadius: 12,
         overflow: 'hidden',
