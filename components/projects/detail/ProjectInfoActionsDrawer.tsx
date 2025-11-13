@@ -127,7 +127,7 @@ export function ProjectInfoActionsDrawer({
       onOpenChange={onOpenChange}
       trigger={<View />}
       content={(close) => (
-        <View className="gap-4 bg-black/80">
+        <View className="gap-4 ">
           <View className="gap-1 px-5">
             <Text className="text-lg font-semibold text-white">Project actions</Text>
             <Text className="text-sm text-white/80">

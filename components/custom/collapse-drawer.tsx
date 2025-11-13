@@ -204,6 +204,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.08)',
     backgroundColor: 'rgba(17, 17, 17, 0.92)',
     overflow: 'hidden',
+    
   },
   dragHandle: {
     alignSelf: 'center',

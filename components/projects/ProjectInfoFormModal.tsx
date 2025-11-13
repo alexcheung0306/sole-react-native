@@ -111,12 +111,12 @@ export default function ProjectInfoFormModal({
     renderTrigger({ open: openModal, close: closeModal, isOpen })
   ) : (
     <TouchableOpacity
-      className={`flex-row items-center justify-center gap-2 rounded-lg px-4 py-2 ${
+      className={`flex-row items-center justify-center gap-2 rounded-2xl px-5 py-3 ${
         triggerClassName ? triggerClassName : 'mb-4'
       } ${
         method === 'POST'
-          ? 'border border-white bg-white'
-          : 'bg-purple-600'
+          ? 'border border-white/10 bg-white'
+          : 'border border-white/10 bg-purple-600/90'
       }`}
       onPress={openModal}>
       {method === 'POST' ? (
@@ -125,7 +125,7 @@ export default function ProjectInfoFormModal({
         <Pencil size={20} color="#f9fafb" />
       )}
       <Text
-        className={`text-base font-semibold ${
+        className={`text-[base] font-semibold ${
           method === 'POST' ? 'text-zinc-900' : 'text-white'
         }`}>
         {method === 'POST' ? 'Create New Project' : 'Edit Project'}

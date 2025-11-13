@@ -61,7 +61,9 @@ export default function ContractDetailPage() {
         <Text style={styles.errorText}>Error loading contract</Text>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() =>
+            router.replace('/(protected)/(client)/projects/manage-contracts')
+          }
         >
           <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
@@ -87,6 +89,17 @@ export default function ContractDetailPage() {
           title={`Contract #${contract.id}`}
           translateY={headerTranslateY}
           isDark={true}
+          headerLeft={
+            <TouchableOpacity
+              onPress={() =>
+                router.replace('/(protected)/(client)/projects/manage-contracts')
+              }
+              activeOpacity={0.85}
+              className="p-2 flex items-center justify-center"
+            >
+              <ChevronLeft color="#93c5fd" size={24} />
+            </TouchableOpacity>
+          }
         />
         <ScrollView
           style={styles.scrollView}
@@ -98,15 +111,6 @@ export default function ContractDetailPage() {
             paddingHorizontal: 24,
           }}
         >
-          {/* Back Button */}
-          <TouchableOpacity
-            style={styles.backButtonContainer}
-            onPress={() => router.back()}
-          >
-            <ChevronLeft color="#3b82f6" size={20} />
-            <Text style={styles.backLinkText}>Back to Contracts</Text>
-          </TouchableOpacity>
-
           {/* Status Badge */}
           <View style={styles.badgeContainer}>
             <View
@@ -265,17 +269,6 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: '#ffffff',
     fontSize: 16,
-    fontWeight: '600',
-  },
-  backButtonContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-  },
-  backLinkText: {
-    color: '#3b82f6',
-    fontSize: 14,
     fontWeight: '600',
   },
   badgeContainer: {

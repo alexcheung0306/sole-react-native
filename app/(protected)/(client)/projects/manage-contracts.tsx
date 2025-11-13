@@ -112,7 +112,7 @@ export default function ManageContractsPage() {
           contentContainerStyle={{
             paddingTop: insets.top + 72,
             paddingBottom: 20,
-            paddingHorizontal: 24,
+            paddingHorizontal: 12,
           }}
           showsVerticalScrollIndicator={false}
         />
