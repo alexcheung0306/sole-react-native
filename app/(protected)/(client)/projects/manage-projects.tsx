@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useRef } from 'react';
 import { Stack } from 'expo-router';
 import { View, Text, FlatList, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,10 +8,9 @@ import { useManageProjectContext } from '@/context/ManageProjectContext';
 import ProjectInfoFormModal from '@/components/projects/ProjectInfoFormModal';
 import ProjectStatusTabs from '@/components/projects/ProjectStatusTabs';
 import ProjectsNavTabs from '@/components/projects/ProjectsNavTabs';
-import ProjectSearchBar from '@/components/projects/ProjectSearchBar';
-import { useEffect, useRef } from 'react';
 import PaginationControl from '~/components/projects/PaginationControl';
 import ProjectListClient from '~/components/projects/ProjectListClient';
+import FilterSearch from '~/components/custom/filter-search';
 
 export default function ManageProjectsPage() {
   const insets = useSafeAreaInsets();
@@ -24,7 +24,14 @@ export default function ManageProjectsPage() {
     currentPage,
     setCurrentPage,
     totalPages,
+    searchBy,
+    setSearchBy,
+    searchValue,
+    setSearchValue,
+    searchOptions,
+    searchQuery,
     isSearching,
+    refetchProjects,
   } = useManageProjectContext();
 
   // Scroll to top when page changes
@@ -33,6 +40,23 @@ export default function ManageProjectsPage() {
       flatListRef.current.scrollToOffset({ offset: 0, animated: true });
     }
   }, [currentPage]);
+
+  const projectSearchOptions = useMemo(
+    () =>
+      searchOptions.length
+        ? searchOptions
+        : [
+            { id: 'projectName', label: 'Project Name' },
+            { id: 'projectId', label: 'Project ID' },
+            { id: 'username', label: 'Publisher Username' },
+          ],
+    [searchOptions]
+  );
+
+  const handleProjectSearch = () => {
+    setCurrentPage(0);
+    refetchProjects();
+  };
 
   const projectsData = projectResults?.data || projects || [];
 
@@ -44,9 +68,7 @@ export default function ManageProjectsPage() {
         <FlatList
           ref={flatListRef}
           data={projectsData}
-          keyExtractor={(item) =>
-            (item?.project?.id ?? item?.id ?? Math.random()).toString()
-          }
+          keyExtractor={(item) => (item?.project?.id ?? item?.id ?? Math.random()).toString()}
           numColumns={2}
           columnWrapperStyle={{ justifyContent: 'space-between' }}
           ListEmptyComponent={() => {
@@ -100,7 +122,14 @@ export default function ManageProjectsPage() {
               <ProjectStatusTabs />
 
               {/* Search Bar */}
-              <ProjectSearchBar />
+              <FilterSearch
+                searchBy={searchBy}
+                setSearchBy={setSearchBy}
+                searchValue={searchValue}
+                setSearchValue={setSearchValue}
+                onSearch={handleProjectSearch}
+                searchOptions={projectSearchOptions}
+              />
 
               {/* Results Count & Pagination */}
               <View className="mb-3 flex-row items-center justify-between">

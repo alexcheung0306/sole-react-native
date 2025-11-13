@@ -14,7 +14,6 @@ export default function ProjectListClient({ item }: { item: any }) {
     return colorMap[status] || '#6b7280';
   };
 
-  console.log('item', item);
   const handleProjectPress = (projectId: number) => {
     router.push({
       pathname: '/(protected)/(client)/projects/project-detail',

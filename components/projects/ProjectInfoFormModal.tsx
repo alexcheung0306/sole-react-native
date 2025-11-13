@@ -22,10 +22,7 @@ interface ProjectInfoFormModalProps {
   initValues?: any;
 }
 
-export default function ProjectInfoFormModal({
-  method,
-  initValues,
-}: ProjectInfoFormModalProps) {
+export default function ProjectInfoFormModal({ method, initValues }: ProjectInfoFormModalProps) {
   const { soleUserId } = useSoleUserContext();
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
@@ -53,10 +50,7 @@ export default function ProjectInfoFormModal({
       if (initValues?.id) {
         queryClient.invalidateQueries({ queryKey: ['project', initValues.id] });
       }
-      Alert.alert(
-        'Success',
-        `Project ${method === 'POST' ? 'created' : 'updated'} successfully`
-      );
+      Alert.alert('Success', `Project ${method === 'POST' ? 'created' : 'updated'} successfully`);
       handleClose();
     },
     onError: (error) => {
@@ -106,34 +100,23 @@ export default function ProjectInfoFormModal({
   return (
     <>
       <TouchableOpacity
-        className={`flex-row items-center justify-center gap-2 py-3 px-4 rounded-lg mb-4 ${
-          method === 'POST' ? 'bg-white/20 border border-white' : 'bg-purple-600'
+        className={`mb-4 flex-row items-center justify-center gap-2 rounded-lg px-4 py-1 text-black ${
+          method === 'POST' ? 'border border-white bg-white' : 'bg-purple-600'
         }`}
-        onPress={() => setIsOpen(true)}
-      >
-        {method === 'POST' ? (
-          <Plus color="#ffffff" size={20} />
-        ) : (
-          <Pencil color="#ffffff" size={20} />
-        )}
-        <Text className="text-white text-base font-semibold">
+        onPress={() => setIsOpen(true)}>
+        {method === 'POST' ? <Plus size={20} /> : <Pencil size={20} />}
+        <Text className=" text-base font-semibold">
           {method === 'POST' ? 'Create New Project' : 'Edit Project'}
         </Text>
       </TouchableOpacity>
 
-      <Modal
-        visible={isOpen}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={handleClose}
-      >
+      <Modal visible={isOpen} animationType="slide" transparent={true} onRequestClose={handleClose}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          className="flex-1 bg-black/70 justify-end"
-        >
-          <View className="bg-gray-900 rounded-t-3xl max-h-[90%] border-t border-white/10">
+          className="flex-1 justify-end bg-black/70">
+          <View className="max-h-[90%] rounded-t-3xl border-t border-white/10 bg-gray-900">
             {/* Header */}
-            <View className="flex-row justify-between items-center p-5 border-b border-white/10">
+            <View className="flex-row items-center justify-between border-b border-white/10 p-5">
               <Text className="text-xl font-bold text-white">
                 {method === 'POST' ? 'Create New Project' : 'Edit Project'}
               </Text>
@@ -143,26 +126,19 @@ export default function ProjectInfoFormModal({
             </View>
 
             {/* Content */}
-            <ScrollView
-              className="p-5"
-              showsVerticalScrollIndicator={false}
-            >
+            <ScrollView className="p-5" showsVerticalScrollIndicator={false}>
               {/* Project Image */}
               <View className="mb-5">
-                <Text className="text-sm font-semibold text-white mb-2">Project Image</Text>
+                <Text className="mb-2 text-sm font-semibold text-white">Project Image</Text>
                 <TouchableOpacity
-                  className="w-full aspect-video rounded-xl overflow-hidden bg-gray-800/60 border border-white/10"
-                  onPress={pickImage}
-                >
+                  className="aspect-video w-full overflow-hidden rounded-xl border border-white/10 bg-gray-800/60"
+                  onPress={pickImage}>
                   {formData.projectImage ? (
-                    <Image
-                      source={{ uri: formData.projectImage }}
-                      className="w-full h-full"
-                    />
+                    <Image source={{ uri: formData.projectImage }} className="h-full w-full" />
                   ) : (
-                    <View className="flex-1 justify-center items-center">
+                    <View className="flex-1 items-center justify-center">
                       <Plus color="#6b7280" size={32} />
-                      <Text className="text-gray-500 text-sm mt-2">Add Image</Text>
+                      <Text className="mt-2 text-sm text-gray-500">Add Image</Text>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -170,19 +146,15 @@ export default function ProjectInfoFormModal({
 
               {/* Private Toggle */}
               <TouchableOpacity
-                className="flex-row justify-between items-center mb-5"
-                onPress={() =>
-                  setFormData({ ...formData, isPrivate: !formData.isPrivate })
-                }
-              >
+                className="mb-5 flex-row items-center justify-between"
+                onPress={() => setFormData({ ...formData, isPrivate: !formData.isPrivate })}>
                 <Text className="text-sm font-semibold text-white">Private Project</Text>
                 <View
-                  className={`w-[52px] h-7 rounded-full p-0.5 justify-center ${
+                  className={`h-7 w-[52px] justify-center rounded-full p-0.5 ${
                     formData.isPrivate ? 'bg-blue-500' : 'bg-gray-700'
-                  }`}
-                >
+                  }`}>
                   <View
-                    className={`w-6 h-6 rounded-full bg-white ${
+                    className={`h-6 w-6 rounded-full bg-white ${
                       formData.isPrivate ? 'self-end' : 'self-start'
                     }`}
                   />
@@ -191,15 +163,13 @@ export default function ProjectInfoFormModal({
 
               {/* Project Name */}
               <View className="mb-5">
-                <Text className="text-sm font-semibold text-white mb-2">
+                <Text className="mb-2 text-sm font-semibold text-white">
                   Project Name <Text className="text-red-500">*</Text>
                 </Text>
                 <TextInput
-                  className="bg-gray-800/60 border border-white/10 rounded-lg p-3 text-white text-base"
+                  className="rounded-lg border border-white/10 bg-gray-800/60 p-3 text-base text-white"
                   value={formData.projectName}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, projectName: text })
-                  }
+                  onChangeText={(text) => setFormData({ ...formData, projectName: text })}
                   placeholder="Enter project name"
                   placeholderTextColor="#6b7280"
                 />
@@ -207,16 +177,14 @@ export default function ProjectInfoFormModal({
 
               {/* Project Description */}
               <View className="mb-5">
-                <Text className="text-sm font-semibold text-white mb-2">
+                <Text className="mb-2 text-sm font-semibold text-white">
                   Project Description <Text className="text-red-500">*</Text>
                 </Text>
                 <TextInput
-                  className="bg-gray-800/60 border border-white/10 rounded-lg p-3 text-white text-base min-h-[80px]"
+                  className="min-h-[80px] rounded-lg border border-white/10 bg-gray-800/60 p-3 text-base text-white"
                   style={{ textAlignVertical: 'top' }}
                   value={formData.projectDescription}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, projectDescription: text })
-                  }
+                  onChangeText={(text) => setFormData({ ...formData, projectDescription: text })}
                   placeholder="Enter project description"
                   placeholderTextColor="#6b7280"
                   multiline
@@ -226,14 +194,12 @@ export default function ProjectInfoFormModal({
 
               {/* Usage */}
               <View className="mb-5">
-                <Text className="text-sm font-semibold text-white mb-2">Usage</Text>
+                <Text className="mb-2 text-sm font-semibold text-white">Usage</Text>
                 <TextInput
-                  className="bg-gray-800/60 border border-white/10 rounded-lg p-3 text-white text-base min-h-[80px]"
+                  className="min-h-[80px] rounded-lg border border-white/10 bg-gray-800/60 p-3 text-base text-white"
                   style={{ textAlignVertical: 'top' }}
                   value={formData.usage}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, usage: text })
-                  }
+                  onChangeText={(text) => setFormData({ ...formData, usage: text })}
                   placeholder="Enter usage details"
                   placeholderTextColor="#6b7280"
                   multiline
@@ -243,14 +209,12 @@ export default function ProjectInfoFormModal({
 
               {/* Remarks */}
               <View className="mb-5">
-                <Text className="text-sm font-semibold text-white mb-2">Remarks</Text>
+                <Text className="mb-2 text-sm font-semibold text-white">Remarks</Text>
                 <TextInput
-                  className="bg-gray-800/60 border border-white/10 rounded-lg p-3 text-white text-base min-h-[80px]"
+                  className="min-h-[80px] rounded-lg border border-white/10 bg-gray-800/60 p-3 text-base text-white"
                   style={{ textAlignVertical: 'top' }}
                   value={formData.remarks}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, remarks: text })
-                  }
+                  onChangeText={(text) => setFormData({ ...formData, remarks: text })}
                   placeholder="Enter remarks"
                   placeholderTextColor="#6b7280"
                   multiline
@@ -260,19 +224,17 @@ export default function ProjectInfoFormModal({
             </ScrollView>
 
             {/* Footer */}
-            <View className="flex-row gap-3 p-5 border-t border-white/10">
+            <View className="flex-row gap-3 border-t border-white/10 p-5">
               <TouchableOpacity
-                className="flex-1 py-3.5 rounded-lg items-center bg-red-500/20 border border-red-500"
-                onPress={handleClose}
-              >
-                <Text className="text-red-500 text-base font-semibold">Cancel</Text>
+                className="flex-1 items-center rounded-lg border border-red-500 bg-red-500/20 py-3.5"
+                onPress={handleClose}>
+                <Text className="text-base font-semibold text-red-500">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className="flex-1 py-3.5 rounded-lg items-center bg-blue-500"
+                className="flex-1 items-center rounded-lg bg-blue-500 py-3.5"
                 onPress={handleSubmit}
-                disabled={projectMutation.isPending}
-              >
-                <Text className="text-white text-base font-semibold">
+                disabled={projectMutation.isPending}>
+                <Text className="text-base font-semibold text-white">
                   {projectMutation.isPending
                     ? 'Saving...'
                     : method === 'POST'
@@ -287,4 +249,3 @@ export default function ProjectInfoFormModal({
     </>
   );
 }
-

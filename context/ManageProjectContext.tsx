@@ -45,6 +45,11 @@ interface ManageProjectContextType {
   setSearchQuery: (query: string) => void;
   projectStatus: string;
   setProjectStatus: (status: string) => void;
+  searchBy: string;
+  setSearchBy: (value: string) => void;
+  searchValue: string;
+  setSearchValue: (value: string) => void;
+  searchOptions: { id: string; label: string }[];
   isSearching: boolean;
   setIsSearching: (searching: boolean) => void;
 
@@ -64,6 +69,7 @@ interface ManageProjectContextType {
 
   // Actions
   refreshProjects: () => void;
+  refetchProjects: () => void;
   resetFilters: () => void;
 }
 
@@ -96,19 +102,50 @@ export const ManageProjectProvider: React.FC<ManageProjectProviderProps> = ({
   const [searchAPI, setSearchAPI] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [pageSize, setPageSize] = useState(2);
+  const [pageSize, setPageSize] = useState(10);
+  const [searchBy, setSearchBy] = useState<string>('projectName');
+  const [searchValue, setSearchValue] = useState<string>('');
   // Selected state
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [currentRole, setCurrentRole] = useState(0);
   const [currentTab, setCurrentTab] = useState('project-information');
 
+  const projectSearchOptions = React.useMemo(
+    () => [
+      { id: 'projectName', label: 'Project Name' },
+      { id: 'projectId', label: 'Project ID' },
+      { id: 'username', label: 'Publisher Username' },
+    ],
+    []
+  );
+
   // Effect to update search API when dependencies change
   useEffect(() => {
-    if (soleUserId) {
-      const newSearchAPI = `?status=${projectStatus}&pageNo=${currentPage}&pageSize=${pageSize}&orderBy=id&orderSeq=desc`;
-      setSearchAPI(newSearchAPI);
+    if (!soleUserId) {
+      return;
     }
-  }, [soleUserId, projectStatus, currentPage]);
+
+    const params = new URLSearchParams();
+    params.append('status', projectStatus);
+    params.append('pageNo', currentPage.toString());
+    params.append('pageSize', pageSize.toString());
+    params.append('orderBy', 'id');
+    params.append('orderSeq', 'desc');
+
+    const trimmedSearch = searchValue.trim();
+
+    if (trimmedSearch && searchBy) {
+      params.append(searchBy, trimmedSearch);
+    }
+
+    setSearchAPI(`?${params.toString()}`);
+    setSearchQuery(trimmedSearch);
+    setIsSearching(Boolean(trimmedSearch));
+  }, [soleUserId, projectStatus, currentPage, pageSize, searchBy, searchValue]);
+
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [projectStatus, searchBy, searchValue]);
 
   // Projects query
   const {
@@ -150,6 +187,8 @@ export const ManageProjectProvider: React.FC<ManageProjectProviderProps> = ({
     setSearchQuery('');
     setIsSearching(false);
     setSelectedProject(null);
+    setSearchBy('projectName');
+    setSearchValue('');
   }, []);
 
   const contextValue: ManageProjectContextType = {
@@ -167,6 +206,11 @@ export const ManageProjectProvider: React.FC<ManageProjectProviderProps> = ({
     setSearchQuery,
     projectStatus,
     setProjectStatus,
+    searchBy,
+    setSearchBy,
+    searchValue,
+    setSearchValue,
+    searchOptions: projectSearchOptions,
     isSearching,
     setIsSearching,
 
@@ -186,6 +230,7 @@ export const ManageProjectProvider: React.FC<ManageProjectProviderProps> = ({
 
     // Actions
     refreshProjects,
+    refetchProjects: refreshProjects,
     resetFilters,
   };
 
