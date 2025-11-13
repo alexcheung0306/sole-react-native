@@ -96,7 +96,7 @@ export const ManageProjectProvider: React.FC<ManageProjectProviderProps> = ({
   const [searchAPI, setSearchAPI] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
+  const [pageSize, setPageSize] = useState(2);
   // Selected state
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [currentRole, setCurrentRole] = useState(0);
@@ -105,7 +105,7 @@ export const ManageProjectProvider: React.FC<ManageProjectProviderProps> = ({
   // Effect to update search API when dependencies change
   useEffect(() => {
     if (soleUserId) {
-      const newSearchAPI = `?status=${projectStatus}&pageNo=${currentPage}&pageSize=10&orderBy=id&orderSeq=desc`;
+      const newSearchAPI = `?status=${projectStatus}&pageNo=${currentPage}&pageSize=${pageSize}&orderBy=id&orderSeq=desc`;
       setSearchAPI(newSearchAPI);
     }
   }, [soleUserId, projectStatus, currentPage]);
