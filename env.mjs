@@ -47,6 +47,7 @@ export const env = {
   CLERK_SIGN_UP_FORCE_REDIRECT_URL: process.env.CLERK_SIGN_UP_FORCE_REDIRECT_URL || '/',
 
   EXPO_PUBLIC_APP_URL: process.env.EXPO_PUBLIC_APP_URL || 'http://localhost:8081',
+  // Allow fallback to undefined so platform-specific defaults can be used
   EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL || undefined,
   EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY || undefined,
   EXPO_PUBLIC_POSTHOG_KEY: process.env.EXPO_PUBLIC_POSTHOG_KEY || undefined,

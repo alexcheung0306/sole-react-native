@@ -1,16 +1,8 @@
 // apiService.ts
-import { env } from '../env.mjs'
+import { getApiBaseUrl } from '../config/environment'
 
-// Construct API base URL properly for React Native
-// Use environment variable if available, otherwise fallback to localhost
-// For physical devices, set EXPO_PUBLIC_API_URL to your computer's IP (e.g., http://192.168.1.105:8080)
-export const API_BASE_URL = env.EXPO_PUBLIC_API_URL 
-  ? `${env.EXPO_PUBLIC_API_URL}/api`
-  : `http://localhost:8080/api`
-
-// Debug: Log the API base URL
-console.log('API_BASE_URL:', API_BASE_URL)
-console.log('EXPO_PUBLIC_API_URL from env:', env.EXPO_PUBLIC_API_URL)
+// Use centralized environment configuration
+export const API_BASE_URL = getApiBaseUrl()
 
 //soleUser
 export const getSoleUsers = async () => {

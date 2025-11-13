@@ -10,7 +10,21 @@
     "prebuild": "expo prebuild",
     "lint": "eslint \"**/*.{js,jsx,ts,tsx}\" && prettier -c \"**/*.{js,jsx,ts,tsx,json}\"",
     "format": "eslint \"**/*.{js,jsx,ts,tsx}\" --fix && prettier \"**/*.{js,jsx,ts,tsx,json}\" --write",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "start:dev": "APP_ENV=development expo start --clear",
+    "start:staging": "APP_ENV=staging expo start --clear",
+    "start:prod": "APP_ENV=production expo start --clear",
+    "build:dev": "eas build --profile development --platform all",
+    "build:dev:ios": "eas build --profile development --platform ios",
+    "build:dev:android": "eas build --profile development --platform android",
+    "build:staging": "eas build --profile staging --platform all",
+    "build:staging:ios": "eas build --profile staging --platform ios",
+    "build:staging:android": "eas build --profile staging --platform android",
+    "build:prod": "eas build --profile production --platform all",
+    "build:prod:ios": "eas build --profile production --platform ios",
+    "build:prod:android": "eas build --profile production --platform android",
+    "submit:prod:ios": "eas submit --platform ios --profile production",
+    "submit:prod:android": "eas submit --platform android --profile production"
   },
   "dependencies": {
     "@clerk/clerk-expo": "^2.14.28",
