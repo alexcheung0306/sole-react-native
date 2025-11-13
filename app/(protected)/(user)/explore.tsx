@@ -1,23 +1,27 @@
 import { Stack } from 'expo-router';
-import { View, FlatList, ActivityIndicator, Text, RefreshControl, Dimensions, TouchableOpacity, TextInput } from 'react-native';
-import { useState, useCallback, useRef } from 'react';
+import { View, FlatList, ActivityIndicator, Text, RefreshControl, Dimensions, TouchableOpacity, TextInput, Image, ScrollView } from 'react-native';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CollapsibleHeader } from '../../../components/CollapsibleHeader';
-import { useScrollHeader } from '../../../hooks/useScrollHeader';
-import { useSoleUserContext } from '~/context/SoleUserContext';
+import { useRouter } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useScrollHeader } from '../../../hooks/useScrollHeader';
+import { useSoleUserContext } from '~/context/SoleUserContext';
+import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { 
   searchPosts, 
   togglePostLike,
   PostWithDetailsResponse 
 } from '~/api/apiservice/post_api';
+import { 
+  autocompleteUsers,
+  UserSearchResult 
+} from '~/api/apiservice/user_search_api';
 import { PostThumbnail, COLUMNS } from '../../../components/feed/PostThumbnail';
 import { PostModal } from '../../../components/feed/PostModal';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { CommentSheet } from '../../../components/feed/CommentSheet';
-import { Search, Filter, Grid3X3, List } from 'lucide-react-native';
+import { Search, Grid3X3, List } from 'lucide-react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -26,16 +30,57 @@ export default function Explore() {
   const { headerTranslateY, handleScroll } = useScrollHeader();
   const { soleUserId } = useSoleUserContext();
   const queryClient = useQueryClient();
+  const router = useRouter();
   const commentSheetRef = useRef<BottomSheet>(null);
-
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const searchContainerRef = useRef<View>(null);
+  
   // Modal state
   const [selectedPost, setSelectedPost] = useState<PostWithDetailsResponse | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   
   // UI state
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [showUserResults, setShowUserResults] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  // Debounce search query
+  useEffect(() => {
+    if (debounceTimeout.current) {
+      clearTimeout(debounceTimeout.current);
+    }
+
+    debounceTimeout.current = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => {
+      if (debounceTimeout.current) {
+        clearTimeout(debounceTimeout.current);
+      }
+    };
+  }, [searchQuery]);
+
+  // Show/hide user results based on search query
+  useEffect(() => {
+    setShowUserResults(showSearch && debouncedSearchQuery.trim().length > 0);
+  }, [showSearch, debouncedSearchQuery]);
+
+  // Fetch users from API for search dropdown
+  const {
+    data: users = [],
+    isLoading: isLoadingUsers,
+    isError: isUserSearchError,
+    error: userSearchError,
+  } = useQuery({
+    queryKey: ['userSearch', debouncedSearchQuery],
+    queryFn: () => autocompleteUsers(debouncedSearchQuery, 8),
+    enabled: debouncedSearchQuery.trim().length > 0 && !!soleUserId,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
 
   // Fetch posts from real API with infinite scroll
   const {
@@ -43,19 +88,19 @@ export default function Explore() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    isLoading,
-    isError,
-    error,
-    refetch,
+    isLoading: isLoadingPosts,
+    isError: isPostsError,
+    error: postsError,
+    refetch: refetchPosts,
   } = useInfiniteQuery({
-    queryKey: ['explorePagePosts', soleUserId, searchQuery],
+    queryKey: ['explorePagePosts', soleUserId],
     queryFn: async ({ pageParam = 0 }) => {
       console.log('Fetching explore posts page:', pageParam);
       const response = await searchPosts({
         soleUserId: '', // Empty = ALL users for explore
-        content: searchQuery || '',
+        content: '',
         pageNo: pageParam,
-        pageSize: 12, // More posts for better grid
+        pageSize: 12,
         orderBy: 'createdAt',
         orderSeq: 'desc',
       });
@@ -89,6 +134,14 @@ export default function Explore() {
   const posts = postsData?.pages.flatMap(page => page.data ?? []).filter((item): item is PostWithDetailsResponse => item != null) ?? [];
   const totalPosts = postsData?.pages[0]?.total ?? 0;
 
+  // Handle user press from search dropdown
+  const handleUserPress = (user: UserSearchResult) => {
+    setSearchQuery('');
+    setShowUserResults(false);
+    setShowSearch(false);
+    router.push(`/(protected)/(user)/user/${user.soleUser.username}` as any);
+  };
+
   // Handle thumbnail press
   const handleThumbnailPress = (post: PostWithDetailsResponse) => {
     setSelectedPost(post);
@@ -98,14 +151,13 @@ export default function Explore() {
   // Handle modal close
   const handleCloseModal = () => {
     setModalVisible(false);
-    setTimeout(() => setSelectedPost(null), 300); // Clear after animation
+    setTimeout(() => setSelectedPost(null), 300);
   };
 
   // Handle like
   const handleLike = (postId: string) => {
     if (!soleUserId) return;
     
-    // Optimistic update
     if (selectedPost && selectedPost.id.toString() === postId) {
       setSelectedPost({
         ...selectedPost,
@@ -124,7 +176,6 @@ export default function Explore() {
   const handleAddComment = (postId: string, content: string) => {
     if (!soleUserId) return;
     console.log('Add comment:', postId, content);
-    // Will be implemented when comment API is connected
     queryClient.invalidateQueries({ queryKey: ['explorePagePosts'] });
   };
 
@@ -133,7 +184,7 @@ export default function Explore() {
     commentSheetRef.current?.snapToIndex(0);
   };
 
-  // Load more
+  // Load more posts
   const loadMore = () => {
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
@@ -142,8 +193,27 @@ export default function Explore() {
 
   // Pull to refresh
   const onRefresh = useCallback(() => {
-    refetch();
-  }, [refetch]);
+    refetchPosts();
+  }, [refetchPosts]);
+
+  // Get user display name
+  const getUserDisplayName = (user: UserSearchResult) => {
+    return (
+      user.userInfo?.name ||
+      user.talentInfo?.talentName ||
+      user.soleUser.username
+    );
+  };
+
+  // Get user image
+  const getUserImage = (user: UserSearchResult) => {
+    return (
+      user.userInfo?.profilePic ||
+      user.talentInfo?.snapshotHalfBody ||
+      user.soleUser.image ||
+      null
+    );
+  };
 
   // Transform post for modal
   const transformPostForModal = (backendPost: PostWithDetailsResponse) => {
@@ -179,7 +249,6 @@ export default function Explore() {
 
   // Render thumbnail
   const renderThumbnail = ({ item }: { item: PostWithDetailsResponse }) => {
-    // Safety check for null/undefined items
     if (!item || !item.id) return null;
     
     const firstImage = item.media?.[0]?.mediaUrl;
@@ -196,6 +265,44 @@ export default function Explore() {
     );
   };
 
+  // Render user item for dropdown
+  const renderUserDropdownItem = (user: UserSearchResult) => {
+    const displayName = getUserDisplayName(user);
+    const image = getUserImage(user);
+
+    return (
+      <TouchableOpacity
+        key={user.soleUser.id}
+        onPress={() => handleUserPress(user)}
+        className="flex-row items-center px-4 py-3 bg-gray-800/80 active:bg-gray-700/80"
+      >
+        <View className="w-12 h-12 rounded-full overflow-hidden bg-gray-700 mr-3">
+          {image ? (
+            <Image
+              source={{ uri: image }}
+              className="w-full h-full"
+              resizeMode="cover"
+            />
+          ) : (
+            <View className="w-full h-full items-center justify-center">
+              <Text className="text-white text-base font-semibold">
+                {user.soleUser.username.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
+        </View>
+        <View className="flex-1">
+          <Text className="text-white font-semibold text-sm" numberOfLines={1}>
+            {displayName}
+          </Text>
+          <Text className="text-gray-400 text-xs" numberOfLines={1}>
+            @{user.soleUser.username}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   const renderFooter = () => {
     if (!isFetchingNextPage) return null;
     return (
@@ -206,7 +313,7 @@ export default function Explore() {
   };
 
   const renderEmpty = () => {
-    if (isLoading) return null;
+    if (isLoadingPosts) return null;
     
     return (
       <View className="items-center justify-center py-20" style={{ width: SCREEN_WIDTH }}>
@@ -217,7 +324,7 @@ export default function Explore() {
   };
 
   // Loading state
-  if (isLoading) {
+  if (isLoadingPosts) {
     return (
       <View className="flex-1 bg-black justify-center items-center">
         <ActivityIndicator size="large" color="#3b82f6" />
@@ -227,17 +334,17 @@ export default function Explore() {
   }
 
   // Error state
-  if (isError) {
+  if (isPostsError) {
     return (
       <View className="flex-1 bg-black justify-center items-center p-4">
         <Text className="text-red-400 text-center mb-4">
           Failed to load posts
         </Text>
         <Text className="text-gray-400 text-center mb-4 text-sm">
-          {error?.message || 'Please try again'}
+          {postsError?.message || 'Please try again'}
         </Text>
         <TouchableOpacity
-          onPress={() => refetch()}
+          onPress={() => refetchPosts()}
           className="bg-blue-500 px-6 py-3 rounded-lg"
         >
           <Text className="text-white font-semibold">Retry</Text>
@@ -262,7 +369,13 @@ export default function Explore() {
                 <Text className="text-2xl font-bold text-white">Explore</Text>
                 <View className="flex-row items-center gap-3">
                   <TouchableOpacity
-                    onPress={() => setShowSearch(!showSearch)}
+                    onPress={() => {
+                      setShowSearch(!showSearch);
+                      if (showSearch) {
+                        setSearchQuery('');
+                        setShowUserResults(false);
+                      }
+                    }}
                     className="p-2"
                     activeOpacity={0.7}
                   >
@@ -282,25 +395,56 @@ export default function Explore() {
                 </View>
               </View>
 
-              {/* Search Bar */}
+              {/* Search Bar with Dropdown */}
               {showSearch && (
-                <View className="flex-row items-center bg-gray-800/50 rounded-xl px-4 py-3 mb-4">
-                  <Search size={20} color="#9ca3af" />
-                  <TextInput
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    placeholder="Search posts..."
-                    placeholderTextColor="#9ca3af"
-                    className="flex-1 text-white ml-3 text-base"
-                    autoFocus={showSearch}
-                  />
-                  {searchQuery.length > 0 && (
-                    <TouchableOpacity
-                      onPress={() => setSearchQuery('')}
-                      className="ml-2"
-                    >
-                      <Text className="text-gray-400 text-lg">×</Text>
-                    </TouchableOpacity>
+                <View ref={searchContainerRef} className="relative mb-4">
+                  <View className="flex-row items-center bg-gray-800/50 rounded-xl px-4 py-3">
+                    <Search size={20} color="#9ca3af" />
+                    <TextInput
+                      value={searchQuery}
+                      onChangeText={(text) => {
+                        setSearchQuery(text);
+                        setShowUserResults(text.trim().length > 0);
+                      }}
+                      placeholder="Search users..."
+                      placeholderTextColor="#9ca3af"
+                      className="flex-1 text-white ml-3 text-base"
+                      autoFocus={showSearch}
+                    />
+                    {searchQuery.length > 0 && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          setSearchQuery('');
+                          setShowUserResults(false);
+                        }}
+                        className="ml-2"
+                      >
+                        <Text className="text-gray-400 text-lg">×</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {/* User Search Results Dropdown */}
+                  {showUserResults && (
+                    <View className="absolute top-full left-0 right-0 mt-2 bg-gray-900 rounded-xl overflow-hidden z-50 max-h-64">
+                      <ScrollView 
+                        nestedScrollEnabled
+                        showsVerticalScrollIndicator={false}
+                        className="max-h-64"
+                      >
+                        {isLoadingUsers ? (
+                          <View className="py-6 items-center">
+                            <ActivityIndicator size="small" color="#3b82f6" />
+                          </View>
+                        ) : users.length > 0 ? (
+                          users.map((user) => renderUserDropdownItem(user))
+                        ) : (
+                          <View className="py-6 items-center">
+                            <Text className="text-gray-400 text-sm">No users found</Text>
+                          </View>
+                        )}
+                      </ScrollView>
+                    </View>
                   )}
                 </View>
               )}
