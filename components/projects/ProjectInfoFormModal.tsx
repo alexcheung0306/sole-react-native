@@ -20,9 +20,16 @@ import * as ImagePicker from 'expo-image-picker';
 interface ProjectInfoFormModalProps {
   method: 'POST' | 'PUT';
   initValues?: any;
+  triggerClassName?: string;
+  renderTrigger?: (helpers: { open: () => void; close: () => void; isOpen: boolean }) => React.ReactNode;
 }
 
-export default function ProjectInfoFormModal({ method, initValues }: ProjectInfoFormModalProps) {
+export default function ProjectInfoFormModal({
+  method,
+  initValues,
+  triggerClassName,
+  renderTrigger,
+}: ProjectInfoFormModalProps) {
   const { soleUserId } = useSoleUserContext();
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
@@ -97,18 +104,38 @@ export default function ProjectInfoFormModal({ method, initValues }: ProjectInfo
     });
   };
 
+  const openModal = () => setIsOpen(true);
+  const closeModal = () => handleClose();
+
+  const triggerNode = renderTrigger ? (
+    renderTrigger({ open: openModal, close: closeModal, isOpen })
+  ) : (
+    <TouchableOpacity
+      className={`flex-row items-center justify-center gap-2 rounded-lg px-4 py-2 ${
+        triggerClassName ? triggerClassName : 'mb-4'
+      } ${
+        method === 'POST'
+          ? 'border border-white bg-white'
+          : 'bg-purple-600'
+      }`}
+      onPress={openModal}>
+      {method === 'POST' ? (
+        <Plus size={20} color="#0f172a" />
+      ) : (
+        <Pencil size={20} color="#f9fafb" />
+      )}
+      <Text
+        className={`text-base font-semibold ${
+          method === 'POST' ? 'text-zinc-900' : 'text-white'
+        }`}>
+        {method === 'POST' ? 'Create New Project' : 'Edit Project'}
+      </Text>
+    </TouchableOpacity>
+  );
+
   return (
     <>
-      <TouchableOpacity
-        className={`mb-4 flex-row items-center justify-center gap-2 rounded-lg px-4 py-1 text-black ${
-          method === 'POST' ? 'border border-white bg-white' : 'bg-purple-600'
-        }`}
-        onPress={() => setIsOpen(true)}>
-        {method === 'POST' ? <Plus size={20} /> : <Pencil size={20} />}
-        <Text className=" text-base font-semibold">
-          {method === 'POST' ? 'Create New Project' : 'Edit Project'}
-        </Text>
-      </TouchableOpacity>
+      {triggerNode}
 
       <Modal visible={isOpen} animationType="slide" transparent={true} onRequestClose={handleClose}>
         <KeyboardAvoidingView

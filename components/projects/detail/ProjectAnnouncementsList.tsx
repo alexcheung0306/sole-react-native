@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { View, Text, FlatList } from 'react-native';
 import { Calendar, Megaphone, Users } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 
@@ -48,53 +48,61 @@ export function ProjectAnnouncementsList({ projectId }: ProjectAnnouncementsList
       : '—';
 
     return (
-      <View style={styles.announcementCard}>
-        <View style={styles.announcementHeader}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.announcementTitle}>{item?.title ?? 'Untitled announcement'}</Text>
-            <View style={styles.announcementMetaRow}>
-              <View style={styles.metaItem}>
-                <Calendar size={16} color="rgba(229,231,235,0.6)" />
-                <Text style={styles.announcementMetaText}>{formattedDate}</Text>
+      <View className="rounded-2xl border border-white/10 bg-zinc-900/60 p-5">
+        <View className="flex-row items-start justify-between gap-3">
+          <View className="flex-1 gap-2">
+            <Text className="text-lg font-semibold text-white">
+              {item?.title ?? 'Untitled announcement'}
+            </Text>
+            <View className="flex-row flex-wrap items-center gap-4">
+              <View className="flex-row items-center gap-1">
+                <Calendar size={16} color="rgba(244,244,245,0.65)" />
+                <Text className="text-[12px] text-white">{formattedDate}</Text>
               </View>
               {item?.senderName ? (
-                <View style={styles.metaItem}>
-                  <Megaphone size={16} color="rgba(229,231,235,0.6)" />
-                  <Text style={styles.announcementMetaText}>By {item.senderName}</Text>
+                <View className="flex-row items-center gap-1">
+                  <Megaphone size={16} color="rgba(244,244,245,0.65)" />
+                  <Text className="text-[12px] text-white">By {item.senderName}</Text>
                 </View>
               ) : null}
             </View>
           </View>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>#{item?.id ?? '—'}</Text>
+          <View className="rounded-full border border-blue-500/30 bg-blue-500/15 px-3 py-1">
+            <Text className="text-[12px] font-semibold text-white">#{item?.id ?? '—'}</Text>
           </View>
         </View>
 
-        <Text style={styles.announcementContent}>{parsedContent}</Text>
+        <Text className="mt-4 text-base leading-6 text-white whitespace-pre-wrap">
+          {parsedContent}
+        </Text>
 
         {receivers.length > 0 ? (
-          <View style={styles.audienceContainer}>
-            <View style={styles.audienceHeader}>
-              <Users size={16} color="rgba(148,163,184,0.9)" />
-              <Text style={styles.audienceTitle}>Target Audience</Text>
+          <View className="mt-5 space-y-3 border-t border-white/10 pt-4">
+            <View className="flex-row items-center gap-2">
+              <Users size={16} color="rgba(250,250,250,0.85)" />
+              <Text className="text-sm font-semibold text-white">Target Audience</Text>
             </View>
             {receivers.map((receiver, index) => (
-              <View key={`${receiver.roleTitle}-${index}`} style={styles.receiverRow}>
-                <Text style={styles.receiverRole}>{receiver.roleTitle}</Text>
-                <View style={styles.receiverChips}>
+              <View key={`${receiver.roleTitle}-${index}`} className="space-y-2">
+                <Text className="text-sm font-semibold text-white">
+                  {receiver.roleTitle}
+                </Text>
+                <View className="flex-row flex-wrap gap-2">
                   {receiver.viewLevel === -1 ? (
-                    <View style={[styles.chip, styles.chipEveryone]}>
-                      <Text style={styles.chipText}>Everyone</Text>
+                    <View className="rounded-full border border-emerald-400/60 bg-emerald-500/30 px-3 py-1">
+                      <Text className="text-xs font-semibold text-white">Everyone</Text>
                     </View>
                   ) : receiver.processes.length > 0 ? (
                     receiver.processes.map((stage) => (
-                      <View key={stage} style={[styles.chip, styles.chipStage]}>
-                        <Text style={[styles.chipText, styles.chipTextStage]}>{stage}</Text>
+                      <View
+                        key={stage}
+                        className="rounded-full border border-blue-400/60 bg-blue-500/30 px-3 py-1">
+                        <Text className="text-xs font-semibold text-white">{stage}</Text>
                       </View>
                     ))
                   ) : (
-                    <View style={[styles.chip, styles.chipNone]}>
-                      <Text style={styles.chipTextNone}>No access</Text>
+                    <View className="rounded-full border border-rose-400/60 bg-rose-500/30 px-3 py-1">
+                      <Text className="text-xs font-semibold text-white">No access</Text>
                     </View>
                   )}
                 </View>
@@ -107,13 +115,15 @@ export function ProjectAnnouncementsList({ projectId }: ProjectAnnouncementsList
   };
 
   const listHeader = (
-    <View style={styles.sectionHeader}>
-      <View style={styles.sectionHeaderLeft}>
-        <Text style={styles.sectionTitle}>Project Announcements</Text>
-        <Text style={styles.sectionSubtitle}>Review the latest updates shared with your roles.</Text>
+    <View className="flex-row items-start justify-between">
+      <View className="flex-1 gap-1">
+        <Text className="text-xl font-semibold text-white">Project Announcements</Text>
+        <Text className="text-sm text-white/80">
+          Review the latest updates shared with your roles.
+        </Text>
       </View>
-      <View style={styles.countBadge}>
-        <Text style={styles.countBadgeText}>
+      <View className="rounded-full border border-blue-500/30 bg-blue-500/15 px-3 py-1">
+        <Text className="text-xs font-semibold text-white">
           {totalCount} announcement{totalCount === 1 ? '' : 's'}
         </Text>
       </View>
@@ -121,7 +131,7 @@ export function ProjectAnnouncementsList({ projectId }: ProjectAnnouncementsList
   );
 
   return (
-    <View style={styles.sectionCard}>
+    <View className="mt-6 gap-4 rounded-2xl border border-white/10 bg-zinc-900/80 p-5">
       {listHeader}
 
       <FlatList
@@ -131,9 +141,9 @@ export function ProjectAnnouncementsList({ projectId }: ProjectAnnouncementsList
         scrollEnabled={false}
         contentContainerStyle={{ gap: 12 }}
         ListEmptyComponent={() => (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateTitle}>No announcements yet</Text>
-            <Text style={styles.emptyStateSubtitle}>
+          <View className="items-center gap-2 rounded-2xl border border-white/10 bg-zinc-900/60 px-4 py-10">
+            <Text className="text-base font-semibold text-white">No announcements yet</Text>
+            <Text className="max-w-[240px] text-center text-sm text-white/70">
               Announcements that you create will appear here for quick access.
             </Text>
           </View>
@@ -141,7 +151,7 @@ export function ProjectAnnouncementsList({ projectId }: ProjectAnnouncementsList
       />
 
       {totalPages > 1 && (
-        <View style={{ marginTop: 12 }}>
+        <View className="mt-3">
           <PaginationControl
             currentPage={page}
             setCurrentPage={setPage}
@@ -153,179 +163,6 @@ export function ProjectAnnouncementsList({ projectId }: ProjectAnnouncementsList
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  sectionCard: {
-    marginTop: 24,
-    backgroundColor: 'rgba(24, 24, 27, 0.85)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    padding: 20,
-    gap: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  sectionHeaderLeft: {
-    flex: 1,
-    gap: 4,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#f9fafb',
-  },
-  sectionSubtitle: {
-    color: 'rgba(229, 231, 235, 0.7)',
-    fontSize: 14,
-  },
-  countBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(59,130,246,0.15)',
-    borderColor: 'rgba(59,130,246,0.4)',
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  countBadgeText: {
-    color: '#bfdbfe',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  announcementCard: {
-    padding: 16,
-    borderRadius: 14,
-    backgroundColor: 'rgba(15, 23, 42, 0.7)',
-    borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.18)',
-  },
-  announcementHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
-  },
-  announcementTitle: {
-    color: '#f9fafb',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  announcementContent: {
-    color: '#e5e7eb',
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  announcementMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 6,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  announcementMetaText: {
-    color: 'rgba(229, 231, 235, 0.6)',
-    fontSize: 12,
-  },
-  badge: {
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: 'rgba(59,130,246,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(59,130,246,0.25)',
-  },
-  badgeText: {
-    color: '#bfdbfe',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  audienceContainer: {
-    marginTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(148,163,184,0.15)',
-    paddingTop: 12,
-    gap: 12,
-  },
-  audienceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  audienceTitle: {
-    color: 'rgba(148, 163, 184, 0.9)',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  receiverRow: {
-    gap: 6,
-  },
-  receiverRole: {
-    color: '#f9fafb',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  receiverChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  chip: {
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderWidth: 1,
-  },
-  chipText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  chipTextStage: {
-    color: '#bfdbfe',
-  },
-  chipEveryone: {
-    borderColor: 'rgba(34,197,94,0.4)',
-    backgroundColor: 'rgba(34,197,94,0.15)',
-  },
-  chipStage: {
-    borderColor: 'rgba(59,130,246,0.4)',
-    backgroundColor: 'rgba(59,130,246,0.15)',
-  },
-  chipNone: {
-    borderColor: 'rgba(248,113,113,0.4)',
-    backgroundColor: 'rgba(248,113,113,0.12)',
-  },
-  chipTextNone: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#fca5a5',
-  },
-  emptyState: {
-    paddingVertical: 32,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    gap: 8,
-  },
-  emptyStateTitle: {
-    color: '#e5e7eb',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  emptyStateSubtitle: {
-    color: 'rgba(148, 163, 184, 0.7)',
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-});
 
 type ParsedReceiver = {
   roleTitle: string;
