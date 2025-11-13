@@ -163,7 +163,7 @@ export default function ManageProjectsPage() {
           contentContainerStyle={{
             paddingTop: insets.top + 72,
             paddingBottom: 20,
-            paddingHorizontal: 24,
+            paddingHorizontal: 12,
           }}
           showsVerticalScrollIndicator={false}
         />

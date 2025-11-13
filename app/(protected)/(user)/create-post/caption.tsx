@@ -18,7 +18,25 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPost, CreatePostRequest, PostMedia } from '~/api/apiservice/post_api';
 import { useSoleUserContext } from '~/context/SoleUserContext';
 import { useUser } from '@clerk/clerk-expo';
-import { useCreatePostContext } from '~/context/CreatePostContext';
+import { useCreatePostContext, MediaItem } from '~/context/CreatePostContext';
+import * as MediaLibrary from 'expo-media-library';
+
+const IMAGE_MIME_TYPES: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  heic: 'image/heic',
+  heif: 'image/heif',
+  webp: 'image/webp',
+};
+
+const VIDEO_MIME_TYPES: Record<string, string> = {
+  mp4: 'video/mp4',
+  mov: 'video/quicktime',
+  m4v: 'video/x-m4v',
+  avi: 'video/x-msvideo',
+  mkv: 'video/x-matroska',
+};
 
 const MAX_CAPTION_LENGTH = 256;
 
@@ -79,6 +97,63 @@ export default function CaptionScreen() {
     }
   };
 
+  const resolveUploadUri = async (media: MediaItem) => {
+    if (!media.uri) {
+      return undefined;
+    }
+
+    const isLibraryAsset = media.id && !media.id.startsWith('camera_');
+    const needsResolution =
+      media.uri.startsWith('ph://') || media.uri.startsWith('assets-library://');
+
+    if (isLibraryAsset && needsResolution) {
+      try {
+        const assetInfo = await MediaLibrary.getAssetInfoAsync(media.id);
+        if (assetInfo?.localUri) {
+          return assetInfo.localUri;
+        }
+        if (assetInfo?.uri?.startsWith('file://')) {
+          return assetInfo.uri;
+        }
+      } catch (error) {
+        console.warn('Failed to resolve local URI for media asset', media.id, error);
+      }
+    }
+
+    return media.uri;
+  };
+
+  const deriveFileMeta = (media: MediaItem, uploadUri: string, index: number) => {
+    const fallbackExtension = media.mediaType === 'video' ? 'mp4' : 'jpg';
+    const filenameCandidate =
+      media.filename ||
+      uploadUri
+        .split('/')
+        .pop()
+        ?.split('?')[0];
+    let extension =
+      filenameCandidate &&
+      filenameCandidate.includes('.')
+        ? filenameCandidate.split('.').pop()?.toLowerCase()
+        : undefined;
+
+    if (!extension || extension.length > 5) {
+      extension = fallbackExtension;
+    }
+
+    const mimeType =
+      media.mediaType === 'video'
+        ? VIDEO_MIME_TYPES[extension] || 'video/mp4'
+        : IMAGE_MIME_TYPES[extension] || 'image/jpeg';
+
+    const fileName =
+      filenameCandidate && filenameCandidate.includes('.')
+        ? filenameCandidate
+        : `post_${index}.${extension}`;
+
+    return { fileName, mimeType };
+  };
+
   const handleShare = async () => {
     if (selectedMedia.length === 0) {
       Alert.alert('No Media', 'Please select at least one photo or video');
@@ -90,28 +165,49 @@ export default function CaptionScreen() {
       return;
     }
 
-    // Build post data
-    const postMedias: PostMedia[] = selectedMedia.map((media) => ({
-      uri: media.uri,
-      isVideo: media.mediaType === 'video',
-      cropData: {
-        x: 0,
-        y: 0,
-        width: media.width || 1080,
-        height: media.height || 1080,
-        zoom: 1,
-        naturalWidth: media.width,
-        naturalHeight: media.height,
-      },
-    }));
+    try {
+      const postMedias: PostMedia[] = await Promise.all(
+        selectedMedia.map(async (media, index) => {
+          const uploadUri = await resolveUploadUri(media);
 
-    const postData: CreatePostRequest = {
-      soleUserId,
-      content: caption,
-      postMedias,
-    };
+          if (!uploadUri) {
+            throw new Error('Unable to access selected media file');
+          }
 
-    createPostMutation.mutate(postData);
+          const { fileName, mimeType } = deriveFileMeta(media, uploadUri, index);
+
+          return {
+            uri: uploadUri,
+            isVideo: media.mediaType === 'video',
+            fileName,
+            mimeType,
+            cropData: {
+              x: 0,
+              y: 0,
+              width: media.width || 1080,
+              height: media.height || 1080,
+              zoom: 1,
+              naturalWidth: media.width,
+              naturalHeight: media.height,
+            },
+          };
+        })
+      );
+
+      const postData: CreatePostRequest = {
+        soleUserId,
+        content: caption,
+        postMedias,
+      };
+
+      createPostMutation.mutate(postData);
+    } catch (error) {
+      console.error('Failed to prepare media for upload', error);
+      Alert.alert(
+        'Media Error',
+        'We could not access one of the selected files. Please reselect your media and try again.'
+      );
+    }
   };
 
   const commonEmojis = ['😊', '❤️', '🔥', '✨', '🎉', '👏', '💯', '🙌', '😍', '🎨', '📸', '🎬'];

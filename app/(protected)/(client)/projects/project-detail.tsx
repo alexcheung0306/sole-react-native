@@ -88,6 +88,17 @@ export default function ProjectDetailPage() {
           title={project?.projectName || 'Project'}
           translateY={headerTranslateY}
           isDark
+          headerLeft={
+            <TouchableOpacity
+              onPress={() =>
+                router.replace('/(protected)/(client)/projects/manage-projects')
+              }
+              activeOpacity={0.85}
+              className="p-2 flex items-center justify-center"
+            >
+              <ChevronLeft color="#93c5fd" size={24} />
+            </TouchableOpacity>
+          }
         />
         <ScrollView
           className="flex-1"
@@ -99,14 +110,6 @@ export default function ProjectDetailPage() {
             paddingHorizontal: 24,
           }}>
           <View className="gap-6">
-            <TouchableOpacity
-              className="flex-row items-center gap-2"
-              activeOpacity={0.85}
-              onPress={() => router.back()}>
-              <ChevronLeft color="#93c5fd" size={20} />
-              <Text className="text-sm font-semibold text-white">Back to Manage Projects</Text>
-            </TouchableOpacity>
-
             <View className="flex-row flex-wrap items-center gap-3">
               <View
                 className="rounded-full px-3 py-1"
@@ -139,7 +142,7 @@ export default function ProjectDetailPage() {
                     }`}
                     activeOpacity={0.85}>
                     <Text
-                      className={`text-center text-sm font-semibold ${
+                      className={`text-center text-[10px] font-semibold ${
                         active ? 'text-black' : 'text-white'
                       }`}>
                       {tab.label}

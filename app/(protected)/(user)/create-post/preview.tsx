@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,27 +10,28 @@ import {
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
-import { X, Check, Trash2, Image as ImageIcon, Crop, Grid3x3 } from 'lucide-react-native';
+import { X, Check, Trash2, Image as ImageIcon, Crop } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Video } from 'expo-av';
 import { useCreatePostContext, MediaItem } from '~/context/CreatePostContext';
+import { ImageCropModal } from '~/components/camera/ImageCropModal';
 
 const { width, height } = Dimensions.get('window');
 
-type AspectRatio = '1:1' | '4:5' | '16:9';
-
-const ASPECT_RATIOS: { key: AspectRatio; value: number; label: string }[] = [
-  { key: '1:1', value: 1 / 1, label: 'Square' },
-  { key: '4:5', value: 4 / 5, label: 'Portrait' },
-  { key: '16:9', value: 16 / 9, label: 'Landscape' },
-];
-
 export default function PreviewScreen() {
   const insets = useSafeAreaInsets();
-  const { selectedMedia, setSelectedMedia, selectedAspectRatio, setSelectedAspectRatio, removeMedia } = useCreatePostContext();
+  const {
+    selectedMedia,
+    setSelectedMedia,
+    removeMedia,
+  } = useCreatePostContext();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [showAspectPicker, setShowAspectPicker] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null);
+  const [isCropModalVisible, setIsCropModalVisible] = useState(false);
+  const [cropTargetIndex, setCropTargetIndex] = useState<number | null>(null);
+
+  const handleClose = () => {
+    router.back();
+  };
 
   const handleDelete = () => {
     if (!selectedMedia[currentIndex]) return;
@@ -57,18 +58,73 @@ export default function PreviewScreen() {
     );
   };
 
-  const handleAspectChange = (aspect: AspectRatio) => {
-    setSelectedAspectRatio(aspect);
-    setShowAspectPicker(false);
+  const openCropper = () => {
+    const target = selectedMedia[currentIndex];
+    if (!target) return;
+
+    if (target.mediaType !== 'photo') {
+      Alert.alert('Crop Unavailable', 'Cropping is currently supported for photos only.');
+      return;
+    }
+
+    setCropTargetIndex(currentIndex);
+    setIsCropModalVisible(true);
+  };
+
+  const closeCropper = () => {
+    setIsCropModalVisible(false);
+    setCropTargetIndex(null);
+  };
+
+  const handleCropApply = (payload: {
+    uri: string;
+    width: number;
+    height: number;
+    cropData: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      zoom: number;
+      naturalWidth?: number;
+      naturalHeight?: number;
+    };
+  }) => {
+    if (cropTargetIndex === null) return;
+
+    const updated = selectedMedia.map((item, index) => {
+      if (index !== cropTargetIndex) return item;
+
+      const originalName = item.filename ?? `media_${item.id}`;
+      const baseName = originalName.includes('.')
+        ? originalName.substring(0, originalName.lastIndexOf('.'))
+        : originalName;
+
+      return {
+        ...item,
+        uri: payload.uri,
+        width: payload.width,
+        height: payload.height,
+        cropData: payload.cropData,
+        filename: `${baseName}_crop.jpg`,
+      };
+    });
+
+    setSelectedMedia(updated);
+    closeCropper();
   };
 
   const navigateToCaption = () => {
     router.push('/(protected)/(user)/create-post/caption' as any);
   };
 
-  const getAspectRatioValue = () => {
-    const ratio = ASPECT_RATIOS.find((r) => r.key === selectedAspectRatio);
-    return ratio?.value || 1;
+  const getAspectRatioValue = (item: MediaItem) => {
+    const mediaWidth = item.cropData?.width ?? item.width;
+    const mediaHeight = item.cropData?.height ?? item.height;
+    if (mediaWidth && mediaHeight && mediaHeight !== 0) {
+      return mediaWidth / mediaHeight;
+    }
+    return 1;
   };
 
   const renderMainMedia = () => {
@@ -77,7 +133,7 @@ export default function PreviewScreen() {
     }
 
     const item = selectedMedia[currentIndex];
-    const aspectValue = getAspectRatioValue();
+    const aspectValue = getAspectRatioValue(item);
     const mediaHeight = width / aspectValue;
 
     return (
@@ -129,7 +185,7 @@ export default function PreviewScreen() {
       <View className="flex-1 bg-black" style={{ paddingTop: insets.top }}>
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-800">
-          <TouchableOpacity onPress={() => router.back()} className="p-2">
+          <TouchableOpacity onPress={handleClose} className="p-2">
             <X size={24} color="#ffffff" />
           </TouchableOpacity>
           <Text className="text-white font-semibold text-lg">Edit</Text>
@@ -146,18 +202,12 @@ export default function PreviewScreen() {
           <View className="px-4 py-4 border-b border-gray-800">
             <View className="flex-row items-center justify-between">
               {/* Crop Button */}
-              <TouchableOpacity className="flex-row items-center bg-gray-800 rounded-lg px-4 py-2">
-                <Crop size={18} color="#ffffff" />
-                <Text className="text-white ml-2 font-medium">Crop</Text>
-              </TouchableOpacity>
-
-              {/* Aspect Ratio Selector */}
               <TouchableOpacity
-                onPress={() => setShowAspectPicker(!showAspectPicker)}
+                onPress={openCropper}
                 className="flex-row items-center bg-gray-800 rounded-lg px-4 py-2"
               >
-                <Grid3x3 size={18} color="#ffffff" />
-                <Text className="text-white ml-2 font-medium">{selectedAspectRatio}</Text>
+                <Crop size={18} color="#ffffff" />
+                <Text className="text-white ml-2 font-medium">Crop</Text>
               </TouchableOpacity>
 
               {/* Delete Button */}
@@ -168,29 +218,6 @@ export default function PreviewScreen() {
                 <Trash2 size={18} color="#ef4444" />
               </TouchableOpacity>
             </View>
-
-            {/* Aspect Ratio Picker */}
-            {showAspectPicker && (
-              <View className="mt-3 flex-row justify-around bg-gray-800/50 rounded-lg p-3">
-                {ASPECT_RATIOS.map((ratio) => (
-                  <TouchableOpacity
-                    key={ratio.key}
-                    onPress={() => handleAspectChange(ratio.key)}
-                    className={`px-4 py-2 rounded-lg ${
-                      selectedAspect === ratio.key ? 'bg-blue-500' : 'bg-gray-700'
-                    }`}
-                  >
-                    <Text
-                      className={`text-sm font-medium ${
-                        selectedAspect === ratio.key ? 'text-white' : 'text-gray-300'
-                      }`}
-                    >
-                      {ratio.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
           </View>
 
           {/* Thumbnail Strip */}
@@ -208,6 +235,13 @@ export default function PreviewScreen() {
           )}
         </ScrollView>
       </View>
+
+      <ImageCropModal
+        visible={isCropModalVisible}
+        media={cropTargetIndex !== null ? selectedMedia[cropTargetIndex] : undefined}
+        onClose={closeCropper}
+        onApply={handleCropApply}
+      />
     </>
   );
 }

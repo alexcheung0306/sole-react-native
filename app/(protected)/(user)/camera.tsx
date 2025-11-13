@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera, X, Check, Image as ImageIcon, Video as VideoIcon } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { useCreatePostContext, MediaItem } from '~/context/CreatePostContext';
 
 const { width } = Dimensions.get('window');
@@ -27,6 +28,7 @@ export default function CameraScreen() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [photos, setPhotos] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const preserveSelectionRef = useRef(false);
 
   // Clear previous data when screen mounts
   useEffect(() => {
@@ -56,6 +58,17 @@ export default function CameraScreen() {
       setHasPermission(false);
     }
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      preserveSelectionRef.current = false;
+      return () => {
+        if (!preserveSelectionRef.current) {
+          clearMedia();
+        }
+      };
+    }, [clearMedia])
+  );
 
   const loadPhotos = async () => {
     try {
@@ -115,6 +128,7 @@ export default function CameraScreen() {
 
         // Add to selection and navigate to preview
         setSelectedMedia([newMedia]);
+        preserveSelectionRef.current = true;
         navigateToPreview();
       }
     } catch (error) {
@@ -148,7 +162,7 @@ export default function CameraScreen() {
       return;
     }
 
-    // Navigate to preview screen (media is already in context)
+    preserveSelectionRef.current = true;
     router.push('/(protected)/(user)/create-post/preview' as any);
   };
 

@@ -29,22 +29,23 @@ export default function ProjectStatusTabs() {
   };
 
   return (
-    <View className="mb-4 flex-row gap-2 rounded-lg border border-white ">
-      {tabs.map((tab) => (
-        <TouchableOpacity
-          key={tab.id}
-          className={`flex-1 rounded-lg border px-4  py-1 ${
-            projectStatus === tab.id ? 'bg-white ' : 'border-white/10 '
-          } items-center`}
-          onPress={() => handleTabPress(tab.id)}>
-          <Text
-            className={`text-sm font-semibold ${
-              projectStatus === tab.id ? 'text-black' : 'text-gray-400'
-            }`}>
-            {tab.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
+    <View className="mb-5 flex-row rounded-2xl border border-white/10 bg-zinc-900/50 p-1">
+      {tabs.map((tab) => {
+        const active = projectStatus === tab.id;
+
+        return (
+          <TouchableOpacity
+            key={tab.id}
+            className={`flex-1 rounded-xl px-4 py-2 ${active ? 'bg-white' : 'bg-transparent'}`}
+            activeOpacity={0.85}
+            onPress={() => handleTabPress(tab.id)}>
+            <Text
+              className={`text-center text-[10px] font-semibold ${active ? 'text-black' : 'text-white'}`}>
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 }
