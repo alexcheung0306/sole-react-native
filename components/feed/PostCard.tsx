@@ -31,25 +31,16 @@ export function PostCard({ post, onLike, onAddComment, comments }: PostCardProps
     return date.toLocaleDateString();
   };
 
-  const handleOpenComments = () => {
-    // Navigate to post detail instead of opening comment sheet
-    router.push(`/(protected)/(user)/post/postid${post.id}` as any);
-  };
-
-  const handleUsernamePress = () => {
-    router.push(`/(protected)/(user)/user/${post.soleUserInfo.username}` as any);
-  };
-
-  // Removed handlePostPress - now only comment button navigates to detail
+  
 
   const renderCaption = () => {
     if (!post.content) return null;
 
     // Simple hashtag and mention parsing
     const parts = post.content.split(/(\s+)/);
-    
+
     return (
-      <Text className="text-gray-200 text-sm leading-5">
+      <Text className="text-sm leading-5 text-gray-200">
         {parts.map((part, index) => {
           if (part.startsWith('#')) {
             return (
@@ -72,39 +63,36 @@ export function PostCard({ post, onLike, onAddComment, comments }: PostCardProps
 
   return (
     <>
-      <View className="bg-black border-b border-gray-800/50 mb-2">
+      <View className="mb-2 border-b border-gray-800/50 bg-black">
         {/* Header: User Info */}
         <View className="flex-row items-center justify-between px-4 py-3">
           <TouchableOpacity
-            onPress={handleUsernamePress}
-            className="flex-row items-center flex-1"
-            activeOpacity={0.7}
-          >
+            onPress={() =>
+              router.push(`/(protected)/(user)/user/${post.soleUserInfo.username}` as any)
+            }
+            className="flex-1 flex-row items-center"
+            activeOpacity={0.7}>
             {/* Avatar */}
             {post.soleUserInfo.profilePic ? (
               <Image
                 source={{ uri: post.soleUserInfo.profilePic }}
-                className="w-10 h-10 rounded-full mr-3"
+                className="mr-3 h-10 w-10 rounded-full"
               />
             ) : (
-              <View className="w-10 h-10 rounded-full bg-gray-700 mr-3" />
+              <View className="mr-3 h-10 w-10 rounded-full bg-gray-700" />
             )}
 
             {/* Username & Time */}
             <View className="flex-1">
-              <Text className="text-white font-semibold text-sm">
-                {post.soleUserInfo.username}
-              </Text>
+              <Text className="text-sm font-semibold text-white">{post.soleUserInfo.username}</Text>
               <View className="flex-row items-center">
-                <Text className="text-gray-400 text-xs">
-                  {formatTimeAgo(post.createdAt)}
-                </Text>
+                <Text className="text-xs text-gray-400">{formatTimeAgo(post.createdAt)}</Text>
                 {post.location && (
                   <>
-                    <Text className="text-gray-500 text-xs mx-1">•</Text>
+                    <Text className="mx-1 text-xs text-gray-500">•</Text>
                     <View className="flex-row items-center">
                       <MapPin size={10} color="#9ca3af" />
-                      <Text className="text-gray-400 text-xs ml-1" numberOfLines={1}>
+                      <Text className="ml-1 text-xs text-gray-400" numberOfLines={1}>
                         {post.location}
                       </Text>
                     </View>
@@ -126,7 +114,7 @@ export function PostCard({ post, onLike, onAddComment, comments }: PostCardProps
         {/* Footer: Actions & Caption */}
         <View className="px-4 py-3">
           {/* Action Buttons */}
-          <View className="flex-row items-center mb-3">
+          <View className="mb-3 flex-row items-center">
             <LikeButton
               isLiked={post.isLikedByUser}
               likeCount={post.likeCount}
@@ -134,12 +122,11 @@ export function PostCard({ post, onLike, onAddComment, comments }: PostCardProps
             />
 
             <TouchableOpacity
-              onPress={handleOpenComments}
-              className="flex-row items-center gap-2 ml-4"
-              activeOpacity={0.7}
-            >
+              onPress={() => router.push(`/(protected)/(user)/post/postid${post.id}` as any)}
+              className="ml-4 flex-row items-center gap-2"
+              activeOpacity={0.7}>
               <MessageCircle size={24} color="#ffffff" strokeWidth={2} />
-              <Text className="text-white font-semibold text-sm">
+              <Text className="text-sm font-semibold text-white">
                 {post.commentCount > 0 ? post.commentCount : ''}
               </Text>
             </TouchableOpacity>
@@ -148,7 +135,7 @@ export function PostCard({ post, onLike, onAddComment, comments }: PostCardProps
           {/* Caption */}
           {post.content && (
             <View className="mb-2">
-              <Text className="text-white font-semibold text-sm mb-1">
+              <Text className="mb-1 text-sm font-semibold text-white">
                 {post.soleUserInfo.username}
               </Text>
               {renderCaption()}
@@ -157,10 +144,10 @@ export function PostCard({ post, onLike, onAddComment, comments }: PostCardProps
 
           {/* View Comments */}
           {post.commentCount > 0 && (
-            <TouchableOpacity onPress={handleOpenComments} activeOpacity={0.7}>
-              <Text className="text-gray-400 text-sm">
-                View all {post.commentCount} comments
-              </Text>
+            <TouchableOpacity
+              onPress={() => router.push(`/(protected)/(user)/post/postid${post.id}` as any)}
+              activeOpacity={0.7}>
+              <Text className="text-sm text-gray-400">View all {post.commentCount} comments</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -176,4 +163,3 @@ export function PostCard({ post, onLike, onAddComment, comments }: PostCardProps
     </>
   );
 }
-

@@ -220,7 +220,7 @@ export const updateJobContractsStatusById = async (
   }
 }
 
-export const deleteJobContractsById = async (id) => {
+export const deleteJobContractsById = async (id: number) => {
   try {
     const response = await fetch(`${API_BASE_URL}/job-contracts/${id}`, {
       method: "DELETE",

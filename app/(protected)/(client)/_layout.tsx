@@ -1,9 +1,11 @@
-import { Link, Tabs } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { View } from 'react-native';
-import { TabBarIcon } from '../../../components/TabBarIcon';
-import { LayoutDashboard, Bookmark, Search, FolderKanban, UserCircle } from 'lucide-react-native';
+import { LayoutDashboard, Bookmark, Search, FolderKanban } from 'lucide-react-native';
+import { useUser } from '@clerk/clerk-expo';
+import { AccountDropDownMenu } from '~/components/AccountDropDownMenu';
 
 export default function ClientTabLayout() {
+  const { user } = useUser();
   return (
     <Tabs
       screenOptions={{
@@ -15,11 +17,13 @@ export default function ClientTabLayout() {
           borderTopWidth: 1,
         },
         tabBarBackground: () => (
-          <View style={{
-            flex: 1,
-            backgroundColor: 'rgba(0, 0, 0, 0.9)',
-            backdropFilter: 'blur(20px)',
-          }} />
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0, 0, 0, 0.9)',
+              backdropFilter: 'blur(20px)',
+            }}
+          />
         ),
       }}>
       <Tabs.Screen
@@ -47,20 +51,28 @@ export default function ClientTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="project"
+        name="projects"
         options={{
-          title: 'Project',
+          title: 'Projects',
           tabBarIcon: ({ color }) => <FolderKanban color={color} size={24} />,
           headerShown: false,
         }}
       />
-      
+
       <Tabs.Screen
-        name="profile"
+        name="client/[username]"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <UserCircle color={color} size={24} />,
+          title: 'Client',
+          tabBarIcon: ({ color, focused }) => (
+            <AccountDropDownMenu color={color} focused={focused} onPress={() => {}} />
+          ),
           headerShown: false,
+          href: user?.username
+            ? ({
+                pathname: '/(protected)/(client)/client/[username]',
+                params: { username: user.username },
+              } as any)
+            : '/sign-in',
         }}
       />
     </Tabs>

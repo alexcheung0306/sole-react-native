@@ -3,6 +3,7 @@ import { z } from 'zod';
 // Define the environment variables schema
 const envSchema = z.object({
   DATABASE_URL: z.string().optional(),
+  SHADOW_DATABASE_URL: z.string().optional(),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   STRIPE_API_KEY: z.string().optional(),
   UPLOADTHING_SECRET: z.string().optional(),
@@ -27,11 +28,17 @@ const envSchema = z.object({
   EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().optional(),
   EXPO_PUBLIC_POSTHOG_KEY: z.string().optional(),
   EXPO_PUBLIC_POSTHOG_HOST: z.string().optional(),
+  EXPO_PUBLIC_DEV_MODE: z.string().optional(),
+  MINIO_BUCKET_NAME: z.string().optional(),
+  MINIO_ENDPOINT: z.string().optional(),
+  MINIO_ACCESS_KEY: z.string().optional(),
+  MINIO_SECRET_KEY: z.string().optional(),
 });
 
 // Load environment variables directly from process.env (works with Expo)
 export const env = {
   DATABASE_URL: process.env.DATABASE_URL || undefined,
+  SHADOW_DATABASE_URL: process.env.SHADOW_DATABASE_URL || undefined,
   NODE_ENV: process.env.NODE_ENV || 'development',
   STRIPE_API_KEY: process.env.STRIPE_API_KEY || undefined,
   UPLOADTHING_SECRET: process.env.UPLOADTHING_SECRET || undefined,
@@ -52,6 +59,12 @@ export const env = {
   EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY || undefined,
   EXPO_PUBLIC_POSTHOG_KEY: process.env.EXPO_PUBLIC_POSTHOG_KEY || undefined,
   EXPO_PUBLIC_POSTHOG_HOST: process.env.EXPO_PUBLIC_POSTHOG_HOST || undefined,
+  EXPO_PUBLIC_DEV_MODE: process.env.EXPO_PUBLIC_DEV_MODE || 'false',
+
+  MINIO_BUCKET_NAME: process.env.MINIO_BUCKET_NAME || undefined,
+  MINIO_ENDPOINT: process.env.MINIO_ENDPOINT || undefined,
+  MINIO_ACCESS_KEY: process.env.MINIO_ACCESS_KEY || undefined,
+  MINIO_SECRET_KEY: process.env.MINIO_SECRET_KEY || undefined,
 };
 
 // Validate environment variables

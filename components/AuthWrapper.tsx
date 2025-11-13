@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { Redirect } from 'expo-router';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Text } from 'react-native';
 import { getSoleUserByClerkId } from '~/api/apiservice';
 import { createUser } from '~/api/apiservice/soleUser_api';
+import { env } from '~/env.mjs';
 
 interface AuthWrapperProps {
   children: React.ReactNode;
@@ -15,6 +16,9 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
   const [userError, setUserError] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
+  
+  // DEV MODE - bypass backend/database when true
+  const DEV_MODE = env.EXPO_PUBLIC_DEV_MODE === 'true';
 
   // Debug logging
   console.log('AuthWrapper - State:', {
@@ -24,12 +28,22 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
     clerkUser: clerkUser ? 'present' : 'missing',
     userError,
     isInitializing,
+    devMode: DEV_MODE,
   });
 
   useEffect(() => {
     const initializeUser = async () => {
       // Only run once when auth data becomes available
       if (isSignedIn && userId && clerkUser && !hasInitialized && !isInitializing) {
+        
+        // 🟡 DEV MODE: Skip all backend calls
+        if (DEV_MODE) {
+          console.log('🟡 DEV MODE ENABLED - Skipping backend initialization');
+          setHasInitialized(true);
+          setIsInitializing(false);
+          return;
+        }
+        
         console.log('AuthWrapper - Starting user initialization');
         setIsInitializing(true);
         setUserError(null);
@@ -69,13 +83,18 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
     };
 
     initializeUser();
-  }, [isSignedIn, userId, clerkUser, hasInitialized, isInitializing]);
+  }, [isSignedIn, userId, clerkUser, hasInitialized, isInitializing, DEV_MODE]);
 
   if (!isLoaded) {
     console.log('AuthWrapper - Showing loading spinner (auth not loaded)');
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#000" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+        {DEV_MODE && (
+          <Text style={{ color: '#fbbf24', marginTop: 10, fontSize: 12 }}>
+            🟡 DEV MODE
+          </Text>
+        )}
       </View>
     );
   }

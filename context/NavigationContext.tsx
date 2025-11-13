@@ -20,7 +20,12 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   const switchToClient = () => {
     console.log('Switching to client mode');
     setCurrentMode('client');
-    router.replace('/(protected)/(client)/profile' as any);
+    router.replace('/(protected)/(client)/client/[username]' as any);
+    if (user?.username) {
+      router.replace(`/(protected)/(client)/client/${user.username}` as any);
+    } else {
+      router.replace('/(protected)/(client)/dashboard' as any);
+    }
   };
 
   const switchToUser = () => {

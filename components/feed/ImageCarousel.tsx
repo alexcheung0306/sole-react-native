@@ -1,18 +1,25 @@
 import { View, Image, Dimensions, TouchableOpacity, Text } from 'react-native';
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
-import { PostMedia } from '~/types/post';
+
+interface MediaItem {
+  mediaUrl: string;
+  width?: number;
+  height?: number;
+}
 
 interface ImageCarouselProps {
-  media: PostMedia[];
+  media: MediaItem[];
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export function ImageCarousel({ media }: ImageCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-
-  if (media.length === 0) return null;
+  
+  if (!media || media.length === 0) {
+    return null;
+  }
 
   // Calculate aspect ratio for consistent sizing
   const firstMedia = media[0];
