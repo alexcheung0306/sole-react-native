@@ -28,7 +28,6 @@ const envSchema = z.object({
   EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().optional(),
   EXPO_PUBLIC_POSTHOG_KEY: z.string().optional(),
   EXPO_PUBLIC_POSTHOG_HOST: z.string().optional(),
-  EXPO_PUBLIC_DEV_MODE: z.string().optional(),
   MINIO_BUCKET_NAME: z.string().optional(),
   MINIO_ENDPOINT: z.string().optional(),
   MINIO_ACCESS_KEY: z.string().optional(),
@@ -58,7 +57,6 @@ export const env = {
   EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY || undefined,
   EXPO_PUBLIC_POSTHOG_KEY: process.env.EXPO_PUBLIC_POSTHOG_KEY || undefined,
   EXPO_PUBLIC_POSTHOG_HOST: process.env.EXPO_PUBLIC_POSTHOG_HOST || undefined,
-  EXPO_PUBLIC_DEV_MODE: process.env.EXPO_PUBLIC_DEV_MODE || 'false',
 
   MINIO_BUCKET_NAME: process.env.MINIO_BUCKET_NAME || undefined,
   MINIO_ENDPOINT: process.env.MINIO_ENDPOINT || undefined,
