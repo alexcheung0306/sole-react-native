@@ -152,18 +152,18 @@ export default function FilterSearch({
                     key={option.id}
                     className={`flex-row items-center justify-between rounded-lg border p-4 ${
                       selectedSearchBy === option.id
-                        ? 'border-blue-500 bg-blue-500/20'
+                        ? 'border-white bg-white/10'
                         : 'border-white/10 bg-gray-800/60'
                     }`}
                     onPress={() => setSelectedSearchBy(option.id)}>
                     <Text
                       className={`text-sm font-semibold ${
-                        selectedSearchBy === option.id ? 'text-blue-500' : 'text-white'
+                        selectedSearchBy === option.id ? 'text-white' : 'text-white'
                       }`}>
                       {option.label}
                     </Text>
                     {selectedSearchBy === option.id && (
-                      <Text className="text-lg font-bold text-blue-500">✓</Text>
+                      <Text className="text-lg font-bold text-white">✓</Text>
                     )}
                   </TouchableOpacity>
                 ))}
@@ -242,9 +242,11 @@ export default function FilterSearch({
                   setLocalSelectedStatuses(selectedStatusesProp ?? []);
                   setSelectedSearchBy(searchBy);
                   setInputValue(searchValue);
+                  close();
                 }}>
                 <Text className="text-base font-semibold text-white">Cancel</Text>
               </TouchableOpacity>
+
               <TouchableOpacity
                 className="flex-1 items-center rounded-lg bg-blue-500 py-3.5"
                 onPress={() => handleApplyFilters(close)}>
@@ -286,12 +288,12 @@ export default function FilterSearch({
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-2">
           <View className="flex-row gap-2">
             {selectedSearchBy && (
-              <View className="flex-row items-center gap-2 rounded-full border border-blue-500 bg-blue-500/20 px-3 py-1.5">
-                <Text className="text-xs font-semibold text-blue-500">
+              <View className="flex-row items-center gap-2 rounded-full border border-white bg-white/10 px-3 py-1">
+                <Text className="text-xs font-semibold text-white">
                   Search: {selectedSearchBy}
                 </Text>
                 <TouchableOpacity onPress={removeSearchByChip}>
-                  <X color="#3b82f6" size={14} />
+                  <X color="#ffffff" size={14} />
                 </TouchableOpacity>
               </View>
             )}
@@ -323,5 +325,3 @@ export default function FilterSearch({
     </View>
   );
 }
-
- 

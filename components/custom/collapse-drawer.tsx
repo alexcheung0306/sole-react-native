@@ -156,7 +156,6 @@ export function CollapseDrawer({
       {triggerNode}
 
       <Modal
-        className=""
         visible={visible}
         animationType="fade"
         transparent
@@ -202,10 +201,9 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderTopWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.21)',
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(17, 17, 17, 0.92)',
     overflow: 'hidden',
-    backdropFilter: 'blur(10px)',
   },
   dragHandle: {
     alignSelf: 'center',

@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   View,
@@ -11,11 +10,22 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScrollHeader } from '@/hooks/useScrollHeader';
 import { CollapsibleHeader } from '@/components/CollapsibleHeader';
-import { useQuery } from '@tanstack/react-query';
+import { ChevronLeft } from 'lucide-react-native';
 import { useSoleUserContext } from '@/context/SoleUserContext';
 import { useManageProjectContext } from '@/context/ManageProjectContext';
-import { getProjectByIdAndSoleUserId } from '@/api/apiservice/project_api';
-import { ChevronLeft } from 'lucide-react-native';
+import { useProjectDetailQueries } from '@/hooks/useProjectDetailQueries';
+import { ProjectRolesTab } from '@/components/projects/detail/ProjectRolesTab';
+import { ProjectContractsTab } from '@/components/projects/detail/ProjectContractsTab';
+import { ProjectInformationCard } from '@/components/projects/detail/ProjectInformationCard';
+import { CreateProjectAnnouncementDrawer } from '@/components/projects/detail/CreateProjectAnnouncementDrawer';
+import { ProjectAnnouncementsList } from '@/components/projects/detail/ProjectAnnouncementsList';
+
+const STATUS_COLORS: Record<string, string> = {
+  Draft: '#6b7280',
+  Published: '#f59e0b',
+  InProgress: '#10b981',
+  Completed: '#3b82f6',
+};
 
 export default function ProjectDetailPage() {
   const insets = useSafeAreaInsets();
@@ -25,43 +35,28 @@ export default function ProjectDetailPage() {
   const { soleUserId } = useSoleUserContext();
   const { currentTab, setCurrentTab } = useManageProjectContext();
 
-  const projectId = id ? parseInt(id as string) : 0;
+  const projectId = id ? parseInt(id as string, 10) : 0;
 
   const {
-    data: projectData,
-    isLoading: projectLoading,
-    error: projectError,
-  } = useQuery({
-    queryKey: ['project', projectId],
-    queryFn: () => getProjectByIdAndSoleUserId(projectId, soleUserId || ''),
-    enabled: !!projectId && !!soleUserId,
-  });
+    projectData,
+    rolesWithSchedules,
+    jobContractsData,
+    projectLoading,
+    projectError,
+    jobContractsLoading,
+    roleCount,
+    countJobActivities,
+    refetchRoles,
+    refetchContracts,
+  } = useProjectDetailQueries({ projectId, soleUserId: soleUserId || '' });
 
-  const tabs = [
-    { id: 'project-information', label: 'Details' },
-    { id: 'project-roles', label: 'Roles' },
-    { id: 'project-contracts', label: 'Contracts' },
-  ];
+  const isInitialLoading = projectLoading;
 
-  const handleTabPress = (tabId: string) => {
-    setCurrentTab(tabId);
-  };
-
-  const getStatusColor = (status: string) => {
-    const colorMap: { [key: string]: string } = {
-      Draft: '#6b7280',
-      Published: '#f59e0b',
-      InProgress: '#10b981',
-      Completed: '#3b82f6',
-    };
-    return colorMap[status] || '#6b7280';
-  };
-
-  if (projectLoading) {
+  if (isInitialLoading) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#3b82f6" />
-        <Text style={styles.loadingText}>Loading project...</Text>
+        <Text style={styles.loadingText}>Fetching project workspace…</Text>
       </View>
     );
   }
@@ -69,28 +64,34 @@ export default function ProjectDetailPage() {
   if (projectError || !projectData) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>Project not found</Text>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Text style={styles.backButtonText}>Go Back</Text>
+        <Text style={styles.errorText}>We couldn’t load this project.</Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.backButtonText}>Return to projects</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const project = projectData.project || projectData;
-  const statusColor = getStatusColor(project.status);
+  const project = projectData?.project || projectData;
+  const statusTint = STATUS_COLORS[project?.status] || STATUS_COLORS.Draft;
+
+  const tabs = [
+    { id: 'project-information', label: 'Details' },
+    { id: 'project-roles', label: `Roles (${roleCount})` },
+    {
+      id: 'project-contracts',
+      label: `Contracts (${jobContractsData?.content?.length ?? jobContractsData?.length ?? 0})`,
+    },
+  ];
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
         <CollapsibleHeader
-          title={project.projectName}
+          title={project?.projectName || 'Project'}
           translateY={headerTranslateY}
-          isDark={true}
+          isDark
         />
         <ScrollView
           style={styles.scrollView}
@@ -98,117 +99,85 @@ export default function ProjectDetailPage() {
           scrollEventThrottle={16}
           contentContainerStyle={{
             paddingTop: insets.top + 72,
-            paddingBottom: 20,
+            paddingBottom: 28,
             paddingHorizontal: 24,
-          }}
-        >
-          {/* Back Button */}
-          <TouchableOpacity
-            style={styles.backButtonContainer}
-            onPress={() => router.back()}
-          >
-            <ChevronLeft color="#3b82f6" size={20} />
-            <Text style={styles.backLinkText}>Back to Projects</Text>
+            gap: 20,
+          }}>
+          <TouchableOpacity style={styles.backButtonContainer} onPress={() => router.back()}>
+            <ChevronLeft color="#93c5fd" size={20} />
+            <Text style={styles.backLinkText}>Back to Manage Projects</Text>
           </TouchableOpacity>
 
-          {/* Project Status Badges */}
           <View style={styles.badgesContainer}>
-            <View
-              style={[styles.statusBadge, { backgroundColor: statusColor + '33' }]}
-            >
-              <Text style={[styles.statusText, { color: statusColor }]}>
-                {project.status}
-              </Text>
+            <View style={[styles.statusBadge, { backgroundColor: `${statusTint}33` }]}>
+              <Text style={[styles.statusText, { color: statusTint }]}>{project?.status}</Text>
             </View>
             <View style={styles.idBadge}>
-              <Text style={styles.idText}>Project #{project.id}</Text>
+              <Text style={styles.idText}>Project #{project?.id}</Text>
             </View>
           </View>
 
-          {/* Project Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>{project.projectName}</Text>
+            <Text style={styles.title}>{project?.projectName}</Text>
             <Text style={styles.subtitle}>
-              Manage your project details, roles, and contracts
+              Align your announcement timeline, audition workflow, and contract statuses in one
+              place.
             </Text>
           </View>
 
-          {/* Tabs */}
           <View style={styles.tabsContainer}>
-            {tabs.map((tab) => (
-              <TouchableOpacity
-                key={tab.id}
-                style={[
-                  styles.tab,
-                  currentTab === tab.id && styles.activeTab,
-                ]}
-                onPress={() => handleTabPress(tab.id)}
-              >
-                <Text
-                  style={[
-                    styles.tabText,
-                    currentTab === tab.id && styles.activeTabText,
-                  ]}
-                >
-                  {tab.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {tabs.map((tab) => {
+              const active = currentTab === tab.id;
+              return (
+                <TouchableOpacity
+                  key={tab.id}
+                  style={[styles.tab, active && styles.activeTab]}
+                  onPress={() => setCurrentTab(tab.id)}>
+                  <Text style={[styles.tabText, active && styles.activeTabText]}>{tab.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
-          {/* Tab Content */}
+          {/*-------------------------------------------- project information --------------------------------------------*/}
+
           {currentTab === 'project-information' && (
-            <View style={styles.tabContent}>
-              <View style={styles.infoSection}>
-                <Text style={styles.sectionTitle}>Project Information</Text>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Description:</Text>
-                  <Text style={styles.infoValue}>
-                    {project.projectDescription}
-                  </Text>
-                </View>
-                {project.usage && (
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Usage:</Text>
-                    <Text style={styles.infoValue}>{project.usage}</Text>
-                  </View>
-                )}
-                {project.remarks && (
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Remarks:</Text>
-                    <Text style={styles.infoValue}>{project.remarks}</Text>
-                  </View>
-                )}
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Private:</Text>
-                  <Text style={styles.infoValue}>
-                    {project.isPrivate ? 'Yes' : 'No'}
-                  </Text>
-                </View>
-              </View>
-            </View>
+            <>
+              <ProjectInformationCard project={project} />
+              <CreateProjectAnnouncementDrawer
+                projectId={projectId}
+                soleUserId={soleUserId || ''}
+                projectStatus={project?.status}
+                rolesWithSchedules={rolesWithSchedules}
+              />
+              <ProjectAnnouncementsList projectId={projectId} />
+            </>
           )}
 
+          {/*-------------------------------------------- project roles --------------------------------------------*/}
           {currentTab === 'project-roles' && (
-            <View style={styles.tabContent}>
-              <View style={styles.comingSoon}>
-                <Text style={styles.comingSoonText}>Roles Management</Text>
-                <Text style={styles.comingSoonSubtext}>
-                  Manage project roles and candidates
-                </Text>
-              </View>
-            </View>
+            <ProjectRolesTab
+              projectId={projectId}
+              projectStatus={project?.status}
+              rolesWithSchedules={rolesWithSchedules}
+              countJobActivities={countJobActivities}
+              refetchRoles={refetchRoles}
+            />
           )}
+
+          {/*-------------------------------------------- project contracts --------------------------------------------*/}
 
           {currentTab === 'project-contracts' && (
-            <View style={styles.tabContent}>
-              <View style={styles.comingSoon}>
-                <Text style={styles.comingSoonText}>Contracts Management</Text>
-                <Text style={styles.comingSoonSubtext}>
-                  View and manage project contracts
-                </Text>
-              </View>
-            </View>
+            <ProjectContractsTab
+              projectId={projectId}
+              initialContracts={
+                Array.isArray(jobContractsData)
+                  ? jobContractsData
+                  : (jobContractsData?.content ?? jobContractsData?.data ?? [])
+              }
+              isLoadingInitial={jobContractsLoading}
+              refetchContracts={refetchContracts}
+            />
           )}
         </ScrollView>
       </View>
@@ -377,4 +346,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-
