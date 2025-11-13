@@ -2,6 +2,12 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"path": "../../sole-web"
+		},
+		{
+			"path": "../../sole-service"
 		}
 	],
 	"settings": {}

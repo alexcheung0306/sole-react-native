@@ -85,8 +85,8 @@ export default function Explore() {
     },
   });
 
-  // Flatten all pages
-  const posts = postsData?.pages.flatMap(page => page.data) ?? [];
+  // Flatten all pages and filter out null/undefined items
+  const posts = postsData?.pages.flatMap(page => page.data ?? []).filter((item): item is PostWithDetailsResponse => item != null) ?? [];
   const totalPosts = postsData?.pages[0]?.total ?? 0;
 
   // Handle thumbnail press
@@ -179,6 +179,9 @@ export default function Explore() {
 
   // Render thumbnail
   const renderThumbnail = ({ item }: { item: PostWithDetailsResponse }) => {
+    // Safety check for null/undefined items
+    if (!item || !item.id) return null;
+    
     const firstImage = item.media?.[0]?.mediaUrl;
     if (!firstImage) return null;
 
@@ -318,7 +321,7 @@ export default function Explore() {
           <FlatList
             data={posts}
             renderItem={renderThumbnail}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={(item, index) => item?.id?.toString() ?? `post-${index}`}
             numColumns={viewMode === 'grid' ? COLUMNS : 1}
             key={`${viewMode}-${COLUMNS}`}
             onScroll={handleScroll}
