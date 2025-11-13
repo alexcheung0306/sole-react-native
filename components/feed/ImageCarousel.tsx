@@ -1,5 +1,5 @@
-import { View, Image, Dimensions, TouchableOpacity, Text } from 'react-native';
-import { useState } from 'react';
+import { View, Image, Dimensions, TouchableOpacity, Text, FlatList, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
+import { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 
 interface MediaItem {
@@ -16,6 +16,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export function ImageCarousel({ media }: ImageCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const listRef = useRef<FlatList<MediaItem>>(null);
   
   if (!media || media.length === 0) {
     return null;
@@ -44,11 +45,23 @@ export function ImageCarousel({ media }: ImageCarouselProps) {
   const imageHeight = getHeight();
 
   const handlePrevious = () => {
-    setCurrentIndex((prev) => (prev === 0 ? media.length - 1 : prev - 1));
+    const nextIndex = currentIndex === 0 ? media.length - 1 : currentIndex - 1;
+    listRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+    setCurrentIndex(nextIndex);
   };
 
   const handleNext = () => {
-    setCurrentIndex((prev) => (prev === media.length - 1 ? 0 : prev + 1));
+    const nextIndex = currentIndex === media.length - 1 ? 0 : currentIndex + 1;
+    listRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+    setCurrentIndex(nextIndex);
+  };
+
+  const handleMomentumEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset } = event.nativeEvent;
+    const newIndex = Math.round(contentOffset.x / SCREEN_WIDTH);
+    if (newIndex !== currentIndex) {
+      setCurrentIndex(newIndex);
+    }
   };
 
   // Single image - no carousel needed
@@ -67,15 +80,25 @@ export function ImageCarousel({ media }: ImageCarouselProps) {
   // Multiple images - show carousel
   return (
     <View style={{ width: SCREEN_WIDTH, height: imageHeight, position: 'relative' }}>
-      {/* Current Image */}
-      <Image
-        source={{ uri: media[currentIndex].mediaUrl }}
-        style={{ width: '100%', height: '100%' }}
-        resizeMode="cover"
+      <FlatList
+        ref={listRef}
+        data={media}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(_, index) => `${index}`}
+        onMomentumScrollEnd={handleMomentumEnd}
+        renderItem={({ item }) => (
+          <Image
+            source={{ uri: item.mediaUrl }}
+            style={{ width: SCREEN_WIDTH, height: imageHeight }}
+            resizeMode="cover"
+          />
+        )}
       />
 
       {/* Navigation Arrows */}
-      {currentIndex > 0 && (
+      {media.length > 1 && currentIndex > 0 && (
         <TouchableOpacity
           onPress={handlePrevious}
           className="absolute left-2 bg-black/50 p-2 rounded-full"
@@ -86,7 +109,7 @@ export function ImageCarousel({ media }: ImageCarouselProps) {
         </TouchableOpacity>
       )}
 
-      {currentIndex < media.length - 1 && (
+      {media.length > 1 && currentIndex < media.length - 1 && (
         <TouchableOpacity
           onPress={handleNext}
           className="absolute right-2 bg-black/50 p-2 rounded-full"

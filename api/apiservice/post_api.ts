@@ -208,6 +208,8 @@ export const getPostComments = async (postId: number, page: number = 0, size: nu
 export interface PostMedia {
   file?: any | null
   uri?: string
+  fileName?: string
+  mimeType?: string
   cropData?: {
     x: number
     y: number
@@ -286,13 +288,15 @@ export const createPost = async (postData: CreatePostRequest): Promise<PostWithD
 
       // 3c. Append file (React Native format)
       if (media.uri) {
-        const uriParts = media.uri.split('.');
-        const fileType = uriParts[uriParts.length - 1] || 'jpg';
-        const mimeType = media.isVideo ? `video/${fileType}` : `image/${fileType}`;
-        
+        const sanitizedUri = media.uri;
+        const fallbackName = `post_${index}.${media.isVideo ? 'mp4' : 'jpg'}`;
+        const fileName = media.fileName || fallbackName;
+        const mimeType =
+          media.mimeType || (media.isVideo ? 'video/mp4' : 'image/jpeg');
+
         formData.append(`postMedias[${index}].file`, {
-          uri: media.uri,
-          name: `post_${index}.${fileType}`,
+          uri: sanitizedUri,
+          name: fileName,
           type: mimeType,
         } as any);
         
