@@ -15,8 +15,8 @@ import { updateSoleUserByClerkId, getSoleUserByClerkId } from '~/api/apiservice'
 import { updateTalentInfoWithComcardBySoleUserId } from '~/api/apiservice/talentInfo_api';
 import { Grid, User, Briefcase } from 'lucide-react-native';
 import { Image } from 'expo-image';
-import { ProfileEditModal, ProfileFormValues } from '~/components/profile/UserInfo-form';
-import { TalentInfoEditModal, TalentFormValues } from '~/components/talent-profile/TalentInfo-form';
+import { UserInfoForm, ProfileFormValues } from '~/components/profile/UserInfo-form';
+import { TalentInfoForm, TalentFormValues } from '~/components/talent-profile/TalentInfo-form';
 import FollowList from '~/components/follow/follow-list';
 import TalentProfile from '~/components/talent-profile/TalentProfile';
 import UserPosts from '~/components/profile/UserPosts';

@@ -128,7 +128,7 @@ export function CreateProjectAnnouncementDrawer({
       )}
       content={(close) => (
         <ScrollView className="max-h-[80vh]">
-          <View className="gap-5 pb-6">
+          <View className="gap-5 pb-6 ">
             <View className="gap-1">
               <Text className="text-lg font-semibold text-white">New Announcement</Text>
               <Text className="text-sm text-white/80">

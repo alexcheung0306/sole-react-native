@@ -12,6 +12,7 @@ import { ProjectContractsTab } from '@/components/projects/detail/ProjectContrac
 import { ProjectInformationCard } from '@/components/projects/detail/ProjectInformationCard';
 import { CreateProjectAnnouncementDrawer } from '@/components/projects/detail/CreateProjectAnnouncementDrawer';
 import { ProjectAnnouncementsList } from '@/components/projects/detail/ProjectAnnouncementsList';
+import { CustomTabs } from '@/components/custom/custom-tabs';
 
 const STATUS_COLORS: Record<string, string> = {
   Draft: '#6b7280',
@@ -73,10 +74,11 @@ export default function ProjectDetailPage() {
 
   const tabs = [
     { id: 'project-information', label: 'Details' },
-    { id: 'project-roles', label: `Roles (${roleCount})` },
+    { id: 'project-roles', label: 'Roles', count: roleCount ?? 0 },
     {
       id: 'project-contracts',
-      label: `Contracts (${jobContractsData?.content?.length ?? jobContractsData?.length ?? 0})`,
+      label: 'Contracts',
+      count: jobContractsData?.content?.length ?? jobContractsData?.length ?? 0,
     },
   ];
 
@@ -90,16 +92,14 @@ export default function ProjectDetailPage() {
           isDark
           headerLeft={
             <TouchableOpacity
-              onPress={() =>
-                router.replace('/(protected)/(client)/projects/manage-projects')
-              }
+              onPress={() => router.replace('/(protected)/(client)/projects/manage-projects')}
               activeOpacity={0.85}
-              className="p-2 flex items-center justify-center"
-            >
+              className="flex items-center justify-center p-2">
               <ChevronLeft color="#93c5fd" size={24} />
             </TouchableOpacity>
           }
         />
+
         <ScrollView
           className="flex-1"
           onScroll={handleScroll}
@@ -110,6 +110,7 @@ export default function ProjectDetailPage() {
             paddingHorizontal: 24,
           }}>
           <View className="gap-6">
+            {/* Project Chips */}
             <View className="flex-row flex-wrap items-center gap-3">
               <View
                 className="rounded-full px-3 py-1"
@@ -123,37 +124,27 @@ export default function ProjectDetailPage() {
               </View>
             </View>
 
+            {/* Title and Description */}
             <View className="gap-2">
               <Text className="text-2xl font-bold text-white">{project?.projectName}</Text>
               <Text className="text-sm text-white/80">
-                Align your announcement timeline, audition workflow, and contract statuses in one place.
+                Align your announcement timeline, audition workflow, and contract statuses in one
+                place.
               </Text>
             </View>
 
-            <View className="flex-row rounded-2xl border border-white/10 bg-zinc-900/50 p-1">
-              {tabs.map((tab) => {
-                const active = currentTab === tab.id;
-                return (
-                  <TouchableOpacity
-                    key={tab.id}
-                    onPress={() => setCurrentTab(tab.id)}
-                    className={`flex-1 rounded-xl px-4 py-2 ${
-                      active ? 'bg-white' : 'bg-transparent'
-                    }`}
-                    activeOpacity={0.85}>
-                    <Text
-                      className={`text-center text-[10px] font-semibold ${
-                        active ? 'text-black' : 'text-white'
-                      }`}>
-                      {tab.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            {/* Tabs */}
+            <CustomTabs
+              tabs={tabs}
+              value={currentTab}
+              onValueChange={setCurrentTab}
+              containerClassName="flex-row rounded-2xl border border-white/10 bg-zinc-700 p-1"
+              showCount={true}
+            />
 
+            {/* ---------------------------------------Project Information--------------------------------------- */}
             {currentTab === 'project-information' && (
-              <View className="gap-6">
+              <View className="gap-0">
                 <ProjectInformationCard project={project} soleUserId={soleUserId || ''} />
                 <CreateProjectAnnouncementDrawer
                   projectId={projectId}
@@ -165,6 +156,7 @@ export default function ProjectDetailPage() {
               </View>
             )}
 
+            {/* ---------------------------------------Project Roles--------------------------------------- */}
             {currentTab === 'project-roles' && (
               <ProjectRolesTab
                 projectId={projectId}
@@ -175,13 +167,14 @@ export default function ProjectDetailPage() {
               />
             )}
 
+            {/* ---------------------------------------Project Contracts--------------------------------------- */}
             {currentTab === 'project-contracts' && (
               <ProjectContractsTab
                 projectId={projectId}
                 initialContracts={
                   Array.isArray(jobContractsData)
                     ? jobContractsData
-                    : jobContractsData?.content ?? jobContractsData?.data ?? []
+                    : (jobContractsData?.content ?? jobContractsData?.data ?? [])
                 }
                 isLoadingInitial={jobContractsLoading}
                 refetchContracts={refetchContracts}

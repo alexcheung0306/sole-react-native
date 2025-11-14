@@ -173,31 +173,48 @@ export function CollapseDrawer({
         transparent
         onRequestClose={closeDrawer}>
         <Animated.View style={[styles.backdrop, { opacity: overlayOpacity }]}>
-          <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
+          {/* Backdrop layers - fill entire screen */}
+          <BlurView 
+            intensity={20} 
+            tint="dark" 
+            style={StyleSheet.absoluteFill}
+          />
+          <View 
+            style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]} 
+          />
+          
+          {/* Backdrop touch blocker - always present to block touches */}
           {closeOnBackdropPress ? (
             <TouchableOpacity
               activeOpacity={1}
-              style={styles.backdropPressable}
+              style={StyleSheet.absoluteFill}
               onPress={closeDrawer}
             />
           ) : (
-            <View style={styles.backdropPressable} />
+            <View style={StyleSheet.absoluteFill} pointerEvents="auto" />
           )}
 
-          <PanGestureHandler
-            activeOffsetY={10}
-            failOffsetY={-10}
-            onGestureEvent={handleGestureEvent}
-            onHandlerStateChange={handleStateChange}>
-            <Animated.View
-             style={[styles.sheetContainer, { transform: [{ translateY }] }]}>
-              {showHandle && <View style={styles.dragHandle} />}
-              {renderSection(header)}
-              {renderSection(content)}
-              {renderSection(footer)}
-            </Animated.View>
-          </PanGestureHandler>
+          {/* Sheet container - positioned at bottom */}
+          <View style={styles.sheetWrapper} pointerEvents="box-none">
+            <PanGestureHandler
+              activeOffsetY={5}
+              failOffsetY={-5}
+              onGestureEvent={handleGestureEvent}
+              onHandlerStateChange={handleStateChange}>
+              <Animated.View
+                style={[styles.sheetContainer, { transform: [{ translateY }] }]}>
+                {/* Large draggable handle area at the top */}
+                {showHandle && (
+                  <View style={styles.dragHandleContainer}>
+                    <View style={styles.dragHandle} />
+                  </View>
+                )}
+                {renderSection(header)}
+                {renderSection(content)}
+                {renderSection(footer)}
+              </Animated.View>
+            </PanGestureHandler>
+          </View>
         </Animated.View>
       </Modal>
     </>
@@ -206,28 +223,47 @@ export function CollapseDrawer({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    justifyContent: 'flex-end',
   },
-  backdropPressable: {
-    flex: 1,
+  sheetWrapper: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
   },
   sheetContainer: {
     maxHeight: '80%',
+    width: '100%',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderTopWidth: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.35)',
     borderColor: 'rgba(255, 255, 255, 0.75)',
     overflow: 'hidden',
-    
+  },
+  dragHandleContainer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 16,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    // Much larger touch target area for better UX - entire top section is draggable
+    minHeight: 72,
+    // Additional padding to make it easier to grab
+    marginBottom: 8,
   },
   dragHandle: {
-    alignSelf: 'center',
-    width: 48,
-    height: 5,
+    width: 64,
+    height: 7,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    marginVertical: 12,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+    // Add shadow for better visibility and depth
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 3,
   },
 });
 

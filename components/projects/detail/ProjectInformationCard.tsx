@@ -17,6 +17,7 @@ export function ProjectInformationCard({ project, soleUserId }: ProjectInformati
 
   return (
     <View className="gap-4">
+      {/* ---------------------------------------Project Header and Image--------------------------------------- */}
       <View className="overflow-hidden rounded-2xl border border-white/10">
         {hasImage ? (
           <ImageBackground
@@ -42,7 +43,9 @@ export function ProjectInformationCard({ project, soleUserId }: ProjectInformati
         )}
       </View>
 
-      <View className="rounded-2xl border border-white/10 bg-zinc-950/90 p-5">
+      {/* ---------------------------------------Project Details--------------------------------------- */}
+      <View className="rounded-2xl border border-white/10 bg-zinc-800 p-5">
+        {/* Header */}
         <View className="mb-6 flex-row items-start justify-between">
           <View className="flex-1 gap-2">
             <Text className="text-lg font-semibold text-white">Project details</Text>
@@ -50,19 +53,25 @@ export function ProjectInformationCard({ project, soleUserId }: ProjectInformati
               Review the latest project information and quick actions.
             </Text>
           </View>
+
+          {/* Actions */}
           <View className="flex-row items-center gap-2">
-         
             <TouchableOpacity
-              className="rounded-full bg-white px-2 py-1"
+              className="rounded-full border border-white/10 px-2 py-1"
               activeOpacity={0.85}
               onPress={() => setOpenActions(true)}>
-              <EllipsisVertical color="#0f172a" size={18} />
+              <EllipsisVertical color="#ffffff" size={18} />
             </TouchableOpacity>
           </View>
         </View>
 
+        {/* Content */}
         <View className="space-y-4">
-          <InfoRow label="Description" value={project?.projectDescription ?? 'No description provided.'} multiline />
+          <InfoRow
+            label="Description"
+            value={project?.projectDescription ?? 'No description provided.'}
+            multiline
+          />
           <InfoRow label="Usage" value={project?.usage ?? '—'} multiline />
           <InfoRow label="Remarks" value={project?.remarks ?? '—'} multiline />
           <View className="flex-row flex-wrap gap-3">
@@ -122,5 +131,3 @@ function InfoRow({
     </View>
   );
 }
-
-

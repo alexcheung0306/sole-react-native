@@ -5,7 +5,7 @@ import { View, Text, TouchableOpacity, Image } from 'react-native';
 import FollowList from '../follow/follow-list';
 import { useUser } from '@clerk/clerk-expo';
 import { User } from 'lucide-react-native';
-import { ProfileEditModal } from './UserInfo-form';
+import { UserInfoForm } from './UserInfo-form';
 
 export function UserInfo({
   userPostsData,
@@ -80,7 +80,7 @@ export function UserInfo({
 
         {/* Action Buttons */}
         {isOwnProfile ? (
-          <ProfileEditModal userProfileData={userProfileData} />
+          <UserInfoForm userProfileData={userProfileData} />
         ) : (
           <View className="flex-row gap-2">
             <TouchableOpacity className="flex-1 rounded-lg bg-gray-700 px-4 py-2">

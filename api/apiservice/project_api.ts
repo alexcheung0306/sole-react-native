@@ -150,18 +150,28 @@ export const updateProject = async (
   formData.append("soleUserId", soleUserId)
   formData.append("bucket", "projects")
   formData.append("projectImageName", "projectImage")
-  formData.append("projectName", values.projectName)
-  formData.append("projectDescription", values.projectDescription)
-  formData.append("usage", values.usage)
-  formData.append("remarks", values.remarks)
-  formData.append("status", values.status || "Draft") // Use provided status or default to "Draft"
+  
+  // Always send as strings, even if empty - backend needs these fields
+  formData.append("projectName", String(values.projectName || ""))
+  formData.append("projectDescription", String(values.projectDescription || ""))
+  formData.append("usage", String(values.usage ?? ""))
+  formData.append("remarks", String(values.remarks ?? ""))
+  formData.append("status", String(values.status || "Draft"))
   formData.append(
     "isPrivate",
     values.isPrivate !== undefined ? values.isPrivate.toString() : "true"
   )
+  // Log FormData entries for debugging - check all fields are present
+  console.log('[UpdateProject] FormData entries:')
+  const formDataEntries: { [key: string]: any } = {}
   for (const [key, value] of formData.entries()) {
-    console.log(key, value) // Log FormData entries for debugging
+    console.log(`  ${key}:`, value, `(type: ${typeof value})`)
+    formDataEntries[key] = value
   }
+  // Verify usage and remarks are present
+  console.log('[UpdateProject] Usage field present:', 'usage' in formDataEntries, 'value:', formDataEntries['usage'])
+  console.log('[UpdateProject] Remarks field present:', 'remarks' in formDataEntries, 'value:', formDataEntries['remarks'])
+  
   try {
     const response = await fetch(`${API_BASE_URL}/project/${projectId}`, {
       method: "PUT",
@@ -169,13 +179,18 @@ export const updateProject = async (
       body: formData,
     })
 
-    const result = await response.json()
-    if (response.ok) {
-      console.log("Project updated successfully")
-      return result // Optionally return the updated project or any relevant info
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error(`[UpdateProject] Error response:`, response.status, errorText)
+      throw new Error(`Failed to update project: ${response.status} ${errorText}`)
     }
+
+    const result = await response.json()
+    console.log("[UpdateProject] Success response:", result)
+    return result // Return the updated project or any relevant info
   } catch (error) {
-    console.error("Error updating project:", error)
+    console.error("[UpdateProject] Error updating project:", error)
+    throw error // Re-throw to let the caller handle it
   }
 }
 

@@ -1,6 +1,7 @@
 import { Image as ExpoImage } from 'expo-image';
-import { View, ScrollView, Text } from 'react-native';
-import { TalentInfoEditModal } from './TalentInfo-form';
+import { View, ScrollView, Text, Image, Dimensions } from 'react-native';
+import { TalentInfoForm } from './TalentInfo-form';
+import { useState, useEffect } from 'react';
 
 export default function TalentProfile({
   talentLevel,
@@ -13,6 +14,29 @@ export default function TalentProfile({
   talentInfo: any;
   isOwnProfile: boolean;
 }) {
+  const [imageHeight, setImageHeight] = useState<number | undefined>(undefined);
+  const comcardPng = userProfileData?.comcardWithPhotosResponse?.png;
+  const screenWidth = Dimensions.get('window').width;
+
+  useEffect(() => {
+    if (comcardPng) {
+      Image.getSize(
+        comcardPng,
+        (width, height) => {
+          // Calculate height based on full screen width
+          const calculatedHeight = (height / width) * screenWidth;
+          setImageHeight(calculatedHeight);
+        },
+        (error) => {
+          console.error('Error loading image dimensions:', error);
+          // Fallback to a default aspect ratio if dimensions can't be loaded
+          setImageHeight(screenWidth * 1.33); // Default to 3:4 aspect ratio
+        }
+      );
+    }
+  }, [comcardPng, screenWidth]);
+
+  console.log('talentProfile', userProfileData);
   // Handle null talentInfo
   if (!talentInfo) {
     return (
@@ -30,18 +54,36 @@ export default function TalentProfile({
 
   return (
     <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-      <View className="p-4">
+      <View className="py-4">
         {/* Edit Button (for own profile) */}
         {isOwnProfile && (
-          <TalentInfoEditModal
+          <TalentInfoForm
             talentLevel={talentLevel}
             talentInfo={talentInfo}
             userProfileData={userProfileData}
           />
         )}
 
+        {/* Comcard Image */}
+        {userProfileData?.comcardWithPhotosResponse?.png && (
+          <View className="mb-6" style={{ width: screenWidth }}>
+            <ExpoImage
+              source={{ uri: userProfileData.comcardWithPhotosResponse.png }}
+              style={{
+                width: screenWidth,
+                height: imageHeight || screenWidth * 1.33,
+                minHeight: 200,
+                borderRadius: 0,
+              }}
+              contentFit="contain"
+              transition={200}
+              cachePolicy="memory-disk"
+            />
+          </View>
+        )}
+
         {/* Personal Information */}
-        <View className="mb-6">
+        <View className="mb-6 px-4">
           <Text className="mb-4 text-xl font-bold text-white">Personal Information</Text>
           <View className="rounded-lg bg-gray-800/50 p-4">
             <View className="mb-3 flex-row justify-between border-b border-gray-700 pb-3">
@@ -68,7 +110,7 @@ export default function TalentProfile({
         </View>
 
         {/* Physical Measurements */}
-        <View className="mb-6">
+        <View className="mb-6 px-4">
           <Text className="mb-4 text-xl font-bold text-white">Physical Measurements</Text>
           <View className="rounded-lg bg-gray-800/50 p-4">
             <View className="mb-3 flex-row justify-between border-b border-gray-700 pb-3">
@@ -95,7 +137,7 @@ export default function TalentProfile({
         </View>
 
         {/* Background Information */}
-        <View className="mb-6">
+        <View className="mb-6 px-4">
           <Text className="mb-4 text-xl font-bold text-white">Background</Text>
           <View className="rounded-lg bg-gray-800/50 p-4">
             <View className="mb-3 flex-row justify-between border-b border-gray-700 pb-3">
@@ -110,7 +152,7 @@ export default function TalentProfile({
         </View>
 
         {/* Professional Experience */}
-        <View className="mb-6">
+        <View className="mb-6 px-4">
           <Text className="mb-4 text-xl font-bold text-white">Professional Experience</Text>
           <View className="rounded-lg bg-gray-800/50 p-4">
             <Text className="leading-6 text-white">
@@ -121,7 +163,7 @@ export default function TalentProfile({
 
         {/* Portfolio Snapshots */}
         {(talentInfo?.snapshotHalfBody || talentInfo?.snapshotFullBody) && (
-          <View className="mb-6">
+          <View className="mb-6 px-4">
             <Text className="mb-4 text-xl font-bold text-white">Portfolio Snapshots</Text>
             <View className="flex-row gap-3">
               {talentInfo?.snapshotHalfBody && (

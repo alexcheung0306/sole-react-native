@@ -129,11 +129,11 @@ export default function FilterSearch({
   return (
     <View className="mb-4">
       {/* Search and Filter Bar */}
-      <View className="mb-2 flex-row items-stretch gap-1 rounded-2xl border border-white/10 bg-zinc-900/50 p-1">
+      <View className="mb-2  flex-row items-stretch gap-1 rounded-2xl border border-white/10 bg-zinc-700  p-0">
         <CollapseDrawer
           trigger={({ open }) => (
             <TouchableOpacity
-              className="items-center justify-center rounded-xl border border-white/10 bg-black/30 px-4 py-2"
+              className="items-center justify-center rounded-xl border border-white/10 bg-white px-4 py-2"
               onPress={open}>
               <Filter color="#9ca3af" size={20} />
             </TouchableOpacity>

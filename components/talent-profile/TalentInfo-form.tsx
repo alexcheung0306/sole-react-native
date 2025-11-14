@@ -1,23 +1,16 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  Modal,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { X, Camera, Edit2 } from 'lucide-react-native';
+import { FormModal } from '../custom/form-modal';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Formik } from 'formik';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSoleUserContext } from '~/context/SoleUserContext';
-import { updateTalentInfoWithComcardBySoleUserId, createTalentInfoWithComcard } from '~/api/apiservice/talentInfo_api';
+import {
+  updateTalentInfoWithComcardBySoleUserId,
+  createTalentInfoWithComcard,
+} from '~/api/apiservice/talentInfo_api';
 import { updateTalentLevelBySoleUserId } from '~/api/apiservice';
 import {
   validateTalentName,
@@ -35,7 +28,7 @@ import {
 } from '~/lib/validations/talentInfo-validations';
 import { validateImageField } from '~/lib/validations/form-field-validations';
 
-interface TalentInfoEditModalProps {
+interface TalentInfoFormProps {
   userProfileData: any;
   talentLevel: number | null;
   talentInfo: any;
@@ -72,12 +65,8 @@ const ETHNIC_OPTIONS = [
   'Mixed',
 ];
 
-export function TalentInfoEditModal({
-  userProfileData,
-  talentLevel,
-  talentInfo,
-}: TalentInfoEditModalProps) {
-  const [showEditTalentModal, setShowEditTalentModal] = useState(false);
+export function TalentInfoForm({ userProfileData, talentLevel, talentInfo }: TalentInfoFormProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const queryClient = useQueryClient();
   const { soleUser } = useSoleUserContext();
   const soleUserId = userProfileData?.userInfo?.soleUserId;
@@ -128,7 +117,9 @@ export function TalentInfoEditModal({
     };
 
     const comcardData = {
-      ...(method === 'PUT' && userProfileData?.comcard?.id ? { id: userProfileData.comcard.id } : {}),
+      ...(method === 'PUT' && userProfileData?.comcard?.id
+        ? { id: userProfileData.comcard.id }
+        : {}),
       configId: '1',
       photoConfig: [],
       isActive: 'true',
@@ -151,7 +142,7 @@ export function TalentInfoEditModal({
         if (talentProfileResult) {
           Alert.alert('Success', 'Talent profile updated successfully');
           queryClient.invalidateQueries({ queryKey: ['userProfile', soleUser?.username] });
-          setShowEditTalentModal(false);
+          setIsModalOpen(false);
         }
       } else if (method === 'POST') {
         const talentProfileAndComcardResult = await createTalentInfoWithComcard(
@@ -173,7 +164,7 @@ export function TalentInfoEditModal({
 
           Alert.alert('Success', 'Talent profile created successfully');
           queryClient.invalidateQueries({ queryKey: ['userProfile', soleUser?.username] });
-          setShowEditTalentModal(false);
+          setIsModalOpen(false);
         }
       }
     } catch (error) {
@@ -270,9 +261,7 @@ export function TalentInfoEditModal({
                 setFieldTouched(key, true);
               }}
               className={`mr-2 rounded-full border px-4 py-2 ${
-                value === option
-                  ? 'border-blue-500 bg-blue-500'
-                  : 'border-gray-700 bg-gray-800'
+                value === option ? 'border-blue-500 bg-blue-500' : 'border-gray-700 bg-gray-800'
               }`}>
               <Text
                 className={`text-sm ${
@@ -344,30 +333,16 @@ export function TalentInfoEditModal({
 
   return (
     <>
-      <View className="items-center p-4">
-        {talentLevel === 0 ? (
-          // Create new talent profile
-          <TouchableOpacity
-            className="rounded-lg bg-blue-500 px-6 py-3"
-            onPress={() => setShowEditTalentModal(true)}>
-            <Text className="font-semibold text-white">Create Talent Profile</Text>
-          </TouchableOpacity>
-        ) : (
-          // Edit existing talent profile
-          <TouchableOpacity
-            className="mb-6 flex-row items-center justify-center rounded-lg bg-blue-500 px-4 py-3"
-            onPress={() => setShowEditTalentModal(true)}>
-            <Edit2 size={18} color="#ffffff" style={{ marginRight: 8 }} />
-            <Text className="font-semibold text-white">Edit Talent Profile</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      <Formik
-        initialValues={initialValues}
-        onSubmit={handleSubmit}
-        enableReinitialize>
-        {({ values, setFieldValue, setFieldTouched, touched, resetForm, submitForm, isSubmitting }) => {
+      <Formik initialValues={initialValues} onSubmit={handleSubmit} enableReinitialize>
+        {({
+          values,
+          setFieldValue,
+          setFieldTouched,
+          touched,
+          resetForm,
+          submitForm,
+          isSubmitting,
+        }) => {
           // Validate all fields using the validation library
           const talentInfoHasErrors = [
             validateTalentName(values.talentName),
@@ -386,46 +361,45 @@ export function TalentInfoEditModal({
             validateImageField(values.snapshotFullBody, 'Full Body Photo'),
           ].some((error) => error);
 
-          return (
-            <Modal
-              visible={showEditTalentModal}
-              animationType="slide"
-              presentationStyle="fullScreen"
-              onRequestClose={() => {
-                setShowEditTalentModal(false);
-                resetForm();
-              }}>
-              <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                className="flex-1 bg-black">
-                {/* Header */}
-                <View className="flex-row items-center justify-between border-b border-gray-800 px-4 pb-3 pt-12">
-                  <TouchableOpacity
-                    onPress={() => {
-                      setShowEditTalentModal(false);
-                      resetForm();
-                    }}
-                    className="p-2">
-                    <X size={24} color="#ffffff" />
-                  </TouchableOpacity>
-                  <Text className="text-lg font-semibold text-white">
-                    {method === 'PUT' ? 'Edit Talent Profile' : 'Create Talent Profile'}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={submitForm}
-                    disabled={isSubmitting || talentInfoHasErrors}
-                    className={`p-2 ${isSubmitting || talentInfoHasErrors ? 'opacity-50' : ''}`}>
-                    {isSubmitting ? (
-                      <ActivityIndicator size="small" color="#3b82f6" />
-                    ) : (
-                      <Text className="font-semibold text-blue-500">
-                        {talentInfoHasErrors ? 'Invalid' : 'Save'}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
+          const modalTitle = method === 'PUT' ? 'Edit Talent Profile' : 'Create Talent Profile';
 
-                <ScrollView className="flex-1 px-4 py-4" showsVerticalScrollIndicator={false}>
+          return (
+            <FormModal
+              open={isModalOpen}
+              onOpenChange={setIsModalOpen}
+              title={modalTitle}
+              submitButtonText={talentInfoHasErrors ? 'Invalid' : 'Save'}
+              isSubmitting={isSubmitting}
+              hasErrors={talentInfoHasErrors}
+              onSubmit={submitForm}
+              onReset={resetForm}
+              onClose={() => {
+                resetForm();
+              }}
+              trigger={({ open }) =>
+                talentLevel === 0 ? (
+                  <View className="items-center ">
+                    <TouchableOpacity
+                      className="w-full mb-6 flex-row items-center justify-center 
+                      rounded-lg bg-white px-4 py-2 text-black shadow-md"
+                      onPress={open}>
+                      <Text className="font-semibold text-white">Create Talent Profile</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View className="items-center px-2">
+                    <TouchableOpacity
+                      className="w-full mb-6 flex-row items-center justify-center 
+                      rounded-lg bg-white px-4 py-2 text-black shadow-md"
+                      onPress={open}>
+                      <Edit2 size={18} color="#000000" style={{ marginRight: 8 }} />
+                      <Text className="font-semibold  ">Edit Talent Profile</Text>
+                    </TouchableOpacity>
+                  </View>
+                )
+              }>
+              {(close) => (
+                <View className="px-4 py-4">
                   {/* Personal Information */}
                   <Text className="mb-4 text-xl font-bold text-white">Personal Information</Text>
                   {renderField(
@@ -607,9 +581,9 @@ export function TalentInfoEditModal({
 
                   {/* Spacing at bottom */}
                   <View className="h-8" />
-                </ScrollView>
-              </KeyboardAvoidingView>
-            </Modal>
+                </View>
+              )}
+            </FormModal>
           );
         }}
       </Formik>

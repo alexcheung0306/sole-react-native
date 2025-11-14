@@ -11,6 +11,7 @@ import ProjectsNavTabs from '@/components/projects/ProjectsNavTabs';
 import PaginationControl from '~/components/projects/PaginationControl';
 import ProjectListClient from '~/components/projects/ProjectListClient';
 import FilterSearch from '~/components/custom/filter-search';
+import FlatListEmpty from '~/components/custom/flatlist-empty';
 
 export default function ManageProjectsPage() {
   const insets = useSafeAreaInsets();
@@ -71,43 +72,16 @@ export default function ManageProjectsPage() {
           keyExtractor={(item) => (item?.project?.id ?? item?.id ?? Math.random()).toString()}
           numColumns={2}
           columnWrapperStyle={{ justifyContent: 'space-between' }}
-          ListEmptyComponent={() => {
-            if (isLoadingProjects) {
-              return (
-                <View className="py-15 items-center">
-                  <ActivityIndicator size="large" color="#3b82f6" />
-                  <Text className="mt-3 text-sm text-gray-400">Loading projects...</Text>
-                </View>
-              );
-            }
-
-            if (projectsError) {
-              return (
-                <View className="py-15 items-center">
-                  <Text className="mb-2 text-base font-semibold text-red-400">
-                    Error loading projects
-                  </Text>
-                  <Text className="mb-2 text-center text-sm text-gray-400">
-                    {projectsError?.message || 'Failed to load projects'}
-                  </Text>
-                  <Text className="text-center text-xs italic text-gray-500">
-                    Please check your network connection and try again
-                  </Text>
-                </View>
-              );
-            }
-
-            return (
-              <View className="py-15 items-center">
-                <Text className="mb-2 text-lg font-semibold text-white">No projects found</Text>
-                <Text className="text-center text-sm text-gray-400">
-                  Create your first project to get started
-                </Text>
-              </View>
-            );
-          }}
+          ListEmptyComponent={
+            <FlatListEmpty
+              title="projects"
+              description="Create your first project to get started"
+              isLoading={isLoadingProjects}
+              error={projectsError}
+            />
+          }
           ListHeaderComponent={
-            <View className="mb-3">
+            <View className="mb-3 gap-2">
               <ProjectsNavTabs />
 
               <View className="mb-5">

@@ -136,6 +136,7 @@ export function ProjectInfoActionsDrawer({
           </View>
 
           <View className="gap-3 px-5 pb-6">
+            {/* Make project public or private */}
             <ActionRow
               icon={
                 project?.isPrivate ? (
@@ -156,6 +157,23 @@ export function ProjectInfoActionsDrawer({
               loading={isToggling}
             />
 
+            {/* ---------------------------------------Edit project details--------------------------------------- */}
+            {project?.status === 'Draft' ? (
+              <ProjectInfoFormModal
+                method="PUT"
+                initValues={project}
+                renderTrigger={({ open }) => (
+                  <ActionRow
+                    icon={<Pencil color="#bfdbfe" size={20} />}
+                    title="Edit project details"
+                    subtitle="Update the project name, description, image, or privacy."
+                    onPress={open}
+                  />
+                )}
+              />
+            ) : null}
+
+            {/* ---------------------------------------Delete project--------------------------------------- */}
             <ActionRow
               icon={<Trash2 color="#fecaca" size={20} />}
               title="Delete project"
@@ -167,26 +185,6 @@ export function ProjectInfoActionsDrawer({
               loading={isDeleting}
               danger
             />
-
-            {project?.status === 'Draft' ? (
-              <ProjectInfoFormModal
-                method="PUT"
-                initValues={project}
-                renderTrigger={({ open }) => (
-                  <ActionRow
-                    icon={<Pencil color="#bfdbfe" size={20} />}
-                    title="Edit project details"
-                    subtitle="Update the project name, description, image, or privacy."
-                    onPress={() => {
-                      close();
-                      setTimeout(() => {
-                        open();
-                      }, 120);
-                    }}
-                  />
-                )}
-              />
-            ) : null}
           </View>
         </View>
       )}

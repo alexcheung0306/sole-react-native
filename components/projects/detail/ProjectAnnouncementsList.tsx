@@ -48,7 +48,7 @@ export function ProjectAnnouncementsList({ projectId }: ProjectAnnouncementsList
       : '—';
 
     return (
-      <View className="rounded-2xl border border-white/10 bg-zinc-900/60 p-5">
+      <View className="rounded-2xl border border-white/10 bg-zinc-700 p-5">
         <View className="flex-row items-start justify-between gap-3">
           <View className="flex-1 gap-2">
             <Text className="text-lg font-semibold text-white">
@@ -131,7 +131,7 @@ export function ProjectAnnouncementsList({ projectId }: ProjectAnnouncementsList
   );
 
   return (
-    <View className="mt-6 gap-4 rounded-2xl border border-white/10 bg-zinc-900/80 p-5">
+    <View className=" gap-4 rounded-2xl border border-white/10 bg-zinc-800 p-5">
       {listHeader}
 
       <FlatList

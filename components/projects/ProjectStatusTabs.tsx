@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { CustomTabs } from '@/components/custom/custom-tabs';
 import { useManageProjectContext } from '@/context/ManageProjectContext';
 
 export default function ProjectStatusTabs() {
@@ -19,7 +19,7 @@ export default function ProjectStatusTabs() {
     { id: 'InProgress', label: 'In Progress' },
   ];
 
-  const handleTabPress = (statusId: string) => {
+  const handleTabChange = (statusId: string) => {
     setProjectStatus(statusId);
     setCurrentPage(0);
     setIsSearching(false);
@@ -29,23 +29,11 @@ export default function ProjectStatusTabs() {
   };
 
   return (
-    <View className="mb-5 flex-row rounded-2xl border border-white/10 bg-zinc-900/50 p-1">
-      {tabs.map((tab) => {
-        const active = projectStatus === tab.id;
-
-        return (
-          <TouchableOpacity
-            key={tab.id}
-            className={`flex-1 rounded-xl px-4 py-2 ${active ? 'bg-white' : 'bg-transparent'}`}
-            activeOpacity={0.85}
-            onPress={() => handleTabPress(tab.id)}>
-            <Text
-              className={`text-center text-[10px] font-semibold ${active ? 'text-black' : 'text-white'}`}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
+    <CustomTabs
+      tabs={tabs}
+      value={projectStatus}
+      onValueChange={handleTabChange}
+      containerClassName="flex-row rounded-2xl border border-white/10 bg-zinc-700 p-1"
+    />
   );
 }
