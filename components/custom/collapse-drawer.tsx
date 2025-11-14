@@ -5,6 +5,7 @@ import {
   PanGestureHandlerStateChangeEvent,
   State,
 } from 'react-native-gesture-handler';
+import { BlurView } from 'expo-blur';
 
 type CollapseDrawerRenderFn = (helpers: {
   open: () => void;
@@ -74,14 +75,25 @@ export function CollapseDrawer({
   const closeDrawer = () => setOpen(false);
   const toggleDrawer = () => setOpen(!visible);
 
-  const handleGestureEvent = Animated.event([{ nativeEvent: { translationY: translateY } }], {
-    useNativeDriver: false,
-  });
+  const handleGestureEvent = Animated.event(
+    [{ nativeEvent: { translationY: translateY } }],
+    {
+      useNativeDriver: false,
+      listener: (event: any) => {
+        const { translationY } = event.nativeEvent;
+        // Clamp to prevent upward swipes (only allow downward/positive values)
+        if (translationY < 0) {
+          translateY.setValue(0);
+        }
+      },
+    }
+  );
 
   const handleStateChange = (event: PanGestureHandlerStateChangeEvent) => {
     if (event.nativeEvent.oldState === State.ACTIVE) {
       const { translationY, velocityY } = event.nativeEvent;
-      const shouldClose = translationY > 140 || velocityY > 800;
+      // Only allow closing on downward swipes (positive translationY)
+      const shouldClose = translationY > 0 && (translationY > 140 || velocityY > 800);
 
       if (shouldClose) {
         Animated.parallel([
@@ -161,6 +173,8 @@ export function CollapseDrawer({
         transparent
         onRequestClose={closeDrawer}>
         <Animated.View style={[styles.backdrop, { opacity: overlayOpacity }]}>
+          <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
           {closeOnBackdropPress ? (
             <TouchableOpacity
               activeOpacity={1}
@@ -172,9 +186,12 @@ export function CollapseDrawer({
           )}
 
           <PanGestureHandler
+            activeOffsetY={10}
+            failOffsetY={-10}
             onGestureEvent={handleGestureEvent}
             onHandlerStateChange={handleStateChange}>
-            <Animated.View style={[styles.sheetContainer, { transform: [{ translateY }] }]}>
+            <Animated.View
+             style={[styles.sheetContainer, { transform: [{ translateY }] }]}>
               {showHandle && <View style={styles.dragHandle} />}
               {renderSection(header)}
               {renderSection(content)}
@@ -186,12 +203,10 @@ export function CollapseDrawer({
     </>
   );
 }
-
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.65)',
   },
   backdropPressable: {
     flex: 1,
@@ -201,8 +216,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderTopWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    backgroundColor: 'rgba(17, 17, 17, 0.92)',
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    borderColor: 'rgba(255, 255, 255, 0.75)',
     overflow: 'hidden',
     
   },
@@ -215,3 +230,4 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
 });
+

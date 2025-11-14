@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { router } from 'expo-router';
+import { router, useSegments } from 'expo-router';
 import { useUser } from '@clerk/clerk-expo';
 
 type NavigationMode = 'client' | 'user';
@@ -9,13 +9,35 @@ interface NavigationContextType {
   switchToClient: () => void;
   switchToUser: () => void;
   toggleMode: () => void;
+  syncModeFromRoute: () => void;
 }
 
 const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
 
 export function NavigationProvider({ children }: { children: React.ReactNode }) {
   const [currentMode, setCurrentMode] = useState<NavigationMode>('user');
+  const segments = useSegments();
   const { user } = useUser();
+
+  // Sync mode with current route
+  const syncModeFromRoute = () => {
+    const path = segments.join('/');
+    if (path.includes('(client)')) {
+      setCurrentMode('client');
+    } else if (path.includes('(user)')) {
+      setCurrentMode('user');
+    }
+  };
+
+  // Auto-sync mode when route changes
+  useEffect(() => {
+    const path = segments.join('/');
+    if (path.includes('(client)')) {
+      setCurrentMode('client');
+    } else if (path.includes('(user)')) {
+      setCurrentMode('user');
+    }
+  }, [segments]);
 
   const switchToClient = () => {
     console.log('Switching to client mode');
@@ -47,12 +69,14 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   };
 
   return (
-    <NavigationContext.Provider value={{
-      currentMode,
-      switchToClient,
-      switchToUser,
-      toggleMode,
-    }}>
+    <NavigationContext.Provider
+      value={{
+        currentMode,
+        switchToClient,
+        switchToUser,
+        toggleMode,
+        syncModeFromRoute,
+      }}>
       {children}
     </NavigationContext.Provider>
   );

@@ -1,10 +1,11 @@
-import { useState, useRef } from 'react';
-import { TouchableOpacity, View, Text, Modal, Pressable, Dimensions } from 'react-native';
-import { UserCircle, Settings, LogOut, User, Users } from 'lucide-react-native';
+import { useState, useRef, useEffect } from 'react';
+import { TouchableOpacity, View, Text, Animated, PanResponder } from 'react-native';
+import { UserCircle, Settings, LogOut, User, Users, Briefcase } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuth, useUser } from '@clerk/clerk-expo';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ProfileSwitchButton } from './ProfileSwitchButton';
+import { CollapseDrawer } from './custom/collapse-drawer';
+import { useNavigation } from '@/context/NavigationContext';
+import { SwitchInterface } from './profile/switch-interface';
 
 interface AccountDropDownMenuProps {
   color: string;
@@ -13,25 +14,19 @@ interface AccountDropDownMenuProps {
 }
 
 export function AccountDropDownMenu({ color, focused, onPress }: AccountDropDownMenuProps) {
-  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
   const { signOut } = useAuth();
   const { user, isLoaded } = useUser();
-  const insets = useSafeAreaInsets();
-  const { height: screenHeight } = Dimensions.get('window');
-  
-  // Tab bar is typically 50-60px + bottom inset
-  const tabBarHeight = 50 + insets.bottom;
-  const dropdownBottom = tabBarHeight + 8; // 8px gap above tab bar
 
-  const handleLongPress = () => {
-    setDropdownVisible(true);
+  const handleLongPress = (open: () => void) => {
+    open();
   };
 
-  const handlePressIn = () => {
+  const handlePressIn = (open: () => void) => {
     longPressTimerRef.current = setTimeout(() => {
-      handleLongPress();
+      handleLongPress(open);
     }, 500);
   };
 
@@ -42,18 +37,18 @@ export function AccountDropDownMenu({ color, focused, onPress }: AccountDropDown
     }
   };
 
-  const handleSettings = () => {
-    setDropdownVisible(false);
+  const handleSettings = (close: () => void) => {
+    close();
     router.push('/settings' as any);
   };
 
-  const handleSwitchAccount = () => {
-    setDropdownVisible(false);
+  const handleSwitchAccount = (close: () => void) => {
+    close();
     // Add switch account logic here
   };
 
-  const handleSignOut = async () => {
-    setDropdownVisible(false);
+  const handleSignOut = async (close: () => void) => {
+    close();
     try {
       await signOut();
       router.replace('/sign-in' as any);
@@ -66,8 +61,8 @@ export function AccountDropDownMenu({ color, focused, onPress }: AccountDropDown
     {
       icon: User,
       label: 'View Profile',
-      onPress: () => {
-        setDropdownVisible(false);
+      onPress: (close: () => void) => {
+        close();
         onPress(); // Navigate to profile
       },
     },
@@ -90,99 +85,71 @@ export function AccountDropDownMenu({ color, focused, onPress }: AccountDropDown
   ];
 
   return (
-    <>
-      <View
-        onTouchStart={handlePressIn}
-        onTouchEnd={handlePressOut}
-        onTouchCancel={handlePressOut}
-        style={{ alignItems: 'center', justifyContent: 'center' }}>
-        <UserCircle color={color} size={24} />
-      </View>
+    <CollapseDrawer
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      trigger={({ open }) => (
+        <View
+          onTouchStart={() => handlePressIn(open)}
+          onTouchEnd={handlePressOut}
+          onTouchCancel={handlePressOut}
+          style={{ alignItems: 'center', justifyContent: 'center' }}>
+          <UserCircle color={color} size={24} />
+        </View>
+      )}
+      header={(close) => (
+        <View className="gap-1  px-5 pb-4">
+          {isLoaded && user && (
+            <>
+              <Text className="text-base font-semibold text-white">
+                {user?.firstName ||
+                  user?.primaryEmailAddress?.emailAddress?.split('@')[0] ||
+                  'User'}
+              </Text>
+              <Text className="text-sm text-zinc-400">
+                @
+                {user?.username ||
+                  user?.primaryEmailAddress?.emailAddress?.split('@')[0] ||
+                  'username'}
+              </Text>
+            </>
+          )}
+        </View>
+      )}
+      content={(close) => (
+        <View className="gap-4 px-5 pb-6">
+          <SwitchInterface />
 
-      <Modal
-        visible={dropdownVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setDropdownVisible(false)}>
-        <Pressable
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          }}
-          onPress={() => setDropdownVisible(false)}>
-          {/* Dropdown Menu */}
-          <View
-            style={{
-              position: 'absolute',
-              bottom: dropdownBottom, // Position above tab bar
-              right: 16, // Align to right edge
-              backgroundColor: '#1f2937',
-              borderRadius: 12,
-              paddingVertical: 8,
-              minWidth: 220,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: -4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 8,
-              elevation: 8,
-              borderWidth: 1,
-              borderColor: '#374151',
-            }}>
-            {/* User Info Header */}
-            {isLoaded && user && (
-              <View
-                style={{
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  borderBottomWidth: 1,
-                  borderBottomColor: '#374151',
-                }}>
-                <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '600' }}>
-                  {user?.firstName || user?.primaryEmailAddress?.emailAddress?.split('@')[0] || 'User'}
-                </Text>
-                <Text style={{ color: '#9ca3af', fontSize: 14, marginTop: 2 }}>
-                  @{user?.username || user?.primaryEmailAddress?.emailAddress?.split('@')[0] || 'username'}
-                </Text>
-              </View>
-            )}
-            <ProfileSwitchButton />
-
-
-            {/* Menu Items */}
-            {menuItems.map((item, index) => {
-              const Icon = item.icon;
-              return (
-                <TouchableOpacity
-                  key={index}
-                  onPress={item.onPress}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                    backgroundColor: 'transparent',
-                  }}
-                  activeOpacity={0.7}>
-                  <Icon
-                    size={20}
-                    color={item.danger ? '#ef4444' : '#9ca3af'}
-                    style={{ marginRight: 12 }}
-                  />
+          {/* Menu Items */}
+          {menuItems.map((item, index) => {
+            const Icon = item.icon;
+            return (
+              <TouchableOpacity
+                key={index}
+                onPress={() => item.onPress(close)}
+                className={`flex-row items-center gap-3 rounded-2xl border px-4 py-3 ${
+                  item.danger ? 'border-rose-500/30 bg-rose-500/5' : 'border-white/10 bg-white/5'
+                }`}
+                activeOpacity={0.85}>
+                <View
+                  className={`rounded-full p-2 ${
+                    item.danger ? 'bg-rose-500/20' : 'bg-blue-500/20'
+                  }`}>
+                  <Icon size={20} color={item.danger ? '#fecaca' : '#bfdbfe'} />
+                </View>
+                <View className="flex-1">
                   <Text
-                    style={{
-                      color: item.danger ? '#ef4444' : '#ffffff',
-                      fontSize: 15,
-                      fontWeight: item.danger ? '600' : '400',
-                    }}>
+                    className={`text-sm font-semibold ${
+                      item.danger ? 'text-rose-100' : 'text-white'
+                    }`}>
                     {item.label}
                   </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </Pressable>
-      </Modal>
-    </>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+    />
   );
 }
-
