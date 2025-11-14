@@ -28,7 +28,10 @@ export function ProjectInfoActionsDrawer({
 
   const invalidateProjectQueries = () => {
     queryClient.invalidateQueries({ queryKey: ['project-detail', project?.id, soleUserId] });
+    queryClient.invalidateQueries({ queryKey: ['project', project?.id] });
     queryClient.invalidateQueries({ queryKey: ['manageProjects'] });
+    queryClient.invalidateQueries({ queryKey: ['rolesWithSchedules', project?.id] });
+    queryClient.invalidateQueries({ queryKey: ['project-roles', project?.id] });
   };
 
   const handleTogglePrivacy = async () => {

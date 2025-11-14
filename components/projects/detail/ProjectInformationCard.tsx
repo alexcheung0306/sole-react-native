@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View, Text, ImageBackground, TouchableOpacity } from 'react-native';
-import { EllipsisVertical } from 'lucide-react-native';
+import { EllipsisVertical, ShieldX, ShieldCheck } from 'lucide-react-native';
 
 import { ProjectInfoActionsDrawer } from '@/components/projects/detail/ProjectInfoActionsDrawer';
 import ProjectInfoFormModal from '@/components/projects/ProjectInfoFormModal';
@@ -75,9 +75,30 @@ export function ProjectInformationCard({ project, soleUserId }: ProjectInformati
           <InfoRow label="Usage" value={project?.usage ?? '—'} multiline />
           <InfoRow label="Remarks" value={project?.remarks ?? '—'} multiline />
           <View className="flex-row flex-wrap gap-3">
-            <View className="rounded-full border border-white/20 bg-white/10 px-3 py-1">
-              <Text className="text-xs font-semibold text-white">
-                {project?.isPrivate ? 'Private Project' : 'Public Project'}
+            {/* Private/Public Badge with enhanced styling */}
+            <View
+              className={`flex-row items-center gap-2 rounded-full border-2 px-3.5 py-2 ${
+                project?.isPrivate
+                  ? 'border-rose-500/60 bg-rose-500/25'
+                  : 'border-emerald-500/60 bg-emerald-500/25'
+              }`}
+              style={{
+                shadowColor: project?.isPrivate ? '#f43f5e' : '#10b981',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+                elevation: 3,
+              }}>
+              {project?.isPrivate ? (
+                <ShieldX size={16} color="#f43f5e" />
+              ) : (
+                <ShieldCheck size={16} color="#10b981" />
+              )}
+              <Text
+                className={`text-xs font-bold uppercase tracking-wide ${
+                  project?.isPrivate ? 'text-white' : 'text-white'
+                }`}>
+                {project?.isPrivate ? 'Private' : 'Public'}
               </Text>
             </View>
             <View className="rounded-full border border-white/15 bg-white/10 px-3 py-1">

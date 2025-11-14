@@ -1,5 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useEffect } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScrollHeader } from '@/hooks/useScrollHeader';
 import { CollapsibleHeader } from '@/components/CollapsibleHeader';
@@ -7,12 +8,13 @@ import { ChevronLeft } from 'lucide-react-native';
 import { useSoleUserContext } from '@/context/SoleUserContext';
 import { useManageProjectContext } from '@/context/ManageProjectContext';
 import { useProjectDetailQueries } from '@/hooks/useProjectDetailQueries';
-import { ProjectRolesTab } from '@/components/projects/detail/ProjectRolesTab';
 import { ProjectContractsTab } from '@/components/projects/detail/ProjectContractsTab';
 import { ProjectInformationCard } from '@/components/projects/detail/ProjectInformationCard';
 import { CreateProjectAnnouncementDrawer } from '@/components/projects/detail/CreateProjectAnnouncementDrawer';
 import { ProjectAnnouncementsList } from '@/components/projects/detail/ProjectAnnouncementsList';
 import { CustomTabs } from '@/components/custom/custom-tabs';
+import { RoleForm } from '@/components/projects/detail/RoleForm';
+import { RolesBreadcrumb } from '@/components/projects/detail/RolesBreadcrumb';
 
 const STATUS_COLORS: Record<string, string> = {
   Draft: '#6b7280',
@@ -27,7 +29,7 @@ export default function ProjectDetailPage() {
   const { headerTranslateY, handleScroll } = useScrollHeader();
   const { id } = useLocalSearchParams();
   const { soleUserId } = useSoleUserContext();
-  const { currentTab, setCurrentTab } = useManageProjectContext();
+  const { currentTab, setCurrentTab, currentRole, setCurrentRole } = useManageProjectContext();
 
   const projectId = id ? parseInt(id as string, 10) : 0;
 
@@ -45,6 +47,13 @@ export default function ProjectDetailPage() {
   } = useProjectDetailQueries({ projectId, soleUserId: soleUserId || '' });
 
   const isInitialLoading = projectLoading;
+
+  // Ensure currentRole is within bounds when roles data changes
+  useEffect(() => {
+    if (rolesWithSchedules.length > 0 && currentRole >= rolesWithSchedules.length) {
+      setCurrentRole(0);
+    }
+  }, [rolesWithSchedules.length, currentRole, setCurrentRole]);
 
   if (isInitialLoading) {
     return (
@@ -107,11 +116,11 @@ export default function ProjectDetailPage() {
           contentContainerStyle={{
             paddingTop: insets.top + 72,
             paddingBottom: 28,
-            paddingHorizontal: 24,
+            paddingHorizontal: 0,
           }}>
           <View className="gap-6">
             {/* Project Chips */}
-            <View className="flex-row flex-wrap items-center gap-3">
+            <View className={`flex-row flex-wrap items-center gap-3 px-2`}>
               <View
                 className="rounded-full px-3 py-1"
                 style={{ backgroundColor: `${statusTint}33` }}>
@@ -125,7 +134,7 @@ export default function ProjectDetailPage() {
             </View>
 
             {/* Title and Description */}
-            <View className="gap-2">
+            <View className={`gap-2 px-2`}>
               <Text className="text-2xl font-bold text-white">{project?.projectName}</Text>
               <Text className="text-sm text-white/80">
                 Align your announcement timeline, audition workflow, and contract statuses in one
@@ -134,17 +143,19 @@ export default function ProjectDetailPage() {
             </View>
 
             {/* Tabs */}
-            <CustomTabs
-              tabs={tabs}
-              value={currentTab}
-              onValueChange={setCurrentTab}
-              containerClassName="flex-row rounded-2xl border border-white/10 bg-zinc-700 p-1"
-              showCount={true}
-            />
+            <View className="px-2">
+              <CustomTabs
+                tabs={tabs}
+                value={currentTab}
+                onValueChange={setCurrentTab}
+                containerClassName="flex-row rounded-2xl border border-white/10 bg-zinc-700 p-1"
+                showCount={true}
+              />
+            </View>
 
             {/* ---------------------------------------Project Information--------------------------------------- */}
             {currentTab === 'project-information' && (
-              <View className="gap-0">
+              <View className="gap-0 px-2">
                 <ProjectInformationCard project={project} soleUserId={soleUserId || ''} />
                 <CreateProjectAnnouncementDrawer
                   projectId={projectId}
@@ -158,13 +169,41 @@ export default function ProjectDetailPage() {
 
             {/* ---------------------------------------Project Roles--------------------------------------- */}
             {currentTab === 'project-roles' && (
-              <ProjectRolesTab
-                projectId={projectId}
-                projectStatus={project?.status}
-                rolesWithSchedules={rolesWithSchedules}
-                countJobActivities={countJobActivities}
-                refetchRoles={refetchRoles}
-              />
+              <View className="gap-4">
+                <View className="px-2">
+                  {project?.status === 'Draft' && rolesWithSchedules.length < 5 && (
+                    <RoleForm
+                      projectId={projectId}
+                      method="POST"
+                      roleId={null}
+                      fetchedValues={null}
+                      isDisabled={rolesWithSchedules.length >= 5}
+                      refetchRoles={refetchRoles}
+                    />
+                  )}
+                </View>
+
+                {rolesWithSchedules.length === 0 ? (
+                  <View className="items-center gap-3 rounded-2xl border border-white/10 bg-zinc-800 p-8">
+                    <Text className="text-lg font-semibold text-white">No roles yet</Text>
+                    <Text className="text-center text-sm text-white/70">
+                      {project?.status === 'Draft'
+                        ? 'Create your first role to get started.'
+                        : 'No roles have been created for this project.'}
+                    </Text>
+                  </View>
+                ) : (
+                  <RolesBreadcrumb
+                    projectData={project}
+                    rolesWithSchedules={rolesWithSchedules}
+                    currentRole={currentRole}
+                    setCurrentRole={setCurrentRole}
+                    countJobActivities={countJobActivities}
+                    projectId={projectId}
+                    refetchRoles={refetchRoles}
+                  />
+                )}
+              </View>
             )}
 
             {/* ---------------------------------------Project Contracts--------------------------------------- */}

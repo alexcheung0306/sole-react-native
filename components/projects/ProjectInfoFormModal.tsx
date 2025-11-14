@@ -7,6 +7,7 @@ import { useSoleUserContext } from '@/context/SoleUserContext';
 import { createProject, updateProject } from '@/api/apiservice/project_api';
 import * as ImagePicker from 'expo-image-picker';
 import { FormModal } from '@/components/custom/form-modal';
+import { PrimaryButton } from '../custom/primary-button';
 
 interface ProjectInfoFormModalProps {
   method: 'POST' | 'PUT';
@@ -110,7 +111,7 @@ export default function ProjectInfoFormModal({
       if (result) {
         // Invalidate and refetch project data after mutation succeeds
         queryClient.invalidateQueries({ queryKey: ['manageProjects'] });
-        
+
         if (initValues?.id) {
           // Force refetch to ensure we have the latest data from server
           await queryClient.refetchQueries({
@@ -210,23 +211,19 @@ export default function ProjectInfoFormModal({
                       isOpen: helpers.isOpen,
                     })
                 : (helpers) => (
-                    <TouchableOpacity
-                      className={`flex-row items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-2.5 ${
-                        triggerClassName ? triggerClassName : 'mb-0'
-                      } ${method === 'POST' ? 'bg-white' : 'bg-purple-600/90'}`}
+                    <PrimaryButton
+                      variant={method === 'POST' ? 'create' : 'edit'}
+                      disabled={false}
+                      icon={
+                        method === 'POST' ? (
+                          <Plus size={20} color="#0f172a" />
+                        ) : (
+                          <Pencil size={20} color="#f9fafb" />
+                        )
+                      }
                       onPress={helpers.open}>
-                      {method === 'POST' ? (
-                        <Plus size={20} color="#0f172a" />
-                      ) : (
-                        <Pencil size={20} color="#f9fafb" />
-                      )}
-                      <Text
-                        className={`text-sm font-semibold ${
-                          method === 'POST' ? 'text-zinc-900' : 'text-white'
-                        }`}>
-                        {method === 'POST' ? 'Create New Project' : 'Edit Project'}
-                      </Text>
-                    </TouchableOpacity>
+                      {method === 'POST' ? 'Create New Project' : 'Edit Project'}
+                    </PrimaryButton>
                   )
             }
             headerClassName="flex-row items-center justify-between border-b border-white/10 px-4 pb-3 pt-12"
@@ -283,9 +280,7 @@ export default function ProjectInfoFormModal({
                     placeholderTextColor="#6b7280"
                   />
                   {touched.projectName && projectNameError && (
-                    <Text className="mt-1 text-xs text-red-500">
-                      Project name is required
-                    </Text>
+                    <Text className="mt-1 text-xs text-red-500">Project name is required</Text>
                   )}
                 </View>
 
