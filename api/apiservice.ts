@@ -1,13 +1,62 @@
 // apiService.ts
 import { getApiBaseUrl } from '../config/environment'
+import { ServerMaintenanceError, isServerMaintenanceError } from '~/lib/errors'
 
 // Use centralized environment configuration
 export const API_BASE_URL = getApiBaseUrl()
 
+// Timeout duration in milliseconds (10 seconds)
+const FETCH_TIMEOUT = 10000
+
+// Helper function to create a fetch with timeout
+export const fetchWithTimeout = async (
+  url: string,
+  options: RequestInit = {},
+  timeout: number = FETCH_TIMEOUT
+): Promise<Response> => {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeout)
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    })
+    clearTimeout(timeoutId)
+    return response
+  } catch (error: any) {
+    clearTimeout(timeoutId)
+    // If aborted due to timeout, throw a timeout error
+    if (error.name === 'AbortError') {
+      throw new ServerMaintenanceError('Request timed out. Please check your connection.')
+    }
+    throw error
+  }
+}
+
+// Helper function to handle fetch errors and detect connection issues
+const handleFetchError = (error: any) => {
+  // Check if it's a network/connection error
+  if (
+    error instanceof ServerMaintenanceError ||
+    error?.message?.includes('Failed to fetch') ||
+    error?.message?.includes('NetworkError') ||
+    error?.message?.includes('ERR_CONNECTION_REFUSED') ||
+    error?.message?.includes('Network request failed') ||
+    error?.message?.includes('timed out') ||
+    error?.message?.includes('Request timed out') ||
+    (error?.name === 'TypeError' && error?.message?.includes('fetch')) ||
+    error?.name === 'AbortError'
+  ) {
+    throw new ServerMaintenanceError()
+  }
+  throw error
+}
+
 //soleUser
 export const getSoleUsers = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/sole-users`)
+    const response = await fetchWithTimeout(`${API_BASE_URL}/sole-users`)
 
     if (!response.ok) {
       throw new Error(`Error: ${response.statusText}`)
@@ -17,13 +66,13 @@ export const getSoleUsers = async () => {
     return result // Return the fetched result
   } catch (error) {
     console.error("Error fetching data:", error)
-    throw error // Rethrow the error for further handling
+    handleFetchError(error) // Convert connection errors to ServerMaintenanceError
   }
 }
 
 export const getSoleUserByClerkId = async (clerkid: string): Promise<any> => {
   try {
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${API_BASE_URL}/sole-users/clerkId/${clerkid}`
     )
 
@@ -41,7 +90,7 @@ export const getSoleUserByClerkId = async (clerkid: string): Promise<any> => {
     return result // Return the fetched result
   } catch (error) {
     console.error("Error fetching data:", error)
-    throw error // Rethrow the error for further handling
+    handleFetchError(error) // Convert connection errors to ServerMaintenanceError
   }
 }
 
@@ -49,7 +98,7 @@ export const getSoleUserBySoleUserId = async (
   soleUserId: string
 ): Promise<any> => {
   try {
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${API_BASE_URL}/sole-users/sole-user-id/${soleUserId}`
     )
 
@@ -61,7 +110,7 @@ export const getSoleUserBySoleUserId = async (
     return result // Return the fetched result
   } catch (error) {
     console.error("Error fetching data:", error)
-    throw error // Rethrow the error for further handling
+    handleFetchError(error) // Convert connection errors to ServerMaintenanceError
   }
 }
 
@@ -70,7 +119,7 @@ export const getSoleUserByUserName = async (
   type: string // soleuser or soleuserid
 ): Promise<string | object> => {
   try {
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${API_BASE_URL}/sole-users/username/${username}?type=${type}`
     )
 
@@ -89,13 +138,13 @@ export const getSoleUserByUserName = async (
     }
   } catch (error) {
     console.error("Error fetching data:", error)
-    throw error
+    handleFetchError(error) // Convert connection errors to ServerMaintenanceError
   }
 }
 
 export const updateSoleUserByClerkId = async (clerkId: string, values: any) => {
   try {
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${API_BASE_URL}/sole-users/clerkId/${clerkId}`,
       {
         method: "PUT",
@@ -115,7 +164,7 @@ export const updateSoleUserByClerkId = async (clerkId: string, values: any) => {
     return result
   } catch (error) {
     console.error("Error updating Sole User:", error)
-    throw error
+    handleFetchError(error) // Convert connection errors to ServerMaintenanceError
   }
 }
 
@@ -125,7 +174,7 @@ export const updateTalentLevelBySoleUserId = async (
 ) => {
   try {
     console.log("api", soleUserId, values)
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${API_BASE_URL}/sole-users/talent-level/${soleUserId}`,
       {
         method: "PUT",
@@ -145,6 +194,6 @@ export const updateTalentLevelBySoleUserId = async (
     return result
   } catch (error) {
     console.error("Error Updating Talent Level", error)
-    throw error
+    handleFetchError(error) // Convert connection errors to ServerMaintenanceError
   }
 }

@@ -5,6 +5,8 @@ import { View, ActivityIndicator, Text } from 'react-native';
 import { getSoleUserByClerkId } from '~/api/apiservice';
 import { createUser } from '~/api/apiservice/soleUser_api';
 import { env } from '~/env.mjs';
+import { useServerMaintenance } from '~/context/ServerMaintenanceContext';
+import { isServerMaintenanceError } from '~/lib/errors';
 
 interface AuthWrapperProps {
   children: React.ReactNode;
@@ -16,6 +18,8 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
   const [userError, setUserError] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const { handleError, isServerDown } = useServerMaintenance();
   
   // DEV MODE - bypass backend/database when true
   const DEV_MODE = env.EXPO_PUBLIC_DEV_MODE === 'true';
@@ -34,7 +38,15 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
   useEffect(() => {
     const initializeUser = async () => {
       // Only run once when auth data becomes available
-      if (isSignedIn && userId && clerkUser && !hasInitialized && !isInitializing) {
+      // Don't run if server is down to prevent infinite loops
+      if (
+        isSignedIn &&
+        userId &&
+        clerkUser &&
+        !hasInitialized &&
+        !isInitializing &&
+        !isServerDown
+      ) {
         
         // 🟡 DEV MODE: Skip all backend calls
         if (DEV_MODE) {
@@ -69,21 +81,40 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
           setIsInitializing(false);
         } catch (error: any) {
           console.error('AuthWrapper - Error initializing user:', error);
-          // If it's a network error, allow access anyway (backend might not be running)
-          if (error?.message?.includes('Network request failed') || error?.message?.includes('Failed to fetch')) {
-            console.log('AuthWrapper - Network error, allowing access without backend initialization');
-            setHasInitialized(true); // Allow access even if backend is unavailable
+          
+          // Check if it's a server maintenance error
+          if (isServerMaintenanceError(error)) {
             setIsInitializing(false);
-          } else {
-            setUserError('Failed to initialize user');
-            setIsInitializing(false);
+            
+            // Set up retry callback
+            const retry = () => {
+              setRetryCount((prev) => prev + 1);
+            };
+            
+            // handleError will set isServerDown state in the context
+            handleError(error, retry);
+            return; // Don't redirect, let the layout handle the UI
           }
+          
+          // For other errors, set error state but allow access
+          setUserError('Failed to initialize user');
+          setIsInitializing(false);
         }
       }
     };
 
     initializeUser();
-  }, [isSignedIn, userId, clerkUser, hasInitialized, isInitializing, DEV_MODE]);
+  }, [
+    isSignedIn,
+    userId,
+    clerkUser,
+    hasInitialized,
+    isInitializing,
+    isServerDown,
+    handleError,
+    retryCount,
+    DEV_MODE,
+  ]);
 
   if (!isLoaded) {
     console.log('AuthWrapper - Showing loading spinner (auth not loaded)');

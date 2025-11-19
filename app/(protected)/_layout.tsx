@@ -1,10 +1,17 @@
 import { Stack } from 'expo-router';
 import { AuthWrapper } from '~/components/AuthWrapper';
 import { useNavigation } from '~/context/NavigationContext';
-import { useEffect } from 'react';
+import { useServerMaintenance } from '~/context/ServerMaintenanceContext';
+import { ServerMaintenanceScreen } from '~/components/ServerMaintenanceScreen';
 
 export default function ProtectedLayout() {
   const { currentMode } = useNavigation();
+  const { isServerDown, onRetry } = useServerMaintenance();
+
+  // If server is down, show maintenance screen instead of normal layout
+  if (isServerDown) {
+    return <ServerMaintenanceScreen onRetry={onRetry} />;
+  }
 
   return (
     <AuthWrapper>

@@ -1,4 +1,5 @@
-import { API_BASE_URL } from '../apiservice';
+import { API_BASE_URL, fetchWithTimeout } from '../apiservice';
+import { ServerMaintenanceError } from '~/lib/errors';
 
 interface ComcardPhoto {
   id: number;
@@ -158,7 +159,7 @@ export const getUserProfileByUsername = async (
 
 export const createUser = async (user: CreateUser) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/sole-users`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/sole-users`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -171,8 +172,19 @@ export const createUser = async (user: CreateUser) => {
     }
     const result = await response.json();
     return result;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating user:', error);
+    // Check if it's a connection/timeout error
+    if (
+      error instanceof ServerMaintenanceError ||
+      error?.message?.includes('Failed to fetch') ||
+      error?.message?.includes('NetworkError') ||
+      error?.message?.includes('Network request failed') ||
+      error?.message?.includes('timed out') ||
+      error?.name === 'AbortError'
+    ) {
+      throw new ServerMaintenanceError();
+    }
     throw error;
   }
 };
