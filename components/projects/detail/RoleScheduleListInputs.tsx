@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Platform, Modal, Pressable, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Platform, Modal, Pressable, FlatList, StyleSheet, Animated, Dimensions } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { Plus, Trash2, MapPin, Calendar, Clock } from 'lucide-react-native';
 import { Input, InputField } from '@/components/ui/input';
 import { Textarea, TextareaInput } from '@/components/ui/textarea';
@@ -70,7 +71,80 @@ export function RoleScheduleListInputs({
   const [selectedTime, setSelectedTime] = useState<{ hours: number; minutes: number }>({ hours: 9, minutes: 0 });
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
-  const [viewMode, setViewMode] = useState<'calendar' | 'year' | 'month'>('calendar');
+  const [selectedDay, setSelectedDay] = useState<number>(new Date().getDate());
+  
+  // Screen dimensions for modal sizing
+  const screenHeight = Dimensions.get('window').height;
+  const screenWidth = Dimensions.get('window').width;
+  const modalHeight = screenHeight * 0.7;
+  
+  // Wheel picker constants - proportional to screen size
+  const ITEM_HEIGHT = Math.max(40, screenHeight * 0.055); // ~5.5% of screen height, minimum 40px
+  const VISIBLE_ITEMS = 5;
+  const WHEEL_HEIGHT = ITEM_HEIGHT * VISIBLE_ITEMS;
+  
+  // Animation values for slide up/down
+  const slideAnim = useRef(new Animated.Value(screenHeight)).current;
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
+  
+  // Refs for scrolling
+  const hourScrollRef = useRef<FlatList<number>>(null);
+  const minuteScrollRef = useRef<FlatList<number>>(null);
+  const monthScrollRef = useRef<FlatList<string>>(null);
+  const dayScrollRef = useRef<FlatList<number>>(null);
+  const yearScrollRef = useRef<FlatList<number>>(null);
+  
+  // Animate modal when showDatePicker changes
+  useEffect(() => {
+    if (showDatePicker) {
+      // Slide up and fade in
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(backdropOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      // Slide down and fade out
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: screenHeight,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(backdropOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [showDatePicker]);
+  
+  // Close modal with slide down animation
+  const closeModalWithAnimation = () => {
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: screenHeight,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowDatePicker(false);
+      setDatePickerConfig(null);
+    });
+  };
   
   // Inline dropdown state for activity type
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(null);
@@ -128,7 +202,51 @@ export function RoleScheduleListInputs({
   };
   
   const getMonthNames = () => {
-    return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  };
+  
+  // Generate data arrays for wheel pickers
+  const generateHours = () => Array.from({ length: 24 }, (_, i) => i);
+  const generateMinutes = () => Array.from({ length: 60 }, (_, i) => i * 5); // 0, 5, 10, ... 55
+  const generateMonths = () => getMonthNames();
+  const generateDays = (year: number, month: number) => {
+    const daysInMonth = getDaysInMonth(year, month);
+    return Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  };
+  const generateYears = () => {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 100 }, (_, i) => currentYear - 50 + i);
+  };
+  
+  // Wheel picker render item component - proportional font sizes
+  const renderWheelItem = (
+    item: string | number,
+    index: number,
+    isSelected: boolean,
+    onSelect: () => void
+  ) => {
+    const selectedFontSize = Math.max(18, screenHeight * 0.024); // ~2.4% of screen height
+    const unselectedFontSize = Math.max(14, screenHeight * 0.019); // ~1.9% of screen height
+    
+    return (
+      <TouchableOpacity
+        onPress={onSelect}
+        style={{
+          height: ITEM_HEIGHT,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: 'transparent',
+        }}>
+        <Text
+          style={{
+            fontSize: isSelected ? selectedFontSize : unselectedFontSize,
+            fontWeight: isSelected ? '600' : '400',
+            color: isSelected ? '#ffffff' : 'rgba(255, 255, 255, 0.5)',
+          }}>
+          {item}
+        </Text>
+      </TouchableOpacity>
+    );
   };
 
   const isFieldTouched = (fieldname: string) => {
@@ -290,27 +408,42 @@ export function RoleScheduleListInputs({
     setSelectedDate(new Date(dateInstance));
     setSelectedYear(dateInstance.getFullYear());
     setSelectedMonth(dateInstance.getMonth());
+    setSelectedDay(dateInstance.getDate());
     setSelectedTime({
       hours: dateInstance.getHours(),
       minutes: dateInstance.getMinutes(),
     });
-    setViewMode('calendar');
     setShowDatePicker(true);
+    
+    // Scroll to selected values after modal opens
+    setTimeout(() => {
+      try {
+        const hours = dateInstance.getHours();
+        const minutes = dateInstance.getMinutes();
+        const month = dateInstance.getMonth();
+        const day = dateInstance.getDate();
+        const year = dateInstance.getFullYear();
+        
+        hourScrollRef.current?.scrollToIndex({ index: hours, animated: false });
+        minuteScrollRef.current?.scrollToIndex({ index: Math.floor(minutes / 5), animated: false });
+        monthScrollRef.current?.scrollToIndex({ index: month, animated: false });
+        dayScrollRef.current?.scrollToIndex({ index: day - 1, animated: false });
+        
+        const startYear = year - 50;
+        const yearIndex = year - startYear;
+        yearScrollRef.current?.scrollToIndex({ index: Math.min(Math.max(yearIndex, 0), 99), animated: false });
+      } catch (error) {
+        // Ignore scroll errors on initial load
+        console.log('Scroll initialization error:', error);
+      }
+    }, 200);
   };
 
   const handleDateTimeConfirm = () => {
     if (!datePickerConfig) return;
 
-    // Use selected date with default time (9 AM) or keep existing time if available
-    const date = new Date(selectedDate);
-    if (selectedTime.hours !== undefined && selectedTime.minutes !== undefined) {
-      date.setHours(selectedTime.hours);
-      date.setMinutes(selectedTime.minutes);
-    } else {
-      // Default to 9 AM if no time selected
-      date.setHours(9);
-      date.setMinutes(0);
-    }
+    // Use selected year, month, day, hour, minute
+    const date = new Date(selectedYear, selectedMonth, selectedDay, selectedTime.hours, selectedTime.minutes);
     date.setSeconds(0);
     date.setMilliseconds(0);
     
@@ -320,8 +453,7 @@ export function RoleScheduleListInputs({
     // Ensure the structure exists
     if (!currentActivities[datePickerConfig.activityIndex]) {
       console.error('Activity index out of bounds:', datePickerConfig.activityIndex);
-      setShowDatePicker(false);
-      setDatePickerConfig(null);
+      closeModalWithAnimation();
       return;
     }
     
@@ -331,8 +463,7 @@ export function RoleScheduleListInputs({
     
     if (!currentActivities[datePickerConfig.activityIndex].schedules[datePickerConfig.scheduleIndex]) {
       console.error('Schedule index out of bounds:', datePickerConfig.scheduleIndex);
-      setShowDatePicker(false);
-      setDatePickerConfig(null);
+      closeModalWithAnimation();
       return;
     }
     
@@ -345,8 +476,7 @@ export function RoleScheduleListInputs({
     const fieldname = `activityScheduleLists.${datePickerConfig.activityIndex}.schedules.${datePickerConfig.scheduleIndex}.${datePickerConfig.field}`;
     handleFieldBlur(fieldname);
     
-    setShowDatePicker(false);
-    setDatePickerConfig(null);
+    // Don't close modal here - let the button handler close it with animation
   };
 
   // Always get activities directly from values to ensure fresh data
@@ -708,260 +838,382 @@ export function RoleScheduleListInputs({
       </Actionsheet>
       )}
 
-      {/* Date/Time Picker Modal */}
+      {/* Date/Time Picker Modal - Wheel Style */}
       <Modal
         visible={showDatePicker}
         transparent
-        animationType="slide"
-        onRequestClose={() => {
-          setShowDatePicker(false);
-          setDatePickerConfig(null);
-        }}>
-        <View className="flex-1 bg-black/50 justify-end">
-          <Pressable
-            style={{ flex: 1 }}
-            onPress={() => {
-              setShowDatePicker(false);
-              setDatePickerConfig(null);
+        animationType="none"
+        onRequestClose={closeModalWithAnimation}>
+        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+          {/* Backdrop with blur and transparency */}
+          <Animated.View
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                opacity: backdropOpacity,
+              },
+            ]}
+            pointerEvents="box-none">
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              onPress={closeModalWithAnimation}>
+              <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0, 0, 0, 0.4)' }]} />
+            </Pressable>
+          </Animated.View>
+          
+          {/* Picker Container with slide animation */}
+          <Animated.View
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: modalHeight,
+              transform: [{ translateY: slideAnim }],
             }}
-          />
-          <View className="bg-zinc-800 rounded-t-3xl p-6 border-t border-white/10">
-            <Text className="text-xl font-bold text-white mb-4">
-              Select {datePickerConfig?.field === 'fromTime' ? 'Start' : 'End'} Date
-            </Text>
-            
-            {/* Calendar View */}
-            {viewMode === 'calendar' && (
-              <>
-                {/* Year/Month Selector */}
-                <View className="mb-4 flex-row items-center justify-between">
-                  <TouchableOpacity
-                    onPress={() => setViewMode('year')}
-                    className="bg-zinc-700 rounded-lg px-4 py-2">
-                    <Text className="text-white text-base font-semibold">{selectedYear}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => setViewMode('month')}
-                    className="bg-zinc-700 rounded-lg px-4 py-2">
-                    <Text className="text-white text-base font-semibold">{getMonthName(selectedMonth)}</Text>
-                  </TouchableOpacity>
-                  <View className="flex-row gap-2">
-                    <TouchableOpacity
-                      onPress={() => {
-                        if (selectedMonth === 0) {
-                          setSelectedMonth(11);
-                          setSelectedYear(selectedYear - 1);
-                        } else {
-                          setSelectedMonth(selectedMonth - 1);
+            pointerEvents="auto">
+            <View
+              style={{
+                flex: 1,
+                backgroundColor: 'rgba(39, 39, 42, 0.85)', // zinc-900 with transparency
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                borderTopWidth: 1,
+                borderTopColor: 'rgba(255, 255, 255, 0.1)',
+                overflow: 'hidden',
+              }}>
+              {/* Blur effect inside modal */}
+              <BlurView intensity={15} tint="dark" style={StyleSheet.absoluteFill} />
+              
+              <View style={{ flex: 1 }} pointerEvents="auto">
+                {/* Title */}
+                <View className="px-6 pt-4 pb-3 border-b border-white/10" style={{ paddingTop: screenHeight * 0.02 }}>
+                  <Text className="text-base font-semibold text-white text-center" style={{ fontSize: screenHeight * 0.022 }}>
+                    Pick a date
+                  </Text>
+                </View>
+                
+                {/* Wheel Picker Container - Use flex to fit remaining space */}
+                <View style={{ flex: 1, marginVertical: screenHeight * 0.01, position: 'relative', justifyContent: 'center' }}>
+                {/* Selection Indicators */}
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: WHEEL_HEIGHT / 2 - ITEM_HEIGHT / 2,
+                    left: 0,
+                    right: 0,
+                    height: ITEM_HEIGHT,
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderTopWidth: 1,
+                    borderBottomWidth: 1,
+                    borderColor: 'rgba(59, 130, 246, 0.3)',
+                    zIndex: 1,
+                  }}
+                  pointerEvents="none"
+                />
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: WHEEL_HEIGHT + WHEEL_HEIGHT / 2 - ITEM_HEIGHT / 2,
+                    left: 0,
+                    right: 0,
+                    height: ITEM_HEIGHT,
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderTopWidth: 1,
+                    borderBottomWidth: 1,
+                    borderColor: 'rgba(59, 130, 246, 0.3)',
+                    zIndex: 1,
+                  }}
+                  pointerEvents="none"
+                />
+
+                {/* Time Picker (Hour, Minutes) - On Top */}
+                <View className="flex-row px-4" style={{ height: WHEEL_HEIGHT, marginBottom: screenHeight * 0.01 }}>
+                  {/* Hours Column */}
+                  <View style={{ flex: 1, marginHorizontal: 2, height: WHEEL_HEIGHT }}>
+                    <FlatList
+                      ref={hourScrollRef}
+                      data={generateHours()}
+                      keyExtractor={(item) => `hour-${item}`}
+                      showsVerticalScrollIndicator={false}
+                      snapToInterval={ITEM_HEIGHT}
+                      decelerationRate="fast"
+                      style={{ height: WHEEL_HEIGHT }}
+                      contentContainerStyle={{
+                        paddingVertical: WHEEL_HEIGHT / 2 - ITEM_HEIGHT / 2,
+                      }}
+                      onMomentumScrollEnd={(e: any) => {
+                        const offsetY = e.nativeEvent.contentOffset.y;
+                        const index = Math.round(offsetY / ITEM_HEIGHT);
+                        const hours = generateHours()[index];
+                        if (hours !== undefined) {
+                          setSelectedTime({ ...selectedTime, hours });
                         }
                       }}
-                      className="bg-zinc-700 rounded-lg p-2">
-                      <Text className="text-white font-bold">‹</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => {
-                        if (selectedMonth === 11) {
-                          setSelectedMonth(0);
-                          setSelectedYear(selectedYear + 1);
-                        } else {
-                          setSelectedMonth(selectedMonth + 1);
+                      getItemLayout={(_: any, index: number) => ({
+                        length: ITEM_HEIGHT,
+                        offset: ITEM_HEIGHT * index,
+                        index,
+                      })}
+                      renderItem={({ item, index }: { item: number; index: number }) => {
+                        const isSelected = selectedTime.hours === item;
+                        return renderWheelItem(
+                          String(item).padStart(2, '0'),
+                          index,
+                          isSelected,
+                          () => {
+                            hourScrollRef.current?.scrollToIndex({ index, animated: true });
+                            setSelectedTime({ ...selectedTime, hours: item });
+                          }
+                        );
+                      }}
+                      initialScrollIndex={selectedTime.hours}
+                      onScrollToIndexFailed={(info: any) => {
+                        const wait = new Promise(resolve => setTimeout(resolve, 500));
+                        wait.then(() => {
+                          hourScrollRef.current?.scrollToIndex({ index: info.index, animated: false });
+                        });
+                      }}
+                    />
+                  </View>
+
+                  {/* Minutes Column */}
+                  <View style={{ flex: 1, marginHorizontal: 2, height: WHEEL_HEIGHT }}>
+                    <FlatList
+                      ref={minuteScrollRef}
+                      data={generateMinutes()}
+                      keyExtractor={(item) => `minute-${item}`}
+                      showsVerticalScrollIndicator={false}
+                      snapToInterval={ITEM_HEIGHT}
+                      decelerationRate="fast"
+                      style={{ height: WHEEL_HEIGHT }}
+                      contentContainerStyle={{
+                        paddingVertical: WHEEL_HEIGHT / 2 - ITEM_HEIGHT / 2,
+                      }}
+                      onMomentumScrollEnd={(e: any) => {
+                        const offsetY = e.nativeEvent.contentOffset.y;
+                        const index = Math.round(offsetY / ITEM_HEIGHT);
+                        const minutes = generateMinutes()[index];
+                        if (minutes !== undefined) {
+                          setSelectedTime({ ...selectedTime, minutes });
                         }
                       }}
-                      className="bg-zinc-700 rounded-lg p-2">
-                      <Text className="text-white font-bold">›</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* Calendar Grid */}
-                <View className="mb-4">
-                  {/* Day Headers */}
-                  <View className="flex-row mb-2">
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                      <View key={day} className="flex-1 items-center py-2">
-                        <Text className="text-xs text-white/60 font-semibold">{day}</Text>
-                      </View>
-                    ))}
-                  </View>
-                  
-                  {/* Calendar Days */}
-                  <View>
-                    {(() => {
-                      const daysInMonth = getDaysInMonth(selectedYear, selectedMonth);
-                      const firstDay = getFirstDayOfMonth(selectedYear, selectedMonth);
-                      const days = [];
-                      
-                      // Empty cells for days before month starts
-                      for (let i = 0; i < firstDay; i++) {
-                        days.push(<View key={`empty-${i}`} className="flex-1 aspect-square" />);
-                      }
-                      
-                      // Days of the month
-                      for (let day = 1; day <= daysInMonth; day++) {
-                        const isSelected = selectedDate.getDate() === day && 
-                                          selectedDate.getMonth() === selectedMonth && 
-                                          selectedDate.getFullYear() === selectedYear;
-                        days.push(
-                          <TouchableOpacity
-                            key={day}
-                            onPress={() => {
-                              const newDate = new Date(selectedYear, selectedMonth, day);
-                              setSelectedDate(newDate);
-                            }}
-                            className={`flex-1 aspect-square items-center justify-center rounded-lg mx-0.5 ${
-                              isSelected ? 'bg-blue-500' : 'bg-zinc-700'
-                            }`}>
-                            <Text className={`text-sm font-semibold ${isSelected ? 'text-white' : 'text-white'}`}>
-                              {day}
-                            </Text>
-                          </TouchableOpacity>
+                      getItemLayout={(_: any, index: number) => ({
+                        length: ITEM_HEIGHT,
+                        offset: ITEM_HEIGHT * index,
+                        index,
+                      })}
+                      renderItem={({ item, index }: { item: number; index: number }) => {
+                        const isSelected = selectedTime.minutes === item;
+                        return renderWheelItem(
+                          String(item).padStart(2, '0'),
+                          index,
+                          isSelected,
+                          () => {
+                            minuteScrollRef.current?.scrollToIndex({ index, animated: true });
+                            setSelectedTime({ ...selectedTime, minutes: item });
+                          }
                         );
-                      }
-                      
-                      // Render in rows of 7
-                      const rows = [];
-                      for (let i = 0; i < days.length; i += 7) {
-                        rows.push(
-                          <View key={`row-${i}`} className="flex-row mb-1">
-                            {days.slice(i, i + 7)}
-    </View>
-                        );
-                      }
-                      return rows;
-                    })()}
-                  </View>
-                </View>
-              </>
-            )}
-
-            {/* Year Selector View */}
-            {viewMode === 'year' && (
-              <ScrollView className="max-h-64 mb-4">
-                <View className="flex-row flex-wrap gap-2">
-                  {getYearRange().map((year) => (
-                    <TouchableOpacity
-                      key={year}
-                      onPress={() => {
-                        setSelectedYear(year);
-                        setViewMode('calendar');
                       }}
-                      className={`w-[30%] bg-zinc-700 rounded-lg p-3 items-center ${
-                        year === selectedYear ? 'bg-blue-500' : ''
-                      }`}>
-                      <Text className={`text-white font-semibold ${year === selectedYear ? 'text-white' : ''}`}>
-                        {year}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                      initialScrollIndex={Math.floor(selectedTime.minutes / 5)}
+                      onScrollToIndexFailed={(info: any) => {
+                        const wait = new Promise(resolve => setTimeout(resolve, 500));
+                        wait.then(() => {
+                          minuteScrollRef.current?.scrollToIndex({ index: info.index, animated: false });
+                        });
+                      }}
+                    />
+                  </View>
                 </View>
-              </ScrollView>
-            )}
 
-            {/* Month Selector View */}
-            {viewMode === 'month' && (
-              <View className="mb-4 flex-row flex-wrap gap-2">
-                {getMonthNames().map((month, index) => (
-                  <TouchableOpacity
-                    key={index}
+                {/* Date Picker (Month, Day, Year) - Below Time */}
+                <View className="flex-row px-4" style={{ height: WHEEL_HEIGHT, marginTop: screenHeight * 0.01 }}>
+                  {/* Month Column */}
+                  <View style={{ flex: 1.5, marginHorizontal: 2, height: WHEEL_HEIGHT }}>
+                    <FlatList
+                      ref={monthScrollRef}
+                      data={generateMonths()}
+                      keyExtractor={(item, index) => `month-${index}`}
+                      showsVerticalScrollIndicator={false}
+                      snapToInterval={ITEM_HEIGHT}
+                      decelerationRate="fast"
+                      style={{ height: WHEEL_HEIGHT }}
+                      contentContainerStyle={{
+                        paddingVertical: WHEEL_HEIGHT / 2 - ITEM_HEIGHT / 2,
+                      }}
+                      onMomentumScrollEnd={(e: any) => {
+                        const offsetY = e.nativeEvent.contentOffset.y;
+                        const index = Math.round(offsetY / ITEM_HEIGHT);
+                        setSelectedMonth(index);
+                        // Update day if current day is invalid for new month
+                        const daysInNewMonth = getDaysInMonth(selectedYear, index);
+                        if (selectedDay > daysInNewMonth) {
+                          setSelectedDay(daysInNewMonth);
+                        }
+                      }}
+                      getItemLayout={(_: any, index: number) => ({
+                        length: ITEM_HEIGHT,
+                        offset: ITEM_HEIGHT * index,
+                        index,
+                      })}
+                      renderItem={({ item, index }: { item: string; index: number }) => {
+                        const isSelected = selectedMonth === index;
+                        return renderWheelItem(
+                          item,
+                          index,
+                          isSelected,
+                          () => {
+                            monthScrollRef.current?.scrollToIndex({ index, animated: true });
+                            setSelectedMonth(index);
+                          }
+                        );
+                      }}
+                      initialScrollIndex={selectedMonth}
+                      onScrollToIndexFailed={(info: any) => {
+                        const wait = new Promise(resolve => setTimeout(resolve, 500));
+                        wait.then(() => {
+                          monthScrollRef.current?.scrollToIndex({ index: info.index, animated: false });
+                        });
+                      }}
+                    />
+                  </View>
+
+                  {/* Day Column */}
+                  <View style={{ flex: 1, marginHorizontal: 2, height: WHEEL_HEIGHT }}>
+                    <FlatList
+                      ref={dayScrollRef}
+                      key={`day-${selectedYear}-${selectedMonth}`} // Re-render when month/year changes
+                      data={generateDays(selectedYear, selectedMonth)}
+                      keyExtractor={(item) => `day-${item}`}
+                      showsVerticalScrollIndicator={false}
+                      snapToInterval={ITEM_HEIGHT}
+                      decelerationRate="fast"
+                      style={{ height: WHEEL_HEIGHT }}
+                      contentContainerStyle={{
+                        paddingVertical: WHEEL_HEIGHT / 2 - ITEM_HEIGHT / 2,
+                      }}
+                      onMomentumScrollEnd={(e: any) => {
+                        const offsetY = e.nativeEvent.contentOffset.y;
+                        const index = Math.round(offsetY / ITEM_HEIGHT);
+                        const days = generateDays(selectedYear, selectedMonth);
+                        if (days[index] !== undefined) {
+                          setSelectedDay(days[index]);
+                        }
+                      }}
+                      getItemLayout={(_: any, index: number) => ({
+                        length: ITEM_HEIGHT,
+                        offset: ITEM_HEIGHT * index,
+                        index,
+                      })}
+                      renderItem={({ item, index }: { item: number; index: number }) => {
+                        const isSelected = selectedDay === item;
+                        return renderWheelItem(
+                          String(item),
+                          index,
+                          isSelected,
+                          () => {
+                            dayScrollRef.current?.scrollToIndex({ index, animated: true });
+                            setSelectedDay(item);
+                          }
+                        );
+                      }}
+                      initialScrollIndex={Math.min(selectedDay - 1, generateDays(selectedYear, selectedMonth).length - 1)}
+                      onScrollToIndexFailed={(info: any) => {
+                        const wait = new Promise(resolve => setTimeout(resolve, 500));
+                        wait.then(() => {
+                          dayScrollRef.current?.scrollToIndex({ index: info.index, animated: false });
+                        });
+                      }}
+                    />
+                  </View>
+
+                  {/* Year Column */}
+                  <View style={{ flex: 1, marginHorizontal: 2, height: WHEEL_HEIGHT }}>
+                    <FlatList
+                      ref={yearScrollRef}
+                      data={generateYears()}
+                      keyExtractor={(item) => `year-${item}`}
+                      showsVerticalScrollIndicator={false}
+                      snapToInterval={ITEM_HEIGHT}
+                      decelerationRate="fast"
+                      style={{ height: WHEEL_HEIGHT }}
+                      contentContainerStyle={{
+                        paddingVertical: WHEEL_HEIGHT / 2 - ITEM_HEIGHT / 2,
+                      }}
+                      onMomentumScrollEnd={(e: any) => {
+                        const offsetY = e.nativeEvent.contentOffset.y;
+                        const index = Math.round(offsetY / ITEM_HEIGHT);
+                        const years = generateYears();
+                        if (years[index] !== undefined) {
+                          setSelectedYear(years[index]);
+                          // Update day if current day is invalid for new year/month (e.g., Feb 29)
+                          const daysInMonth = getDaysInMonth(years[index], selectedMonth);
+                          if (selectedDay > daysInMonth) {
+                            setSelectedDay(daysInMonth);
+                          }
+                        }
+                      }}
+                      getItemLayout={(_: any, index: number) => ({
+                        length: ITEM_HEIGHT,
+                        offset: ITEM_HEIGHT * index,
+                        index,
+                      })}
+                      renderItem={({ item, index }: { item: number; index: number }) => {
+                        const isSelected = selectedYear === item;
+                        return renderWheelItem(
+                          String(item),
+                          index,
+                          isSelected,
+                          () => {
+                            yearScrollRef.current?.scrollToIndex({ index, animated: true });
+                            setSelectedYear(item);
+                          }
+                        );
+                      }}
+                      initialScrollIndex={selectedYear - (new Date().getFullYear() - 50)}
+                      onScrollToIndexFailed={(info: any) => {
+                        const wait = new Promise(resolve => setTimeout(resolve, 500));
+                        wait.then(() => {
+                          yearScrollRef.current?.scrollToIndex({ index: info.index, animated: false });
+                        });
+                      }}
+                    />
+                  </View>
+                </View>
+              </View>
+
+                {/* Action Buttons - Always at bottom */}
+                <View 
+                  className="flex-row gap-3 px-6" 
+                  style={{ 
+                    paddingTop: screenHeight * 0.015,
+                    paddingBottom: screenHeight * 0.02,
+                    borderTopWidth: 1,
+                    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+                  }}>
+                  <Button
+                    action="secondary"
+                    variant="outline"
+                    onPress={closeModalWithAnimation}
+                    className="flex-1">
+                    <ButtonText>Cancel</ButtonText>
+                  </Button>
+                  <Button
+                    action="primary"
                     onPress={() => {
-                      setSelectedMonth(index);
-                      setViewMode('calendar');
+                      handleDateTimeConfirm();
+                      // Close modal after confirming (handleDateTimeConfirm doesn't close it)
+                      closeModalWithAnimation();
                     }}
-                    className={`w-[30%] bg-zinc-700 rounded-lg p-3 items-center ${
-                      index === selectedMonth ? 'bg-blue-500' : ''
-                    }`}>
-                    <Text className={`text-white font-semibold ${index === selectedMonth ? 'text-white' : ''}`}>
-                      {month}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            {/* Time Selection */}
-            <View className="mb-6">
-              <Text className="text-sm text-white/80 mb-2">Time</Text>
-              <View className="flex-row gap-4">
-                <View className="flex-1">
-                  <Text className="text-xs text-white/60 mb-1">Hours</Text>
-                  <View className="flex-row items-center justify-between bg-zinc-700 rounded-lg p-3">
-                    <TouchableOpacity
-                      onPress={() => {
-                        setSelectedTime({
-                          ...selectedTime,
-                          hours: selectedTime.hours > 0 ? selectedTime.hours - 1 : 23,
-                        });
-                      }}
-                      className="bg-zinc-600 rounded-lg p-2">
-                      <Text className="text-white font-bold">-</Text>
-                    </TouchableOpacity>
-                    <Text className="text-white text-base font-semibold">
-                      {String(selectedTime.hours).padStart(2, '0')}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setSelectedTime({
-                          ...selectedTime,
-                          hours: selectedTime.hours < 23 ? selectedTime.hours + 1 : 0,
-                        });
-                      }}
-                      className="bg-zinc-600 rounded-lg p-2">
-                      <Text className="text-white font-bold">+</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-white/60 mb-1">Minutes</Text>
-                  <View className="flex-row items-center justify-between bg-zinc-700 rounded-lg p-3">
-                    <TouchableOpacity
-                      onPress={() => {
-                        setSelectedTime({
-                          ...selectedTime,
-                          minutes: selectedTime.minutes > 0 ? selectedTime.minutes - 5 : 55,
-                        });
-                      }}
-                      className="bg-zinc-600 rounded-lg p-2">
-                      <Text className="text-white font-bold">-</Text>
-                    </TouchableOpacity>
-                    <Text className="text-white text-base font-semibold">
-                      {String(selectedTime.minutes).padStart(2, '0')}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setSelectedTime({
-                          ...selectedTime,
-                          minutes: selectedTime.minutes < 55 ? selectedTime.minutes + 5 : 0,
-                        });
-                      }}
-                      className="bg-zinc-600 rounded-lg p-2">
-                      <Text className="text-white font-bold">+</Text>
-                    </TouchableOpacity>
-                  </View>
+                    className="flex-1">
+                    <ButtonText>Confirm</ButtonText>
+                  </Button>
                 </View>
               </View>
             </View>
-
-            {/* Action Buttons */}
-            <View className="flex-row gap-3">
-              <Button
-                action="secondary"
-                variant="outline"
-                onPress={() => {
-                  setShowDatePicker(false);
-                  setDatePickerConfig(null);
-                }}
-                className="flex-1">
-                <ButtonText>Cancel</ButtonText>
-              </Button>
-              <Button
-                action="primary"
-                onPress={handleDateTimeConfirm}
-                className="flex-1">
-                <ButtonText>Confirm</ButtonText>
-              </Button>
-            </View>
-          </View>
-        </View>
+          </Animated.View>
+    </View>
       </Modal>
     </>
   );

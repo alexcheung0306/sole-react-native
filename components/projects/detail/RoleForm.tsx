@@ -175,9 +175,8 @@ export function RoleForm({
   ];
 
   return (
-    <>
-      <Formik key={`${method}-${roleId || 'new'}`} initialValues={initialValues} enableReinitialize={false} onSubmit={handleSubmit}>
-        {({ values, setFieldValue, setValues, submitForm, resetForm, touched, setFieldTouched }) => {
+    <Formik key={`${method}-${roleId || 'new'}`} initialValues={initialValues} enableReinitialize={false} onSubmit={handleSubmit}>
+      {({ values, setFieldValue, setValues, submitForm, resetForm, touched, setFieldTouched }) => {
         const handleFillLater = () => {
           setFillSchedulesLater(true);
           setFieldValue('activityScheduleLists', []);
@@ -457,6 +456,5 @@ export function RoleForm({
         );
       }}
     </Formik>
-    </>
   );
 }
