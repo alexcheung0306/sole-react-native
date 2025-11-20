@@ -94,6 +94,41 @@ export function RoleScheduleListInputs({
   const dayScrollRef = useRef<FlatList<number>>(null);
   const yearScrollRef = useRef<FlatList<number>>(null);
   
+  // Throttle refs for scroll updates
+  const hourScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const minuteScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const monthScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const dayScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const yearScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Helper function to update selection based on scroll position
+  const updateSelectionFromScroll = (
+    offsetY: number,
+    dataArray: any[],
+    currentValue: any,
+    setter: (value: any) => void,
+    timeoutRef: React.MutableRefObject<NodeJS.Timeout | null>
+  ) => {
+    // Clear existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    // Calculate which item is in the center (blue selection area)
+    const centerOffset = offsetY + (WHEEL_HEIGHT / 2) - (WHEEL_HEIGHT / 2 - ITEM_HEIGHT / 2);
+    const index = Math.round(centerOffset / ITEM_HEIGHT);
+    const clampedIndex = Math.max(0, Math.min(index, dataArray.length - 1));
+    const newValue = dataArray[clampedIndex];
+    
+    // Only update if value changed
+    if (newValue !== undefined && newValue !== currentValue) {
+      // Throttle updates slightly to avoid excessive re-renders
+      timeoutRef.current = setTimeout(() => {
+        setter(newValue);
+      }, 50);
+    }
+  };
+  
   // Animate modal when showDatePicker changes
   useEffect(() => {
     if (showDatePicker) {
@@ -943,11 +978,38 @@ export function RoleScheduleListInputs({
                       contentContainerStyle={{
                         paddingVertical: WHEEL_HEIGHT / 2 - ITEM_HEIGHT / 2,
                       }}
-                      onMomentumScrollEnd={(e: any) => {
+                      onScroll={(e: any) => {
+                        const offsetY = e.nativeEvent.contentOffset.y;
+                        updateSelectionFromScroll(
+                          offsetY,
+                          generateHours(),
+                          selectedTime.hours,
+                          (hours) => setSelectedTime({ ...selectedTime, hours }),
+                          hourScrollTimeoutRef
+                        );
+                      }}
+                      scrollEventThrottle={16}
+                      onScrollEndDrag={(e: any) => {
+                        // Clear timeout on scroll end
+                        if (hourScrollTimeoutRef.current) {
+                          clearTimeout(hourScrollTimeoutRef.current);
+                        }
                         const offsetY = e.nativeEvent.contentOffset.y;
                         const index = Math.round(offsetY / ITEM_HEIGHT);
                         const hours = generateHours()[index];
-                        if (hours !== undefined) {
+                        if (hours !== undefined && hours !== selectedTime.hours) {
+                          setSelectedTime({ ...selectedTime, hours });
+                        }
+                      }}
+                      onMomentumScrollEnd={(e: any) => {
+                        // Clear timeout on momentum end
+                        if (hourScrollTimeoutRef.current) {
+                          clearTimeout(hourScrollTimeoutRef.current);
+                        }
+                        const offsetY = e.nativeEvent.contentOffset.y;
+                        const index = Math.round(offsetY / ITEM_HEIGHT);
+                        const hours = generateHours()[index];
+                        if (hours !== undefined && hours !== selectedTime.hours) {
                           setSelectedTime({ ...selectedTime, hours });
                         }
                       }}
@@ -991,11 +1053,38 @@ export function RoleScheduleListInputs({
                       contentContainerStyle={{
                         paddingVertical: WHEEL_HEIGHT / 2 - ITEM_HEIGHT / 2,
                       }}
-                      onMomentumScrollEnd={(e: any) => {
+                      onScroll={(e: any) => {
+                        const offsetY = e.nativeEvent.contentOffset.y;
+                        updateSelectionFromScroll(
+                          offsetY,
+                          generateMinutes(),
+                          selectedTime.minutes,
+                          (minutes) => setSelectedTime({ ...selectedTime, minutes }),
+                          minuteScrollTimeoutRef
+                        );
+                      }}
+                      scrollEventThrottle={16}
+                      onScrollEndDrag={(e: any) => {
+                        // Clear timeout on scroll end
+                        if (minuteScrollTimeoutRef.current) {
+                          clearTimeout(minuteScrollTimeoutRef.current);
+                        }
                         const offsetY = e.nativeEvent.contentOffset.y;
                         const index = Math.round(offsetY / ITEM_HEIGHT);
                         const minutes = generateMinutes()[index];
-                        if (minutes !== undefined) {
+                        if (minutes !== undefined && minutes !== selectedTime.minutes) {
+                          setSelectedTime({ ...selectedTime, minutes });
+                        }
+                      }}
+                      onMomentumScrollEnd={(e: any) => {
+                        // Clear timeout on momentum end
+                        if (minuteScrollTimeoutRef.current) {
+                          clearTimeout(minuteScrollTimeoutRef.current);
+                        }
+                        const offsetY = e.nativeEvent.contentOffset.y;
+                        const index = Math.round(offsetY / ITEM_HEIGHT);
+                        const minutes = generateMinutes()[index];
+                        if (minutes !== undefined && minutes !== selectedTime.minutes) {
                           setSelectedTime({ ...selectedTime, minutes });
                         }
                       }}
@@ -1042,14 +1131,58 @@ export function RoleScheduleListInputs({
                       contentContainerStyle={{
                         paddingVertical: WHEEL_HEIGHT / 2 - ITEM_HEIGHT / 2,
                       }}
-                      onMomentumScrollEnd={(e: any) => {
+                      onScroll={(e: any) => {
+                        const offsetY = e.nativeEvent.contentOffset.y;
+                        // Calculate which month is in the center
+                        const centerOffset = offsetY + (WHEEL_HEIGHT / 2) - (WHEEL_HEIGHT / 2 - ITEM_HEIGHT / 2);
+                        const index = Math.round(centerOffset / ITEM_HEIGHT);
+                        const clampedIndex = Math.max(0, Math.min(index, 11)); // 12 months (0-11)
+                        
+                        if (clampedIndex !== selectedMonth) {
+                          if (monthScrollTimeoutRef.current) {
+                            clearTimeout(monthScrollTimeoutRef.current);
+                          }
+                          monthScrollTimeoutRef.current = setTimeout(() => {
+                            setSelectedMonth(clampedIndex);
+                            // Update day if current day is invalid for new month
+                            const daysInNewMonth = getDaysInMonth(selectedYear, clampedIndex);
+                            if (selectedDay > daysInNewMonth) {
+                              setSelectedDay(daysInNewMonth);
+                            }
+                          }, 50);
+                        }
+                      }}
+                      scrollEventThrottle={16}
+                      onScrollEndDrag={(e: any) => {
+                        // Clear timeout on scroll end
+                        if (monthScrollTimeoutRef.current) {
+                          clearTimeout(monthScrollTimeoutRef.current);
+                        }
                         const offsetY = e.nativeEvent.contentOffset.y;
                         const index = Math.round(offsetY / ITEM_HEIGHT);
-                        setSelectedMonth(index);
-                        // Update day if current day is invalid for new month
-                        const daysInNewMonth = getDaysInMonth(selectedYear, index);
-                        if (selectedDay > daysInNewMonth) {
-                          setSelectedDay(daysInNewMonth);
+                        if (index !== selectedMonth) {
+                          setSelectedMonth(index);
+                          // Update day if current day is invalid for new month
+                          const daysInNewMonth = getDaysInMonth(selectedYear, index);
+                          if (selectedDay > daysInNewMonth) {
+                            setSelectedDay(daysInNewMonth);
+                          }
+                        }
+                      }}
+                      onMomentumScrollEnd={(e: any) => {
+                        // Clear timeout on momentum end
+                        if (monthScrollTimeoutRef.current) {
+                          clearTimeout(monthScrollTimeoutRef.current);
+                        }
+                        const offsetY = e.nativeEvent.contentOffset.y;
+                        const index = Math.round(offsetY / ITEM_HEIGHT);
+                        if (index !== selectedMonth) {
+                          setSelectedMonth(index);
+                          // Update day if current day is invalid for new month
+                          const daysInNewMonth = getDaysInMonth(selectedYear, index);
+                          if (selectedDay > daysInNewMonth) {
+                            setSelectedDay(daysInNewMonth);
+                          }
                         }
                       }}
                       getItemLayout={(_: any, index: number) => ({
@@ -1093,11 +1226,39 @@ export function RoleScheduleListInputs({
                       contentContainerStyle={{
                         paddingVertical: WHEEL_HEIGHT / 2 - ITEM_HEIGHT / 2,
                       }}
-                      onMomentumScrollEnd={(e: any) => {
+                      onScroll={(e: any) => {
+                        const offsetY = e.nativeEvent.contentOffset.y;
+                        const days = generateDays(selectedYear, selectedMonth);
+                        updateSelectionFromScroll(
+                          offsetY,
+                          days,
+                          selectedDay,
+                          (day) => setSelectedDay(day),
+                          dayScrollTimeoutRef
+                        );
+                      }}
+                      scrollEventThrottle={16}
+                      onScrollEndDrag={(e: any) => {
+                        // Clear timeout on scroll end
+                        if (dayScrollTimeoutRef.current) {
+                          clearTimeout(dayScrollTimeoutRef.current);
+                        }
                         const offsetY = e.nativeEvent.contentOffset.y;
                         const index = Math.round(offsetY / ITEM_HEIGHT);
                         const days = generateDays(selectedYear, selectedMonth);
-                        if (days[index] !== undefined) {
+                        if (days[index] !== undefined && days[index] !== selectedDay) {
+                          setSelectedDay(days[index]);
+                        }
+                      }}
+                      onMomentumScrollEnd={(e: any) => {
+                        // Clear timeout on momentum end
+                        if (dayScrollTimeoutRef.current) {
+                          clearTimeout(dayScrollTimeoutRef.current);
+                        }
+                        const offsetY = e.nativeEvent.contentOffset.y;
+                        const index = Math.round(offsetY / ITEM_HEIGHT);
+                        const days = generateDays(selectedYear, selectedMonth);
+                        if (days[index] !== undefined && days[index] !== selectedDay) {
                           setSelectedDay(days[index]);
                         }
                       }}
@@ -1141,11 +1302,56 @@ export function RoleScheduleListInputs({
                       contentContainerStyle={{
                         paddingVertical: WHEEL_HEIGHT / 2 - ITEM_HEIGHT / 2,
                       }}
-                      onMomentumScrollEnd={(e: any) => {
+                      onScroll={(e: any) => {
+                        const offsetY = e.nativeEvent.contentOffset.y;
+                        const years = generateYears();
+                        // Calculate which year is in the center
+                        const centerOffset = offsetY + (WHEEL_HEIGHT / 2) - (WHEEL_HEIGHT / 2 - ITEM_HEIGHT / 2);
+                        const index = Math.round(centerOffset / ITEM_HEIGHT);
+                        const clampedIndex = Math.max(0, Math.min(index, years.length - 1));
+                        const newYear = years[clampedIndex];
+                        
+                        if (newYear !== undefined && newYear !== selectedYear) {
+                          if (yearScrollTimeoutRef.current) {
+                            clearTimeout(yearScrollTimeoutRef.current);
+                          }
+                          yearScrollTimeoutRef.current = setTimeout(() => {
+                            setSelectedYear(newYear);
+                            // Update day if current day is invalid for new year/month (e.g., Feb 29)
+                            const daysInMonth = getDaysInMonth(newYear, selectedMonth);
+                            if (selectedDay > daysInMonth) {
+                              setSelectedDay(daysInMonth);
+                            }
+                          }, 50);
+                        }
+                      }}
+                      scrollEventThrottle={16}
+                      onScrollEndDrag={(e: any) => {
+                        // Clear timeout on scroll end
+                        if (yearScrollTimeoutRef.current) {
+                          clearTimeout(yearScrollTimeoutRef.current);
+                        }
                         const offsetY = e.nativeEvent.contentOffset.y;
                         const index = Math.round(offsetY / ITEM_HEIGHT);
                         const years = generateYears();
-                        if (years[index] !== undefined) {
+                        if (years[index] !== undefined && years[index] !== selectedYear) {
+                          setSelectedYear(years[index]);
+                          // Update day if current day is invalid for new year/month (e.g., Feb 29)
+                          const daysInMonth = getDaysInMonth(years[index], selectedMonth);
+                          if (selectedDay > daysInMonth) {
+                            setSelectedDay(daysInMonth);
+                          }
+                        }
+                      }}
+                      onMomentumScrollEnd={(e: any) => {
+                        // Clear timeout on momentum end
+                        if (yearScrollTimeoutRef.current) {
+                          clearTimeout(yearScrollTimeoutRef.current);
+                        }
+                        const offsetY = e.nativeEvent.contentOffset.y;
+                        const index = Math.round(offsetY / ITEM_HEIGHT);
+                        const years = generateYears();
+                        if (years[index] !== undefined && years[index] !== selectedYear) {
                           setSelectedYear(years[index]);
                           // Update day if current day is invalid for new year/month (e.g., Feb 29)
                           const daysInMonth = getDaysInMonth(years[index], selectedMonth);
