@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Platform, Modal, Pressable } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Platform, Modal, Pressable, StyleSheet } from 'react-native';
 import { Plus, Trash2, MapPin, Calendar, Clock } from 'lucide-react-native';
 import { Input, InputField } from '@/components/ui/input';
 import { Textarea, TextareaInput } from '@/components/ui/textarea';
@@ -19,7 +19,9 @@ interface RoleScheduleListInputsProps {
   onFillLater?: () => void;
   fillSchedulesLater: boolean;
   isFinal?: boolean;
-  // Actionsheet state handlers - moved to parent to fix z-index
+  // Ref callback to register close handler with parent
+  onRegisterScrollClose?: (closeHandler: () => void) => void;
+  // Legacy props - kept for compatibility but not used with inline dropdown
   showTypePicker?: boolean;
   setShowTypePicker?: (show: boolean) => void;
   selectedActivityIndex?: number | null;
@@ -37,6 +39,7 @@ export function RoleScheduleListInputs({
   onFillLater,
   fillSchedulesLater,
   isFinal = false,
+  onRegisterScrollClose,
   showTypePicker = false,
   setShowTypePicker,
   selectedActivityIndex = null,
@@ -69,12 +72,37 @@ export function RoleScheduleListInputs({
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   const [viewMode, setViewMode] = useState<'calendar' | 'year' | 'month'>('calendar');
   
+  // Inline dropdown state for activity type
+  const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(null);
+  const dropdownRefs = useRef<{ [key: number]: View | null }>({});
+  const [dropdownLayouts, setDropdownLayouts] = useState<{ [key: number]: { x: number; y: number; width: number; height: number } }>({});
+  
   // Set up callback for activity type selection
   useEffect(() => {
     if (setActivityTypeSelectCallback && onActivityTypeSelect) {
       setActivityTypeSelectCallback(onActivityTypeSelect);
     }
   }, [setActivityTypeSelectCallback, onActivityTypeSelect]);
+  
+  // Register close handler with parent for scroll detection
+  useEffect(() => {
+    if (onRegisterScrollClose) {
+      onRegisterScrollClose(() => {
+        if (openDropdownIndex !== null) {
+          setOpenDropdownIndex(null);
+        }
+      });
+    }
+  }, [onRegisterScrollClose, openDropdownIndex]);
+  
+  // Measure dropdown field position
+  const measureDropdownField = (activityIndex: number, event: any) => {
+    const { x, y, width, height } = event.nativeEvent.layout;
+    setDropdownLayouts((prev) => ({
+      ...prev,
+      [activityIndex]: { x, y, width, height },
+    }));
+  };
   
   // Calendar helper functions
   const getDaysInMonth = (year: number, month: number) => {
@@ -326,16 +354,18 @@ export function RoleScheduleListInputs({
 
   return (
     <>
-      <View className="gap-4">
-        {fillSchedulesLater ? (
-          <View className="mb-4 rounded-lg border border-green-500/50 bg-green-500/10 p-3">
-            <Text className="text-sm text-green-400">
-              Schedules will be filled later. You can proceed to the next step.
-            </Text>
-          </View>
-        ) : (
-          <>
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+    <View className="gap-4">
+      {fillSchedulesLater ? (
+        <View className="mb-4 rounded-lg border border-green-500/50 bg-green-500/10 p-3">
+          <Text className="text-sm text-green-400">
+            Schedules will be filled later. You can proceed to the next step.
+          </Text>
+        </View>
+      ) : (
+        <>
+             <ScrollView 
+               className="flex-1" 
+               showsVerticalScrollIndicator={false}>
             {getActivities().map((activity: any, activityIndex: number) => {
               const titleFieldname = `activityScheduleLists.${activityIndex}.title`;
               const typeFieldname = `activityScheduleLists.${activityIndex}.type`;
@@ -409,20 +439,99 @@ export function RoleScheduleListInputs({
                   </View>
 
                   {/* Activity Type */}
-                  <View className="mb-3">
+                  <View className="mb-3" style={{ position: 'relative', zIndex: openDropdownIndex === activityIndex ? 1000 : 1 }}>
                     <Text className="mb-2 text-sm text-white">Activity Type *</Text>
+                    <View
+                      onLayout={(e) => measureDropdownField(activityIndex, e)}
+                      ref={(ref) => {
+                        dropdownRefs.current[activityIndex] = ref;
+                      }}>
                     <TouchableOpacity
                       onPress={() => {
                         if (!isFinal) {
-                          actualSetSelectedActivityIndex(activityIndex);
-                          actualSetShowTypePicker(true);
+                            setOpenDropdownIndex(openDropdownIndex === activityIndex ? null : activityIndex);
                         }
                       }}
                       disabled={isFinal}
-                      className="flex-row items-center justify-between rounded-lg border border-white/20 bg-zinc-700 p-3">
+                        className={`flex-row items-center justify-between rounded-lg border p-3 ${
+                          openDropdownIndex === activityIndex 
+                            ? 'border-blue-500/50 bg-zinc-700' 
+                            : 'border-white/20 bg-zinc-700'
+                        }`}>
                       <Text className="text-white">{activity.type ? activityTypes.find((t) => t.key === activity.type)?.label || activity.type : 'Select activity type'}</Text>
-                      {!isFinal && <ChevronDown size={16} color="#ffffff" />}
+                        {!isFinal && (
+                          <ChevronDown 
+                            size={16} 
+                            color="#ffffff" 
+                            style={{ 
+                              transform: [{ rotate: openDropdownIndex === activityIndex ? '180deg' : '0deg' }],
+                            }} 
+                          />
+                        )}
                     </TouchableOpacity>
+                    </View>
+                    
+                    {/* Inline Dropdown Menu */}
+                    {openDropdownIndex === activityIndex && !isFinal && dropdownLayouts[activityIndex] && (
+                      <View
+                        pointerEvents="box-none"
+                        style={{
+                          position: 'absolute',
+                          top: dropdownLayouts[activityIndex].height + 4,
+                          left: 0,
+                          right: 0,
+                          backgroundColor: '#27272a',
+                          borderRadius: 12,
+                          borderWidth: 1,
+                          borderColor: 'rgba(255, 255, 255, 0.2)',
+                          maxHeight: 200,
+                          zIndex: 1001,
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 4 },
+                          shadowOpacity: 0.3,
+                          shadowRadius: 8,
+                          elevation: 10,
+                        }}>
+                        <ScrollView 
+                          nestedScrollEnabled
+                          showsVerticalScrollIndicator={false}
+                          style={{ maxHeight: 200 }}
+                          keyboardShouldPersistTaps="handled"
+                          pointerEvents="auto">
+                          {getAvailableActivityTypes(activityIndex).map((type, index, array) => (
+                            <TouchableOpacity
+                              key={type.key}
+                              activeOpacity={0.7}
+                              onPress={() => {
+                                const currentActivities = [...getActivities()];
+                                if (currentActivities[activityIndex]) {
+                                  currentActivities[activityIndex].type = type.key;
+                                  setFieldValue('activityScheduleLists', currentActivities);
+                                  handleFieldBlur(`activityScheduleLists.${activityIndex}.type`);
+                                  setOpenDropdownIndex(null);
+                                }
+                              }}
+                              className={`px-4 py-3 ${
+                                activity.type === type.key ? 'bg-blue-500/20' : ''
+                              }`}
+                              style={{
+                                borderBottomWidth: index === array.length - 1 ? 0 : 1,
+                                borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+                              }}>
+                              <View className="flex-row items-center justify-between">
+                                <Text className={`text-base ${activity.type === type.key ? 'text-blue-400 font-semibold' : 'text-white'}`}>
+                                  {type.label}
+                                </Text>
+                                {activity.type === type.key && (
+                                  <View className="w-2 h-2 rounded-full bg-blue-500" />
+                                )}
+                              </View>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      </View>
+                    )}
+                    
                     {isTypeTouched && validateActivityType(activity.type) ? (
                       <Text className="mt-1 text-xs text-red-400">{validateActivityType(activity.type)}</Text>
                     ) : null}
@@ -558,8 +667,8 @@ export function RoleScheduleListInputs({
               </Button>
             )}
           </View>
-          </>
-        )}
+        </>
+      )}
       </View>
 
       {/* Activity Type Picker - Only render if managed internally */}
@@ -576,27 +685,27 @@ export function RoleScheduleListInputs({
               actualSetSelectedActivityIndex(null);
             }}
           />
-          <ActionsheetContent>
-            <ActionsheetDragIndicatorWrapper>
-              <ActionsheetDragIndicator />
-            </ActionsheetDragIndicatorWrapper>
+        <ActionsheetContent>
+          <ActionsheetDragIndicatorWrapper>
+            <ActionsheetDragIndicator />
+          </ActionsheetDragIndicatorWrapper>
             {actualSelectedActivityIndex !== null &&
               getAvailableActivityTypes(actualSelectedActivityIndex).map((type) => (
-                <ActionsheetItem
-                  key={type.key}
-                  onPress={() => {
+              <ActionsheetItem
+                key={type.key}
+                onPress={() => {
                     const updated = [...getActivities()];
                     updated[actualSelectedActivityIndex].type = type.key;
-                    setFieldValue('activityScheduleLists', updated);
+                  setFieldValue('activityScheduleLists', updated);
                     handleFieldBlur(`activityScheduleLists.${actualSelectedActivityIndex}.type`);
                     actualSetShowTypePicker(false);
                     actualSetSelectedActivityIndex(null);
-                  }}>
-                  <ActionsheetItemText>{type.label}</ActionsheetItemText>
-                </ActionsheetItem>
-              ))}
-          </ActionsheetContent>
-        </Actionsheet>
+                }}>
+                <ActionsheetItemText>{type.label}</ActionsheetItemText>
+              </ActionsheetItem>
+            ))}
+        </ActionsheetContent>
+      </Actionsheet>
       )}
 
       {/* Date/Time Picker Modal */}
@@ -715,7 +824,7 @@ export function RoleScheduleListInputs({
                         rows.push(
                           <View key={`row-${i}`} className="flex-row mb-1">
                             {days.slice(i, i + 7)}
-                          </View>
+    </View>
                         );
                       }
                       return rows;

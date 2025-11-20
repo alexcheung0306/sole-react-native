@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Modal, Pressable, StyleSheet } from 'react-native';
+import { useState, useRef } from 'react';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Formik } from 'formik';
 import { Plus, Pencil } from 'lucide-react-native';
@@ -16,8 +16,6 @@ import { RoleRequirementsInputs } from './RoleRequirementsInputs';
 import { RoleScheduleListInputs } from './RoleScheduleListInputs';
 import { RoleConfirm } from './RoleConfirm';
 import { FillRoleFormButton } from './FillRoleFormButton';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicatorWrapper, ActionsheetDragIndicator, ActionsheetItem, ActionsheetItemText } from '@/components/ui/actionsheet';
-import { activityTypes } from '@/components/form-components/options-to-use';
 
 type RoleFormProps = {
   projectId: number;
@@ -41,11 +39,7 @@ export function RoleForm({
   const [fillSchedulesLater, setFillSchedulesLater] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [ethnic, setEthnic] = useState<Set<string>>(new Set());
-  
-  // Activity Type Picker state - managed at RoleForm level to fix z-index
-  const [showTypePicker, setShowTypePicker] = useState(false);
-  const [selectedActivityIndex, setSelectedActivityIndex] = useState<number | null>(null);
-  const [activityTypeSelectCallback, setActivityTypeSelectCallback] = useState<((activityIndex: number, typeKey: string) => void) | null>(null);
+  const closeDropdownRef = useRef<(() => void) | null>(null);
 
   // Handle both old format (fetchedValues directly) and new format (roleWithSchedules with nested role)
   const roleData = fetchedValues?.role ? fetchedValues.role : fetchedValues;
@@ -350,17 +344,9 @@ export function RoleForm({
                   setFieldTouched={setFieldTouched}
                   onFillLater={handleFillLater}
                   fillSchedulesLater={fillSchedulesLater}
-                  showTypePicker={showTypePicker}
-                  setShowTypePicker={setShowTypePicker}
-                  selectedActivityIndex={selectedActivityIndex}
-                  setSelectedActivityIndex={setSelectedActivityIndex}
-                  onActivityTypeSelect={(activityIndex: number, typeKey: string) => {
-                    const updated = [...(values.activityScheduleLists || [])];
-                    updated[activityIndex].type = typeKey;
-                    setFieldValue('activityScheduleLists', updated);
-                    setFieldTouched(`activityScheduleLists.${activityIndex}.type`, true, false);
+                  onRegisterScrollClose={(closeHandler) => {
+                    closeDropdownRef.current = closeHandler;
                   }}
-                  setActivityTypeSelectCallback={(callback) => setActivityTypeSelectCallback(() => callback)}
                 />
               );
             case 'confirm':
@@ -423,7 +409,15 @@ export function RoleForm({
                     />
                     {renderBreadcrumbs()}
                   </View>
-                  <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
+                  <ScrollView 
+                    className="flex-1 px-4" 
+                    showsVerticalScrollIndicator={false}
+                    onScrollBeginDrag={() => {
+                      if (closeDropdownRef.current) {
+                        closeDropdownRef.current();
+                      }
+                    }}
+                    scrollEventThrottle={16}>
                     {renderPageContent()}
                   </ScrollView>
                   <View className="flex-row gap-3 border-t border-white/10 px-4 py-4">
@@ -462,51 +456,7 @@ export function RoleForm({
           </>
         );
       }}
-      </Formik>
-
-      {/* Activity Type Picker - Rendered at root level using Modal to ensure it's above everything */}
-      <Modal
-        visible={showTypePicker}
-        transparent
-        animationType="slide"
-        onRequestClose={() => {
-          setShowTypePicker(false);
-          setSelectedActivityIndex(null);
-        }}>
-        <Pressable 
-          style={StyleSheet.absoluteFill}
-          onPress={() => {
-            setShowTypePicker(false);
-            setSelectedActivityIndex(null);
-          }}>
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0, 0, 0, 0.5)' }]} />
-        </Pressable>
-        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-          <View className="bg-zinc-800 rounded-t-3xl border-t border-white/10" style={{ maxHeight: '70%' }}>
-            <View className="items-center py-3 border-b border-white/10">
-              <View className="w-12 h-1 bg-white/30 rounded-full mb-2" />
-              <Text className="text-lg font-semibold text-white mb-2">Select Activity Type</Text>
-            </View>
-            <ScrollView className="max-h-96">
-              {selectedActivityIndex !== null &&
-                activityTypes.map((type) => (
-                  <TouchableOpacity
-                    key={type.key}
-                    onPress={() => {
-                      if (selectedActivityIndex !== null && activityTypeSelectCallback) {
-                        activityTypeSelectCallback(selectedActivityIndex, type.key);
-                        setShowTypePicker(false);
-                        setSelectedActivityIndex(null);
-                      }
-                    }}
-                    className="px-4 py-4 border-b border-white/10 active:bg-zinc-700">
-                    <Text className="text-white text-base">{type.label}</Text>
-                  </TouchableOpacity>
-                ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+    </Formik>
     </>
   );
 }
