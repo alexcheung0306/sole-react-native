@@ -53,8 +53,9 @@ export const validateImageField = (
   return null;
 };
 
-export const getFieldError = (fieldname: string, value: any, isTouched: boolean) => {
-  if (!isTouched) return null;
+export const getFieldError = (fieldname: string, value: any, isTouched: boolean | ((field: string) => boolean)) => {
+  const isFieldTouched = typeof isTouched === 'function' ? isTouched(fieldname) : isTouched;
+  if (!isFieldTouched) return null;
   return validateField(value, fieldname.split('.').pop() || fieldname);
 };
 

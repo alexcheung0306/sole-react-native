@@ -1,13 +1,21 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil } from 'lucide-react-native';
-import { CollapseDrawer } from '@/components/custom/collapse-drawer';
-import { PrimaryButton } from '@/components/custom/primary-button';
-import {
-  createRoleWithSchedules,
-  updateRoleAndSchedules,
-} from '@/api/apiservice/role_api';
+import { Formik } from 'formik';
+import { PlusCircle, Pencil } from 'lucide-react-native';
+import { FormModal } from '@/components/custom/form-modal';
+import { Button, ButtonText, ButtonIcon } from '@/components/ui/button';
+import { VStack } from '@/components/ui/vstack';
+import { HStack } from '@/components/ui/hstack';
+import { createRoleWithSchedules, updateRoleAndSchedules } from '@/api/apiservice/role_api';
+import { validateField, validateNumberField } from '@/lib/validations/form-field-validations';
+import { validateRoleTitle, validateRoleDescription } from '@/lib/validations/role-validation';
+import { validateGender } from '@/lib/validations/talentInfo-validations';
+import { validateActivityTitle, validateActivityType, validateScheduleList } from '@/lib/validations/role-validation';
+import { RoleInformationInput } from './RoleInformationInput';
+import { RoleRequirementsInputs } from './RoleRequirementsInputs';
+import { RoleScheduleListInputs } from './RoleScheduleListInputs';
+import { RoleConfirm } from './RoleConfirm';
 
 type RoleFormProps = {
   projectId: number;
@@ -27,227 +35,401 @@ export function RoleForm({
   refetchRoles,
 }: RoleFormProps) {
   const queryClient = useQueryClient();
+  const [currentPage, setCurrentPage] = useState<'roleInformation' | 'requirements' | 'schedules' | 'confirm'>('roleInformation');
+  const [fillSchedulesLater, setFillSchedulesLater] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [ethnic, setEthnic] = useState<Set<string>>(new Set());
 
   // Handle both old format (fetchedValues directly) and new format (roleWithSchedules with nested role)
   const roleData = fetchedValues?.role ? fetchedValues.role : fetchedValues;
   const activitiesData = fetchedValues?.activities ? fetchedValues.activities : [];
 
-  const [roleTitle, setRoleTitle] = useState(roleData?.roleTitle || '');
-  const [roleDescription, setRoleDescription] = useState(roleData?.roleDescription || '');
-  const [talentCount, setTalentCount] = useState(String(roleData?.talentNumbers || 1));
+  const categoryValue =
+    roleData?.category && typeof roleData.category === 'string' ? roleData.category.split(',').filter(Boolean) : [];
 
-  const createRoleMutation = useMutation({
-    mutationFn: ({ title, description, count }: { title: string; description: string; count: number }) => {
-      const parsedValues = {
-        projectId,
-        requiredGender: 'Any',
-        roleTitle: title,
-        roleDescription: description,
-        paymentBasis: 'Fixed',
-        budget: 0,
-        talentNumbers: count,
-        displayBudgetTo: 'talent',
-        talentsQuote: false,
-        otPayment: '',
-        ageMin: null,
-        ageMax: null,
-        heightMin: null,
-        heightMax: null,
-        category: [],
-        requiredEthnicGroup: '',
-        skills: '',
-        questions: '',
-        isCastingRequired: false,
-        isFittingRequired: false,
-        isJobScheduleReady: false,
-      } as any;
+  const ethnicValue =
+    roleData?.requiredEthnicGroup &&
+    typeof roleData.requiredEthnicGroup === 'string' &&
+    roleData.requiredEthnicGroup !== 'No Preference'
+      ? new Set(roleData.requiredEthnicGroup.split(',').filter(Boolean))
+      : new Set();
 
-      const scheduleValues = {
-        activityScheduleLists: [],
-      };
-
-      return createRoleWithSchedules(parsedValues, scheduleValues);
+  const roleMutation = useMutation({
+    mutationFn: async (values: any) => {
+      if (method === 'POST') {
+        return await createRoleWithSchedules(values, values);
+      } else if (method === 'PUT') {
+        return await updateRoleAndSchedules(String(roleId), values, values);
+      }
     },
     onSuccess: () => {
-      refetchRoles();
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['manageProjects'] });
       queryClient.invalidateQueries({ queryKey: ['project-roles', projectId] });
-      setRoleTitle('');
-      setRoleDescription('');
-      setTalentCount('1');
+      queryClient.invalidateQueries({ queryKey: ['rolesWithSchedules', projectId] });
+      refetchRoles();
     },
   });
 
-  const updateRoleMutation = useMutation({
-    mutationFn: ({
-      title,
-      description,
-      count,
-    }: {
-      title: string;
-      description: string;
-      count: number;
-    }) => {
+  const handleSubmit = async (values: any) => {
+    try {
       const parsedValues = {
-        projectId,
-        requiredGender: roleData?.requiredGender ?? 'Any',
-        roleTitle: title,
-        roleDescription: description,
-        paymentBasis: roleData?.paymentBasis ?? 'Fixed',
-        budget: roleData?.budget ?? 0,
-        talentNumbers: count,
-        displayBudgetTo: roleData?.displayBudgetTo ?? 'talent',
-        talentsQuote: roleData?.talentsQuote ?? false,
-        otPayment: roleData?.otPayment ?? '',
-        ageMin: roleData?.ageMin ?? null,
-        ageMax: roleData?.ageMax ?? null,
-        heightMin: roleData?.heightMin ?? null,
-        heightMax: roleData?.heightMax ?? null,
-        category: roleData?.category ?? [],
-        requiredEthnicGroup: roleData?.requiredEthnicGroup ?? '',
-        skills: roleData?.skills ?? '',
-        questions: roleData?.questions ?? '',
-        isCastingRequired: roleData?.isCastingRequired ?? false,
-        isFittingRequired: roleData?.isFittingRequired ?? false,
-        isJobScheduleReady: roleData?.isJobScheduleReady ?? false,
-      } as any;
-
-      const scheduleValues = {
-        activityScheduleLists: activitiesData.map((activity: any) => ({
-          id: activity?.id,
-          title: activity?.title,
-          type: activity?.type,
-          remarks: activity?.remarks ?? '',
-          schedules: activity?.schedules ?? [],
-        })),
+        ...values,
+        ...(method === 'POST' ? { projectId } : { category: selectedCategories.join(',') }),
       };
-
-      return updateRoleAndSchedules(String(roleId), parsedValues, scheduleValues);
-    },
-    onSuccess: () => {
-      refetchRoles();
-      queryClient.invalidateQueries({ queryKey: ['project-roles', projectId] });
-    },
-  });
-
-  const handleSubmit = (close: () => void) => {
-    const count = Number(talentCount) || 1;
-    if (method === 'POST') {
-      createRoleMutation.mutate(
-        { title: roleTitle.trim(), description: roleDescription.trim(), count },
-        {
-          onSuccess: () => {
-            close();
-          },
-        }
-      );
-    } else {
-      if (!roleId) return;
-      updateRoleMutation.mutate(
-        {
-          title: roleTitle.trim(),
-          description: roleDescription.trim(),
-          count,
-        },
-        {
-          onSuccess: () => {
-            close();
-          },
-        }
-      );
+      await roleMutation.mutateAsync(parsedValues);
+    } catch (e) {
+      console.log('Error Submitting Role Form', e);
     }
   };
 
-  const isSubmitting = createRoleMutation.isPending || updateRoleMutation.isPending;
-  const hasErrors = !roleTitle.trim() || !roleDescription.trim();
+  // Reset all form state to initial values
+  const resetFormState = () => {
+    setSelectedCategories([]);
+    setEthnic(new Set());
+    setCurrentPage('roleInformation');
+    setFillSchedulesLater(false);
+  };
+
+  const initialValues = fetchedValues
+    ? {
+        projectId: roleData.projectId || projectId,
+        roleTitle: roleData.roleTitle || '',
+        roleDescription: roleData.roleDescription || '',
+        paymentBasis: roleData.paymentBasis || 'On Project',
+        budget: roleData.budget || 1000,
+        talentNumbers: roleData.talentNumbers || 1,
+        displayBudgetTo: roleData.displayBudgetTo || 'Everyone',
+        talentsQuote: roleData.talentsQuote || false,
+        otPayment: roleData.otPayment !== undefined ? roleData.otPayment : true,
+        questions: roleData.questions || '',
+        requiredGender: roleData.requiredGender || 'No Preference',
+        ageMin: roleData.ageMin || 15,
+        ageMax: roleData.ageMax || 30,
+        heightMin: roleData.heightMin || 160,
+        heightMax: roleData.heightMax || 210,
+        category: roleData.category || '',
+        requiredEthnicGroup: roleData.requiredEthnicGroup || 'No Preference',
+        skills: roleData.skills || '',
+        activityScheduleLists:
+          activitiesData.length > 0
+            ? activitiesData
+            : [
+                {
+                  title: '',
+                  type: '',
+                  schedules: [
+                    {
+                      id: Date.now(),
+                      location: '',
+                      fromTime: '',
+                      toTime: '',
+                    },
+                  ],
+                  remarks: '',
+                },
+              ],
+      }
+    : {
+        projectId: projectId,
+        roleTitle: '',
+        roleDescription: '',
+        paymentBasis: 'On Project',
+        budget: 1000,
+        talentNumbers: 1,
+        displayBudgetTo: 'Everyone',
+        talentsQuote: false,
+        otPayment: true,
+        questions: '',
+        requiredGender: 'No Preference',
+        ageMin: 15,
+        ageMax: 30,
+        heightMin: 160,
+        heightMax: 210,
+        category: '',
+        requiredEthnicGroup: 'No Preference',
+        skills: '',
+        activityScheduleLists: [
+          {
+            title: '',
+            type: '',
+            schedules: [
+              {
+                id: Date.now(),
+                location: '',
+                fromTime: '',
+                toTime: '',
+              },
+            ],
+            remarks: '',
+          },
+        ],
+      };
+
+  const pageOrder: Array<'roleInformation' | 'requirements' | 'schedules' | 'confirm'> = [
+    'roleInformation',
+    'requirements',
+    'schedules',
+    'confirm',
+  ];
 
   return (
-    <CollapseDrawer
-      trigger={({ open }) => (
-        <PrimaryButton
-          variant={method === 'POST' ? 'create' : 'edit'}
-          disabled={isDisabled}
-          icon={
-            method === 'POST' ? (
-              <Plus size={18} color="#000000" />
-            ) : (
-              <Pencil size={18} color="#000000" />
-            )
+    <Formik key={`${method}-${roleId || 'new'}`} initialValues={initialValues} enableReinitialize={false} onSubmit={handleSubmit}>
+      {({ values, setFieldValue, setValues, submitForm, resetForm, touched, setFieldTouched }) => {
+        const handleFillLater = () => {
+          setFillSchedulesLater(true);
+          setFieldValue('activityScheduleLists', []);
+        };
+
+        // Validation functions
+        const validateRoleInformation = () => {
+          return (
+            validateRoleTitle(values.roleTitle) ||
+            validateRoleDescription(values.roleDescription) ||
+            validateNumberField(values.budget, 'budget')
+          );
+        };
+
+        const validateRequirements = () => {
+          return validateGender(values.requiredGender);
+        };
+
+        const validateActivitySchedules = () => {
+          if (fillSchedulesLater) return [];
+
+          if (!values.activityScheduleLists) return [];
+
+          return values.activityScheduleLists.map((activity: any) => {
+            const errors: string[] = [];
+
+            if (!activity.title?.trim()) {
+              errors.push('Activity title is required');
+            }
+
+            if (!activity.type?.trim()) {
+              errors.push('Activity type is required');
+            }
+
+            if (activity.schedules?.length > 0) {
+              if (activity.schedules && Array.isArray(activity.schedules)) {
+                activity.schedules.forEach((schedule: any, index: number) => {
+                  const scheduleError = validateScheduleList(schedule);
+                  if (scheduleError) {
+                    errors.push(`Schedule ${index + 1}: ${scheduleError}`);
+                  }
+                });
+              }
+            } else {
+              errors.push('At least one schedule is required');
+            }
+
+            return errors.length > 0 ? errors : null;
+          });
+        };
+
+        // Get validation errors
+        const roleInformationErrors = validateRoleInformation();
+        const requirementsErrors = validateRequirements();
+        const activityScheduleErrors = validateActivitySchedules();
+
+        // Check if any errors exist
+        const hasErrors =
+          roleInformationErrors ||
+          requirementsErrors ||
+          activityScheduleErrors.some((error: string[] | null) => Boolean(error));
+
+        // Navigation helper functions
+        const getPreviousPage = () => {
+          const currentIndex = pageOrder.indexOf(currentPage);
+          return currentIndex > 0 ? pageOrder[currentIndex - 1] : currentPage;
+        };
+
+        const getNextPage = () => {
+          const currentIndex = pageOrder.indexOf(currentPage);
+          return currentIndex < pageOrder.length - 1 ? pageOrder[currentIndex + 1] : currentPage;
+        };
+
+        const isCurrentPageValid = () => {
+          switch (currentPage) {
+            case 'roleInformation':
+              return !roleInformationErrors;
+            case 'requirements':
+              return !requirementsErrors;
+            case 'schedules':
+              return !activityScheduleErrors.some((error: string[] | null) => Boolean(error));
+            default:
+              return true;
           }
-          onPress={open}>
-          {method === 'POST' ? 'New Role' : 'Edit Role'}
-        </PrimaryButton>
-      )}
-      header={
-        <View className="flex-row items-center justify-between px-4 pb-3 pt-4">
-          <Text className="text-lg font-bold text-white">
-            {method === 'POST' ? 'Create Role' : 'Edit Role'}
-          </Text>
-        </View>
-      }
-      content={(close) => (
-        <View className="gap-4 px-4 pb-4">
-          <View>
-            <Text className="mb-2 text-sm font-semibold text-white">
-              Role Title <Text className="text-red-500">*</Text>
-            </Text>
-            <TextInput
-              className="rounded-lg border border-white/10 bg-gray-800/60 p-3 text-base text-white"
-              value={roleTitle}
-              onChangeText={setRoleTitle}
-              placeholder="Enter role title"
-              placeholderTextColor="#6b7280"
-            />
-          </View>
+        };
 
-          <View>
-            <Text className="mb-2 text-sm font-semibold text-white">
-              Description <Text className="text-red-500">*</Text>
-            </Text>
-            <TextInput
-              className="min-h-[100px] rounded-lg border border-white/10 bg-gray-800/60 p-3 text-base text-white"
-              style={{ textAlignVertical: 'top' }}
-              value={roleDescription}
-              onChangeText={setRoleDescription}
-              placeholder="Enter role description"
-              placeholderTextColor="#6b7280"
-              multiline
-              numberOfLines={4}
-            />
-          </View>
+        const handleModalClose = () => {
+          resetForm();
+          resetFormState();
+        };
 
-          <View>
-            <Text className="mb-2 text-sm font-semibold text-white">Number of Talents</Text>
-            <TextInput
-              className="rounded-lg border border-white/10 bg-gray-800/60 p-3 text-base text-white"
-              value={talentCount}
-              onChangeText={setTalentCount}
-              placeholder="Enter number of talents"
-              placeholderTextColor="#6b7280"
-              keyboardType="numeric"
-            />
-          </View>
-        </View>
-      )}
-      footer={(close) => (
-        <View className="flex-row gap-3 border-t border-white/10 px-4 py-3">
-          <TouchableOpacity
-            className="flex-1 rounded-xl border border-white/20 bg-white/5 px-4 py-3"
-            onPress={close}>
-            <Text className="text-center text-sm font-semibold text-white">Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className={`flex-1 rounded-xl px-4 py-3 ${
-              hasErrors || isSubmitting ? 'bg-gray-600' : 'bg-blue-600'
-            }`}
-            onPress={() => handleSubmit(close)}
-            disabled={hasErrors || isSubmitting}>
-            <Text className="text-center text-sm font-semibold text-white">
-              {isSubmitting ? 'Saving...' : method === 'POST' ? 'Create Role' : 'Save Changes'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    />
+        const handleFormSubmit = async () => {
+          await submitForm();
+          resetForm();
+          resetFormState();
+        };
+
+        const renderBreadcrumbs = () => {
+          return (
+            <View className="mb-4 flex-row flex-wrap gap-2 border-b border-white/10 pb-3">
+              {pageOrder.map((page, index) => {
+                const isCurrent = currentPage === page;
+                const isDisabled =
+                  (page === 'requirements' && roleInformationErrors) ||
+                  (page === 'schedules' && (roleInformationErrors || requirementsErrors)) ||
+                  (page === 'confirm' && hasErrors);
+
+                return (
+                  <TouchableOpacity
+                    key={page}
+                    onPress={() => !isDisabled && setCurrentPage(page)}
+                    disabled={isDisabled}
+                    className={`rounded-full border px-3 py-1 ${
+                      isCurrent
+                        ? 'border-blue-500 bg-blue-500/20'
+                        : isDisabled
+                          ? 'border-white/10 bg-zinc-800/30 opacity-50'
+                          : 'border-white/20 bg-zinc-800/50'
+                    }`}>
+                    <Text
+                      className={`text-xs ${
+                        isCurrent ? 'text-blue-400' : isDisabled ? 'text-white/40' : 'text-white/80'
+                      }`}>
+                      {index + 1}. {page === 'roleInformation' ? 'Info' : page === 'requirements' ? 'Requirements' : page === 'schedules' ? 'Schedules' : 'Confirm'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          );
+        };
+
+        const renderPageContent = () => {
+          switch (currentPage) {
+            case 'roleInformation':
+              return (
+                <RoleInformationInput
+                  values={values}
+                  touched={touched}
+                  setFieldValue={setFieldValue}
+                  setFieldTouched={setFieldTouched}
+                />
+              );
+            case 'requirements':
+              return (
+                <RoleRequirementsInputs
+                  values={values}
+                  touched={touched}
+                  setFieldValue={setFieldValue}
+                  setFieldTouched={setFieldTouched}
+                  selectedCategories={selectedCategories}
+                  setSelectedCategories={setSelectedCategories}
+                  ethnic={ethnic}
+                  setEthnic={setEthnic}
+                />
+              );
+            case 'schedules':
+              return (
+                <RoleScheduleListInputs
+                  values={values}
+                  setFieldValue={setFieldValue}
+                  setValues={setValues}
+                  touched={touched}
+                  setFieldTouched={setFieldTouched}
+                  onFillLater={handleFillLater}
+                  fillSchedulesLater={fillSchedulesLater}
+                />
+              );
+            case 'confirm':
+              return <RoleConfirm values={values} />;
+            default:
+              return null;
+          }
+        };
+
+        return (
+          <FormModal
+            trigger={({ open }) => (
+              <Button
+                action="primary"
+                size="lg"
+                isDisabled={isDisabled}
+                onPress={() => {
+                  open();
+                  setSelectedCategories(categoryValue);
+                  setEthnic(new Set(Array.from(ethnicValue) as string[]));
+                }}
+                className="w-full">
+                <ButtonIcon as={method === 'POST' ? PlusCircle : Pencil} size={20} />
+                <ButtonText>{method === 'POST' ? 'New Role' : `Edit Role ${roleId}`}</ButtonText>
+              </Button>
+            )}
+            title={method === 'POST' ? 'Add a new Role' : 'Edit Role'}
+            submitButtonText={currentPage === 'confirm' ? 'Save Role' : 'Next'}
+            isSubmitting={roleMutation.isPending}
+            hasErrors={currentPage === 'confirm' ? hasErrors : !isCurrentPageValid()}
+            onSubmit={
+              currentPage === 'confirm'
+                ? async () => {
+                    await handleFormSubmit();
+                  }
+                : () => {
+                    if (isCurrentPageValid()) {
+                      setCurrentPage(getNextPage());
+                    }
+                  }
+            }
+            onClose={handleModalClose}
+            onReset={resetFormState}
+            headerClassName="border-b border-white/10 px-4 pb-3 pt-12"
+            contentClassName="flex-1">
+            {(close) => (
+              <View className="flex-1">
+                <View className="px-4">
+                  {renderBreadcrumbs()}
+                </View>
+                <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
+                  {renderPageContent()}
+                </ScrollView>
+                <View className="flex-row gap-3 border-t border-white/10 px-4 py-4">
+                  <Button
+                    action="secondary"
+                    variant="outline"
+                    isDisabled={currentPage === 'roleInformation'}
+                    onPress={() => setCurrentPage(getPreviousPage())}
+                    className="flex-1">
+                    <ButtonText>Previous</ButtonText>
+                  </Button>
+                  {currentPage === 'confirm' ? (
+                    <Button
+                      action="primary"
+                      isDisabled={hasErrors || roleMutation.isPending}
+                      onPress={async () => {
+                        await handleFormSubmit();
+                        close();
+                      }}
+                      className="flex-1">
+                      <ButtonText>{roleMutation.isPending ? 'Saving...' : 'Save Role'}</ButtonText>
+                    </Button>
+                  ) : (
+                    <Button
+                      action="primary"
+                      isDisabled={!isCurrentPageValid()}
+                      onPress={() => setCurrentPage(getNextPage())}
+                      className="flex-1">
+                      <ButtonText>Next</ButtonText>
+                    </Button>
+                  )}
+                </View>
+              </View>
+            )}
+          </FormModal>
+        );
+      }}
+    </Formik>
   );
 }
-

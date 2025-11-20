@@ -15,6 +15,7 @@ import { ProjectAnnouncementsList } from '@/components/projects/detail/ProjectAn
 import { CustomTabs } from '@/components/custom/custom-tabs';
 import { RoleForm } from '@/components/projects/detail/RoleForm';
 import { RolesBreadcrumb } from '@/components/projects/detail/RolesBreadcrumb';
+import { PublishProjectButton } from '@/components/projects/detail/PublishProjectButton';
 
 const STATUS_COLORS: Record<string, string> = {
   Draft: '#6b7280',
@@ -41,6 +42,7 @@ export default function ProjectDetailPage() {
     projectError,
     jobContractsLoading,
     roleCount,
+    jobNotReadyCount,
     countJobActivities,
     refetchRoles,
     refetchContracts,
@@ -218,6 +220,20 @@ export default function ProjectDetailPage() {
                 isLoadingInitial={jobContractsLoading}
                 refetchContracts={refetchContracts}
               />
+            )}
+
+            {/* Publish Project Button - Only show when project is Draft */}
+            {project?.status === 'Draft' && (
+              <View className="px-2">
+                <PublishProjectButton
+                  projectData={project}
+                  isDisable={roleCount > 0 && jobNotReadyCount === 0 ? false : true}
+                  onSuccess={() => {
+                    // Optionally handle success callback
+                    router.replace('/(protected)/(client)/projects/manage-projects');
+                  }}
+                />
+              </View>
             )}
           </View>
         </ScrollView>

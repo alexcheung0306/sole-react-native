@@ -5,70 +5,64 @@ import {
   Modal,
   ScrollView,
   TouchableOpacity,
-  Pressable,
 } from 'react-native';
 import { X, Check } from 'lucide-react-native';
 
-interface CategorySelectorProps {
+interface EthnicGroupSelectorProps {
   visible: boolean;
   onClose: () => void;
-  selectedCategories: string[];
-  onSave: (categories: string[]) => void;
+  selectedGroups: Set<string>;
+  onSave: (groups: Set<string>) => void;
   maxSelections?: number;
 }
 
-const AVAILABLE_CATEGORIES = [
-  'Actor',
-  'Model',
-  'Photographer',
-  'Director',
-  'Producer',
-  'Cinematographer',
-  'Editor',
-  'Makeup Artist',
-  'Stylist',
-  'Choreographer',
-  'Writer',
-  'Production Designer',
-  'Costume Designer',
-  'Sound Engineer',
-  'Composer',
+const AVAILABLE_ETHNIC_GROUPS = [
+  'African',
+  'Asian',
+  'European',
+  'Indigenous Peoples',
+  'Middle Eastern',
+  'Pacific Islanders',
+  'Latin American',
+  'No Preference',
 ];
 
-export function CategorySelector({
+export function EthnicGroupSelector({
   visible,
   onClose,
-  selectedCategories,
+  selectedGroups,
   onSave,
-  maxSelections = 5,
-}: CategorySelectorProps) {
-  const [tempSelectedCategories, setTempSelectedCategories] = useState<string[]>(selectedCategories);
+  maxSelections = 10,
+}: EthnicGroupSelectorProps) {
+  const [tempSelectedGroups, setTempSelectedGroups] = useState<Set<string>>(new Set(selectedGroups));
 
   // Reset temp selection when modal opens
   React.useEffect(() => {
     if (visible) {
-      setTempSelectedCategories(selectedCategories);
+      setTempSelectedGroups(new Set(selectedGroups));
     }
-  }, [visible, selectedCategories]);
+  }, [visible, selectedGroups]);
 
-  const toggleCategory = (category: string) => {
-    if (tempSelectedCategories.includes(category)) {
-      // Remove category
-      setTempSelectedCategories(tempSelectedCategories.filter((c) => c !== category));
+  const toggleGroup = (group: string) => {
+    const newGroups = new Set(tempSelectedGroups);
+    if (newGroups.has(group)) {
+      // Remove group
+      newGroups.delete(group);
     } else {
-      // Add category (if not at max)
-      if (tempSelectedCategories.length < maxSelections) {
-        setTempSelectedCategories([...tempSelectedCategories, category]);
+      // Add group (if not at max)
+      if (newGroups.size < maxSelections) {
+        newGroups.add(group);
       }
     }
+    setTempSelectedGroups(newGroups);
   };
 
   const handleSave = () => {
-    onSave(tempSelectedCategories);
+    onSave(tempSelectedGroups);
   };
 
   const handleClearAll = () => {
-    setTempSelectedCategories([]);
+    setTempSelectedGroups(new Set());
   };
 
   return (
@@ -85,7 +79,7 @@ export function CategorySelector({
             <X size={24} color="#ffffff" />
           </TouchableOpacity>
           <Text className="text-white font-semibold text-lg">
-            Select Categories ({tempSelectedCategories.length}/{maxSelections})
+            Select Ethnic Groups ({tempSelectedGroups.size}/{maxSelections})
           </Text>
           <TouchableOpacity onPress={handleSave} className="p-2">
             <Text className="text-gray-300 font-semibold">Done</Text>
@@ -94,16 +88,16 @@ export function CategorySelector({
 
         <ScrollView className="flex-1 px-4 py-4" showsVerticalScrollIndicator={false}>
           {/* Selected Count Warning */}
-          {tempSelectedCategories.length >= maxSelections && (
+          {tempSelectedGroups.size >= maxSelections && (
             <View className="bg-yellow-500/20 border border-yellow-500 rounded-lg p-3 mb-4">
               <Text className="text-yellow-500 text-sm">
-                Maximum {maxSelections} categories allowed. Deselect one to choose another.
+                Maximum {maxSelections} groups allowed. Deselect one to choose another.
               </Text>
             </View>
           )}
 
           {/* Clear All Button */}
-          {tempSelectedCategories.length > 0 && (
+          {tempSelectedGroups.size > 0 && (
             <TouchableOpacity
               onPress={handleClearAll}
               className="bg-red-500/20 border border-red-500 rounded-lg p-3 mb-4"
@@ -112,16 +106,16 @@ export function CategorySelector({
             </TouchableOpacity>
           )}
 
-          {/* Category List */}
+          {/* Group List */}
           <View className="gap-2">
-            {AVAILABLE_CATEGORIES.map((category) => {
-              const isSelected = tempSelectedCategories.includes(category);
-              const isDisabled = !isSelected && tempSelectedCategories.length >= maxSelections;
+            {AVAILABLE_ETHNIC_GROUPS.map((group) => {
+              const isSelected = tempSelectedGroups.has(group);
+              const isDisabled = !isSelected && tempSelectedGroups.size >= maxSelections;
 
               return (
                 <TouchableOpacity
-                  key={category}
-                  onPress={() => !isDisabled && toggleCategory(category)}
+                  key={group}
+                  onPress={() => !isDisabled && toggleGroup(group)}
                   disabled={isDisabled}
                   className={`flex-row items-center justify-between p-4 rounded-lg border ${
                     isSelected
@@ -140,7 +134,7 @@ export function CategorySelector({
                         : 'text-white'
                     }`}
                   >
-                    {category}
+                    {group}
                   </Text>
                   {isSelected && (
                     <View className="bg-gray-500 rounded-full p-1">

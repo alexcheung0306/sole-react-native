@@ -2,7 +2,8 @@
 
 import { compressImage } from "@/utils/image-compression"
 
-import { API_BASE_URL } from "../apiservice"
+import { API_BASE_URL, fetchWithTimeout } from "../apiservice"
+import { ServerMaintenanceError } from "~/lib/errors"
 
 //talent search api (talent)
 //http://localhost:8080/api/project/search?isPrivate=false&status=Published&pageNo=1&pageSize=2&orderBy=id&orderSeq=dec
@@ -196,7 +197,7 @@ export const updateProject = async (
 
 export const publishProject = async (projectId: number, formData: any) => {
   try {
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${API_BASE_URL}/project/publish/${projectId}`,
       {
         method: "PUT",
@@ -209,11 +210,25 @@ export const publishProject = async (projectId: number, formData: any) => {
 
     const result = await response.json()
     if (response.ok) {
-      console.log("Project updated successfully")
+      console.log("Project published successfully")
       return result
+    } else {
+      throw new Error(`Error: ${response.statusText}`)
     }
-  } catch (error) {
-    console.error("Error updating project:", error)
+  } catch (error: any) {
+    console.error("Error publishing project:", error)
+    // Check if it's a connection/timeout error
+    if (
+      error instanceof ServerMaintenanceError ||
+      error?.message?.includes('Failed to fetch') ||
+      error?.message?.includes('NetworkError') ||
+      error?.message?.includes('Network request failed') ||
+      error?.message?.includes('timed out') ||
+      error?.name === 'AbortError'
+    ) {
+      throw new ServerMaintenanceError()
+    }
+    throw error
   }
 }
 
