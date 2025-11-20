@@ -9,7 +9,10 @@ import {
   ActivityIndicator,
   ScrollView,
   Text,
+  StyleSheet,
+  Animated,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 
 type TriggerHelpers = {
   open: () => void;
@@ -77,6 +80,15 @@ export function FormModal({
   const isControlled = typeof controlledOpen === 'boolean';
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const isOpen = isControlled ? (controlledOpen as boolean) : internalOpen;
+  const overlayOpacity = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.timing(overlayOpacity, {
+      toValue: isOpen ? 1 : 0,
+      duration: 250,
+      useNativeDriver: false,
+    }).start();
+  }, [isOpen, overlayOpacity]);
 
   const handleOpen = () => {
     if (!isControlled) {
@@ -148,44 +160,79 @@ export function FormModal({
 
       <Modal
         visible={isOpen}
-        animationType="slide"
-        presentationStyle="fullScreen"
+        animationType="fade"
+        transparent
         onRequestClose={handleClose}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          className="flex-1 bg-black">
-          {/* Header */}
-          <View
-            className={
-              headerClassName ||
-              'flex-row items-center justify-between border-b border-gray-800 px-4 pb-3 pt-12'
-            }>
-            <TouchableOpacity onPress={handleClose} className="p-2">
-              <X size={24} color="#ffffff" />
-            </TouchableOpacity>
-            <Text className="text-lg font-semibold text-white">{title}</Text>
-            <TouchableOpacity
-              onPress={handleSubmit}
-              disabled={isSubmitting || hasErrors}
-              className={`p-2 ${isSubmitting || hasErrors ? 'opacity-50' : ''} ${
-                submitButtonClassName || ''
-              }`}>
-              {isSubmitting ? (
-                <ActivityIndicator size="small" color="#3b82f6" />
-              ) : (
-                <Text className="font-semibold text-blue-500">{submitButtonText}</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+        <Animated.View style={[styles.backdrop, { opacity: overlayOpacity }]}>
+          {/* Backdrop layers - fill entire screen */}
+          <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
 
-          {/* Content */}
-          <ScrollView
-            className={contentClassName || 'flex-1'}
-            showsVerticalScrollIndicator={false}>
-            {renderContent()}
-          </ScrollView>
-        </KeyboardAvoidingView>
+          {/* Modal container */}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalContainer}
+            pointerEvents="box-none">
+            {/* Backdrop touch blocker - positioned behind content but can still receive taps */}
+            <TouchableOpacity
+              activeOpacity={1}
+              style={StyleSheet.absoluteFill}
+              onPress={handleClose}
+            />
+            <View style={styles.modalContent} pointerEvents="auto">
+              {/* Header */}
+              <View
+                className={
+                  headerClassName ||
+                  'flex-row items-center justify-between border-b border-white/10 px-4 pb-3 pt-12'
+                }>
+                <TouchableOpacity onPress={handleClose} className="p-2">
+                  <X size={24} color="#ffffff" />
+                </TouchableOpacity>
+                <Text className="text-lg font-semibold text-white">{title}</Text>
+                <TouchableOpacity
+                  onPress={handleSubmit}
+                  disabled={isSubmitting || hasErrors}
+                  className={`p-2 ${isSubmitting || hasErrors ? 'opacity-50' : ''} ${
+                    submitButtonClassName || ''
+                  }`}>
+                  {isSubmitting ? (
+                    <ActivityIndicator size="small" color="#3b82f6" />
+                  ) : (
+                    <Text className="font-semibold text-blue-500">{submitButtonText}</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {/* Content */}
+              <ScrollView
+                className={contentClassName || 'flex-1'}
+                showsVerticalScrollIndicator={false}
+                pointerEvents="auto">
+                {renderContent()}
+              </ScrollView>
+            </View>
+          </KeyboardAvoidingView>
+        </Animated.View>
       </Modal>
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.75)',
+  },
+});

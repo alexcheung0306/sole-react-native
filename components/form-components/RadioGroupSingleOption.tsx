@@ -68,11 +68,11 @@ export function RadioGroupSingleOption({
                 handleBlur();
               }}
               className={`flex-row items-center rounded-lg border p-3 ${
-                value === option.value ? 'border-blue-500 bg-blue-500/20' : 'border-white/10 bg-zinc-700/50'
+                value === option.value ? 'border-gray-400 bg-gray-500/20' : 'border-white/10 bg-zinc-900/70'
               }`}>
               <View
                 className={`mr-3 h-5 w-5 rounded-full border-2 ${
-                  value === option.value ? 'border-blue-500 bg-blue-500' : 'border-white/30'
+                  value === option.value ? 'border-gray-400 bg-gray-500' : 'border-white/30'
                 }`}>
                 {value === option.value && <View className="m-auto h-2 w-2 rounded-full bg-white" />}
               </View>

@@ -1,21 +1,23 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Modal, Pressable, StyleSheet } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Formik } from 'formik';
-import { PlusCircle, Pencil } from 'lucide-react-native';
+import { Plus, Pencil } from 'lucide-react-native';
 import { FormModal } from '@/components/custom/form-modal';
-import { Button, ButtonText, ButtonIcon } from '@/components/ui/button';
-import { VStack } from '@/components/ui/vstack';
-import { HStack } from '@/components/ui/hstack';
+import { PrimaryButton } from '@/components/custom/primary-button';
+import { Button, ButtonText } from '@/components/ui/button';
 import { createRoleWithSchedules, updateRoleAndSchedules } from '@/api/apiservice/role_api';
-import { validateField, validateNumberField } from '@/lib/validations/form-field-validations';
+import { validateNumberField } from '@/lib/validations/form-field-validations';
 import { validateRoleTitle, validateRoleDescription } from '@/lib/validations/role-validation';
 import { validateGender } from '@/lib/validations/talentInfo-validations';
-import { validateActivityTitle, validateActivityType, validateScheduleList } from '@/lib/validations/role-validation';
+import { validateScheduleList } from '@/lib/validations/role-validation';
 import { RoleInformationInput } from './RoleInformationInput';
 import { RoleRequirementsInputs } from './RoleRequirementsInputs';
 import { RoleScheduleListInputs } from './RoleScheduleListInputs';
 import { RoleConfirm } from './RoleConfirm';
+import { FillRoleFormButton } from './FillRoleFormButton';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicatorWrapper, ActionsheetDragIndicator, ActionsheetItem, ActionsheetItemText } from '@/components/ui/actionsheet';
+import { activityTypes } from '@/components/form-components/options-to-use';
 
 type RoleFormProps = {
   projectId: number;
@@ -39,6 +41,11 @@ export function RoleForm({
   const [fillSchedulesLater, setFillSchedulesLater] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [ethnic, setEthnic] = useState<Set<string>>(new Set());
+  
+  // Activity Type Picker state - managed at RoleForm level to fix z-index
+  const [showTypePicker, setShowTypePicker] = useState(false);
+  const [selectedActivityIndex, setSelectedActivityIndex] = useState<number | null>(null);
+  const [activityTypeSelectCallback, setActivityTypeSelectCallback] = useState<((activityIndex: number, typeKey: string) => void) | null>(null);
 
   // Handle both old format (fetchedValues directly) and new format (roleWithSchedules with nested role)
   const roleData = fetchedValues?.role ? fetchedValues.role : fetchedValues;
@@ -174,8 +181,9 @@ export function RoleForm({
   ];
 
   return (
-    <Formik key={`${method}-${roleId || 'new'}`} initialValues={initialValues} enableReinitialize={false} onSubmit={handleSubmit}>
-      {({ values, setFieldValue, setValues, submitForm, resetForm, touched, setFieldTouched }) => {
+    <>
+      <Formik key={`${method}-${roleId || 'new'}`} initialValues={initialValues} enableReinitialize={false} onSubmit={handleSubmit}>
+        {({ values, setFieldValue, setValues, submitForm, resetForm, touched, setFieldTouched }) => {
         const handleFillLater = () => {
           setFillSchedulesLater(true);
           setFieldValue('activityScheduleLists', []);
@@ -342,6 +350,17 @@ export function RoleForm({
                   setFieldTouched={setFieldTouched}
                   onFillLater={handleFillLater}
                   fillSchedulesLater={fillSchedulesLater}
+                  showTypePicker={showTypePicker}
+                  setShowTypePicker={setShowTypePicker}
+                  selectedActivityIndex={selectedActivityIndex}
+                  setSelectedActivityIndex={setSelectedActivityIndex}
+                  onActivityTypeSelect={(activityIndex: number, typeKey: string) => {
+                    const updated = [...(values.activityScheduleLists || [])];
+                    updated[activityIndex].type = typeKey;
+                    setFieldValue('activityScheduleLists', updated);
+                    setFieldTouched(`activityScheduleLists.${activityIndex}.type`, true, false);
+                  }}
+                  setActivityTypeSelectCallback={(callback) => setActivityTypeSelectCallback(() => callback)}
                 />
               );
             case 'confirm':
@@ -352,84 +371,142 @@ export function RoleForm({
         };
 
         return (
-          <FormModal
-            trigger={({ open }) => (
-              <Button
-                action="primary"
-                size="lg"
-                isDisabled={isDisabled}
-                onPress={() => {
-                  open();
-                  setSelectedCategories(categoryValue);
-                  setEthnic(new Set(Array.from(ethnicValue) as string[]));
-                }}
-                className="w-full">
-                <ButtonIcon as={method === 'POST' ? PlusCircle : Pencil} size={20} />
-                <ButtonText>{method === 'POST' ? 'New Role' : `Edit Role ${roleId}`}</ButtonText>
-              </Button>
-            )}
-            title={method === 'POST' ? 'Add a new Role' : 'Edit Role'}
-            submitButtonText={currentPage === 'confirm' ? 'Save Role' : 'Next'}
-            isSubmitting={roleMutation.isPending}
-            hasErrors={currentPage === 'confirm' ? hasErrors : !isCurrentPageValid()}
-            onSubmit={
-              currentPage === 'confirm'
-                ? async () => {
-                    await handleFormSubmit();
+          <>
+            <FormModal
+              trigger={({ open }) => (
+                <PrimaryButton
+                  variant={method === 'POST' ? 'create' : 'edit'}
+                  disabled={isDisabled}
+                  icon={
+                    method === 'POST' ? (
+                      <Plus size={20} color="#ffffff" />
+                    ) : (
+                      <Pencil size={20} color="#ffffff" />
+                    )
                   }
-                : () => {
-                    if (isCurrentPageValid()) {
-                      setCurrentPage(getNextPage());
+                  onPress={() => {
+                    open();
+                    setSelectedCategories(categoryValue);
+                    setEthnic(new Set(Array.from(ethnicValue) as string[]));
+                  }}
+                  className="w-full">
+                  {method === 'POST' ? 'New Role' : `Edit Role ${roleId}`}
+                </PrimaryButton>
+              )}
+              title={method === 'POST' ? 'Add a new Role' : 'Edit Role'}
+              submitButtonText={currentPage === 'confirm' ? 'Save Role' : 'Next'}
+              isSubmitting={roleMutation.isPending}
+              hasErrors={currentPage === 'confirm' ? hasErrors : !isCurrentPageValid()}
+              onSubmit={
+                currentPage === 'confirm'
+                  ? async () => {
+                      await handleFormSubmit();
                     }
-                  }
-            }
-            onClose={handleModalClose}
-            onReset={resetFormState}
-            headerClassName="border-b border-white/10 px-4 pb-3 pt-12"
-            contentClassName="flex-1">
-            {(close) => (
-              <View className="flex-1">
-                <View className="px-4">
-                  {renderBreadcrumbs()}
-                </View>
-                <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
-                  {renderPageContent()}
-                </ScrollView>
-                <View className="flex-row gap-3 border-t border-white/10 px-4 py-4">
-                  <Button
-                    action="secondary"
-                    variant="outline"
-                    isDisabled={currentPage === 'roleInformation'}
-                    onPress={() => setCurrentPage(getPreviousPage())}
-                    className="flex-1">
-                    <ButtonText>Previous</ButtonText>
-                  </Button>
-                  {currentPage === 'confirm' ? (
+                  : () => {
+                      if (isCurrentPageValid()) {
+                        setCurrentPage(getNextPage());
+                      }
+                    }
+              }
+              onClose={handleModalClose}
+              onReset={resetFormState}
+              headerClassName="border-b border-white/10 px-4 pb-3 pt-12"
+              contentClassName="flex-1">
+              {(close) => (
+                <View className="flex-1">
+                  <View className="px-4">
+                    <FillRoleFormButton
+                      projectId={projectId}
+                      setFieldValue={setFieldValue}
+                      setSelectedCategories={setSelectedCategories}
+                      setEthnic={setEthnic}
+                    />
+                    {renderBreadcrumbs()}
+                  </View>
+                  <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
+                    {renderPageContent()}
+                  </ScrollView>
+                  <View className="flex-row gap-3 border-t border-white/10 px-4 py-4">
                     <Button
-                      action="primary"
-                      isDisabled={hasErrors || roleMutation.isPending}
-                      onPress={async () => {
-                        await handleFormSubmit();
-                        close();
-                      }}
+                      action="secondary"
+                      variant="outline"
+                      isDisabled={currentPage === 'roleInformation'}
+                      onPress={() => setCurrentPage(getPreviousPage())}
                       className="flex-1">
-                      <ButtonText>{roleMutation.isPending ? 'Saving...' : 'Save Role'}</ButtonText>
+                      <ButtonText>Previous</ButtonText>
                     </Button>
-                  ) : (
-                    <Button
-                      action="primary"
-                      isDisabled={!isCurrentPageValid()}
-                      onPress={() => setCurrentPage(getNextPage())}
-                      className="flex-1">
-                      <ButtonText>Next</ButtonText>
-                    </Button>
-                  )}
+                    {currentPage === 'confirm' ? (
+                      <Button
+                        action="primary"
+                        isDisabled={hasErrors || roleMutation.isPending}
+                        onPress={async () => {
+                          await handleFormSubmit();
+                          close();
+                        }}
+                        className="flex-1">
+                        <ButtonText>{roleMutation.isPending ? 'Saving...' : 'Save Role'}</ButtonText>
+                      </Button>
+                    ) : (
+                      <Button
+                        action="primary"
+                        isDisabled={!isCurrentPageValid()}
+                        onPress={() => setCurrentPage(getNextPage())}
+                        className="flex-1">
+                        <ButtonText>Next</ButtonText>
+                      </Button>
+                    )}
+                  </View>
                 </View>
-              </View>
-            )}
-          </FormModal>
+              )}
+            </FormModal>
+          </>
         );
       }}
-    </Formik>
+      </Formik>
+
+      {/* Activity Type Picker - Rendered at root level using Modal to ensure it's above everything */}
+      <Modal
+        visible={showTypePicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          setShowTypePicker(false);
+          setSelectedActivityIndex(null);
+        }}>
+        <Pressable 
+          style={StyleSheet.absoluteFill}
+          onPress={() => {
+            setShowTypePicker(false);
+            setSelectedActivityIndex(null);
+          }}>
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0, 0, 0, 0.5)' }]} />
+        </Pressable>
+        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+          <View className="bg-zinc-800 rounded-t-3xl border-t border-white/10" style={{ maxHeight: '70%' }}>
+            <View className="items-center py-3 border-b border-white/10">
+              <View className="w-12 h-1 bg-white/30 rounded-full mb-2" />
+              <Text className="text-lg font-semibold text-white mb-2">Select Activity Type</Text>
+            </View>
+            <ScrollView className="max-h-96">
+              {selectedActivityIndex !== null &&
+                activityTypes.map((type) => (
+                  <TouchableOpacity
+                    key={type.key}
+                    onPress={() => {
+                      if (selectedActivityIndex !== null && activityTypeSelectCallback) {
+                        activityTypeSelectCallback(selectedActivityIndex, type.key);
+                        setShowTypePicker(false);
+                        setSelectedActivityIndex(null);
+                      }
+                    }}
+                    className="px-4 py-4 border-b border-white/10 active:bg-zinc-700">
+                    <Text className="text-white text-base">{type.label}</Text>
+                  </TouchableOpacity>
+                ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }

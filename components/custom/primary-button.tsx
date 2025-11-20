@@ -12,10 +12,10 @@ type PrimaryButtonProps = {
 } & Omit<TouchableOpacityProps, 'className'>;
 
 const variantStyles: Record<PrimaryButtonVariant, string> = {
-  create: 'bg-blue-600',
-  edit: 'bg-purple-600/90',
-  primary: 'bg-blue-600',
-  secondary: 'bg-purple-600/90',
+  create: 'bg-gray-500/80',
+  edit: 'bg-gray-500/80',
+  primary: 'bg-gray-500/80',
+  secondary: 'bg-gray-500/80',
 };
 
 export function PrimaryButton({
@@ -28,8 +28,7 @@ export function PrimaryButton({
 }: PrimaryButtonProps) {
   // Base styles that are always applied
   const baseStyles = `flex-row items-center justify-center gap-2 rounded-2xl 
-    border border-white/10 bg-white text-black
-    px-4 py-2.5`;
+    border border-white/20 px-4 py-2.5`;
   const variantStyle = variantStyles[variant];
   const disabledStyle = disabled ? 'opacity-50' : '';
 
@@ -44,7 +43,7 @@ export function PrimaryButton({
       {...props}>
       {icon && icon}
       {typeof children === 'string' ? (
-        <Text className="text-sm font-semibold ">{children}</Text>
+        <Text className="text-sm font-semibold text-white">{children}</Text>
       ) : (
         children
       )}

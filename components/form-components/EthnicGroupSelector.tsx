@@ -121,8 +121,8 @@ export function EthnicGroupSelector({
                     isSelected
                       ? 'bg-gray-500/20 border-gray-400'
                       : isDisabled
-                      ? 'bg-gray-800/50 border-gray-700'
-                      : 'bg-gray-800 border-gray-700'
+                      ? 'bg-zinc-900/50 border-white/10'
+                      : 'bg-zinc-900/70 border-white/10'
                   }`}
                 >
                   <Text
