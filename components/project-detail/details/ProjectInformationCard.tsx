@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, ImageBackground, TouchableOpacity } from 'react-native';
 import { EllipsisVertical, ShieldX, ShieldCheck } from 'lucide-react-native';
 
-import { ProjectInfoActionsDrawer } from '@/components/projects/detail/ProjectInfoActionsDrawer';
+import { ProjectInfoActionsDrawer } from '~/components/project-detail/details/ProjectInfoActionsDrawer';
 import ProjectInfoFormModal from '@/components/projects/ProjectInfoFormModal';
 import { formatDateTime } from '@/utils/time-converts';
 

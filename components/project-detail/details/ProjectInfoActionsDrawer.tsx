@@ -6,7 +6,7 @@ import { ShieldCheck, ShieldX, Trash2, Pencil } from 'lucide-react-native';
 
 import { updateProject, deleteProjectById } from '@/api/apiservice/project_api';
 import { CollapseDrawer } from '~/components/custom/collapse-drawer';
-import ProjectInfoFormModal from '../ProjectInfoFormModal';
+import ProjectInfoFormModal from '../../projects/ProjectInfoFormModal';
 
 interface ProjectInfoActionsDrawerProps {
   project: any;

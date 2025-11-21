@@ -14,8 +14,8 @@ import { validateScheduleList } from '@/lib/validations/role-validation';
 import { RoleInformationInput } from './RoleInformationInput';
 import { RoleRequirementsInputs } from './RoleRequirementsInputs';
 import { RoleScheduleListInputs } from './RoleScheduleListInputs';
-import { RoleConfirm } from './RoleConfirm';
 import { FillRoleFormButton } from './FillRoleFormButton';
+import { RoleConfirm } from './RoleConfirm';
 
 type RoleFormProps = {
   projectId: number;

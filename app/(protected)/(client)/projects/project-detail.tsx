@@ -8,14 +8,14 @@ import { ChevronLeft } from 'lucide-react-native';
 import { useSoleUserContext } from '@/context/SoleUserContext';
 import { useManageProjectContext } from '@/context/ManageProjectContext';
 import { useProjectDetailQueries } from '@/hooks/useProjectDetailQueries';
-import { ProjectContractsTab } from '@/components/projects/detail/ProjectContractsTab';
-import { ProjectInformationCard } from '@/components/projects/detail/ProjectInformationCard';
-import { CreateProjectAnnouncementDrawer } from '@/components/projects/detail/CreateProjectAnnouncementDrawer';
-import { ProjectAnnouncementsList } from '@/components/projects/detail/ProjectAnnouncementsList';
+import { ProjectContractsTab } from '~/components/project-detail/contracts/ProjectContractsTab';
+import { ProjectInformationCard } from '~/components/project-detail/details/ProjectInformationCard';
+import { CreateProjectAnnouncementDrawer } from '~/components/project-detail/details/CreateProjectAnnouncementDrawer';
+import { ProjectAnnouncementsList } from '~/components/project-detail/details/ProjectAnnouncementsList';
 import { CustomTabs } from '@/components/custom/custom-tabs';
-import { RoleForm } from '@/components/projects/detail/RoleForm';
-import { RolesBreadcrumb } from '@/components/projects/detail/RolesBreadcrumb';
-import { PublishProjectButton } from '@/components/projects/detail/PublishProjectButton';
+import { RoleForm } from '~/components/project-detail/roles/RoleForm';
+import { RolesBreadcrumb } from '~/components/project-detail/roles/RolesBreadcrumb';
+import { PublishProjectButton } from '~/components/project-detail/PublishProjectButton';
 
 const STATUS_COLORS: Record<string, string> = {
   Draft: '#6b7280',

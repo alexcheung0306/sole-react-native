@@ -105,7 +105,6 @@ export function ProjectContractsTab({
     queryKey: ['project-contracts-search', projectId, searchQueryString, searchTrigger],
     queryFn: () => searchJobContracts(searchQueryString),
     enabled: Boolean(projectId),
-    keepPreviousData: true,
   });
 
   const contracts = useMemo(() => {
@@ -278,10 +277,10 @@ export function ProjectContractsTab({
                         }
                       );
                     }}
-                    disabled={batchUpdateMutation.isLoading}
+                    disabled={batchUpdateMutation.isPending}
                   >
                     <Text style={styles.primaryButtonText}>
-                      {batchUpdateMutation.isLoading ? 'Updating...' : 'Apply changes'}
+                      {batchUpdateMutation.isPending ? 'Updating...' : 'Apply changes'}
                     </Text>
                   </TouchableOpacity>
                 </View>
