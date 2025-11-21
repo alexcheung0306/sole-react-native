@@ -216,9 +216,9 @@ export default function ProjectInfoFormModal({
                       disabled={false}
                       icon={
                         method === 'POST' ? (
-                          <Plus size={20} color="#0f172a" />
+                          <Plus size={20} color="#000000" />
                         ) : (
-                          <Pencil size={20} color="#f9fafb" />
+                          <Pencil size={20} color="#000000" />
                         )
                       }
                       onPress={helpers.open}>

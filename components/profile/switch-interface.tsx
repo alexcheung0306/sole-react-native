@@ -96,22 +96,20 @@ export function SwitchInterface() {
   });
 
   return (
-    <View className="flex flex-row justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-      <View className=" flex-row items-center justify-between">
-        <View className="flex-row items-center gap-3">
-          <View className="rounded-full bg-blue-500/20 p-2">
-            {currentMode === 'client' ? (
-              <Briefcase size={20} color="#bfdbfe" />
-            ) : (
-              <User size={20} color="#bfdbfe" />
-            )}
-          </View>
-          <View className="flex-1">
-            <Text className="text-sm font-semibold text-white">Switch Mode</Text>
-            <Text className="text-xs text-white/70">
-              {currentMode === 'client' ? 'Client mode' : 'User mode'}
-            </Text>
-          </View>
+    <View className="flex-row items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3" style={{ width: '100%', overflow: 'hidden' }}>
+      <View className="flex-row items-center gap-3" style={{ flex: 1, minWidth: 0 }}>
+        <View className="rounded-full bg-blue-500/20 p-2">
+          {currentMode === 'client' ? (
+            <Briefcase size={20} color="#bfdbfe" />
+          ) : (
+            <User size={20} color="#bfdbfe" />
+          )}
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text className="text-sm font-semibold text-white" numberOfLines={1}>Switch Mode</Text>
+          <Text className="text-xs text-white/70" numberOfLines={1}>
+            {currentMode === 'client' ? 'Client mode' : 'User mode'}
+          </Text>
         </View>
       </View>
 
@@ -126,6 +124,8 @@ export function SwitchInterface() {
           borderColor: 'rgba(255, 255, 255, 0.2)',
           position: 'relative',
           overflow: 'hidden',
+          marginLeft: 8,
+          flexShrink: 0,
         }}>
         <Animated.View
           style={{

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
-import { RoleForm } from './RoleForm';
+import { RoleForm } from '../../form-components/role-form/RoleForm';
 import { DeleteRoleButton } from './DeleteRoleButton';
 
 type DisplayRoleInformationProps = {

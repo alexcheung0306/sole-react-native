@@ -71,7 +71,14 @@ const TextareaInput = React.forwardRef<
   React.ComponentRef<typeof UITextarea.Input>,
   ITextareaInputProps
 >(function TextareaInput({ className, ...props }, ref) {
-  const { size: parentSize } = useStyleContext(SCOPE);
+  let parentSize = 'md';
+  try {
+    const context = useStyleContext(SCOPE);
+    parentSize = context?.size || 'md';
+  } catch (error) {
+    // Context not available, use default
+    console.warn('TextareaInput used outside Textarea context, using default size');
+  }
 
   return (
     <UITextarea.Input

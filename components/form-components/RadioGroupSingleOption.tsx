@@ -55,10 +55,10 @@ export function RadioGroupSingleOption({
   return (
     <FormControl isInvalid={hasError} isRequired={isRequired} className="mb-4">
       <View className="rounded-lg border border-white/10 bg-zinc-800/50 p-4">
-        <FormControlLabel onPress={handleBlur}>
-          <FormControlLabelText className="text-white">{label}</FormControlLabelText>
+        <TouchableOpacity onPress={handleBlur}>
+          <Text className="text-white">{label}</Text>
           {isRequired && <Text className="text-red-500">*</Text>}
-        </FormControlLabel>
+        </TouchableOpacity>
         <View className="mt-3 gap-2">
           {optionsToUse.map((option, index) => (
             <TouchableOpacity

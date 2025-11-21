@@ -36,6 +36,7 @@ export default function RootLayout() {
         tokenCache={tokenCache}
         signInFallbackRedirectUrl={env.CLERK_SIGN_IN_FORCE_REDIRECT_URL}
         signUpFallbackRedirectUrl={env.CLERK_SIGN_UP_FORCE_REDIRECT_URL}
+        telemetry={false}
       >
         <QueryProvider>
           <ServerMaintenanceProvider>

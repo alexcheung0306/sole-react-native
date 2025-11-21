@@ -13,7 +13,7 @@ import { ProjectInformationCard } from '~/components/project-detail/details/Proj
 import { CreateProjectAnnouncementDrawer } from '~/components/project-detail/details/CreateProjectAnnouncementDrawer';
 import { ProjectAnnouncementsList } from '~/components/project-detail/details/ProjectAnnouncementsList';
 import { CustomTabs } from '@/components/custom/custom-tabs';
-import { RoleForm } from '~/components/project-detail/roles/RoleForm';
+import { RoleForm } from '~/components/form-components/role-form/RoleForm';
 import { RolesBreadcrumb } from '~/components/project-detail/roles/RolesBreadcrumb';
 import { PublishProjectButton } from '~/components/project-detail/PublishProjectButton';
 

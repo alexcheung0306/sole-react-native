@@ -68,7 +68,7 @@ export function InputField({
             {isRequired && <Text className="text-red-500">*</Text>}
           </View>
         </FormControlLabel>
-        <Textarea className="border-white/20 bg-zinc-800">
+        <Textarea variant="default" size="md" className="border-white/20 bg-zinc-800">
           <TextareaInput
             value={value}
             onChangeText={handleChange}

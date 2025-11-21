@@ -7,11 +7,11 @@ import {
   StyleSheet,
   Easing,
   Dimensions,
+  ScrollView,
 } from 'react-native';
 import {
-  PanGestureHandler,
-  PanGestureHandlerStateChangeEvent,
-  State,
+  Gesture,
+  GestureDetector,
 } from 'react-native-gesture-handler';
 import { BlurView } from 'expo-blur';
 
@@ -72,13 +72,13 @@ export function CollapseDrawer({
           toValue: 0,
           damping: 20,
           stiffness: 90,
-          useNativeDriver: false,
+          useNativeDriver: true, // Use native driver for transforms
         }),
         Animated.timing(overlayOpacity, {
           toValue: 1,
           duration: 250,
           easing: Easing.out(Easing.quad),
-          useNativeDriver: false,
+          useNativeDriver: true, // Use native driver for opacity
         }),
       ]).start();
     } else {
@@ -88,13 +88,13 @@ export function CollapseDrawer({
           toValue: maxHeightValue,
           duration: 250,
           easing: Easing.in(Easing.quad),
-          useNativeDriver: false,
+          useNativeDriver: true, // Use native driver for transforms
         }),
         Animated.timing(overlayOpacity, {
           toValue: 0,
           duration: 250,
           easing: Easing.out(Easing.quad),
-          useNativeDriver: false,
+          useNativeDriver: true, // Use native driver for opacity
         }),
       ]).start();
     }
@@ -113,72 +113,84 @@ export function CollapseDrawer({
 
   // Track the starting Y position when gesture begins
   const gestureStartY = useRef(0);
-  // Use a separate animated value for gesture translation
-  const gestureTranslateY = useRef(new Animated.Value(0)).current;
 
-  const handleGestureEvent = Animated.event(
-    [{ nativeEvent: { translationY: gestureTranslateY } }],
-    {
-      useNativeDriver: false,
-      listener: (event: any) => {
-        const { translationY: deltaY } = event.nativeEvent;
-        // Calculate new absolute position
-        const newY = gestureStartY.current + deltaY;
-        // Update the main translateY, clamping to prevent negative values
-        if (newY >= 0) {
-          translateY.setValue(newY);
-        } else {
-          translateY.setValue(0);
-        }
-      },
-    }
+  // Pan gesture for dragging the drawer down to close
+  const panGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .minDistance(5) // Minimum distance to start gesture
+        .activeOffsetY([-10, 5]) // Activate after 5px down or 10px up
+        .failOffsetX([-25, 25]) // Fail if horizontal movement exceeds 25px
+        .onStart(() => {
+          // Store the current position when gesture begins
+          gestureStartY.current = (translateY as any)._value || 0;
+        })
+        .onUpdate((event) => {
+          const { translationY: deltaY } = event;
+          // Calculate new absolute position
+          const newY = gestureStartY.current + deltaY;
+          // Only update if dragging down (positive deltaY)
+          if (newY >= 0) {
+            // Update the main translateY
+            translateY.setValue(newY);
+            // Update opacity based on position (fade out as dragged down)
+            const opacity = Math.max(0, 1 - newY / maxHeightValue);
+            overlayOpacity.setValue(opacity);
+          } else {
+            // If dragged up past top, reset to 0
+            translateY.setValue(0);
+            overlayOpacity.setValue(1);
+          }
+        })
+        .onEnd((event) => {
+          const { translationY: deltaY, velocityY } = event;
+          const currentY = gestureStartY.current + deltaY;
+
+          // Determine if we should close based on position and velocity
+          // Lower threshold for easier closing - at least 60px down or fast swipe down
+          const shouldClose = deltaY > 0 && (currentY > 60 || velocityY > 400);
+
+          if (shouldClose) {
+            // Slide down and close
+            Animated.parallel([
+              Animated.timing(translateY, {
+                toValue: maxHeightValue,
+                duration: 200,
+                easing: Easing.in(Easing.quad),
+                useNativeDriver: true,
+              }),
+              Animated.timing(overlayOpacity, {
+                toValue: 0,
+                duration: 200,
+                easing: Easing.out(Easing.quad),
+                useNativeDriver: true,
+              }),
+            ]).start(() => {
+              closeDrawer();
+            });
+          } else {
+            // Spring back to top position (0)
+            Animated.parallel([
+              Animated.spring(translateY, {
+                toValue: 0,
+                damping: 18,
+                stiffness: 160,
+                velocity: velocityY / 1000,
+                useNativeDriver: true,
+              }),
+              Animated.timing(overlayOpacity, {
+                toValue: 1,
+                duration: 200,
+                easing: Easing.out(Easing.quad),
+                useNativeDriver: true,
+              }),
+            ]).start();
+          }
+          // Reset gesture values
+          gestureStartY.current = 0;
+        }),
+    [translateY, overlayOpacity, maxHeightValue, closeDrawer]
   );
-
-  const handleStateChange = (event: PanGestureHandlerStateChangeEvent) => {
-    if (event.nativeEvent.oldState === State.BEGAN) {
-      // Store the current position when gesture begins
-      gestureStartY.current = (translateY as any)._value || 0;
-      gestureTranslateY.setValue(0);
-    } else if (event.nativeEvent.oldState === State.ACTIVE) {
-      const { translationY: deltaY, velocityY } = event.nativeEvent;
-      const currentY = gestureStartY.current + deltaY;
-      
-      // Determine if we should close based on position and velocity
-      const shouldClose = currentY > 0 && (currentY > 140 || velocityY > 800);
-
-      if (shouldClose) {
-        // Slide down and close
-        Animated.parallel([
-          Animated.timing(translateY, {
-            toValue: maxHeightValue,
-            duration: 250,
-            easing: Easing.in(Easing.quad),
-            useNativeDriver: false,
-          }),
-          Animated.timing(overlayOpacity, {
-            toValue: 0,
-            duration: 250,
-            easing: Easing.out(Easing.quad),
-            useNativeDriver: false,
-          }),
-        ]).start(() => {
-          closeDrawer();
-        });
-      } else {
-        // Spring back to top position (0)
-        Animated.spring(translateY, {
-          toValue: 0,
-          damping: 18,
-          stiffness: 160,
-          velocity: velocityY / 1000,
-          useNativeDriver: false,
-        }).start();
-      }
-      // Reset gesture values
-      gestureStartY.current = 0;
-      gestureTranslateY.setValue(0);
-    }
-  };
 
   const renderSection = (section?: React.ReactNode | ((close: () => void) => React.ReactNode)) => {
     if (!section) {
@@ -223,7 +235,7 @@ export function CollapseDrawer({
       <Modal visible={visible} animationType="fade" transparent onRequestClose={closeDrawer}>
         <Animated.View style={[styles.backdrop, { opacity: overlayOpacity }]}>
           {/* Backdrop layers - fill entire screen */}
-          <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+          <BlurView intensity={10} tint="dark" style={StyleSheet.absoluteFill} />
           <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
 
           {/* Backdrop touch blocker - always present to block touches */}
@@ -234,35 +246,49 @@ export function CollapseDrawer({
               onPress={closeDrawer}
             />
           ) : (
-            <View style={StyleSheet.absoluteFill} pointerEvents="auto" />
+            <View style={StyleSheet.absoluteFill} pointerEvents="none" />
           )}
 
           {/* Sheet container - positioned at bottom */}
           <View style={styles.sheetWrapper} pointerEvents="box-none">
-            <Animated.View
-              style={[
-                styles.sheetContainer,
-                { transform: [{ translateY }], maxHeight: maxHeightValue },
-              ]}>
-              {/* Draggable handle area - only this area is draggable */}
-              {showHandle && (
-                <PanGestureHandler
-                  activeOffsetY={5}
-                  failOffsetY={-5}
-                  onGestureEvent={handleGestureEvent}
-                  onHandlerStateChange={handleStateChange}
-                  shouldCancelWhenOutside={false}>
-                  <Animated.View style={styles.dragHandleContainer}>
+            <GestureDetector gesture={panGesture}>
+              <Animated.View
+                style={[
+                  styles.sheetContainer,
+                  { 
+                    transform: [{ translateY }], 
+                    maxHeight: maxHeightValue,
+                    height: maxHeightValue,
+                  },
+                ]}
+                pointerEvents="box-none">
+                {/* Draggable handle area - larger touch target */}
+                {showHandle && (
+                  <View 
+                    style={styles.dragHandleContainer} 
+                    collapsable={false}
+                    pointerEvents="auto">
                     <View style={styles.dragHandle} />
-                  </Animated.View>
-                </PanGestureHandler>
-              )}
-              <View style={{ flex: 1, flexDirection: 'column' }}>
-                {renderSection(header)}
-                <View style={{ flex: 1, minHeight: 0 }}>{renderSection(content)}</View>
-                {renderSection(footer)}
-              </View>
-            </Animated.View>
+                  </View>
+                )}
+                {/* Content area - scrollable */}
+                <View style={{ flex: 1, minHeight: 0 }} pointerEvents="auto">
+                  <ScrollView 
+                    style={{ flex: 1, minHeight: 0 }}
+                    contentContainerStyle={{ paddingBottom: 20 }}
+                    showsVerticalScrollIndicator={false}
+                    bounces={false}
+                    nestedScrollEnabled={true}
+                    scrollEnabled={true}>
+                    <View style={{ flexDirection: 'column' }}>
+                      {renderSection(header)}
+                      {renderSection(content)}
+                      {renderSection(footer)}
+                    </View>
+                  </ScrollView>
+                </View>
+              </Animated.View>
+            </GestureDetector>
           </View>
         </Animated.View>
       </Modal>
@@ -295,8 +321,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 16,
+    paddingBottom: 12,
     // Much larger touch target area for better UX - entire top section is draggable
-    minHeight: 24,
+    minHeight: 48,
     // Additional padding to make it easier to grab
     marginBottom: 8,
   },

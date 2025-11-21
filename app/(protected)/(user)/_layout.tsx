@@ -1,4 +1,4 @@
-import { Link, Tabs } from 'expo-router';
+import { Link, Tabs, useRouter } from 'expo-router';
 import { View } from 'react-native';
 import { TabBarIcon } from '../../../components/TabBarIcon';
 import { BriefcaseBusiness, Camera, Home, Plus, Search, UserCircle } from 'lucide-react-native';
@@ -7,6 +7,16 @@ import { AccountDropDownMenu } from '../../../components/AccountDropDownMenu';
 
 export default function ClientTabLayout() {
   const { user } = useUser();
+  const router = useRouter();
+
+  const handleProfilePress = () => {
+    if (user?.username) {
+      router.push({
+        pathname: '/(protected)/(user)/user/[username]',
+        params: { username: user.username },
+      } as any);
+    }
+  };
 
   return (
     <Tabs
@@ -64,7 +74,7 @@ export default function ClientTabLayout() {
         options={{
           title: 'User',
           tabBarIcon: ({ color, focused }) => (
-            <AccountDropDownMenu color={color} focused={focused} onPress={() => {}} />
+            <AccountDropDownMenu color={color} focused={focused} onPress={handleProfilePress} />
           ),
           headerShown: false,
           href: user?.username

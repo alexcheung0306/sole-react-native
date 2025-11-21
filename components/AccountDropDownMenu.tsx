@@ -1,10 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
-import { TouchableOpacity, View, Text, Animated, PanResponder } from 'react-native';
-import { UserCircle, Settings, LogOut, User, Users, Briefcase } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { TouchableOpacity, View, Text } from 'react-native';
+import { UserCircle, Settings, LogOut, User, Users } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { CollapseDrawer } from './custom/collapse-drawer';
-import { useNavigation } from '@/context/NavigationContext';
 import { SwitchInterface } from './profile/switch-interface';
 
 interface AccountDropDownMenuProps {
@@ -15,27 +14,10 @@ interface AccountDropDownMenuProps {
 
 export function AccountDropDownMenu({ color, focused, onPress }: AccountDropDownMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
   const { signOut } = useAuth();
   const { user, isLoaded } = useUser();
-
-  const handleLongPress = (open: () => void) => {
-    open();
-  };
-
-  const handlePressIn = (open: () => void) => {
-    longPressTimerRef.current = setTimeout(() => {
-      handleLongPress(open);
-    }, 500);
-  };
-
-  const handlePressOut = () => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-  };
+  const longPressTimerRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const handleSettings = (close: () => void) => {
     close();
@@ -84,18 +66,38 @@ export function AccountDropDownMenu({ color, focused, onPress }: AccountDropDown
     },
   ];
 
+  const handlePressIn = (open: () => void) => {
+    // Start long press timer
+    longPressTimerRef.current = setTimeout(() => {
+      open();
+      longPressTimerRef.current = null;
+    }, 400);
+  };
+
+  const handlePressOut = () => {
+    // If timer is still running, it was a short tap - navigate
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+      // Single tap - navigate to profile
+      if (onPress) {
+        onPress();
+      }
+    }
+  };
+
   return (
     <CollapseDrawer
       open={isOpen}
       onOpenChange={setIsOpen}
       trigger={({ open }) => (
-        <View
-          onTouchStart={() => handlePressIn(open)}
-          onTouchEnd={handlePressOut}
-          onTouchCancel={handlePressOut}
+        <TouchableOpacity
+          onPressIn={() => handlePressIn(open)}
+          onPressOut={handlePressOut}
+          activeOpacity={0.7}
           style={{ alignItems: 'center', justifyContent: 'center' }}>
           <UserCircle color={color} size={24} />
-        </View>
+        </TouchableOpacity>
       )}
       header={(close) => (
         <View className="gap-1  px-5 pb-4">
@@ -117,8 +119,10 @@ export function AccountDropDownMenu({ color, focused, onPress }: AccountDropDown
         </View>
       )}
       content={(close) => (
-        <View className="gap-4 px-5 pb-6">
-          <SwitchInterface />
+        <View className="gap-4 px-5 pb-6" style={{ width: '100%' }}>
+          <View style={{ width: '100%', overflow: 'hidden' }}>
+            <SwitchInterface />
+          </View>
 
           {/* Menu Items */}
           {menuItems.map((item, index) => {

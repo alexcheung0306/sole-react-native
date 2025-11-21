@@ -3,7 +3,7 @@ import { InputField } from '@/components/form-components/InputField';
 import { RadioGroupSingleOption } from '@/components/form-components/RadioGroupSingleOption';
 import { RangeInput } from '@/components/form-components/RangeInput';
 import { CategoriesCard } from '@/components/form-components/CategoriesCard';
-import { DropDownMultiSelect } from '@/components/form-components/DropDownMultiSelect';
+import { EthnicsCard } from '@/components/form-components/EthnicsCard';
 import { validateGender } from '@/lib/validations/talentInfo-validations';
 
 interface RoleRequirementsInputsProps {
@@ -39,7 +39,7 @@ export function RoleRequirementsInputs({
         options="gender"
         tooltipContent="Required gender for this role"
         isRequired={true}
-        validation={validateGender}
+        validation={(value) => validateGender(value as string) || null}
         setFieldTouched={setFieldTouched}
         setFieldValue={setFieldValue}
       />
@@ -87,7 +87,12 @@ export function RoleRequirementsInputs({
       />
 
       {/* Ethnic Groups */}
-      <DropDownMultiSelect values={values} setFieldValue={setFieldValue} ethnic={ethnic} setEthnic={setEthnic} />
+      <EthnicsCard
+        values={values}
+        setFieldValue={setFieldValue}
+        ethnic={ethnic}
+        setEthnic={setEthnic}
+      />
 
       {/* Skills */}
       <InputField
@@ -97,8 +102,8 @@ export function RoleRequirementsInputs({
         label="Skills required to get the role"
         data={values}
         tooltip="Skills required to get the role"
-        touched={null}
-        validation={null}
+        touched={false}
+        validation={undefined}
         warning={false}
         setFieldTouched={setFieldTouched}
         setFieldValue={setFieldValue}
@@ -106,4 +111,3 @@ export function RoleRequirementsInputs({
     </>
   );
 }
-

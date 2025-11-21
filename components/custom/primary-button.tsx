@@ -27,7 +27,7 @@ export function PrimaryButton({
   ...props
 }: PrimaryButtonProps) {
   // Base styles that are always applied
-  const baseStyles = `flex-row items-center justify-center gap-2 rounded-2xl 
+  const baseStyles = `flex-row items-center justify-center gap-2 rounded-2xl bg-white
     border border-white/20 px-4 py-2.5`;
   const variantStyle = variantStyles[variant];
   const disabledStyle = disabled ? 'opacity-50' : '';
@@ -43,7 +43,7 @@ export function PrimaryButton({
       {...props}>
       {icon && icon}
       {typeof children === 'string' ? (
-        <Text className="text-sm font-semibold text-white">{children}</Text>
+        <Text className="text-sm font-semibold text-black">{children}</Text>
       ) : (
         children
       )}

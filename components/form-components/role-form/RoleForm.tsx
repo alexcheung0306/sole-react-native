@@ -11,11 +11,10 @@ import { validateNumberField } from '@/lib/validations/form-field-validations';
 import { validateRoleTitle, validateRoleDescription } from '@/lib/validations/role-validation';
 import { validateGender } from '@/lib/validations/talentInfo-validations';
 import { validateScheduleList } from '@/lib/validations/role-validation';
-import { RoleInformationInput } from './RoleInformationInput';
-import { RoleRequirementsInputs } from './RoleRequirementsInputs';
-import { RoleScheduleListInputs } from './RoleScheduleListInputs';
 import { FillRoleFormButton } from './FillRoleFormButton';
-import { RoleConfirm } from './RoleConfirm';
+import { RoleFormBreadCrumbs } from './RoleFormBreadCrumbs';
+import { RoleFormPageContent } from './RoleFormPageContent';
+import { RoleFormNavigationButtons } from './RoleFormNavigationButtons';
 
 type RoleFormProps = {
   projectId: number;
@@ -35,7 +34,9 @@ export function RoleForm({
   refetchRoles,
 }: RoleFormProps) {
   const queryClient = useQueryClient();
-  const [currentPage, setCurrentPage] = useState<'roleInformation' | 'requirements' | 'schedules' | 'confirm'>('roleInformation');
+  const [currentPage, setCurrentPage] = useState<
+    'roleInformation' | 'requirements' | 'schedules' | 'confirm'
+  >('roleInformation');
   const [fillSchedulesLater, setFillSchedulesLater] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [ethnic, setEthnic] = useState<Set<string>>(new Set());
@@ -46,7 +47,9 @@ export function RoleForm({
   const activitiesData = fetchedValues?.activities ? fetchedValues.activities : [];
 
   const categoryValue =
-    roleData?.category && typeof roleData.category === 'string' ? roleData.category.split(',').filter(Boolean) : [];
+    roleData?.category && typeof roleData.category === 'string'
+      ? roleData.category.split(',').filter(Boolean)
+      : [];
 
   const ethnicValue =
     roleData?.requiredEthnicGroup &&
@@ -175,7 +178,11 @@ export function RoleForm({
   ];
 
   return (
-    <Formik key={`${method}-${roleId || 'new'}`} initialValues={initialValues} enableReinitialize={false} onSubmit={handleSubmit}>
+    <Formik
+      key={`${method}-${roleId || 'new'}`}
+      initialValues={initialValues}
+      enableReinitialize={false}
+      onSubmit={handleSubmit}>
       {({ values, setFieldValue, setValues, submitForm, resetForm, touched, setFieldTouched }) => {
         const handleFillLater = () => {
           setFillSchedulesLater(true);
@@ -274,86 +281,6 @@ export function RoleForm({
           resetFormState();
         };
 
-        const renderBreadcrumbs = () => {
-          return (
-            <View className="mb-4 flex-row flex-wrap gap-2 border-b border-white/10 pb-3">
-              {pageOrder.map((page, index) => {
-                const isCurrent = currentPage === page;
-                const isDisabled =
-                  (page === 'requirements' && roleInformationErrors) ||
-                  (page === 'schedules' && (roleInformationErrors || requirementsErrors)) ||
-                  (page === 'confirm' && hasErrors);
-
-                return (
-                  <TouchableOpacity
-                    key={page}
-                    onPress={() => !isDisabled && setCurrentPage(page)}
-                    disabled={isDisabled}
-                    className={`rounded-full border px-3 py-1 ${
-                      isCurrent
-                        ? 'border-blue-500 bg-blue-500/20'
-                        : isDisabled
-                          ? 'border-white/10 bg-zinc-800/30 opacity-50'
-                          : 'border-white/20 bg-zinc-800/50'
-                    }`}>
-                    <Text
-                      className={`text-xs ${
-                        isCurrent ? 'text-blue-400' : isDisabled ? 'text-white/40' : 'text-white/80'
-                      }`}>
-                      {index + 1}. {page === 'roleInformation' ? 'Info' : page === 'requirements' ? 'Requirements' : page === 'schedules' ? 'Schedules' : 'Confirm'}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          );
-        };
-
-        const renderPageContent = () => {
-          switch (currentPage) {
-            case 'roleInformation':
-              return (
-                <RoleInformationInput
-                  values={values}
-                  touched={touched}
-                  setFieldValue={setFieldValue}
-                  setFieldTouched={setFieldTouched}
-                />
-              );
-            case 'requirements':
-              return (
-                <RoleRequirementsInputs
-                  values={values}
-                  touched={touched}
-                  setFieldValue={setFieldValue}
-                  setFieldTouched={setFieldTouched}
-                  selectedCategories={selectedCategories}
-                  setSelectedCategories={setSelectedCategories}
-                  ethnic={ethnic}
-                  setEthnic={setEthnic}
-                />
-              );
-            case 'schedules':
-              return (
-                <RoleScheduleListInputs
-                  values={values}
-                  setFieldValue={setFieldValue}
-                  setValues={setValues}
-                  touched={touched}
-                  setFieldTouched={setFieldTouched}
-                  onFillLater={handleFillLater}
-                  fillSchedulesLater={fillSchedulesLater}
-                  onRegisterScrollClose={(closeHandler) => {
-                    closeDropdownRef.current = closeHandler;
-                  }}
-                />
-              );
-            case 'confirm':
-              return <RoleConfirm values={values} />;
-            default:
-              return null;
-          }
-        };
 
         return (
           <>
@@ -364,9 +291,9 @@ export function RoleForm({
                   disabled={isDisabled}
                   icon={
                     method === 'POST' ? (
-                      <Plus size={20} color="#ffffff" />
+                      <Plus size={20} color="#000000" />
                     ) : (
-                      <Pencil size={20} color="#ffffff" />
+                      <Pencil size={20} color="#000000" />
                     )
                   }
                   onPress={() => {
@@ -406,10 +333,21 @@ export function RoleForm({
                       setSelectedCategories={setSelectedCategories}
                       setEthnic={setEthnic}
                     />
-                    {renderBreadcrumbs()}
+                    <RoleFormBreadCrumbs
+                      currentPage={currentPage}
+                      setCurrentPage={(page) =>
+                        setCurrentPage(
+                          page as 'roleInformation' | 'requirements' | 'schedules' | 'confirm'
+                        )
+                      }
+                      pageOrder={pageOrder}
+                      roleInformationErrors={roleInformationErrors ? true : false}
+                      requirementsErrors={requirementsErrors ? true : false}
+                      hasErrors={hasErrors ? true : false}
+                    />
                   </View>
-                  <ScrollView 
-                    className="flex-1 px-4" 
+                  <ScrollView
+                    className="flex-1 px-4"
                     showsVerticalScrollIndicator={false}
                     onScrollBeginDrag={() => {
                       if (closeDropdownRef.current) {
@@ -417,38 +355,35 @@ export function RoleForm({
                       }
                     }}
                     scrollEventThrottle={16}>
-                    {renderPageContent()}
+                    <RoleFormPageContent
+                      currentPage={currentPage}
+                      values={values}
+                      touched={touched}
+                      setFieldValue={setFieldValue}
+                      setValues={setValues}
+                      setFieldTouched={setFieldTouched}
+                      selectedCategories={selectedCategories}
+                      setSelectedCategories={setSelectedCategories}
+                      ethnic={ethnic}
+                      setEthnic={setEthnic}
+                      onFillLater={handleFillLater}
+                      fillSchedulesLater={fillSchedulesLater}
+                      onRegisterScrollClose={(closeHandler) => {
+                        closeDropdownRef.current = closeHandler;
+                      }}
+                    />
                   </ScrollView>
-                  <View className="flex-row gap-3 border-t border-white/10 px-4 py-4">
-                    <Button
-                      action="secondary"
-                      variant="outline"
-                      isDisabled={currentPage === 'roleInformation'}
-                      onPress={() => setCurrentPage(getPreviousPage())}
-                      className="flex-1">
-                      <ButtonText>Previous</ButtonText>
-                    </Button>
-                    {currentPage === 'confirm' ? (
-                      <Button
-                        action="primary"
-                        isDisabled={hasErrors || roleMutation.isPending}
-                        onPress={async () => {
-                          await handleFormSubmit();
-                          close();
-                        }}
-                        className="flex-1">
-                        <ButtonText>{roleMutation.isPending ? 'Saving...' : 'Save Role'}</ButtonText>
-                      </Button>
-                    ) : (
-                      <Button
-                        action="primary"
-                        isDisabled={!isCurrentPageValid()}
-                        onPress={() => setCurrentPage(getNextPage())}
-                        className="flex-1">
-                        <ButtonText>Next</ButtonText>
-                      </Button>
-                    )}
-                  </View>
+                  <RoleFormNavigationButtons
+                    currentPage={currentPage}
+                    getPreviousPage={getPreviousPage}
+                    getNextPage={getNextPage}
+                    setCurrentPage={setCurrentPage}
+                    isCurrentPageValid={isCurrentPageValid}
+                    hasErrors={hasErrors}
+                    isSubmitting={roleMutation.isPending}
+                    onSave={handleFormSubmit}
+                    onClose={close}
+                  />
                 </View>
               )}
             </FormModal>
