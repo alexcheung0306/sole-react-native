@@ -1,17 +1,17 @@
 import React, { isValidElement, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Modal,
-  View,
-  TouchableOpacity,
   Animated,
-  StyleSheet,
-  Easing,
   Dimensions,
+  Modal,
+  Pressable,
   ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
 import {
   Gesture,
   GestureDetector,
+  GestureHandlerRootView,
 } from 'react-native-gesture-handler';
 import { BlurView } from 'expo-blur';
 
@@ -60,45 +60,49 @@ export function CollapseDrawer({
     return typeof maxHeight === 'number' ? maxHeight : Dimensions.get('window').height * 0.8;
   }, [maxHeight]);
 
-  // Initialize translateY - will be set properly in useEffect
-  const translateY = useRef(new Animated.Value(Dimensions.get('window').height)).current;
-  const overlayOpacity = useRef(new Animated.Value(0)).current;
+  // Initialize translateY - using fixed value like rc-pos (500)
+  const translateY = useRef(new Animated.Value(500)).current;
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
+  const [isRendered, setIsRendered] = useState(false);
 
+  // Handle opening/closing animation - same pattern as rc-pos
   useEffect(() => {
     if (visible) {
-      // Slide in from bottom when opening
+      setIsRendered(true);
+      // Animate in
       Animated.parallel([
         Animated.spring(translateY, {
           toValue: 0,
-          damping: 20,
-          stiffness: 90,
-          useNativeDriver: true, // Use native driver for transforms
+          useNativeDriver: true,
+          tension: 80,
+          friction: 10,
         }),
-        Animated.timing(overlayOpacity, {
-          toValue: 1,
+        Animated.timing(backdropOpacity, {
+          toValue: 0.5,
           duration: 250,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true, // Use native driver for opacity
+          useNativeDriver: true,
         }),
       ]).start();
-    } else {
-      // Slide down when closing
+    } else if (isRendered) {
+      // Animate out
       Animated.parallel([
         Animated.timing(translateY, {
-          toValue: maxHeightValue,
-          duration: 250,
-          easing: Easing.in(Easing.quad),
-          useNativeDriver: true, // Use native driver for transforms
+          toValue: 500,
+          duration: 200,
+          useNativeDriver: true,
         }),
-        Animated.timing(overlayOpacity, {
+        Animated.timing(backdropOpacity, {
           toValue: 0,
-          duration: 250,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true, // Use native driver for opacity
+          duration: 200,
+          useNativeDriver: true,
         }),
-      ]).start();
+      ]).start(() => {
+        setIsRendered(false);
+        translateY.setValue(500);
+        backdropOpacity.setValue(0);
+      });
     }
-  }, [visible, overlayOpacity, translateY, maxHeightValue]);
+  }, [visible, translateY, backdropOpacity]);
 
   const setOpen = (next: boolean) => {
     if (!isControlled) {
@@ -111,85 +115,46 @@ export function CollapseDrawer({
   const closeDrawer = () => setOpen(false);
   const toggleDrawer = () => setOpen(!visible);
 
-  // Track the starting Y position when gesture begins
-  const gestureStartY = useRef(0);
-
-  // Pan gesture for dragging the drawer down to close
+  // Pan gesture for dragging the drawer down to close - using new Gesture API
   const panGesture = useMemo(
     () =>
       Gesture.Pan()
-        .minDistance(5) // Minimum distance to start gesture
-        .activeOffsetY([-10, 5]) // Activate after 5px down or 10px up
-        .failOffsetX([-25, 25]) // Fail if horizontal movement exceeds 25px
-        .onStart(() => {
-          // Store the current position when gesture begins
-          gestureStartY.current = (translateY as any)._value || 0;
-        })
+        .minDistance(0) // Allow immediate activation
+        .activeOffsetY([0, 1]) // Activate on any downward movement
+        .failOffsetX([-50, 50]) // Fail if horizontal movement exceeds 50px
         .onUpdate((event) => {
-          const { translationY: deltaY } = event;
-          // Calculate new absolute position
-          const newY = gestureStartY.current + deltaY;
-          // Only update if dragging down (positive deltaY)
+          const { translationY: newY } = event;
+          // Only allow dragging down (positive values)
           if (newY >= 0) {
-            // Update the main translateY
             translateY.setValue(newY);
             // Update opacity based on position (fade out as dragged down)
-            const opacity = Math.max(0, 1 - newY / maxHeightValue);
-            overlayOpacity.setValue(opacity);
-          } else {
-            // If dragged up past top, reset to 0
-            translateY.setValue(0);
-            overlayOpacity.setValue(1);
+            const opacity = Math.max(0, 0.5 - newY / 500);
+            backdropOpacity.setValue(opacity);
           }
         })
         .onEnd((event) => {
-          const { translationY: deltaY, velocityY } = event;
-          const currentY = gestureStartY.current + deltaY;
+          const { translationY: finalY, velocityY } = event;
 
-          // Determine if we should close based on position and velocity
-          // Lower threshold for easier closing - at least 60px down or fast swipe down
-          const shouldClose = deltaY > 0 && (currentY > 60 || velocityY > 400);
-
-          if (shouldClose) {
-            // Slide down and close
-            Animated.parallel([
-              Animated.timing(translateY, {
-                toValue: maxHeightValue,
-                duration: 200,
-                easing: Easing.in(Easing.quad),
-                useNativeDriver: true,
-              }),
-              Animated.timing(overlayOpacity, {
-                toValue: 0,
-                duration: 200,
-                easing: Easing.out(Easing.quad),
-                useNativeDriver: true,
-              }),
-            ]).start(() => {
+          // Close if dragged down more than 100px or with high velocity
+          if (finalY > 100 || velocityY > 500) {
+            Animated.timing(translateY, {
+              toValue: 500,
+              duration: 200,
+              useNativeDriver: true,
+            }).start(() => {
               closeDrawer();
             });
           } else {
-            // Spring back to top position (0)
-            Animated.parallel([
-              Animated.spring(translateY, {
-                toValue: 0,
-                damping: 18,
-                stiffness: 160,
-                velocity: velocityY / 1000,
-                useNativeDriver: true,
-              }),
-              Animated.timing(overlayOpacity, {
-                toValue: 1,
-                duration: 200,
-                easing: Easing.out(Easing.quad),
-                useNativeDriver: true,
-              }),
-            ]).start();
+            // Snap back to original position
+            Animated.spring(translateY, {
+              toValue: 0,
+              useNativeDriver: true,
+              tension: 100,
+              friction: 10,
+            }).start();
           }
-          // Reset gesture values
-          gestureStartY.current = 0;
         }),
-    [translateY, overlayOpacity, maxHeightValue, closeDrawer]
+    [translateY, backdropOpacity, closeDrawer]
   );
 
   const renderSection = (section?: React.ReactNode | ((close: () => void) => React.ReactNode)) => {
@@ -222,121 +187,149 @@ export function CollapseDrawer({
     }
 
     return (
-      <TouchableOpacity onPress={openDrawer} activeOpacity={0.8}>
+      <Pressable onPress={openDrawer}>
         {trigger}
-      </TouchableOpacity>
+      </Pressable>
     );
-  }, [trigger, visible]);
+  }, [trigger, visible, openDrawer]);
 
   return (
     <>
       {triggerNode}
 
-      <Modal visible={visible} animationType="fade" transparent onRequestClose={closeDrawer}>
-        <Animated.View style={[styles.backdrop, { opacity: overlayOpacity }]}>
-          {/* Backdrop layers - fill entire screen */}
-          <BlurView intensity={10} tint="dark" style={StyleSheet.absoluteFill} />
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
-
-          {/* Backdrop touch blocker - always present to block touches */}
+      <Modal visible={isRendered} animationType="none" transparent onRequestClose={closeDrawer}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          {/* Backdrop */}
           {closeOnBackdropPress ? (
-            <TouchableOpacity
-              activeOpacity={1}
-              style={StyleSheet.absoluteFill}
+            <Pressable
               onPress={closeDrawer}
-            />
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 999,
+              }}
+            >
+              <Animated.View
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: '#000',
+                  opacity: backdropOpacity,
+                }}
+              />
+            </Pressable>
           ) : (
-            <View style={StyleSheet.absoluteFill} pointerEvents="none" />
+            <Animated.View
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: '#000',
+                opacity: backdropOpacity,
+                zIndex: 999,
+              }}
+              pointerEvents="none"
+            />
           )}
 
-          {/* Sheet container - positioned at bottom */}
-          <View style={styles.sheetWrapper} pointerEvents="box-none">
+          {/* Blur overlay */}
+          <BlurView intensity={10} tint="dark" style={StyleSheet.absoluteFill} />
+
+          {/* Drawer */}
+          <Animated.View
+            style={{
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              maxHeight: maxHeightValue,
+              minHeight: maxHeightValue * 0.5,
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              borderColor: 'rgba(255, 255, 255, 0.75)',
+              borderWidth: 1,
+              borderTopWidth: 1,
+              borderLeftWidth: 1,
+              borderRightWidth: 1,
+              zIndex: 1000,
+              elevation: 8,
+              shadowOffset: { width: 0, height: -2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              backgroundColor: 'rgba(0, 0, 0, 0.35)',
+              transform: [
+                {
+                  translateY: translateY.interpolate({
+                    inputRange: [0, 500],
+                    outputRange: [0, 500],
+                    extrapolate: 'clamp',
+                  }),
+                },
+              ],
+            }}
+          >
+            {/* Drawer Header - Draggable */}
             <GestureDetector gesture={panGesture}>
-              <Animated.View
-                style={[
-                  styles.sheetContainer,
-                  { 
-                    transform: [{ translateY }], 
-                    maxHeight: maxHeightValue,
-                    height: maxHeightValue,
-                  },
-                ]}
-                pointerEvents="box-none">
-                {/* Draggable handle area - larger touch target */}
+              <View>
+                {/* Drag handle */}
                 {showHandle && (
-                  <View 
-                    style={styles.dragHandleContainer} 
-                    collapsable={false}
-                    pointerEvents="auto">
+                  <View style={styles.dragHandleContainer}>
                     <View style={styles.dragHandle} />
                   </View>
                 )}
-                {/* Content area - scrollable */}
-                <View style={{ flex: 1, minHeight: 0 }} pointerEvents="auto">
-                  <ScrollView 
-                    style={{ flex: 1, minHeight: 0 }}
-                    contentContainerStyle={{ paddingBottom: 20 }}
-                    showsVerticalScrollIndicator={false}
-                    bounces={false}
-                    nestedScrollEnabled={true}
-                    scrollEnabled={true}>
-                    <View style={{ flexDirection: 'column' }}>
-                      {renderSection(header)}
-                      {renderSection(content)}
-                      {renderSection(footer)}
-                    </View>
-                  </ScrollView>
-                </View>
-              </Animated.View>
+                {/* Header section */}
+                {header && (
+                  <View style={styles.headerContainer}>
+                    {renderSection(header)}
+                  </View>
+                )}
+              </View>
             </GestureDetector>
-          </View>
-        </Animated.View>
+
+            {/* Drawer Content */}
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{ paddingBottom: 20 }}
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+              nestedScrollEnabled={true}
+              scrollEnabled={true}
+            >
+              <View style={{ flexDirection: 'column' }}>
+                {renderSection(content)}
+                {renderSection(footer)}
+              </View>
+            </ScrollView>
+          </Animated.View>
+        </GestureHandlerRootView>
       </Modal>
     </>
   );
 }
+
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-  },
-  sheetWrapper: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  sheetContainer: {
-    width: '100%',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderTopWidth: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
-    borderColor: 'rgba(255, 255, 255, 0.75)',
-    overflow: 'hidden',
-    flexDirection: 'column',
-  },
   dragHandleContainer: {
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 16,
     paddingBottom: 12,
-    // Much larger touch target area for better UX - entire top section is draggable
-    minHeight: 48,
-    // Additional padding to make it easier to grab
-    marginBottom: 8,
   },
   dragHandle: {
     width: 64,
     height: 7,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.4)',
-    // Add shadow for better visibility and depth
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    elevation: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  headerContainer: {
+    width: '100%',
   },
 });

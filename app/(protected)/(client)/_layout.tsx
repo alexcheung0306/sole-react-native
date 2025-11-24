@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import { View } from 'react-native';
 import { LayoutDashboard, Bookmark, Search, FolderKanban } from 'lucide-react-native';
 import { useUser } from '@clerk/clerk-expo';
@@ -6,6 +6,17 @@ import { AccountDropDownMenu } from '~/components/AccountDropDownMenu';
 
 export default function ClientTabLayout() {
   const { user } = useUser();
+  const router = useRouter();
+
+  const handleProfilePress = () => {
+    if (user?.username) {
+      router.push({
+        pathname: '/(protected)/(client)/client/[username]',
+        params: { username: user.username },
+      } as any);
+    }
+  };
+
   return (
     <Tabs
       screenOptions={{
@@ -64,7 +75,7 @@ export default function ClientTabLayout() {
         options={{
           title: 'Client',
           tabBarIcon: ({ color, focused }) => (
-            <AccountDropDownMenu color={color} focused={focused} onPress={() => {}} />
+            <AccountDropDownMenu color={color} focused={focused} onPress={handleProfilePress} />
           ),
           headerShown: false,
           href: user?.username
