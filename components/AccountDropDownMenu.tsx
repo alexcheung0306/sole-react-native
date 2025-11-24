@@ -20,7 +20,6 @@ export function AccountDropDownMenu({ color, focused, onPress }: AccountDropDown
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const justOpenedRef = useRef(false);
 
-
   console.log('isOpen', isOpen);
   const handleSettings = (close: () => void) => {
     close();

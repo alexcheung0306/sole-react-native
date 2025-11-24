@@ -1,173 +1,130 @@
-import { useEffect, useRef, useState } from 'react';
+// custom/collapse-drawer2.tsx
+import React, { useEffect } from 'react';
 import {
-  Animated,
-  Dimensions,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
   View,
+  Text,
+  Pressable,
+  Dimensions,
+  Platform,
+  ScrollView,
+  KeyboardAvoidingView,
 } from 'react-native';
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
-// Component for iOS drawer content with conditional padding
-function DrawerContentIOS({ children }: { children: React.ReactNode }) {
-  return (
-    <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }} keyboardVerticalOffset={0}>
-      <ScrollView
-        style={{ flex: 1, backgroundColor: 'transparent' }}
-        contentContainerStyle={{ paddingBottom: 20 }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}>
-        {children}
-      </ScrollView>
-    </KeyboardAvoidingView>
-  );
-}
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const DRAWER_HEIGHT = SCREEN_HEIGHT * 0.88;
 
-// Component for Android drawer content with conditional padding
-function DrawerContentAndroid({ children }: { children: React.ReactNode }) {
-  return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: 'transparent' }}
-      contentContainerStyle={{ paddingBottom: 20 }}
-      keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}>
-      {children}
-    </ScrollView>
-  );
-}
+type Props = {
+  showDrawer: boolean;
+  setShowDrawer: (value: boolean) => void;
+  title?: string;
+  children: React.ReactNode;
+};
 
 export default function CollapseDrawer2({
   showDrawer,
   setShowDrawer,
+  title = '',
   children,
-  title,
-}: {
-  showDrawer: boolean;
-  setShowDrawer: (show: boolean) => void;
-  children: React.ReactNode;
-  title: string;
-}) {
-  const screenHeight = Dimensions.get('window').height;
-  const drawerHeight = screenHeight * 0.8; // At least 40% of screen height
-  const translateY = useRef(new Animated.Value(0)).current; // Start at 0 (visible position)
+}: Props) {
+  const translateY = useSharedValue(SCREEN_HEIGHT);
 
-  // Pan gesture for dragging the drawer down to close - using new Gesture API
+  // Gentle open animation
+  useEffect(() => {
+    if (showDrawer) {
+      translateY.value = withSpring(0, {
+        damping: 25,
+        stiffness: 90,
+        mass: 1,
+      });
+    }
+  }, [showDrawer]);
+
+  const closeDrawer = () => {
+    translateY.value = withTiming(
+      SCREEN_HEIGHT,
+      { duration: 400 },
+      (finished) => {
+        if (finished) {
+          runOnJS(setShowDrawer)(false);
+        }
+      }
+    );
+  };
+
   const panGesture = Gesture.Pan()
-    .minDistance(0) // Allow immediate activation
-    .activeOffsetY([0, 1]) // Activate on any downward movement
-    .failOffsetX([-50, 50]) // Fail if horizontal movement exceeds 50px
-    .onUpdate((event) => {
-      const { translationY: newY } = event;
-      // Only allow dragging down (positive values)
-      if (newY >= 0) {
-        translateY.setValue(newY);
+    .onUpdate((e) => {
+      if (e.translationY > 0) {
+        translateY.value = e.translationY;
       }
     })
-    .onEnd((event) => {
-      const { translationY: finalY, velocityY } = event;
-
-      // Close if dragged down more than 100px or with high velocity
-      if (finalY > 100 || velocityY > 500) {
-        // Close immediately
-        setShowDrawer(false);
-        translateY.setValue(0); // Reset for next open
+    .onEnd((e) => {
+      const shouldClose = e.translationY > 180 || e.velocityY > 1000;
+      if (shouldClose) {
+        closeDrawer();
       } else {
-        // Snap back to original position
-        Animated.spring(translateY, {
-          toValue: 0,
-          useNativeDriver: true,
-          tension: 100,
-          friction: 10,
-        }).start();
+        translateY.value = withSpring(0, { damping: 20, stiffness: 100 });
       }
     });
 
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+
+  if (!showDrawer) return null;
+
   return (
-    <Modal
-      visible={showDrawer}
-      transparent
-      animationType="none"
-      onRequestClose={() => setShowDrawer(false)}>
-      <GestureHandlerRootView style={{ flex: 1, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-        {/* Backdrop */}
-        <Pressable
-          onPress={() => {
-            setShowDrawer(false);
-            translateY.setValue(0); // Reset for next open
-          }}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 999,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          }}
-        />
-
-        {/* Drawer */}
-        <Animated.View
-          style={{
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            borderBottomLeftRadius: 0,
-            borderBottomRightRadius: 0,
-            height: drawerHeight,
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            borderTopColor: 'rgba(255, 255, 255, 0.35)',
-            borderTopWidth: 1,
-            borderLeftWidth: 1,
-            borderRightWidth: 1,
-            borderBottomWidth: 0,
-            overflow: 'hidden',
-            zIndex: 1000,
-            elevation: 8,
-            shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            backgroundColor: 'rgba(0, 0, 0, 0.85)',
-            flexDirection: 'column',
-            transform: [
+    <Modal transparent visible={showDrawer} animationType="none">
+      <Pressable
+        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' }}
+        onPress={closeDrawer}>
+        
+        <GestureDetector gesture={panGesture}>
+          <Animated.View
+            style={[
+              animatedStyle,
               {
-                translateY: translateY,
+                height: DRAWER_HEIGHT,
+                backgroundColor: '#000',
+                borderTopLeftRadius: 28,
+                borderTopRightRadius: 28,
+                paddingTop: 16,
               },
-            ],
-          }}>
-          {/* Drawer Header - Draggable */}
-          <GestureDetector gesture={panGesture}>
-            <View>
-              <View className="items-center py-3">
-                <View
-                  className="h-1 w-10 rounded-sm opacity-30"
-                  style={{ backgroundColor: 'rgb(255, 255, 255)' }}
-                />
-              </View>
-              <View
-                className="flex-row items-center justify-between border-b px-5 pb-2.5"
-                style={{ borderBottomColor: 'rgba(255, 255, 255, 0.1)' }}>
-                <Text className="text-xl font-bold text-white">{title}</Text>
-              </View>
+            ]}>
+            {/* Handle + Title */}
+            <View style={{ alignItems: 'center', paddingBottom: 12 }}>
+              <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: '#ffffff40' }} />
+              {title ? (
+                <Text style={{ color: '#fff', fontSize: 26, fontWeight: '800', marginTop: 16 }}>
+                  {title}
+                </Text>
+              ) : null}
             </View>
-          </GestureDetector>
 
-          {/* Drawer Content */}
-          <View style={{ flex: 1, minHeight: 0 }}>
+            {/* Content */}
             {Platform.OS === 'ios' ? (
-              <DrawerContentIOS>{children}</DrawerContentIOS>
+              <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+                <ScrollView
+                  bounces={false}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled">
+                  {children}
+                </ScrollView>
+              </KeyboardAvoidingView>
             ) : (
-              <DrawerContentAndroid>{children}</DrawerContentAndroid>
+              <ScrollView style={{ flex: 1 }}>{children}</ScrollView>
             )}
-          </View>
-        </Animated.View>
-      </GestureHandlerRootView>
+          </Animated.View>
+        </GestureDetector>
+      </Pressable>
     </Modal>
   );
 }
