@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useSignIn } from '@clerk/clerk-expo';
 import { Link, Redirect, useRouter } from 'expo-router';
@@ -14,8 +14,17 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Watch for auth state changes and navigate when signed in
+  useEffect(() => {
+    if (isSignedIn && isLoaded) {
+      console.log('Auth state changed: user is now signed in, navigating...');
+      router.replace('/(protected)');
+    }
+  }, [isSignedIn, isLoaded, router]);
+
   // OAuth hooks
   const { startOAuthFlow: startGoogleOAuth } = useOAuth({ strategy: 'oauth_google' });
+  const { startOAuthFlow: startAppleOAuth } = useOAuth({ strategy: 'oauth_apple' });
 
   // If already signed in, redirect to main app
   if (isSignedIn) {
@@ -60,6 +69,89 @@ export default function SignInScreen() {
     }
   };
 
+  const onPressApple = async () => {
+    try {
+      setLoading(true);
+      console.log('Starting Apple OAuth flow...');
+      const result = await startAppleOAuth();
+      
+      // Log result safely without stringifying (to avoid circular reference errors)
+      console.log('Apple OAuth response - createdSessionId:', result?.createdSessionId);
+      console.log('Apple OAuth response - has setActive:', !!result?.setActive);
+      console.log('Apple OAuth response keys:', Object.keys(result || {}));
+
+      const { createdSessionId, setActive, signUp, signIn } = result;
+
+      // If we have a session ID, use it directly
+      if (createdSessionId && setActive) {
+        console.log('Setting active session with existing session ID...');
+        await setActive({ session: createdSessionId });
+        console.log('Session set successfully');
+        router.replace('/(protected)');
+        return;
+      }
+
+      // If sign-up is in progress and missing username, complete it
+      if (signUp && signUp.missingFields?.includes('username')) {
+        console.log('Completing sign-up with generated username...');
+        const email = signUp.emailAddress || '';
+        // Generate username from email (take part before @ and add random suffix)
+        const baseUsername = email.split('@')[0] || 'user';
+        const randomSuffix = Math.floor(Math.random() * 10000);
+        const username = `${baseUsername}${randomSuffix}`;
+        
+        console.log('Generated username:', username);
+        const updatedSignUp = await signUp.update({ username });
+        console.log('Sign-up updated. Status:', updatedSignUp.status);
+        console.log('Sign-up createdSessionId:', updatedSignUp.createdSessionId);
+        
+        if (updatedSignUp.status === 'complete' && updatedSignUp.createdSessionId && setActive) {
+          console.log('Sign-up completed, setting active session...');
+          await setActive({ session: updatedSignUp.createdSessionId });
+          console.log('Session set successfully');
+          router.replace('/(protected)');
+          return;
+        } else {
+          console.warn('Sign-up not complete after update. Status:', updatedSignUp.status);
+        }
+      }
+
+      // If sign-in needs identifier, try to complete it
+      if (signIn && signIn._status === 'needs_identifier') {
+        console.log('Sign-in needs identifier, attempting to complete...');
+        const completeSignIn = await signIn.authenticateWithRedirectOrPopup({ strategy: 'oauth_apple' });
+        
+        if (completeSignIn.createdSessionId && setActive) {
+          console.log('Sign-in completed, setting active session...');
+          await setActive({ session: completeSignIn.createdSessionId });
+          console.log('Session set successfully');
+          router.replace('/(protected)');
+          return;
+        }
+      }
+
+      // If we get here, something went wrong
+      console.warn('Apple OAuth: Could not complete authentication. Result:', {
+        hasCreatedSessionId: !!createdSessionId,
+        hasSetActive: !!setActive,
+        signUpStatus: signUp?._status,
+        signInStatus: signIn?._status,
+      });
+      Alert.alert('Error', 'Failed to complete Apple sign in. Please try again.');
+    } catch (err: any) {
+      console.error('Apple OAuth error:', err);
+      console.error('Error message:', err?.message);
+      console.error('Error errors array:', err?.errors);
+      console.error('Error type:', typeof err);
+      Alert.alert(
+        'Error', 
+        err?.errors?.[0]?.message || err?.message || 'Failed to sign in with Apple'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -79,6 +171,20 @@ export default function SignInScreen() {
           ) : (
             <>
               <Text style={styles.oauthButtonText}>🔵 Continue with Google</Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.oauthButton, styles.appleButton, loading && styles.buttonDisabled]}
+          onPress={onPressApple}
+          disabled={loading || !isLoaded}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <Text style={styles.appleButtonText}>🍎 Continue with Apple</Text>
             </>
           )}
         </TouchableOpacity>
@@ -178,10 +284,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderColor: '#ddd',
   },
+  appleButton: {
+    backgroundColor: '#000',
+    borderColor: '#000',
+  },
   oauthButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#000',
+  },
+  appleButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
   divider: {
     flexDirection: 'row',
