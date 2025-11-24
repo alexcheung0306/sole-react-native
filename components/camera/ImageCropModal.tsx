@@ -73,17 +73,26 @@ export function ImageCropModal({
   const minCropHeight = minCropSize;
 
   const { displayWidth, displayHeight, fittedScale, originalWidth, originalHeight } = useMemo(() => {
-    const naturalWidth = media?.width ?? media?.cropData?.naturalWidth ?? 1024;
-    const naturalHeight = media?.height ?? media?.cropData?.naturalHeight ?? 1024;
+    // Get image dimensions with better fallbacks
+    let naturalWidth = media?.width ?? media?.cropData?.naturalWidth;
+    let naturalHeight = media?.height ?? media?.cropData?.naturalHeight;
+    
+    // If dimensions are missing, use a default square aspect ratio
+    if (!naturalWidth || !naturalHeight || naturalWidth <= 0 || naturalHeight <= 0) {
+      naturalWidth = 1024;
+      naturalHeight = 1024;
+    }
+    
     const aspect = naturalWidth / naturalHeight || 1;
 
+    // Calculate scale to fit the image within the crop area
     const fitScale = Math.max(baseCropArea.width / naturalWidth, baseCropArea.height / naturalHeight);
     const width = naturalWidth * fitScale;
     const height = naturalHeight * fitScale;
 
     return {
-      displayWidth: width,
-      displayHeight: height,
+      displayWidth: Math.max(width, baseCropArea.width),
+      displayHeight: Math.max(height, baseCropArea.height),
       fittedScale: fitScale,
       originalWidth: naturalWidth,
       originalHeight: naturalHeight,
@@ -99,6 +108,7 @@ export function ImageCropModal({
   const translateY = useSharedValue(0);
   const cropWidth = useSharedValue(baseCropArea.width);
   const cropHeight = useSharedValue(baseCropArea.height);
+  
   useEffect(() => {
     if (visible) {
       scale.value = minScale;
@@ -283,8 +293,31 @@ export function ImageCropModal({
     }
   };
 
-  if (!media) {
+  if (!media || !media.uri) {
     return null;
+  }
+
+  // Safety check - ensure we have valid dimensions
+  if (!baseCropArea.width || !baseCropArea.height || baseCropArea.width <= 0 || baseCropArea.height <= 0) {
+    console.error('Invalid crop area dimensions:', baseCropArea);
+    return null;
+  }
+
+  if (!displayWidth || !displayHeight || displayWidth <= 0 || displayHeight <= 0) {
+    console.error('Invalid display dimensions:', { displayWidth, displayHeight });
+    return null;
+  }
+
+  // Debug logging (remove in production if needed)
+  if (__DEV__) {
+    console.log('ImageCropModal - Media:', {
+      uri: media.uri,
+      width: media.width,
+      height: media.height,
+      displayWidth,
+      displayHeight,
+      baseCropArea,
+    });
   }
 
   return (
@@ -324,13 +357,15 @@ export function ImageCropModal({
           </TouchableOpacity>
         </View>
 
-        <View className="flex-1 items-center justify-center">
+        <View className="flex-1 items-center justify-center" style={{ position: 'relative' }}>
           <View
             style={{
               width: baseCropArea.width,
               height: baseCropArea.height,
               borderRadius: 16,
               backgroundColor: '#000',
+              overflow: 'hidden',
+              position: 'relative',
             }}
           >
             <GestureDetector gesture={composedGesture}>
@@ -339,15 +374,30 @@ export function ImageCropModal({
                   {
                     width: displayWidth,
                     height: displayHeight,
-                    alignSelf: 'center',
+                    position: 'absolute',
+                    top: (baseCropArea.height - displayHeight) / 2,
+                    left: (baseCropArea.width - displayWidth) / 2,
                   },
                   animatedStyle,
                 ]}
               >
                 <ExpoImage
                   source={{ uri: media.uri }}
-                  style={{ width: '100%', height: '100%' }}
+                  style={{ 
+                    width: displayWidth, 
+                    height: displayHeight,
+                  }}
                   contentFit="cover"
+                  transition={200}
+                  cachePolicy="memory"
+                  onError={(error) => {
+                    console.error('Image load error:', error);
+                  }}
+                  onLoad={() => {
+                    if (__DEV__) {
+                      console.log('Image loaded successfully');
+                    }
+                  }}
                 />
               </Animated.View>
             </GestureDetector>
@@ -505,11 +555,10 @@ export function ImageCropModal({
 
         <View className="px-8 py-6">
           <Text className="text-gray-300 text-center text-sm">
-            Pinch to zoom, drag to reposition, and freely resize the frame.
+            Pinch to zoom, drag to reposition, and drag edges to resize the crop frame.
           </Text>
         </View>
       </View>
     </Modal>
   );
 }
-
