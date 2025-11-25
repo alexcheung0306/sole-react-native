@@ -1,33 +1,28 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { useRouter, usePathname } from 'expo-router';
+import { useJobTabContext } from '@/context/JobTabContext';
 import { Briefcase, FileText, Search } from 'lucide-react-native';
 
 export default function JobsNavTabs() {
-  const router = useRouter();
-  const pathname = usePathname();
+  const { activeTab, setActiveTab } = useJobTabContext();
 
   const tabs = [
     {
       name: 'Job Posts',
-      href: '/(protected)/(user)/job/job-posts',
+      tab: 'job-posts' as const,
       icon: Search,
     },
     {
       name: 'Applied Roles',
-      href: '/(protected)/(user)/job/applied-roles',
+      tab: 'applied-roles' as const,
       icon: Briefcase,
     },
     {
       name: 'My Contracts',
-      href: '/(protected)/(user)/job/my-contracts',
+      tab: 'my-contracts' as const,
       icon: FileText,
     },
   ];
-
-  const isActive = (href: string) => {
-    return pathname.includes(href.split('/').pop() || '');
-  };
 
   return (
     <ScrollView
@@ -39,7 +34,7 @@ export default function JobsNavTabs() {
       <View className="flex-row gap-2">
         {tabs.map((tab) => {
           const Icon = tab.icon;
-          const active = isActive(tab.href);
+          const active = activeTab === tab.tab;
 
           return (
             <TouchableOpacity
@@ -49,7 +44,7 @@ export default function JobsNavTabs() {
                   ? 'bg-white/10 border-white'
                   : 'border-transparent'
               }`}
-              onPress={() => router.push(tab.href as any)}
+              onPress={() => setActiveTab(tab.tab)}
             >
               <Icon color={active ? '#ffffff' : '#9ca3af'} size={18} />
               <Text

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Stack } from 'expo-router';
 import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
@@ -191,9 +190,7 @@ export default function AppliedRoles() {
   };
 
   return (
-    <>
-      <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.container}>
+    <View style={styles.container}>
         <FlatList
           ref={flatListRef}
           data={applicationsData}
@@ -260,7 +257,6 @@ export default function AppliedRoles() {
           showsVerticalScrollIndicator={false}
         />
       </View>
-    </>
   );
 }
 

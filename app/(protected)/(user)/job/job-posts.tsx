@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Stack } from 'expo-router';
 import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
@@ -179,9 +178,7 @@ export default function JobPosts() {
   };
 
   return (
-    <>
-      <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.container}>
+    <View style={styles.container}>
         <FlatList
           ref={flatListRef}
           data={projectsData}
@@ -248,7 +245,6 @@ export default function JobPosts() {
           showsVerticalScrollIndicator={false}
         />
       </View>
-    </>
   );
 }
 
