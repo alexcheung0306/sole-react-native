@@ -186,8 +186,8 @@ export default function ProjectInfoFormModal({
         const submitButtonText = isSubmitting
           ? 'Saving...'
           : method === 'POST'
-            ? 'Create Project'
-            : 'Save Changes';
+            ? 'Create'
+            : 'Save';
 
         return (
           <FormModal
@@ -250,6 +250,7 @@ export default function ProjectInfoFormModal({
                 {/* Private Toggle */}
                 <TouchableOpacity
                   className="mb-5 flex-row items-center justify-between"
+                  activeOpacity={1}
                   onPress={() => setFieldValue('isPrivate', !values.isPrivate)}>
                   <Text className="text-sm font-semibold text-white">Private Project</Text>
                   <View
@@ -257,7 +258,7 @@ export default function ProjectInfoFormModal({
                       values.isPrivate ? 'bg-blue-500' : 'bg-gray-700'
                     }`}>
                     <View
-                      className={`h-6 w-6 rounded-full bg-white ${
+                      className={`h-6 w-6 rounded-full bg-gray-300 ${
                         values.isPrivate ? 'self-end' : 'self-start'
                       }`}
                     />
