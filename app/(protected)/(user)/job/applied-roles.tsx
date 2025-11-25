@@ -1,42 +1,53 @@
-import { View, TextInput, TouchableOpacity, FlatList, Text, Modal, RefreshControl, ActivityIndicator } from 'react-native';
-import { Filter, X, Check, Calendar, Briefcase, FileText } from 'lucide-react-native';
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Stack } from 'expo-router';
+import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useScrollHeader } from '@/hooks/useScrollHeader';
+import { CollapsibleHeader } from '@/components/CollapsibleHeader';
 import { useQuery } from '@tanstack/react-query';
 import { useSoleUserContext } from '~/context/SoleUserContext';
 import { getJobApplicantsByUser } from '~/api/apiservice/applicant_api';
 import { useRouter } from 'expo-router';
-
-type FilterType = 'projectName' | 'projectId' | 'publisherUsername';
+import JobsNavTabs from '@/components/job/JobsNavTabs';
+import FilterSearch from '~/components/custom/filter-search';
+import FlatListEmpty from '~/components/custom/flatlist-empty';
+import { Calendar, Briefcase, FileText } from 'lucide-react-native';
 
 export default function AppliedRoles() {
+  const insets = useSafeAreaInsets();
+  const flatListRef = useRef<FlatList>(null);
+  const { headerTranslateY, handleScroll } = useScrollHeader();
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterModalVisible, setFilterModalVisible] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState<FilterType>('projectName');
+  
+  const [searchBy, setSearchBy] = useState('projectName');
+  const [searchValue, setSearchValue] = useState('');
   const [currentPage, setCurrentPage] = useState(0);
-  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
 
   const { soleUserId } = useSoleUserContext();
 
-  const filterOptions = [
-    { id: 'projectName' as FilterType, label: 'Project Name' },
-    { id: 'projectId' as FilterType, label: 'Project ID' },
-    { id: 'publisherUsername' as FilterType, label: 'Publisher Username' },
-  ];
+  const searchOptions = useMemo(
+    () => [
+      { id: 'projectName', label: 'Project Name' },
+      { id: 'projectId', label: 'Project ID' },
+      { id: 'publisherUsername', label: 'Publisher Username' },
+    ],
+    []
+  );
 
   // Build search API string
   const buildSearchAPI = () => {
     let searchParam = '';
-    if (searchQuery.trim()) {
-      switch (selectedFilter) {
+    if (searchValue.trim()) {
+      switch (searchBy) {
         case 'projectName':
-          searchParam = `&projectName=${encodeURIComponent(searchQuery)}`;
+          searchParam = `&projectName=${encodeURIComponent(searchValue)}`;
           break;
         case 'projectId':
-          searchParam = `&projectId=${searchQuery}`;
+          searchParam = `&projectId=${searchValue}`;
           break;
         case 'publisherUsername':
-          searchParam = `&soleUserName=${encodeURIComponent(searchQuery)}`;
+          searchParam = `&soleUserName=${encodeURIComponent(searchValue)}`;
           break;
       }
     }
@@ -51,32 +62,24 @@ export default function AppliedRoles() {
     refetch,
     isFetching,
   } = useQuery({
-    queryKey: ['appliedRoles', soleUserId, currentPage, searchQuery, selectedFilter],
+    queryKey: ['appliedRoles', soleUserId, currentPage, searchValue, searchBy],
     queryFn: () => getJobApplicantsByUser(soleUserId as string, buildSearchAPI()),
     enabled: !!soleUserId,
-    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+    staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
-  // Dynamic search effect
+  // Scroll to top when page changes
   useEffect(() => {
-    if (debounceTimeout.current) {
-      clearTimeout(debounceTimeout.current);
+    if (flatListRef.current) {
+      flatListRef.current.scrollToOffset({ offset: 0, animated: true });
     }
+  }, [currentPage]);
 
-    debounceTimeout.current = setTimeout(() => {
-      setCurrentPage(0);
-    }, 500);
-
-    return () => {
-      if (debounceTimeout.current) {
-        clearTimeout(debounceTimeout.current);
-      }
-    };
-  }, [searchQuery, selectedFilter]);
-
-  const getFilterLabel = () => {
-    return filterOptions.find(opt => opt.id === selectedFilter)?.label || 'Project Name';
+  const handleApplicationSearch = () => {
+    setCurrentPage(0);
+    setIsSearching(!!searchValue.trim());
+    refetch();
   };
 
   const getStatusColor = (status: string) => {
@@ -84,17 +87,17 @@ export default function AppliedRoles() {
     switch (normalizedStatus) {
       case 'pending':
       case 'applied':
-        return 'text-yellow-400 bg-yellow-500/20';
+        return { bg: 'rgba(250, 204, 21, 0.2)', text: '#facc15' };
       case 'under review':
       case 'shortlisted':
-        return 'text-blue-400 bg-blue-500/20';
+        return { bg: 'rgba(59, 130, 246, 0.2)', text: '#3b82f6' };
       case 'interviewed':
       case 'offered':
-        return 'text-green-400 bg-green-500/20';
+        return { bg: 'rgba(16, 185, 129, 0.2)', text: '#10b981' };
       case 'rejected':
-        return 'text-red-400 bg-red-500/20';
+        return { bg: 'rgba(239, 68, 68, 0.2)', text: '#ef4444' };
       default:
-        return 'text-gray-400 bg-gray-500/20';
+        return { bg: 'rgba(107, 114, 128, 0.2)', text: '#9ca3af' };
     }
   };
 
@@ -105,8 +108,7 @@ export default function AppliedRoles() {
   };
 
   const handleApplicationPress = (application: any) => {
-    // Navigate to job detail with the project ID
-    router.push(`/job/job-detail?id=${application.projectId}&roleId=${application.roleId}` as any);
+    router.push(`/(protected)/(user)/job/job-detail?id=${application.projectId}&roleId=${application.roleId}` as any);
   };
 
   const loadMore = () => {
@@ -115,55 +117,58 @@ export default function AppliedRoles() {
     }
   };
 
+  const totalPages = Math.ceil((appliedRolesData?.total || 0) / 10);
+  const applicationsData = appliedRolesData?.data || [];
+
   const renderAppliedRole = ({ item }: { item: any }) => {
     const statusColor = getStatusColor(item.applicationProcess || item.applicationStatus);
     
     return (
       <TouchableOpacity
         onPress={() => handleApplicationPress(item)}
-        className="bg-gray-800/20 p-4 mb-3 rounded-2xl border border-gray-700/30"
+        style={styles.applicationCard}
         activeOpacity={0.7}
       >
         {/* Role Title */}
-        <Text className="text-lg font-bold text-white mb-2" numberOfLines={2}>
+        <Text style={styles.roleTitle} numberOfLines={2}>
           {item.roleTitle || 'Unnamed Role'}
         </Text>
 
         {/* Project Info */}
-        <View className="flex-row items-center mb-2">
+        <View style={styles.infoRow}>
           <Briefcase size={14} color="#9ca3af" />
-          <Text className="text-sm text-gray-300 ml-2" numberOfLines={1}>
+          <Text style={styles.infoText} numberOfLines={1}>
             {item.projectName || `Project #${item.projectId}`}
           </Text>
         </View>
 
         {/* Project ID */}
-        <View className="flex-row items-center mb-2">
+        <View style={styles.infoRow}>
           <FileText size={14} color="#9ca3af" />
-          <Text className="text-sm text-gray-400 ml-2">
+          <Text style={styles.idText}>
             Project ID: {item.projectId} | Role ID: {item.roleId}
           </Text>
         </View>
 
         {/* Publisher */}
         {item.publisherUsername && (
-          <Text className="text-sm text-gray-400 mb-3">
+          <Text style={styles.publisherText}>
             By: {item.publisherUsername}
           </Text>
         )}
 
         {/* Application Status */}
-        <View className="flex-row items-center justify-between mb-2">
-          <View className={`px-3 py-1 rounded-full ${statusColor}`}>
-            <Text className={`text-xs font-semibold ${statusColor.split(' ')[0]}`}>
+        <View style={styles.statusRow}>
+          <View style={[styles.statusBadge, { backgroundColor: statusColor.bg }]}>
+            <Text style={[styles.statusText, { color: statusColor.text }]}>
               {item.applicationProcess || item.applicationStatus || 'Pending'}
             </Text>
           </View>
           
           {item.appliedAt && (
-            <View className="flex-row items-center">
+            <View style={styles.dateRow}>
               <Calendar size={12} color="#9ca3af" />
-              <Text className="text-xs text-gray-400 ml-1">
+              <Text style={styles.dateText}>
                 {formatDate(item.appliedAt)}
               </Text>
             </View>
@@ -172,7 +177,7 @@ export default function AppliedRoles() {
 
         {/* Additional Info */}
         {item.remarks && (
-          <Text className="text-sm text-gray-400 mt-2" numberOfLines={2}>
+          <Text style={styles.remarksText} numberOfLines={2}>
             {item.remarks}
           </Text>
         )}
@@ -181,130 +186,184 @@ export default function AppliedRoles() {
   };
 
   return (
-    <View className="flex-1 bg-black">
-      {/* Filter Modal */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={filterModalVisible}
-        onRequestClose={() => setFilterModalVisible(false)}
-      >
-        <TouchableOpacity 
-          className="flex-1 bg-black/80 justify-center items-center"
-          activeOpacity={1}
-          onPress={() => setFilterModalVisible(false)}
-        >
-          <TouchableOpacity 
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
-            className="bg-gray-800 rounded-2xl p-6 mx-8 w-80 border border-gray-700"
-          >
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-xl font-bold text-white">Search by</Text>
-              <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
-                <X size={24} color="#ffffff" />
-              </TouchableOpacity>
-            </View>
-            
-            {filterOptions.map((option) => (
-              <TouchableOpacity
-                key={option.id}
-                onPress={() => {
-                  setSelectedFilter(option.id);
-                  setFilterModalVisible(false);
-                }}
-                className="flex-row justify-between items-center py-4 border-b border-gray-700/50"
-              >
-                <Text className={`text-base ${selectedFilter === option.id ? 'font-semibold text-white' : 'text-gray-400'}`}>
-                  {option.label}
-                </Text>
-                {selectedFilter === option.id && (
-                  <Check size={20} color="#3b82f6" />
-                )}
-              </TouchableOpacity>
-            ))}
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Search Bar with Filter Button */}
-      <View className="bg-black p-4 border-b border-gray-700/50">
-        <View className="flex-row items-center space-x-2">
-          <TouchableOpacity 
-            className="p-3 bg-gray-800/50 rounded-lg mr-2 border border-gray-700/30"
-            onPress={() => setFilterModalVisible(true)}
-          >
-            <Filter size={20} color="#ffffff" />
-          </TouchableOpacity>
-          
-          <TextInput
-            className="flex-1 bg-gray-800/50 px-4 py-3 rounded-lg text-white border border-gray-700/30"
-            placeholder={`Search by ${getFilterLabel().toLowerCase()}...`}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor="#6b7280"
-            returnKeyType="search"
-          />
-        </View>
-      </View>
-
-      {/* Loading State */}
-      {isLoading && !isFetching && (
-        <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#3b82f6" />
-          <Text className="text-gray-400 mt-4">Loading your applications...</Text>
-        </View>
-      )}
-
-      {/* Error State */}
-      {appliedRolesError && (
-        <View className="flex-1 justify-center items-center p-4">
-          <Text className="text-red-400 text-center mb-4">
-            Failed to load applied roles
-          </Text>
-          <TouchableOpacity
-            onPress={() => refetch()}
-            className="bg-blue-500 px-6 py-3 rounded-lg"
-          >
-            <Text className="text-white font-semibold">Try Again</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Applied Roles List */}
-      {!isLoading && !appliedRolesError && (
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.container}>
+        <CollapsibleHeader title="Jobs" translateY={headerTranslateY} isDark={true} />
         <FlatList
-          data={appliedRolesData?.data || []}
-          renderItem={renderAppliedRole}
+          ref={flatListRef}
+          data={applicationsData}
           keyExtractor={(item, index) => item?.id?.toString() || index.toString()}
-          contentContainerStyle={{ padding: 16 }}
-          refreshControl={
-            <RefreshControl
-              refreshing={isFetching}
-              onRefresh={refetch}
-              tintColor="#3b82f6"
-              colors={['#3b82f6']}
+          ListEmptyComponent={
+            <FlatListEmpty
+              title="applications"
+              description={searchValue ? 'No applications found matching your search' : "You haven't applied to any roles yet"}
+              isLoading={isLoading}
+              error={appliedRolesError}
             />
           }
+          ListHeaderComponent={
+            <View style={styles.headerContent}>
+              <JobsNavTabs />
+
+              <View style={styles.titleSection}>
+                <Text style={styles.title}>Applied Roles</Text>
+                <Text style={styles.subtitle}>Track your job applications</Text>
+              </View>
+
+              {/* Search Bar */}
+              <FilterSearch
+                searchBy={searchBy}
+                setSearchBy={setSearchBy}
+                searchValue={searchValue}
+                setSearchValue={setSearchValue}
+                onSearch={handleApplicationSearch}
+                searchOptions={searchOptions}
+              />
+
+              {/* Results Count & Pagination */}
+              {appliedRolesData && (
+                <View style={styles.resultsRow}>
+                  <Text style={styles.resultsText}>
+                    {appliedRolesData.total} {appliedRolesData.total === 1 ? 'application' : 'applications'} found
+                    {isSearching && ' (filtered)'}
+                  </Text>
+
+                  {totalPages > 1 && (
+                    <Text style={styles.pageText}>
+                      Page {currentPage + 1} of {totalPages}
+                    </Text>
+                  )}
+                </View>
+              )}
+            </View>
+          }
+          renderItem={renderAppliedRole}
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           ListFooterComponent={
-            isFetching && appliedRolesData?.data?.length ? (
-              <View className="py-4">
+            isFetching && applicationsData.length ? (
+              <View style={styles.footer}>
                 <ActivityIndicator size="small" color="#3b82f6" />
               </View>
             ) : null
           }
-          ListEmptyComponent={
-            <View className="items-center justify-center py-20">
-              <FileText size={64} color="#4b5563" />
-              <Text className="text-gray-400 mt-4 text-center">
-                {searchQuery ? 'No applications found matching your search' : 'You haven\'t applied to any roles yet'}
-              </Text>
-            </View>
-          }
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          contentContainerStyle={{
+            paddingTop: insets.top + 72,
+            paddingBottom: 20,
+            paddingHorizontal: 12,
+          }}
+          showsVerticalScrollIndicator={false}
         />
-      )}
-    </View>
+      </View>
+    </>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0a0a0a',
+  },
+  headerContent: {
+    marginBottom: 12,
+    gap: 8,
+  },
+  titleSection: {
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#9ca3af',
+  },
+  resultsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  resultsText: {
+    fontSize: 14,
+    color: '#9ca3af',
+  },
+  pageText: {
+    fontSize: 14,
+    color: '#9ca3af',
+  },
+  footer: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  applicationCard: {
+    backgroundColor: 'rgba(31, 41, 55, 0.6)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  roleTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 8,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#d1d5db',
+    flex: 1,
+  },
+  idText: {
+    fontSize: 14,
+    color: '#9ca3af',
+  },
+  publisherText: {
+    fontSize: 14,
+    color: '#9ca3af',
+    marginBottom: 12,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#9ca3af',
+  },
+  remarksText: {
+    fontSize: 14,
+    color: '#9ca3af',
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+});
