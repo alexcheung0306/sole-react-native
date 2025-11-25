@@ -40,7 +40,7 @@ export function RolesBreadcrumb({
   const selectedRole = rolesWithSchedules[currentRole] || null;
 
   return (
-    <View className="gap-4 ml-2">
+    <View className="ml-2 gap-4">
       <Text className="text-sm font-semibold text-white/70">
         Role{rolesWithSchedules.length > 1 ? 's' : ''} for the Project - {projectData?.projectName}
       </Text>

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Upload } from 'lucide-react-native';
+import { PrimaryButton } from '@/components/custom/primary-button';
 import { Button, ButtonText, ButtonIcon } from '@/components/ui/button';
 import {
   Modal,
@@ -116,15 +117,14 @@ export function PublishProjectButton({
 
   return (
     <View className="w-full px-2">
-      <Button
-        action="primary"
-        size="lg"
-        isDisabled={isDisable}
+      <PrimaryButton
+        variant="create"
+        disabled={isDisable}
+        icon={<Upload size={20} color="#000000" />}
         onPress={handleOpen}
         className="w-full">
-        <ButtonIcon as={Upload} size={20} />
-        <ButtonText>Publish Project</ButtonText>
-      </Button>
+        Publish Project
+      </PrimaryButton>
 
       <Modal isOpen={isOpen} onClose={handleClose} size="lg">
         <ModalBackdrop />

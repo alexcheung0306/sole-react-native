@@ -180,7 +180,7 @@ export function FormModal({
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.modalContainer}
             pointerEvents="box-none">
-            <View className="flex" pointerEvents="box-none">
+            <View className="flex bg-black/35" style={styles.modalContent} pointerEvents="box-none">
               {/* Header */}
               <View className={`${'border-b border-white/10 px-4 pb-3 pt-0'}`}>
                 <View className={`flex-row items-center justify-between`} pointerEvents="auto">
@@ -229,5 +229,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalContent: {
+    width: '100%',
+    height: '100%',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.75)',
   },
 });
