@@ -1,16 +1,14 @@
 import { Stack } from 'expo-router';
 import { View, Text, FlatList, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useScrollHeader } from '@/hooks/useScrollHeader';
-import { CollapsibleHeader } from '@/components/CollapsibleHeader';
-import ProjectsNavTabs from '@/components/projects/ProjectsNavTabs';
+import { useHeaderContext } from '@/context/HeaderContext';
 import ContractListCard from '@/components/projects/ContractListCard';
 import FilterSearch from '~/components/custom/filter-search';
 import { useManageContractContext } from '@/context/ManageContractContext';
 
 export default function ManageContractsPage() {
   const insets = useSafeAreaInsets();
-  const { headerTranslateY, handleScroll } = useScrollHeader();
+  const { handleScroll } = useHeaderContext();
   const {
     contractResults,
     contracts,
@@ -36,8 +34,6 @@ export default function ManageContractsPage() {
 
   const renderHeader = () => (
     <View>
-      <ProjectsNavTabs />
-
       <View className="mb-5">
         <Text className="text-[28px] font-bold text-white mb-1">Manage Contracts</Text>
         <Text className="text-sm text-gray-400">View and manage all contracts</Text>
@@ -92,11 +88,6 @@ export default function ManageContractsPage() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-black">
-        <CollapsibleHeader
-          title="Manage Contracts"
-          translateY={headerTranslateY}
-          isDark={true}
-        />
         <FlatList
           data={contracts}
           renderItem={({ item }) => <ContractListCard item={item} />}

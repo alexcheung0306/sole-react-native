@@ -8,8 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useScrollHeader } from '@/hooks/useScrollHeader';
-import { CollapsibleHeader } from '@/components/CollapsibleHeader';
+import { useHeaderContext } from '@/context/HeaderContext';
 import { useQuery } from '@tanstack/react-query';
 import { getJobContractsById } from '@/api/apiservice/jobContracts_api';
 import { formatDateTime } from '@/utils/time-converts';
@@ -19,7 +18,7 @@ import AlterContractStatusModal from '@/components/projects/AlterContractStatusM
 export default function ActivateContractPage() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { headerTranslateY, handleScroll } = useScrollHeader();
+  const { handleScroll } = useHeaderContext();
   const { id } = useLocalSearchParams();
 
   const contractId = parseInt(id as string);
@@ -116,11 +115,6 @@ export default function ActivateContractPage() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
-        <CollapsibleHeader
-          title="Activate Contract"
-          translateY={headerTranslateY}
-          isDark={true}
-        />
         <ScrollView
           style={styles.scrollView}
           onScroll={handleScroll}

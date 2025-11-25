@@ -2,8 +2,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useEffect } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useScrollHeader } from '@/hooks/useScrollHeader';
-import { CollapsibleHeader } from '@/components/CollapsibleHeader';
+import { useHeaderContext } from '@/context/HeaderContext';
 import { ChevronLeft } from 'lucide-react-native';
 import { useSoleUserContext } from '@/context/SoleUserContext';
 import { useManageProjectContext } from '@/context/ManageProjectContext';
@@ -27,7 +26,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default function ProjectDetailPage() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { headerTranslateY, handleScroll } = useScrollHeader();
+  const { handleScroll, setTitle, setHeaderLeft } = useHeaderContext();
   const { id } = useLocalSearchParams();
   const { soleUserId } = useSoleUserContext();
   const { currentTab, setCurrentTab, currentRole, setCurrentRole } = useManageProjectContext();
@@ -56,6 +55,22 @@ export default function ProjectDetailPage() {
       setCurrentRole(0);
     }
   }, [rolesWithSchedules.length, currentRole, setCurrentRole]);
+
+  // Update header title and left button when project data loads
+  useEffect(() => {
+    if (projectData) {
+      const project = projectData?.project || projectData;
+      setTitle(project?.projectName || 'Project');
+      setHeaderLeft(
+        <TouchableOpacity
+          onPress={() => router.replace('/(protected)/(client)/projects/manage-projects')}
+          activeOpacity={0.85}
+          className="flex items-center justify-center p-2">
+          <ChevronLeft color="#93c5fd" size={24} />
+        </TouchableOpacity>
+      );
+    }
+  }, [projectData, setTitle, setHeaderLeft, router]);
 
   if (isInitialLoading) {
     return (
@@ -97,20 +112,6 @@ export default function ProjectDetailPage() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-[#0a0a0a]">
-        <CollapsibleHeader
-          title={project?.projectName || 'Project'}
-          translateY={headerTranslateY}
-          isDark
-          headerLeft={
-            <TouchableOpacity
-              onPress={() => router.replace('/(protected)/(client)/projects/manage-projects')}
-              activeOpacity={0.85}
-              className="flex items-center justify-center p-2">
-              <ChevronLeft color="#93c5fd" size={24} />
-            </TouchableOpacity>
-          }
-        />
-
         <ScrollView
           className="flex-1"
           onScroll={handleScroll}

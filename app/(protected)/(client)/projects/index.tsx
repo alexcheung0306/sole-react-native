@@ -13,6 +13,7 @@ export default function ProjectsIndex() {
   return (
     <View style={styles.container}>
       <ActivityIndicator size="large" color="#3b82f6" />
+      CollapsibleHeader
     </View>
   );
 }
