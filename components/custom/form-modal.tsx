@@ -13,6 +13,7 @@ import {
   Animated,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type TriggerHelpers = {
   open: () => void;
@@ -83,6 +84,7 @@ export function FormModal({
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const isOpen = isControlled ? (controlledOpen as boolean) : internalOpen;
   const overlayOpacity = React.useRef(new Animated.Value(0)).current;
+  const insets = useSafeAreaInsets();
 
   React.useEffect(() => {
     Animated.timing(overlayOpacity, {
@@ -182,22 +184,31 @@ export function FormModal({
             pointerEvents="box-none">
             <View className="flex bg-black/35" style={styles.modalContent} pointerEvents="box-none">
               {/* Header */}
-              <View className={`${'border-b border-white/10 px-4 pb-3 pt-0'}`}>
-                <View className={`flex-row items-center justify-between`} pointerEvents="auto">
-                  <TouchableOpacity onPress={handleClose} className="p-2">
+              <View
+                className={headerClassName || 'border-b border-white/10 px-4 pb-3'}
+                style={{ 
+                  paddingTop: (insets.top || 0) + (headerClassName?.includes('pt-4') ? 48 : 0)
+                }}>
+                <View className="flex-row items-center justify-between w-full" pointerEvents="auto">
+                  <TouchableOpacity onPress={handleClose} className="p-2 -ml-2" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     <X size={24} color="#ffffff" />
                   </TouchableOpacity>
-                  <Text className="text-lg font-semibold text-white">{title}</Text>
+                  <Text className="text-lg font-semibold text-white flex-1 text-center px-2" numberOfLines={1}>
+                    {title}
+                  </Text>
                   <TouchableOpacity
                     onPress={handleSubmit}
                     disabled={isSubmitting || hasErrors}
-                    className={`p-2 ${isSubmitting || hasErrors ? 'opacity-50' : ''} ${
+                    className={`p-2 -mr-2 ${isSubmitting || hasErrors ? 'opacity-50' : ''} ${
                       submitButtonClassName || ''
-                    }`}>
+                    }`}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     {isSubmitting ? (
                       <ActivityIndicator size="small" color="#3b82f6" />
                     ) : (
-                      <Text className="font-semibold text-blue-500">{submitButtonText}</Text>
+                      <Text className="font-semibold text-blue-500" numberOfLines={1}>
+                        {submitButtonText}
+                      </Text>
                     )}
                   </TouchableOpacity>
                 </View>
