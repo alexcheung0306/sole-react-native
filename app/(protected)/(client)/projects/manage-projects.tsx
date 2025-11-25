@@ -2,12 +2,10 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Stack } from 'expo-router';
 import { View, Text, FlatList, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useScrollHeader } from '@/hooks/useScrollHeader';
-import { CollapsibleHeader } from '@/components/CollapsibleHeader';
+import { useHeaderContext } from '@/context/HeaderContext';
 import { useManageProjectContext } from '@/context/ManageProjectContext';
 import ProjectInfoFormModal from '@/components/projects/ProjectInfoFormModal';
 import ProjectStatusTabs from '@/components/projects/ProjectStatusTabs';
-import ProjectsNavTabs from '@/components/projects/ProjectsNavTabs';
 import PaginationControl from '~/components/projects/PaginationControl';
 import ProjectListClient from '~/components/projects/ProjectListClient';
 import FilterSearch from '~/components/custom/filter-search';
@@ -16,7 +14,7 @@ import FlatListEmpty from '~/components/custom/flatlist-empty';
 export default function ManageProjectsPage() {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
-  const { headerTranslateY, handleScroll } = useScrollHeader();
+  const { handleScroll } = useHeaderContext();
   const {
     projects,
     projectResults,
@@ -65,7 +63,6 @@ export default function ManageProjectsPage() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-black">
-        <CollapsibleHeader title="Projects" translateY={headerTranslateY} isDark={true} />
         <FlatList
           ref={flatListRef}
           data={projectsData}
@@ -82,8 +79,6 @@ export default function ManageProjectsPage() {
           }
           ListHeaderComponent={
             <View className="mb-3 gap-2">
-              <ProjectsNavTabs />
-
               <View className="mb-5">
                 <Text className="mb-1 text-[28px] font-bold text-white">Manage Projects</Text>
                 <Text className="text-sm text-gray-400">Create and manage your projects</Text>

@@ -12,6 +12,7 @@ export const getProject = async (searchAPI: string): Promise<any> => {
     const response = await fetch(
       `${API_BASE_URL}/project/search?isPrivate=false${searchAPI}`
     )
+    console.log("response url", `${API_BASE_URL}/project/search?isPrivate=false${searchAPI}`)
     if (!response.ok) {
       throw new Error(`Error: ${response.statusText}`)
     }
