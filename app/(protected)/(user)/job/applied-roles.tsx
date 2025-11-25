@@ -26,7 +26,6 @@ export default function AppliedRoles() {
     () => [
       { id: 'projectName', label: 'Project Name' },
       { id: 'projectId', label: 'Project ID' },
-      { id: 'publisherUsername', label: 'Publisher Username' },
     ],
     []
   );
@@ -41,9 +40,6 @@ export default function AppliedRoles() {
           break;
         case 'projectId':
           searchParam = `&projectId=${searchValue}`;
-          break;
-        case 'publisherUsername':
-          searchParam = `&soleUserName=${encodeURIComponent(searchValue)}`;
           break;
       }
     }
@@ -61,7 +57,7 @@ export default function AppliedRoles() {
     queryKey: ['appliedRoles', soleUserId, currentPage, searchValue, searchBy],
     queryFn: () => getJobApplicantsByUser(soleUserId as string, buildSearchAPI()),
     enabled: !!soleUserId,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0, // Always refetch when query key changes
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
@@ -73,10 +69,17 @@ export default function AppliedRoles() {
     }
   }, [currentPage]);
 
+  // Reset page when search changes
+  useEffect(() => {
+    if (soleUserId) {
+      setCurrentPage(0);
+      setIsSearching(!!searchValue.trim());
+    }
+  }, [searchValue, searchBy, soleUserId]);
+
   const handleApplicationSearch = () => {
-    setCurrentPage(0);
-    setIsSearching(!!searchValue.trim());
-    refetch();
+    // State updates will trigger useEffect above to reset page
+    // Query will automatically refetch due to queryKey including searchValue and searchBy
   };
 
   const getStatusColor = (status: string) => {

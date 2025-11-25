@@ -48,10 +48,10 @@ export default function JobPosts() {
         searchParam = `&projectName=${encodeURIComponent(searchValue)}`;
         break;
       case 'projectId':
-        searchParam = `&id=${searchValue}`;
+        searchParam = `&projectId=${searchValue}`;
         break;
       case 'publisherUsername':
-        searchParam = `&soleUserName=${encodeURIComponent(searchValue)}`;
+        searchParam = `&username=${encodeURIComponent(searchValue)}`;
         break;
     }
 
@@ -69,7 +69,7 @@ export default function JobPosts() {
     queryKey: ['jobPosts', soleUserId, jobPageCurrentProjectPage, searchValue, searchBy],
     queryFn: () => getProject(buildSearchAPI()),
     enabled: !!soleUserId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0, // Always refetch when query key changes
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
@@ -81,11 +81,17 @@ export default function JobPosts() {
     }
   }, [jobPageCurrentProjectPage]);
 
+  // Reset page and refetch when search changes
+  useEffect(() => {
+    if (soleUserId) {
+      setJobPageCurrentProjectPage(0);
+      setIsSearching(!!searchValue.trim());
+    }
+  }, [searchValue, searchBy, soleUserId]);
+
   const handleJobSearch = () => {
-    setJobPageCurrentProjectPage(0);
-    setIsSearching(!!searchValue.trim());
-    setJobPageSearchAPI(buildSearchAPI());
-    refetchProjects();
+    // State updates will trigger useEffect above to reset page
+    // Query will automatically refetch due to queryKey including searchValue and searchBy
   };
 
   const formatDate = (dateString: string) => {
