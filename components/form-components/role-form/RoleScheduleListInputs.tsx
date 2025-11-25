@@ -19,6 +19,15 @@ import {
   ActionsheetItem,
   ActionsheetItemText,
 } from '@/components/ui/actionsheet';
+import {
+  Modal,
+  ModalBackdrop,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
+} from '@/components/ui/modal';
 import { ChevronDown } from 'lucide-react-native';
 import {
   validateActivityTitle,
@@ -31,7 +40,7 @@ import { getFieldError } from '@/lib/validations/form-field-validations';
 import { activityTypes } from '@/components/form-components/options-to-use';
 import { SingleSelectCard } from '@/components/form-components/SingleSelectCard';
 import { ActivityTypeSelector } from '~/components/form-components/role-form/ActivityTypeSelector';
-import DatePicker from 'react-native-date-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 interface RoleScheduleListInputsProps {
   values: any;
@@ -275,6 +284,24 @@ export function RoleScheduleListInputs({
     });
     setPickerInitialDate(new Date(dateInstance));
     setShowDatePicker(true);
+  };
+
+  const handleDateTimeChange = (event: any, selectedDate?: Date) => {
+    // On Android, the picker closes automatically, so we handle it here
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+      if (event.type === 'set' && selectedDate && datePickerConfig) {
+        handleDateTimeConfirm(selectedDate);
+      } else {
+        // User cancelled
+        setDatePickerConfig(null);
+      }
+    } else {
+      // On iOS, we keep the picker open and let user confirm/cancel
+      if (selectedDate && datePickerConfig) {
+        setPickerInitialDate(selectedDate);
+      }
+    }
   };
 
   const handleDateTimeConfirm = (date: Date) => {
@@ -660,21 +687,61 @@ export function RoleScheduleListInputs({
       )}
 
       {/* Date/Time Picker */}
-      <DatePicker
-        modal
-        open={showDatePicker}
-        date={pickerInitialDate}
-        mode="datetime"
-        onConfirm={(date) => {
-          handleDateTimeConfirm(date);
-        }}
-        onCancel={() => {
+      {Platform.OS === 'ios' ? (
+        <Modal isOpen={showDatePicker} onClose={() => {
           setShowDatePicker(false);
           setDatePickerConfig(null);
-        }}
-        minuteInterval={5}
-        theme="dark"
-      />
+        }}>
+          <ModalBackdrop />
+          <ModalContent>
+            <ModalHeader>
+              <Text className="text-lg font-semibold text-white">Select Date & Time</Text>
+              <ModalCloseButton>
+                <Text className="text-white">✕</Text>
+              </ModalCloseButton>
+            </ModalHeader>
+            <ModalBody>
+              <View className="items-center justify-center">
+                <DateTimePicker
+                  value={pickerInitialDate}
+                  mode="datetime"
+                  display="spinner"
+                  onChange={handleDateTimeChange}
+                  minuteInterval={5}
+                  style={{ backgroundColor: 'transparent' }}
+                />
+              </View>
+            </ModalBody>
+            <ModalFooter>
+              <Button
+                variant="outline"
+                onPress={() => {
+                  setShowDatePicker(false);
+                  setDatePickerConfig(null);
+                }}
+                className="mr-2">
+                <ButtonText>Cancel</ButtonText>
+              </Button>
+              <Button
+                onPress={() => {
+                  handleDateTimeConfirm(pickerInitialDate);
+                }}>
+                <ButtonText>Confirm</ButtonText>
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      ) : (
+        showDatePicker && (
+          <DateTimePicker
+            value={pickerInitialDate}
+            mode="datetime"
+            display="default"
+            onChange={handleDateTimeChange}
+            minuteInterval={5}
+          />
+        )
+      )}
     </>
   );
 }

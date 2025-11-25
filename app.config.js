@@ -5,15 +5,15 @@ module.exports = ({ config }) => {
   // Determine which environment to use
   // Priority: APP_ENV > NODE_ENV > default to 'development'
   const APP_ENV = process.env.APP_ENV || process.env.NODE_ENV || 'development';
-  
+
   // Load environment-specific .env file
   const envFile = `.env.${APP_ENV}`;
   const envPath = path.resolve(__dirname, envFile);
-  
+
   // Check if environment file exists
   if (fs.existsSync(envPath)) {
     console.log(`📦 Loading environment from: ${envFile}`);
-    
+
     // Parse .env file manually (simple parser)
     const envConfig = fs.readFileSync(envPath, 'utf8');
     envConfig.split('\n').forEach(line => {
@@ -29,7 +29,7 @@ module.exports = ({ config }) => {
   } else {
     console.warn(`⚠️  Warning: ${envFile} not found, using existing environment variables`);
   }
-  
+
   // Load environment variables
   const EXPO_PUBLIC_API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080';
   const EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
