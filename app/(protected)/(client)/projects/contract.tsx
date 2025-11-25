@@ -8,18 +8,18 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useScrollHeader } from '@/hooks/useScrollHeader';
-import { CollapsibleHeader } from '@/components/CollapsibleHeader';
+import { useHeaderContext } from '@/context/HeaderContext';
 import { useQuery } from '@tanstack/react-query';
 import { getJobContractsById } from '@/api/apiservice/jobContracts_api';
 import { formatDateTime } from '@/utils/time-converts';
 import { ChevronLeft } from 'lucide-react-native';
+import { useEffect } from 'react';
 import AlterContractStatusModal from '@/components/projects/AlterContractStatusModal';
 
 export default function ContractDetailPage() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { headerTranslateY, handleScroll } = useScrollHeader();
+  const { handleScroll, setTitle, setHeaderLeft } = useHeaderContext();
   const { id } = useLocalSearchParams();
 
   const contractId = parseInt(id as string);
@@ -45,6 +45,25 @@ export default function ContractDetailPage() {
     };
     return colorMap[status] || '#6b7280';
   };
+
+  // Update header title and left button when contract data loads
+  useEffect(() => {
+    if (contractData?.jobContract) {
+      const contract = contractData.jobContract;
+      setTitle(`Contract #${contract.id}`);
+      setHeaderLeft(
+        <TouchableOpacity
+          onPress={() =>
+            router.replace('/(protected)/(client)/projects/manage-contracts')
+          }
+          activeOpacity={0.85}
+          className="p-2 flex items-center justify-center"
+        >
+          <ChevronLeft color="#93c5fd" size={24} />
+        </TouchableOpacity>
+      );
+    }
+  }, [contractData, setTitle, setHeaderLeft, router]);
 
   if (isLoading) {
     return (
@@ -85,22 +104,6 @@ export default function ContractDetailPage() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
-        <CollapsibleHeader
-          title={`Contract #${contract.id}`}
-          translateY={headerTranslateY}
-          isDark={true}
-          headerLeft={
-            <TouchableOpacity
-              onPress={() =>
-                router.replace('/(protected)/(client)/projects/manage-contracts')
-              }
-              activeOpacity={0.85}
-              className="p-2 flex items-center justify-center"
-            >
-              <ChevronLeft color="#93c5fd" size={24} />
-            </TouchableOpacity>
-          }
-        />
         <ScrollView
           style={styles.scrollView}
           onScroll={handleScroll}

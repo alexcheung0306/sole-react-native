@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 interface CollapsibleHeaderProps {
-  title: string;
+  title: string | React.ReactNode;
   headerRight?: React.ReactNode;
   headerLeft?: React.ReactNode;
   translateY: Animated.Value;
@@ -60,16 +60,22 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
       >
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
           {headerLeft}
-          <Text
-            style={{
-              fontSize: 18,
-              fontWeight: '600',
-              color: textColor || defaultText,
-              marginLeft: headerLeft ? 8 : 0,
-            }}
-          >
-            {title}
-          </Text>
+          {typeof title === 'string' ? (
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: '600',
+                color: textColor || defaultText,
+                marginLeft: headerLeft ? 8 : 0,
+              }}
+            >
+              {title}
+            </Text>
+          ) : (
+            <View style={{ marginLeft: headerLeft ? 8 : 0, flex: 1, marginRight: headerRight ? 8 : 0 }}>
+              {title}
+            </View>
+          )}
         </View>
         {headerRight && (
           <View style={{ flex: 1, alignItems: 'flex-end' }}>
