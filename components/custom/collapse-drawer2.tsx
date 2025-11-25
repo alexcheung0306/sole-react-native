@@ -21,14 +21,12 @@ import Animated, {
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BlurView } from 'expo-blur';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const DRAWER_HEIGHT = SCREEN_HEIGHT * 0.88;
-
 type Props = {
   showDrawer: boolean;
   setShowDrawer: (value: boolean) => void;
   title?: string;
   children: React.ReactNode;
+  height?: number;
 };
 
 export default function CollapseDrawer2({
@@ -36,7 +34,10 @@ export default function CollapseDrawer2({
   setShowDrawer,
   title = '',
   children,
+  height = 0.88,
 }: Props) {
+  const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+  const DRAWER_HEIGHT = SCREEN_HEIGHT * height;
   const translateY = useSharedValue(SCREEN_HEIGHT);
 
   // Gentle open animation
@@ -56,15 +57,11 @@ export default function CollapseDrawer2({
 
   const closeDrawer = () => {
     cancelAnimation(translateY);
-    translateY.value = withTiming(
-      SCREEN_HEIGHT,
-      { duration: 400 },
-      (finished) => {
-        if (finished) {
-          runOnJS(setShowDrawer)(false);
-        }
+    translateY.value = withTiming(SCREEN_HEIGHT, { duration: 400 }, (finished) => {
+      if (finished) {
+        runOnJS(setShowDrawer)(false);
       }
-    );
+    });
   };
 
   const panGesture = Gesture.Pan()
@@ -81,15 +78,11 @@ export default function CollapseDrawer2({
       const shouldClose = e.translationY > 180 || e.velocityY > 1000;
       if (shouldClose) {
         cancelAnimation(translateY);
-        translateY.value = withTiming(
-          SCREEN_HEIGHT,
-          { duration: 300 },
-          (finished) => {
-            if (finished) {
-              runOnJS(setShowDrawer)(false);
-            }
+        translateY.value = withTiming(SCREEN_HEIGHT, { duration: 300 }, (finished) => {
+          if (finished) {
+            runOnJS(setShowDrawer)(false);
           }
-        );
+        });
       } else {
         cancelAnimation(translateY);
         translateY.value = withSpring(0, { damping: 20, stiffness: 100 });
@@ -118,40 +111,41 @@ export default function CollapseDrawer2({
             }}
             onPress={closeDrawer}
           />
-          
-          <GestureDetector gesture={panGesture}>
-            <Animated.View
-              className="border border-b-0 border-white/35 rounded-t-[28px] pt-4 overflow-hidden"
-              style={[
-                animatedStyle,
-                {
-                  height: DRAWER_HEIGHT,
-                },
-              ]}>
-              {/* Blur Background */}
-              <BlurView
-                intensity={20}
-                tint="dark"
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                }}
-              />
-              {/* Semi-transparent overlay for better contrast */}
-              <View className="absolute inset-0 bg-black/12" />
-              
-              {/* Handle + Title */}
+
+          <Animated.View
+            className="overflow-hidden rounded-t-[28px] border border-b-0 border-white/35 pt-4"
+            style={[
+              animatedStyle,
+              {
+                height: DRAWER_HEIGHT,
+              },
+            ]}>
+            {/* Blur Background */}
+            <BlurView
+              intensity={100}
+              tint="dark"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              }}
+            />
+            {/* Semi-transparent overlay for better contrast */}
+            <View className="bg-black/12 absolute inset-0" />
+
+            {/* Handle + Title - Draggable Area */}
+            <GestureDetector gesture={panGesture}>
               <View style={{ alignItems: 'center', paddingBottom: 12 }}>
-                <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: '#ffffff40' }} />
+                <View
+                  style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: '#ffffff40' }}
+                />
                 {title ? (
-                  <Text style={{ color: '#fff', fontSize: 26, fontWeight: '800', marginTop: 16 }}>
-                    {title}
-                  </Text>
+                  <Text style={{ color: '#fff', fontSize: 12, marginTop: 16 }}>{title}</Text>
                 ) : null}
               </View>
+            </GestureDetector>
 
             {/* Content */}
             {Platform.OS === 'ios' ? (
@@ -165,17 +159,13 @@ export default function CollapseDrawer2({
                 </ScrollView>
               </KeyboardAvoidingView>
             ) : (
-              <ScrollView 
-                style={{ flex: 1 }} 
-                scrollEnabled={true}
-                nestedScrollEnabled={true}>
+              <ScrollView style={{ flex: 1 }} scrollEnabled={true} nestedScrollEnabled={true}>
                 {children}
               </ScrollView>
             )}
-            </Animated.View>
-          </GestureDetector>
-      </View>
-    </GestureHandlerRootView>
+          </Animated.View>
+        </View>
+      </GestureHandlerRootView>
     </Modal>
   );
 }

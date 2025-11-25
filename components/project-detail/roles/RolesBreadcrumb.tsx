@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { AlertCircle } from 'lucide-react-native';
-import { CollapseDrawer } from '@/components/custom/collapse-drawer';
+import CollapseDrawer2 from '@/components/custom/collapse-drawer2';
 import { DisplayRoleInformation } from './DisplayRoleInformation';
 import { ManageCandidates } from './ManageCandidates';
 
@@ -81,28 +81,14 @@ export function RolesBreadcrumb({
 
       {/* Role Details Drawer */}
       {selectedRole && (
-        <CollapseDrawer
-          open={isDrawerOpen}
-          onOpenChange={setIsDrawerOpen}
-          maxHeight={Dimensions.get('window').height * 0.8}
-          trigger={<View />}
-          header={
-            <View className="flex-row items-center justify-between px-4 pb-3 pt-4">
-              <View className="flex-1">
-                <Text className="text-lg font-bold text-white">
-                  {selectedRole?.role?.roleTitle || 'Role Details'}
-                </Text>
-                <Text className="text-xs text-white/60">
-                  Role #{selectedRole?.role?.id} • {currentRole + 1} of {rolesWithSchedules.length}
-                </Text>
-              </View>
-            </View>
-          }
-          content={(close) => (
+        <CollapseDrawer2
+          showDrawer={isDrawerOpen}
+          setShowDrawer={setIsDrawerOpen}
+          title={`${selectedRole?.role?.roleTitle || 'Role Details'} • Role #${selectedRole?.role?.id} • ${currentRole + 1} of ${rolesWithSchedules.length}`}>
+          <View className="px-5 pb-6">
             <ScrollView
-              style={{ flex: 1 }}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}>
+              contentContainerStyle={{ paddingBottom: 24 }}>
               <DisplayRoleInformation
                 projectId={projectId}
                 index={currentRole}
@@ -117,7 +103,7 @@ export function RolesBreadcrumb({
                 refetchRoles={() => {
                   refetchRoles();
                 }}
-                onClose={close}
+                onClose={() => setIsDrawerOpen(false)}
               />
               {projectData?.status === 'Published' && selectedRole && (
                 <View className="mt-6 border-t border-white/10 pt-6">
@@ -125,8 +111,8 @@ export function RolesBreadcrumb({
                 </View>
               )}
             </ScrollView>
-          )}
-        />
+          </View>
+        </CollapseDrawer2>
       )}
     </View>
   );

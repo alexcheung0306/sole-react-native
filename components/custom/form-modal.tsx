@@ -26,34 +26,35 @@ interface FormModalProps {
   open?: boolean;
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
-  
+
   // Trigger button
   trigger?: React.ReactNode | ((helpers: TriggerHelpers) => React.ReactNode);
   triggerText?: string;
   triggerClassName?: string;
   showTrigger?: boolean;
-  
+
   // Modal content
   title: string;
   submitButtonText?: string;
   submitButtonClassName?: string;
-  
+
   // Form state
   isSubmitting?: boolean;
   hasErrors?: boolean;
   isLoading?: boolean;
-  
+
   // Callbacks
   onSubmit: () => void;
   onClose?: () => void;
   onReset?: () => void;
-  
+
   // Content
   children: React.ReactNode | ((close: () => void) => React.ReactNode);
-  
+
   // Styling
   headerClassName?: string;
   contentClassName?: string;
+  headerComponent?: React.ReactNode;
 }
 
 export function FormModal({
@@ -76,6 +77,7 @@ export function FormModal({
   children,
   headerClassName,
   contentClassName,
+  headerComponent,
 }: FormModalProps) {
   const isControlled = typeof controlledOpen === 'boolean';
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
@@ -158,50 +160,49 @@ export function FormModal({
     <>
       {renderTrigger()}
 
-      <Modal
-        visible={isOpen}
-        animationType="fade"
-        transparent
-        onRequestClose={handleClose}>
-        <Animated.View style={[styles.backdrop, { opacity: overlayOpacity }]}>
+      <Modal visible={isOpen} animationType="fade" transparent onRequestClose={handleClose}>
+        <View style={styles.backdrop}>
           {/* Backdrop layers - fill entire screen */}
-          <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
+          <Animated.View style={[StyleSheet.absoluteFill, { opacity: overlayOpacity }]}>
+            <BlurView intensity={100} tint="dark" style={StyleSheet.absoluteFill} />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
+          </Animated.View>
+
+          {/* Backdrop touch blocker */}
+          <TouchableOpacity
+            activeOpacity={1}
+            style={StyleSheet.absoluteFill}
+            onPress={handleClose}
+          />
 
           {/* Modal container */}
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.modalContainer}
             pointerEvents="box-none">
-            {/* Backdrop touch blocker - positioned behind content but can still receive taps */}
-            <TouchableOpacity
-              activeOpacity={1}
-              style={StyleSheet.absoluteFill}
-              onPress={handleClose}
-            />
-            <View style={styles.modalContent} pointerEvents="auto">
+            <View className="flex" pointerEvents="box-none">
               {/* Header */}
-              <View
-                className={
-                  headerClassName ||
-                  'flex-row items-center justify-between border-b border-white/10 px-4 pb-3 pt-12'
-                }>
-                <TouchableOpacity onPress={handleClose} className="p-2">
-                  <X size={24} color="#ffffff" />
-                </TouchableOpacity>
-                <Text className="text-lg font-semibold text-white">{title}</Text>
-                <TouchableOpacity
-                  onPress={handleSubmit}
-                  disabled={isSubmitting || hasErrors}
-                  className={`p-2 ${isSubmitting || hasErrors ? 'opacity-50' : ''} ${
-                    submitButtonClassName || ''
-                  }`}>
-                  {isSubmitting ? (
-                    <ActivityIndicator size="small" color="#3b82f6" />
-                  ) : (
-                    <Text className="font-semibold text-blue-500">{submitButtonText}</Text>
-                  )}
-                </TouchableOpacity>
+              <View className={`${'border-b border-white/10 px-4 pb-3 pt-0'}`}>
+                <View className={`flex-row items-center justify-between`} pointerEvents="auto">
+                  <TouchableOpacity onPress={handleClose} className="p-2">
+                    <X size={24} color="#ffffff" />
+                  </TouchableOpacity>
+                  <Text className="text-lg font-semibold text-white">{title}</Text>
+                  <TouchableOpacity
+                    onPress={handleSubmit}
+                    disabled={isSubmitting || hasErrors}
+                    className={`p-2 ${isSubmitting || hasErrors ? 'opacity-50' : ''} ${
+                      submitButtonClassName || ''
+                    }`}>
+                    {isSubmitting ? (
+                      <ActivityIndicator size="small" color="#3b82f6" />
+                    ) : (
+                      <Text className="font-semibold text-blue-500">{submitButtonText}</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                <View>{headerComponent}</View>
               </View>
 
               {/* Content */}
@@ -213,7 +214,7 @@ export function FormModal({
               </ScrollView>
             </View>
           </KeyboardAvoidingView>
-        </Animated.View>
+        </View>
       </Modal>
     </>
   );
@@ -222,17 +223,11 @@ export function FormModal({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  modalContent: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.75)',
   },
 });

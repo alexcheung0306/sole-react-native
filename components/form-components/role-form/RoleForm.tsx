@@ -281,7 +281,6 @@ export function RoleForm({
           resetFormState();
         };
 
-
         return (
           <>
             <FormModal
@@ -306,6 +305,28 @@ export function RoleForm({
                 </PrimaryButton>
               )}
               title={method === 'POST' ? 'Add a new Role' : 'Edit Role'}
+              headerComponent={
+                <View>
+                  <FillRoleFormButton
+                    projectId={projectId}
+                    setFieldValue={setFieldValue}
+                    setSelectedCategories={setSelectedCategories}
+                    setEthnic={setEthnic}
+                  />
+                  <RoleFormBreadCrumbs
+                    currentPage={currentPage}
+                    setCurrentPage={(page) =>
+                      setCurrentPage(
+                        page as 'roleInformation' | 'requirements' | 'schedules' | 'confirm'
+                      )
+                    }
+                    pageOrder={pageOrder}
+                    roleInformationErrors={roleInformationErrors ? true : false}
+                    requirementsErrors={requirementsErrors ? true : false}
+                    hasErrors={hasErrors ? true : false}
+                  />
+                </View>
+              }
               submitButtonText={currentPage === 'confirm' ? 'Save Role' : 'Next'}
               isSubmitting={roleMutation.isPending}
               hasErrors={currentPage === 'confirm' ? hasErrors : !isCurrentPageValid()}
@@ -326,26 +347,6 @@ export function RoleForm({
               contentClassName="flex-1">
               {(close) => (
                 <View className="flex-1">
-                  <View className="px-4">
-                    <FillRoleFormButton
-                      projectId={projectId}
-                      setFieldValue={setFieldValue}
-                      setSelectedCategories={setSelectedCategories}
-                      setEthnic={setEthnic}
-                    />
-                    <RoleFormBreadCrumbs
-                      currentPage={currentPage}
-                      setCurrentPage={(page) =>
-                        setCurrentPage(
-                          page as 'roleInformation' | 'requirements' | 'schedules' | 'confirm'
-                        )
-                      }
-                      pageOrder={pageOrder}
-                      roleInformationErrors={roleInformationErrors ? true : false}
-                      requirementsErrors={requirementsErrors ? true : false}
-                      hasErrors={hasErrors ? true : false}
-                    />
-                  </View>
                   <ScrollView
                     className="flex-1 px-4"
                     showsVerticalScrollIndicator={false}

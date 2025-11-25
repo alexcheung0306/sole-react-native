@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { ShieldCheck, ShieldX, Trash2, Pencil } from 'lucide-react-native';
 
 import { updateProject, deleteProjectById } from '@/api/apiservice/project_api';
-import { CollapseDrawer } from '~/components/custom/collapse-drawer';
+import CollapseDrawer2 from '~/components/custom/collapse-drawer2';
 import ProjectInfoFormModal from '../../projects/ProjectInfoFormModal';
 
 interface ProjectInfoActionsDrawerProps {
@@ -125,72 +125,67 @@ export function ProjectInfoActionsDrawer({
   );
 
   return (
-    <CollapseDrawer
-      open={open}
-      onOpenChange={onOpenChange}
-      trigger={<View />}
-      content={(close) => (
-        <View className="gap-4 ">
-          <View className="gap-1 px-5">
-            <Text className="text-lg font-semibold text-white">Project actions</Text>
-            <Text className="text-sm text-white/80">
-              Configure privacy or delete the project. Deletions are permanent.
-            </Text>
-          </View>
+    <CollapseDrawer2
+      showDrawer={open}
+      setShowDrawer={onOpenChange}
+      title="Project actions">
+      <View className="gap-4 px-5 pb-6">
+        <Text className="text-sm text-white/80">
+          Configure privacy or delete the project. Deletions are permanent.
+        </Text>
 
-          <View className="gap-3 px-5 pb-6">
-            {/* Make project public or private */}
-            <ActionRow
-              icon={
-                project?.isPrivate ? (
-                  <ShieldX color="#fecaca" size={20} />
-                ) : (
-                  <ShieldCheck color="#bbf7d0" size={20} />
-                )
-              }
-              title={project?.isPrivate ? 'Make project public' : 'Make project private'}
-              subtitle={
-                project?.isPrivate
-                  ? 'Anyone with access can view this project once public.'
-                  : 'Restrict visibility to invited collaborators only.'
-              }
-              onPress={() => {
-                handleTogglePrivacy();
-              }}
-              loading={isToggling}
+        <View className="gap-3">
+          {/* Make project public or private */}
+          <ActionRow
+            icon={
+              project?.isPrivate ? (
+                <ShieldX color="#fecaca" size={20} />
+              ) : (
+                <ShieldCheck color="#bbf7d0" size={20} />
+              )
+            }
+            title={project?.isPrivate ? 'Make project public' : 'Make project private'}
+            subtitle={
+              project?.isPrivate
+                ? 'Anyone with access can view this project once public.'
+                : 'Restrict visibility to invited collaborators only.'
+            }
+            onPress={() => {
+              handleTogglePrivacy();
+            }}
+            loading={isToggling}
+          />
+
+          {/* ---------------------------------------Edit project details--------------------------------------- */}
+          {project?.status === 'Draft' ? (
+            <ProjectInfoFormModal
+              method="PUT"
+              initValues={project}
+              renderTrigger={({ open }) => (
+                <ActionRow
+                  icon={<Pencil color="#bfdbfe" size={20} />}
+                  title="Edit project details"
+                  subtitle="Update the project name, description, image, or privacy."
+                  onPress={open}
+                />
+              )}
             />
+          ) : null}
 
-            {/* ---------------------------------------Edit project details--------------------------------------- */}
-            {project?.status === 'Draft' ? (
-              <ProjectInfoFormModal
-                method="PUT"
-                initValues={project}
-                renderTrigger={({ open }) => (
-                  <ActionRow
-                    icon={<Pencil color="#bfdbfe" size={20} />}
-                    title="Edit project details"
-                    subtitle="Update the project name, description, image, or privacy."
-                    onPress={open}
-                  />
-                )}
-              />
-            ) : null}
-
-            {/* ---------------------------------------Delete project--------------------------------------- */}
-            <ActionRow
-              icon={<Trash2 color="#fecaca" size={20} />}
-              title="Delete project"
-              subtitle="Remove this project and all associated data permanently."
-              onPress={() => {
-                close();
-                confirmDelete();
-              }}
-              loading={isDeleting}
-              danger
-            />
-          </View>
+          {/* ---------------------------------------Delete project--------------------------------------- */}
+          <ActionRow
+            icon={<Trash2 color="#fecaca" size={20} />}
+            title="Delete project"
+            subtitle="Remove this project and all associated data permanently."
+            onPress={() => {
+              onOpenChange(false);
+              confirmDelete();
+            }}
+            loading={isDeleting}
+            danger
+          />
         </View>
-      )}
-    />
+      </View>
+    </CollapseDrawer2>
   );
 }

@@ -16,7 +16,7 @@ import {
 } from '@/api/apiservice/jobContracts_api';
 import PaginationControl from '~/components/projects/PaginationControl';
 import FilterSearch from '~/components/custom/filter-search';
-import { CollapseDrawer } from '~/components/custom/collapse-drawer';
+import CollapseDrawer2 from '~/components/custom/collapse-drawer2';
 
 type ProjectContractsTabProps = {
   projectId: number;
@@ -58,6 +58,7 @@ export function ProjectContractsTab({
   const [selectedContracts, setSelectedContracts] = useState<Set<number>>(new Set());
   const [batchStatus, setBatchStatus] = useState('Activated');
   const [batchRemarks, setBatchRemarks] = useState('');
+  const [showBatchDrawer, setShowBatchDrawer] = useState(false);
 
   const handleSearch = () => {
     setPage(0);
@@ -203,90 +204,89 @@ export function ProjectContractsTab({
               Search, filter, and review contract statuses before onboarding talents.
             </Text>
           </View>
-          <CollapseDrawer
-            trigger={({ open }) => (
-              <TouchableOpacity
-                style={[styles.secondaryButton, { opacity: selectedContracts.size ? 1 : 0.4 }]}
-                onPress={() => {
-                  if (selectedContracts.size) {
-                    open();
-                  }
-                }}
-              >
-                <Text style={styles.secondaryButtonText}>
-                  Batch update ({selectedContracts.size || 0})
-                </Text>
-              </TouchableOpacity>
-            )}
-            content={(close) => (
-              <View style={styles.drawerContent}>
-                <Text style={styles.drawerTitle}>Batch update contracts</Text>
-                <Text style={styles.drawerSubtitle}>
-                  Update the status or leave notes for the selected contracts.
-                </Text>
-                <View style={styles.batchStatusList}>
-                  {contractStatusOptions.map((option) => {
-                    const isActive = batchStatus === option.id;
-                    return (
-                      <TouchableOpacity
-                        key={`batch-status-${option.id}`}
-                        style={[styles.batchStatusChip, isActive && styles.batchStatusChipActive]}
-                        onPress={() => setBatchStatus(option.id)}
+          <TouchableOpacity
+            style={[styles.secondaryButton, { opacity: selectedContracts.size ? 1 : 0.4 }]}
+            onPress={() => {
+              if (selectedContracts.size) {
+                setShowBatchDrawer(true);
+              }
+            }}
+          >
+            <Text style={styles.secondaryButtonText}>
+              Batch update ({selectedContracts.size || 0})
+            </Text>
+          </TouchableOpacity>
+          
+          <CollapseDrawer2
+            showDrawer={showBatchDrawer}
+            setShowDrawer={setShowBatchDrawer}
+            title="Batch update contracts">
+            <View style={styles.drawerContent}>
+              <Text style={styles.drawerSubtitle}>
+                Update the status or leave notes for the selected contracts.
+              </Text>
+              <View style={styles.batchStatusList}>
+                {contractStatusOptions.map((option) => {
+                  const isActive = batchStatus === option.id;
+                  return (
+                    <TouchableOpacity
+                      key={`batch-status-${option.id}`}
+                      style={[styles.batchStatusChip, isActive && styles.batchStatusChipActive]}
+                      onPress={() => setBatchStatus(option.id)}
+                    >
+                      <Text
+                        style={[styles.batchStatusChipText, isActive && styles.batchStatusChipTextActive]}
                       >
-                        <Text
-                          style={[styles.batchStatusChipText, isActive && styles.batchStatusChipTextActive]}
-                        >
-                          {option.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-                <TextInput
-                  value={batchRemarks}
-                  onChangeText={setBatchRemarks}
-                  placeholder="Remarks (optional)"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
-                  style={[styles.input, styles.multilineInput]}
-                  multiline
-                />
-                <View style={styles.drawerActions}>
-                  <TouchableOpacity
-                    style={[styles.secondaryButton, { flex: 1 }]}
-                    onPress={() => {
-                      setBatchRemarks('');
-                      close();
-                    }}
-                  >
-                    <Text style={styles.secondaryButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.primaryButton, { flex: 1 }]}
-                    onPress={() => {
-                      if (!selectedContracts.size) {
-                        return;
-                      }
-                      batchUpdateMutation.mutate(
-                        {
-                          contractIds: Array.from(selectedContracts),
-                          status: batchStatus,
-                          remarks: batchRemarks.trim() || undefined,
-                        },
-                        {
-                          onSuccess: () => close(),
-                        }
-                      );
-                    }}
-                    disabled={batchUpdateMutation.isPending}
-                  >
-                    <Text style={styles.primaryButtonText}>
-                      {batchUpdateMutation.isPending ? 'Updating...' : 'Apply changes'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
-            )}
-          />
+              <TextInput
+                value={batchRemarks}
+                onChangeText={setBatchRemarks}
+                placeholder="Remarks (optional)"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                style={[styles.input, styles.multilineInput]}
+                multiline
+              />
+              <View style={styles.drawerActions}>
+                <TouchableOpacity
+                  style={[styles.secondaryButton, { flex: 1 }]}
+                  onPress={() => {
+                    setBatchRemarks('');
+                    setShowBatchDrawer(false);
+                  }}
+                >
+                  <Text style={styles.secondaryButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.primaryButton, { flex: 1 }]}
+                  onPress={() => {
+                    if (!selectedContracts.size) {
+                      return;
+                    }
+                    batchUpdateMutation.mutate(
+                      {
+                        contractIds: Array.from(selectedContracts),
+                        status: batchStatus,
+                        remarks: batchRemarks.trim() || undefined,
+                      },
+                      {
+                        onSuccess: () => setShowBatchDrawer(false),
+                      }
+                    );
+                  }}
+                  disabled={batchUpdateMutation.isPending}
+                >
+                  <Text style={styles.primaryButtonText}>
+                    {batchUpdateMutation.isPending ? 'Updating...' : 'Apply changes'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </CollapseDrawer2>
         </View>
 
         <FilterSearch

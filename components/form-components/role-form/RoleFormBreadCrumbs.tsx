@@ -17,7 +17,7 @@ export function RoleFormBreadCrumbs({
   hasErrors,
 }: RoleFormBreadCrumbsProps) {
   return (
-    <View className="mb-4 flex-row flex-wrap gap-2 border-b border-white/10 pb-3">
+    <View className=" flex-row flex-wrap gap-2  ">
       {pageOrder.map((page, index) => {
         const isCurrent = currentPage === page;
         const isDisabled =
@@ -30,16 +30,17 @@ export function RoleFormBreadCrumbs({
             key={page}
             onPress={() => !isDisabled && setCurrentPage(page)}
             disabled={isDisabled}
-            className={`rounded-full border px-3 py-1 ${
+            activeOpacity={1}
+            className={`rounded-full border px-3 py-1.5 ${
               isCurrent
-                ? 'border-blue-500 bg-blue-500/20'
+                ? 'border-white bg-white'
                 : isDisabled
-                  ? 'border-white/10 bg-zinc-800/30 opacity-50'
-                  : 'border-white/20 bg-zinc-800/50'
+                  ? '   text-white'
+                  : 'border-white   text-white'
             }`}>
             <Text
-              className={`text-xs ${
-                isCurrent ? 'text-blue-400' : isDisabled ? 'text-white/40' : 'text-white/80'
+              className={`text-xs font-semibold ${
+                isCurrent ? 'text-black' : isDisabled ? '  text-grey-500' : 'text-white '
               }`}>
               {index + 1}.{' '}
               {page === 'roleInformation'

@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-nativ
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { createProjectAnnouncement } from '@/api/apiservice/project_announcement_api';
-import { CollapseDrawer } from '~/components/custom/collapse-drawer';
+import CollapseDrawer2 from '~/components/custom/collapse-drawer2';
 import { PlusIcon } from 'lucide-react-native';
 
 type CreateProjectAnnouncementDrawerProps = {
@@ -23,6 +23,7 @@ export function CreateProjectAnnouncementDrawer({
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [audiences, setAudiences] = useState<Record<number, number>>({});
+  const [showDrawer, setShowDrawer] = useState(false);
 
   const roleAudiences = useMemo(() => {
     return rolesWithSchedules
@@ -116,25 +117,24 @@ export function CreateProjectAnnouncementDrawer({
   };
 
   return (
-    <CollapseDrawer
-      trigger={({ open }) => (
-        <TouchableOpacity
-          className="flex-row items-center justify-center rounded-xl bg-white px-4 py-2.5 text-black"
-          activeOpacity={0.85}
-          onPress={open}>
-          <PlusIcon className="h-4 w-4" />
-          <Text className="text-sm font-semibold">Create Project Announcement</Text>
-        </TouchableOpacity>
-      )}
-      content={(close) => (
-        <ScrollView className="max-h-[80vh]">
-          <View className="gap-5 pb-6 ">
-            <View className="gap-1">
-              <Text className="text-lg font-semibold text-white">New Announcement</Text>
-              <Text className="text-sm text-white/80">
-                Choose who can view this update and share the latest project details.
-              </Text>
-            </View>
+    <>
+      <TouchableOpacity
+        className="flex-row items-center justify-center rounded-xl bg-white px-4 py-2.5 text-black"
+        activeOpacity={0.85}
+        onPress={() => setShowDrawer(true)}>
+        <PlusIcon className="h-4 w-4" />
+        <Text className="text-sm font-semibold">Create Project Announcement</Text>
+      </TouchableOpacity>
+      
+      <CollapseDrawer2
+        showDrawer={showDrawer}
+        setShowDrawer={setShowDrawer}
+        title="New Announcement">
+        <ScrollView>
+          <View className="gap-5 pb-6 px-5">
+            <Text className="text-sm text-white/80">
+              Choose who can view this update and share the latest project details.
+            </Text>
 
             <TextInput
               value={title}
@@ -250,13 +250,13 @@ export function CreateProjectAnnouncementDrawer({
                   setTitle('');
                   setContent('');
                   setAudiences({});
-                  close();
+                  setShowDrawer(false);
                 }}>
                 <Text className="text-center text-sm font-semibold text-white">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex-1 rounded-xl bg-blue-500 px-4 py-3"
-                onPress={() => handleSubmit(close)}
+                onPress={() => handleSubmit(() => setShowDrawer(false))}
                 disabled={createMutation.isPending}>
                 <Text className="text-center text-sm font-semibold text-white">
                   {createMutation.isPending ? 'Publishing...' : 'Publish announcement'}
@@ -265,8 +265,8 @@ export function CreateProjectAnnouncementDrawer({
             </View>
           </View>
         </ScrollView>
-      )}
-    />
+      </CollapseDrawer2>
+    </>
   );
 }
 
