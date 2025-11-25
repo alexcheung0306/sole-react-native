@@ -337,6 +337,10 @@ export default function SignUpScreen() {
               <TouchableOpacity
                 style={styles.resendButton}
                 onPress={async () => {
+                  if (!signUp) {
+                    Alert.alert('Error', 'Sign up not initialized. Please try again.');
+                    return;
+                  }
                   try {
                     await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
                     Alert.alert('Success', 'Verification code resent to your email');

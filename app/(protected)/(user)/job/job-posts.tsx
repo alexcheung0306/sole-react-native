@@ -2,8 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Stack } from 'expo-router';
 import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useScrollHeader } from '@/hooks/useScrollHeader';
-import { CollapsibleHeader } from '@/components/CollapsibleHeader';
 import { useQuery } from '@tanstack/react-query';
 import { useSoleUserContext } from '~/context/SoleUserContext';
 import { getProject } from '~/api/apiservice/project_api';
@@ -16,7 +14,6 @@ import { Calendar, User, Briefcase } from 'lucide-react-native';
 export default function JobPosts() {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
-  const { headerTranslateY, handleScroll } = useScrollHeader();
   const router = useRouter();
   
   const [searchBy, setSearchBy] = useState('projectName');
@@ -75,6 +72,7 @@ export default function JobPosts() {
     enabled: !!soleUserId,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // Scroll to top when page changes
@@ -102,8 +100,14 @@ export default function JobPosts() {
   };
 
   const loadMore = () => {
-    if (projectResults?.data && projectResults.data.length >= 10) {
-      setJobPageCurrentProjectPage(prev => prev + 1);
+    // Prevent loading if already fetching, no data, or reached last page
+    if (isFetching || !projectResults?.data || !projectResults?.totalPages) return;
+    
+    const hasMorePages = jobPageCurrentProjectPage + 1 < projectResults.totalPages;
+    const hasEnoughItems = projectResults.data.length >= 10;
+    
+    if (hasMorePages && hasEnoughItems) {
+      setJobPageCurrentProjectPage(jobPageCurrentProjectPage + 1);
     }
   };
 
@@ -178,7 +182,6 @@ export default function JobPosts() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
-        <CollapsibleHeader title="Jobs" translateY={headerTranslateY} isDark={true} />
         <FlatList
           ref={flatListRef}
           data={projectsData}
@@ -237,10 +240,8 @@ export default function JobPosts() {
               </View>
             ) : null
           }
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
           contentContainerStyle={{
-            paddingTop: insets.top + 72,
+            paddingTop: insets.top + 16,
             paddingBottom: 20,
             paddingHorizontal: 12,
           }}
