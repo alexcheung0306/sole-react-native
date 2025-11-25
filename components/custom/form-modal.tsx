@@ -181,12 +181,13 @@ export function FormModal({
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.modalContainer}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
             pointerEvents="box-none">
             <View className="flex bg-black/35" style={styles.modalContent} pointerEvents="box-none">
               {/* Header */}
               <View
                 className={headerClassName || 'border-b border-white/10 px-4 pb-3'}
-                style={{ 
+                style={{
                   paddingTop: (insets.top || 0) + (headerClassName?.includes('pt-4') ? 48 : 0)
                 }}>
                 <View className="flex-row items-center justify-between w-full" pointerEvents="auto">
@@ -199,9 +200,8 @@ export function FormModal({
                   <TouchableOpacity
                     onPress={handleSubmit}
                     disabled={isSubmitting || hasErrors}
-                    className={`p-2 -mr-2 ${isSubmitting || hasErrors ? 'opacity-50' : ''} ${
-                      submitButtonClassName || ''
-                    }`}
+                    className={`p-2 -mr-2 ${isSubmitting || hasErrors ? 'opacity-50' : ''} ${submitButtonClassName || ''
+                      }`}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     {isSubmitting ? (
                       <ActivityIndicator size="small" color="#3b82f6" />
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    height: '100%',
+    flex: 1,
     borderTopWidth: 1,
     borderTopColor: 'rgba(0, 0, 0, 0.75)',
   },

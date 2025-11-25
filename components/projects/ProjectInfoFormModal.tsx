@@ -8,6 +8,8 @@ import { createProject, updateProject } from '@/api/apiservice/project_api';
 import * as ImagePicker from 'expo-image-picker';
 import { FormModal } from '@/components/custom/form-modal';
 import { PrimaryButton } from '../custom/primary-button';
+import { ImageCropModal } from '@/components/camera/ImageCropModal';
+import type { MediaItem } from '@/context/CreatePostContext';
 
 interface ProjectInfoFormModalProps {
   method: 'POST' | 'PUT';
@@ -39,6 +41,8 @@ export default function ProjectInfoFormModal({
   const { soleUserId } = useSoleUserContext();
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
+  const [isCropModalVisible, setIsCropModalVisible] = useState(false);
+  const [selectedImageForCrop, setSelectedImageForCrop] = useState<MediaItem | null>(null);
 
   // Compute initial values using the actual data
   const getInitialValues = (): ProjectFormValues => {
@@ -142,19 +146,71 @@ export default function ProjectInfoFormModal({
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [16, 9],
-        quality: 0.8,
+        allowsEditing: false, // We'll use our custom cropper
+        quality: 1.0, // Use full quality for cropping
       });
 
       if (!result.canceled && result.assets[0]) {
-        console.log('Image selected:', result.assets[0].uri);
-        setFieldValue('projectImage', result.assets[0].uri);
+        const asset = result.assets[0];
+        console.log('Image selected:', asset.uri);
+        
+        // Get image dimensions
+        Image.getSize(
+          asset.uri,
+          (width, height) => {
+            const mediaItem: MediaItem = {
+              id: `project-image-${Date.now()}`,
+              uri: asset.uri,
+              mediaType: 'photo',
+              width,
+              height,
+              aspectRatio: '16:9',
+            };
+            setSelectedImageForCrop(mediaItem);
+            setIsCropModalVisible(true);
+          },
+          (error) => {
+            console.error('Error getting image size:', error);
+            // Fallback: use default dimensions
+            const mediaItem: MediaItem = {
+              id: `project-image-${Date.now()}`,
+              uri: asset.uri,
+              mediaType: 'photo',
+              width: asset.width || 1920,
+              height: asset.height || 1080,
+              aspectRatio: '16:9',
+            };
+            setSelectedImageForCrop(mediaItem);
+            setIsCropModalVisible(true);
+          }
+        );
       }
     } catch (error) {
       console.error('Error picking image:', error);
       Alert.alert('Error', 'Failed to pick image');
     }
+  };
+
+  const handleCropApply = (payload: {
+    uri: string;
+    width: number;
+    height: number;
+    cropData: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      zoom: number;
+      naturalWidth?: number;
+      naturalHeight?: number;
+    };
+  }, setFieldValue?: any) => {
+    console.log('Cropped image:', payload.uri);
+    if (setFieldValue) {
+      setFieldValue('projectImage', payload.uri);
+    }
+    setIsCropModalVisible(false);
+    setSelectedImageForCrop(null);
   };
 
   const modalTitle = method === 'POST' ? 'Create New Project' : 'Edit Project';
@@ -190,62 +246,63 @@ export default function ProjectInfoFormModal({
             : 'Save';
 
         return (
-          <FormModal
-            open={isOpen}
-            onOpenChange={setIsOpen}
-            title={modalTitle}
-            submitButtonText={submitButtonText}
-            isSubmitting={isSubmitting}
-            hasErrors={hasErrors}
-            onSubmit={submitForm}
-            onReset={resetForm}
-            onClose={() => {
-              resetForm();
-            }}
-            trigger={
-              renderTrigger
-                ? (helpers) =>
-                    renderTrigger({
-                      open: helpers.open,
-                      close: helpers.close,
-                      isOpen: helpers.isOpen,
-                    })
-                : (helpers) => (
-                    <PrimaryButton
-                      variant={method === 'POST' ? 'create' : 'edit'}
-                      disabled={false}
-                      icon={
-                        method === 'POST' ? (
-                          <Plus size={20} color="#000000" />
-                        ) : (
-                          <Pencil size={20} color="#000000" />
-                        )
-                      }
-                      onPress={helpers.open}>
-                      {method === 'POST' ? 'Create New Project' : 'Edit Project'}
-                    </PrimaryButton>
-                  )
-            }
-            headerClassName="flex-row items-center justify-between border-b border-white/10 px-4 pb-3 pt-12"
-            contentClassName="p-5">
-            {(close) => (
-              <>
-                {/* Project Image */}
-                <View className="mb-5">
-                  <Text className="mb-2 text-sm font-semibold text-white">Project Image</Text>
-                  <TouchableOpacity
-                    className="aspect-video w-full overflow-hidden rounded-xl border border-white/10 bg-gray-800/60"
-                    onPress={() => pickImage(setFieldValue)}>
-                    {values.projectImage ? (
-                      <Image source={{ uri: values.projectImage }} className="h-full w-full" />
-                    ) : (
-                      <View className="flex-1 items-center justify-center">
-                        <Plus color="#6b7280" size={32} />
-                        <Text className="mt-2 text-sm text-gray-500">Add Image</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                </View>
+          <>
+            <FormModal
+              open={isOpen}
+              onOpenChange={setIsOpen}
+              title={modalTitle}
+              submitButtonText={submitButtonText}
+              isSubmitting={isSubmitting}
+              hasErrors={hasErrors}
+              onSubmit={submitForm}
+              onReset={resetForm}
+              onClose={() => {
+                resetForm();
+              }}
+              trigger={
+                renderTrigger
+                  ? (helpers) =>
+                      renderTrigger({
+                        open: helpers.open,
+                        close: helpers.close,
+                        isOpen: helpers.isOpen,
+                      })
+                  : (helpers) => (
+                      <PrimaryButton
+                        variant={method === 'POST' ? 'create' : 'edit'}
+                        disabled={false}
+                        icon={
+                          method === 'POST' ? (
+                            <Plus size={20} color="#000000" />
+                          ) : (
+                            <Pencil size={20} color="#000000" />
+                          )
+                        }
+                        onPress={helpers.open}>
+                        {method === 'POST' ? 'Create New Project' : 'Edit Project'}
+                      </PrimaryButton>
+                    )
+              }
+              headerClassName="flex-row items-center justify-between border-b border-white/10 px-4 pb-3 pt-12"
+              contentClassName="p-5">
+              {(close) => (
+                <>
+                  {/* Project Image */}
+                  <View className="mb-5">
+                    <Text className="mb-2 text-sm font-semibold text-white">Project Image</Text>
+                    <TouchableOpacity
+                      className="aspect-video w-full overflow-hidden rounded-xl border border-white/10 bg-gray-800/60"
+                      onPress={() => pickImage(setFieldValue)}>
+                      {values.projectImage ? (
+                        <Image source={{ uri: values.projectImage }} className="h-full w-full" />
+                      ) : (
+                        <View className="flex-1 items-center justify-center">
+                          <Plus color="#6b7280" size={32} />
+                          <Text className="mt-2 text-sm text-gray-500">Add Image</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  </View>
 
                 {/* Private Toggle */}
                 <TouchableOpacity
@@ -347,7 +404,20 @@ export default function ProjectInfoFormModal({
                 </View>
               </>
             )}
-          </FormModal>
+            </FormModal>
+            
+            <ImageCropModal
+              visible={isCropModalVisible}
+              media={selectedImageForCrop || undefined}
+              onClose={() => {
+                setIsCropModalVisible(false);
+                setSelectedImageForCrop(null);
+              }}
+              onApply={(payload) => handleCropApply(payload, setFieldValue)}
+              aspectRatio={16 / 9}
+              lockAspectRatio={true}
+            />
+          </>
         );
       }}
     </Formik>

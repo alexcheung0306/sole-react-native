@@ -53,8 +53,8 @@ export function RoleForm({
 
   const ethnicValue =
     roleData?.requiredEthnicGroup &&
-    typeof roleData.requiredEthnicGroup === 'string' &&
-    roleData.requiredEthnicGroup !== 'No Preference'
+      typeof roleData.requiredEthnicGroup === 'string' &&
+      roleData.requiredEthnicGroup !== 'No Preference'
       ? new Set(roleData.requiredEthnicGroup.split(',').filter(Boolean))
       : new Set();
 
@@ -97,78 +97,78 @@ export function RoleForm({
 
   const initialValues = fetchedValues
     ? {
-        projectId: roleData.projectId || projectId,
-        roleTitle: roleData.roleTitle || '',
-        roleDescription: roleData.roleDescription || '',
-        paymentBasis: roleData.paymentBasis || 'On Project',
-        budget: roleData.budget || 1000,
-        talentNumbers: roleData.talentNumbers || 1,
-        displayBudgetTo: roleData.displayBudgetTo || 'Everyone',
-        talentsQuote: roleData.talentsQuote || false,
-        otPayment: roleData.otPayment !== undefined ? roleData.otPayment : true,
-        questions: roleData.questions || '',
-        requiredGender: roleData.requiredGender || 'No Preference',
-        ageMin: roleData.ageMin || 15,
-        ageMax: roleData.ageMax || 30,
-        heightMin: roleData.heightMin || 160,
-        heightMax: roleData.heightMax || 210,
-        category: roleData.category || '',
-        requiredEthnicGroup: roleData.requiredEthnicGroup || 'No Preference',
-        skills: roleData.skills || '',
-        activityScheduleLists:
-          activitiesData.length > 0
-            ? activitiesData
-            : [
+      projectId: roleData.projectId || projectId,
+      roleTitle: roleData.roleTitle || '',
+      roleDescription: roleData.roleDescription || '',
+      paymentBasis: roleData.paymentBasis || 'On Project',
+      budget: roleData.budget || 1000,
+      talentNumbers: roleData.talentNumbers || 1,
+      displayBudgetTo: roleData.displayBudgetTo || 'Everyone',
+      talentsQuote: roleData.talentsQuote || false,
+      otPayment: roleData.otPayment !== undefined ? roleData.otPayment : true,
+      questions: roleData.questions || '',
+      requiredGender: roleData.requiredGender || 'No Preference',
+      ageMin: roleData.ageMin || 15,
+      ageMax: roleData.ageMax || 30,
+      heightMin: roleData.heightMin || 160,
+      heightMax: roleData.heightMax || 210,
+      category: roleData.category || '',
+      requiredEthnicGroup: roleData.requiredEthnicGroup || 'No Preference',
+      skills: roleData.skills || '',
+      activityScheduleLists:
+        activitiesData.length > 0
+          ? activitiesData
+          : [
+            {
+              title: '',
+              type: '',
+              schedules: [
                 {
-                  title: '',
-                  type: '',
-                  schedules: [
-                    {
-                      id: Date.now(),
-                      location: '',
-                      fromTime: '',
-                      toTime: '',
-                    },
-                  ],
-                  remarks: '',
+                  id: Date.now(),
+                  location: '',
+                  fromTime: '',
+                  toTime: '',
                 },
               ],
-      }
+              remarks: '',
+            },
+          ],
+    }
     : {
-        projectId: projectId,
-        roleTitle: '',
-        roleDescription: '',
-        paymentBasis: 'On Project',
-        budget: 1000,
-        talentNumbers: 1,
-        displayBudgetTo: 'Everyone',
-        talentsQuote: false,
-        otPayment: true,
-        questions: '',
-        requiredGender: 'No Preference',
-        ageMin: 15,
-        ageMax: 30,
-        heightMin: 160,
-        heightMax: 210,
-        category: '',
-        requiredEthnicGroup: 'No Preference',
-        skills: '',
-        activityScheduleLists: [
-          {
-            title: '',
-            type: '',
-            schedules: [
-              {
-                id: Date.now(),
-                location: '',
-                fromTime: '',
-                toTime: '',
-              },
-            ],
-            remarks: '',
-          },
-        ],
-      };
+      projectId: projectId,
+      roleTitle: '',
+      roleDescription: '',
+      paymentBasis: 'On Project',
+      budget: 1000,
+      talentNumbers: 1,
+      displayBudgetTo: 'Everyone',
+      talentsQuote: false,
+      otPayment: true,
+      questions: '',
+      requiredGender: 'No Preference',
+      ageMin: 15,
+      ageMax: 30,
+      heightMin: 160,
+      heightMax: 210,
+      category: '',
+      requiredEthnicGroup: 'No Preference',
+      skills: '',
+      activityScheduleLists: [
+        {
+          title: '',
+          type: '',
+          schedules: [
+            {
+              id: Date.now(),
+              location: '',
+              fromTime: '',
+              toTime: '',
+            },
+          ],
+          remarks: '',
+        },
+      ],
+    };
 
   const pageOrder: Array<'roleInformation' | 'requirements' | 'schedules' | 'confirm'> = [
     'roleInformation',
@@ -333,13 +333,13 @@ export function RoleForm({
               onSubmit={
                 currentPage === 'confirm'
                   ? async () => {
-                      await handleFormSubmit();
-                    }
+                    await handleFormSubmit();
+                  }
                   : () => {
-                      if (isCurrentPageValid()) {
-                        setCurrentPage(getNextPage());
-                      }
+                    if (isCurrentPageValid()) {
+                      setCurrentPage(getNextPage());
                     }
+                  }
               }
               onClose={handleModalClose}
               onReset={resetFormState}
@@ -350,6 +350,11 @@ export function RoleForm({
                   <ScrollView
                     className="flex-1 px-4"
                     showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="interactive"
+                    contentContainerStyle={{
+                      paddingBottom: 100,
+                    }}
                     onScrollBeginDrag={() => {
                       if (closeDropdownRef.current) {
                         closeDropdownRef.current();

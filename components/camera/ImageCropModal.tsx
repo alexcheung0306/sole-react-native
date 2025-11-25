@@ -36,6 +36,8 @@ interface ImageCropModalProps {
       naturalHeight?: number;
     };
   }) => void;
+  aspectRatio?: number; // Optional aspect ratio (width/height), e.g., 16/9 for 16:9
+  lockAspectRatio?: boolean; // If true, crop frame is locked to aspectRatio and not resizable
 }
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -50,6 +52,8 @@ export function ImageCropModal({
   media,
   onClose,
   onApply,
+  aspectRatio,
+  lockAspectRatio = false,
 }: ImageCropModalProps) {
   const insets = useSafeAreaInsets();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -57,8 +61,23 @@ export function ImageCropModal({
   const baseCropArea = useMemo(() => {
     const horizontalPadding = 24;
     const maxWidth = SCREEN_WIDTH - horizontalPadding * 2;
-    const tentativeHeight = maxWidth;
     const maxHeight = SCREEN_HEIGHT - (insets.top + insets.bottom + 180);
+    
+    if (aspectRatio && lockAspectRatio) {
+      // Calculate dimensions based on aspect ratio
+      let width = maxWidth;
+      let height = width / aspectRatio;
+      
+      if (height > maxHeight) {
+        height = maxHeight;
+        width = height * aspectRatio;
+      }
+      
+      return { width, height };
+    }
+    
+    // Default square crop area
+    const tentativeHeight = maxWidth;
     const height = Math.min(tentativeHeight, maxHeight);
     const width = height;
 
@@ -66,11 +85,15 @@ export function ImageCropModal({
       width,
       height,
     };
-  }, [insets.bottom, insets.top]);
+  }, [insets.bottom, insets.top, aspectRatio, lockAspectRatio]);
 
   const minCropSize = Math.min(baseCropArea.width, baseCropArea.height) * 0.35;
-  const minCropWidth = minCropSize;
-  const minCropHeight = minCropSize;
+  const minCropWidth = lockAspectRatio && aspectRatio 
+    ? baseCropArea.width * 0.5 
+    : minCropSize;
+  const minCropHeight = lockAspectRatio && aspectRatio 
+    ? baseCropArea.height * 0.5 
+    : minCropSize;
 
   const { displayWidth, displayHeight, fittedScale, originalWidth, originalHeight } = useMemo(() => {
     // Get image dimensions with better fallbacks
@@ -205,7 +228,13 @@ export function ImageCropModal({
 
   const createEdgeGesture = (direction: 'top' | 'bottom' | 'left' | 'right') =>
     Gesture.Pan()
+      .enabled(!lockAspectRatio && !isProcessing)
       .onChange((event) => {
+        if (lockAspectRatio && aspectRatio) {
+          // When aspect ratio is locked, disable resizing
+          return;
+        }
+        
         const isHorizontal = direction === 'left' || direction === 'right';
         const delta = isHorizontal ? event.changeX : event.changeY;
         const sign = direction === 'left' || direction === 'top' ? -1 : 1;
