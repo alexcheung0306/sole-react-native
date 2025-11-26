@@ -20,6 +20,7 @@ import { useSoleUserContext } from '~/context/SoleUserContext';
 import { useUser } from '@clerk/clerk-expo';
 import { useCreatePostContext, MediaItem } from '~/context/CreatePostContext';
 import * as MediaLibrary from 'expo-media-library';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 const IMAGE_MIME_TYPES: Record<string, string> = {
   jpg: 'image/jpeg',
@@ -45,15 +46,15 @@ export default function CaptionScreen() {
   const { user } = useUser();
   const { soleUserId } = useSoleUserContext();
   const queryClient = useQueryClient();
-  const { 
-    selectedMedia, 
-    caption, 
-    setCaption, 
-    location, 
+  const {
+    selectedMedia,
+    caption,
+    setCaption,
+    location,
     setLocation,
-    resetPostData 
+    resetPostData
   } = useCreatePostContext();
-  
+
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const firstMediaUri = selectedMedia[0]?.uri;
 
@@ -64,7 +65,7 @@ export default function CaptionScreen() {
     },
     onSuccess: () => {
       console.log('Post created successfully');
-      
+
       // Invalidate queries to refresh feeds
       queryClient.invalidateQueries({ queryKey: ['profilePagePosts'] });
       queryClient.invalidateQueries({ queryKey: ['homePagePosts'] });
@@ -133,7 +134,7 @@ export default function CaptionScreen() {
         ?.split('?')[0];
     let extension =
       filenameCandidate &&
-      filenameCandidate.includes('.')
+        filenameCandidate.includes('.')
         ? filenameCandidate.split('.').pop()?.toLowerCase()
         : undefined;
 
@@ -168,7 +169,42 @@ export default function CaptionScreen() {
     try {
       const postMedias: PostMedia[] = await Promise.all(
         selectedMedia.map(async (media, index) => {
-          const uploadUri = await resolveUploadUri(media);
+          let finalUri = media.uri;
+          let finalWidth = media.width || 1080;
+          let finalHeight = media.height || 1080;
+
+          // Perform client-side crop if we have crop data and it's a photo
+          if (media.mediaType === 'photo' && media.cropData) {
+            try {
+              // Use originalUri if available to ensure best quality and correct coordinates
+              const sourceUri = media.originalUri ?? media.uri;
+
+              const actions = [
+                {
+                  crop: {
+                    originX: media.cropData.x,
+                    originY: media.cropData.y,
+                    width: media.cropData.width,
+                    height: media.cropData.height,
+                  },
+                },
+              ];
+
+              const result = await ImageManipulator.manipulateAsync(
+                sourceUri,
+                actions,
+                { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+              );
+
+              finalUri = result.uri;
+              finalWidth = result.width;
+              finalHeight = result.height;
+            } catch (cropError) {
+              console.warn('Failed to apply crop before upload, using original', cropError);
+            }
+          }
+
+          const uploadUri = await resolveUploadUri({ ...media, uri: finalUri });
 
           if (!uploadUri) {
             throw new Error('Unable to access selected media file');
@@ -184,11 +220,11 @@ export default function CaptionScreen() {
             cropData: {
               x: 0,
               y: 0,
-              width: media.width || 1080,
-              height: media.height || 1080,
+              width: finalWidth,
+              height: finalHeight,
               zoom: 1,
-              naturalWidth: media.width,
-              naturalHeight: media.height,
+              naturalWidth: finalWidth,
+              naturalHeight: finalHeight,
             },
           };
         })
@@ -361,11 +397,10 @@ export default function CaptionScreen() {
           <TouchableOpacity
             onPress={handleShare}
             disabled={createPostMutation.isPending || selectedMedia.length === 0}
-            className={`rounded-lg py-3 ${
-              createPostMutation.isPending || selectedMedia.length === 0
-                ? 'bg-blue-500/50'
-                : 'bg-blue-500'
-            }`}
+            className={`rounded-lg py-3 ${createPostMutation.isPending || selectedMedia.length === 0
+              ? 'bg-blue-500/50'
+              : 'bg-blue-500'
+              }`}
           >
             {createPostMutation.isPending ? (
               <View className="flex-row items-center justify-center">

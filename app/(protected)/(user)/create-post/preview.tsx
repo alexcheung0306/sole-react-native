@@ -12,7 +12,7 @@ import { Stack, router } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
 import { X, Check, Trash2, Image as ImageIcon, Crop, Square, RectangleVertical, RectangleHorizontal } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Video } from 'expo-av';
+import { Video, ResizeMode } from 'expo-av';
 import { useCreatePostContext, MediaItem } from '~/context/CreatePostContext';
 import { ImageCropModal } from '~/components/camera/ImageCropModal';
 
@@ -38,6 +38,65 @@ export default function PreviewScreen() {
   // Default to 1:1 aspect ratio as specified
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<number>(1 / 1);
 
+  // Calculate center crop for a given aspect ratio
+  const calculateCenterCrop = (media: MediaItem, targetRatio: number) => {
+    const naturalWidth = media.cropData?.naturalWidth ?? media.width;
+    const naturalHeight = media.cropData?.naturalHeight ?? media.height;
+
+    // If we don't have dimensions, return null or default
+    if (!naturalWidth || !naturalHeight) return null;
+
+    let cropWidth = naturalWidth;
+    let cropHeight = cropWidth / targetRatio;
+
+    if (cropHeight > naturalHeight) {
+      cropHeight = naturalHeight;
+      cropWidth = cropHeight * targetRatio;
+    }
+
+    const x = (naturalWidth - cropWidth) / 2;
+    const y = (naturalHeight - cropHeight) / 2;
+
+    return {
+      x,
+      y,
+      width: cropWidth,
+      height: cropHeight,
+      zoom: 1,
+      naturalWidth,
+      naturalHeight,
+    };
+  };
+
+  const handleAspectRatioChange = (ratio: number) => {
+    setSelectedAspectRatio(ratio);
+
+    // Apply center crop to ALL photos
+    const updated = selectedMedia.map((item) => {
+      if (item.mediaType !== 'photo') return item;
+
+      const newCropData = calculateCenterCrop(item, ratio);
+      if (!newCropData) return item;
+
+      // Ensure we have originalUri saved if it's not already
+      const originalUri = item.originalUri ?? item.uri;
+
+      return {
+        ...item,
+        cropData: newCropData,
+        // Revert to original URI so the preview shows a center crop of the FULL image
+        // instead of a crop of a crop.
+        uri: originalUri,
+        originalUri: originalUri,
+        // We should also restore the original dimensions if we have them
+        width: newCropData.naturalWidth ?? item.width,
+        height: newCropData.naturalHeight ?? item.height,
+      };
+    });
+
+    setSelectedMedia(updated);
+  };
+
   const handleClose = () => {
     router.back();
   };
@@ -55,7 +114,7 @@ export default function PreviewScreen() {
           style: 'destructive',
           onPress: () => {
             removeMedia(selectedMedia[currentIndex].id);
-            
+
             if (selectedMedia.length === 1) {
               router.back();
             } else if (currentIndex >= selectedMedia.length - 1) {
@@ -111,6 +170,45 @@ export default function PreviewScreen() {
 
       return {
         ...item,
+        // We are NOT updating the URI here to the cropped version yet, 
+        // because we want to be able to re-crop from the original.
+        // If the app logic requires the URI to be the cropped one for display, 
+        // we might need a separate 'displayUri' or just rely on the Image component 
+        // to handle the crop (which isn't standard in RN without a library).
+        // 
+        // HOWEVER, the existing code was updating URI. 
+        // To support non-destructive editing, we should keep the original URI 
+        // and maybe store the cropped URI separately if needed for performance,
+        // OR just rely on cropData if we had a component that could render it.
+        //
+        // Given the current architecture seems to rely on `ImageManipulator` creating a new file,
+        // we will stick to that for the 'result', BUT we must preserve the ORIGINAL uri 
+        // for re-cropping.
+        //
+        // Let's check if `item` has an `originalUri` field. If not, we should add it.
+        // For now, I will assume we can store `originalUri` in the context or it exists.
+        // If not, I'll use `uri` as the source of truth for the *current* version, 
+        // but this causes quality loss on re-crop.
+        //
+        // BETTER APPROACH: 
+        // The `ImageCropModal` receives `media`. If we pass the *original* media every time,
+        // we are good.
+        // But `selectedMedia` is updated with the *cropped* URI in the previous code.
+        //
+        // I will modify this to:
+        // 1. Update `cropData`.
+        // 2. Update `uri` to the new cropped image (so other components see the crop).
+        // 3. BUT ensure we keep `originalUri` if possible. 
+        //    If `MediaItem` doesn't have `originalUri`, I might need to add it or 
+        //    rely on the fact that `ImageCropModal` might need the original.
+        //
+        // WAIT: `ImageCropModal` uses `media.uri`. If we overwrite `media.uri` with the cropped version,
+        // the next time we open the cropper, we are cropping the *already cropped* image.
+        // This is destructive and prevents zooming out.
+        //
+        // FIX: I will check if `originalUri` exists. If not, I'll set it on the first crop.
+
+        originalUri: item.originalUri ?? item.uri, // Save original if not exists
         uri: payload.uri,
         width: payload.width,
         height: payload.height,
@@ -128,12 +226,10 @@ export default function PreviewScreen() {
   };
 
   const getAspectRatioValue = (item: MediaItem) => {
-    const mediaWidth = item.cropData?.width ?? item.width;
-    const mediaHeight = item.cropData?.height ?? item.height;
-    if (mediaWidth && mediaHeight && mediaHeight !== 0) {
-      return mediaWidth / mediaHeight;
-    }
-    return 1;
+    // If we have an explicit aspect ratio selected, use that for the container
+    // But we also want to respect the image's actual crop if it differs slightly?
+    // No, enforce the selected aspect ratio.
+    return selectedAspectRatio;
   };
 
   const renderMainMedia = () => {
@@ -142,19 +238,20 @@ export default function PreviewScreen() {
     }
 
     const item = selectedMedia[currentIndex];
-    const aspectValue = getAspectRatioValue(item);
+    // Use the selected aspect ratio for the container
+    const aspectValue = selectedAspectRatio;
     const mediaHeight = width / aspectValue;
 
     return (
       <View
         style={{ width, height: mediaHeight }}
-        className="bg-black items-center justify-center"
+        className="bg-black items-center justify-center overflow-hidden"
       >
         {item.mediaType === 'video' ? (
           <Video
             source={{ uri: item.uri }}
             style={{ width, height: mediaHeight }}
-            resizeMode="cover"
+            resizeMode={ResizeMode.COVER}
             shouldPlay={false}
             useNativeControls
           />
@@ -219,21 +316,19 @@ export default function PreviewScreen() {
                   return (
                     <TouchableOpacity
                       key={ratio.key}
-                      onPress={() => setSelectedAspectRatio(ratio.value)}
-                      className={`flex-1 flex-row items-center justify-center gap-2 rounded-lg px-3 py-2 border ${
-                        isSelected
-                          ? 'bg-blue-500/20 border-blue-500'
+                      onPress={() => handleAspectRatioChange(ratio.value)}
+                      className={`flex-1 flex-row items-center justify-center gap-2 rounded-lg px-3 py-2 border ${isSelected
+                          ? 'bg-blue-600 border-blue-600'
                           : 'bg-gray-800 border-gray-700'
-                      }`}
+                        }`}
                     >
                       <Icon
                         size={18}
-                        color={isSelected ? '#3b82f6' : '#9ca3af'}
+                        color={isSelected ? '#ffffff' : '#9ca3af'}
                       />
                       <Text
-                        className={`text-sm font-medium ${
-                          isSelected ? 'text-blue-500' : 'text-gray-400'
-                        }`}
+                        className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-gray-400'
+                          }`}
                       >
                         {ratio.label}
                       </Text>

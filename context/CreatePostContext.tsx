@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, ReactNode, useCallback, use
 export interface MediaItem {
   id: string;
   uri: string;
+  originalUri?: string;
   mediaType: 'photo' | 'video';
   width?: number;
   height?: number;
