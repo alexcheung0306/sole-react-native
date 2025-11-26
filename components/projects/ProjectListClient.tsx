@@ -64,7 +64,7 @@ export default function ProjectListClient({ item }: { item: any }) {
           </View>
           <View style={[styles.statusChip, { backgroundColor: `${statusColor}33` }]}>
             <Text className="text-[10px] font-semibold" style={{ color: statusColor }}>
-              {project.status || 'Draft' || ''}
+              {project.status || 'Draft'}
             </Text>
           </View>
         </View>

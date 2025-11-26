@@ -33,21 +33,15 @@ export default function JobsNavTabs() {
         return (
           <TouchableOpacity
             key={tab.name}
-            activeOpacity={active ? 1 : 0.7}
-            className={`flex-1 flex-row items-center justify-center px-2 py-3 border-b-2 ${
-              active
-                ? '  border-white'
-                : 'border-transparent'
+            activeOpacity={1}
+            className={`flex-1 flex-row items-center justify-center border-b-2 px-2 py-3 ${
+              active ? '  border-white' : 'border-transparent'
             }`}
-            onPress={() => setActiveTab(tab.tab)}
-          >
+            onPress={() => setActiveTab(tab.tab)}>
             <Icon color={active ? '#ffffff' : '#9ca3af'} size={18} />
             <Text
-              className={`text-sm font-semibold ml-1 ${
-                active ? 'text-white' : 'text-gray-400'
-              }`}
-              style={active ? { color: '#ffffff' } : { color: '#9ca3af' }}
-            >
+              className={`ml-1 text-sm font-semibold ${active ? 'text-white' : 'text-gray-400'}`}
+              style={active ? { color: '#ffffff' } : { color: '#9ca3af' }}>
               {tab.name}
             </Text>
           </TouchableOpacity>
@@ -56,4 +50,3 @@ export default function JobsNavTabs() {
     </View>
   );
 }
-

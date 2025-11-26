@@ -42,7 +42,7 @@ function HeaderWrapper({ children }: { children: React.ReactNode }) {
   }, [segments, pathname, setTitle, setHeaderLeft, setHeaderRight, setIsDark]);
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: '#000000' }}>
       <CollapsibleHeader
         title={title}
         translateY={headerTranslateY}
@@ -66,7 +66,7 @@ export default function JobLayout() {
                 <Stack
                   screenOptions={{
                     headerShown: false,
-                    contentStyle: { backgroundColor: '#0a0a0a' },
+                    contentStyle: { backgroundColor: '#000000' },
                   }}
                 >
                   <Stack.Screen name="index" options={{ headerShown: false }} />

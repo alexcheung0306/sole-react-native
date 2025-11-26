@@ -5,6 +5,7 @@ import { useHeaderContext } from '@/context/HeaderContext';
 import ContractListCard from '@/components/projects/ContractListCard';
 import FilterSearch from '~/components/custom/filter-search';
 import { useManageContractContext } from '@/context/ManageContractContext';
+import ScreenTransition from '@/components/projects/ScreenTransition';
 
 export default function ManageContractsPage() {
   const insets = useSafeAreaInsets();
@@ -53,7 +54,7 @@ export default function ManageContractsPage() {
 
       {contractResults && (
         <Text className="text-sm text-gray-400 mb-3">
-          {totalContracts} {totalContracts === 1 ? 'contract' : 'contracts'} found
+          {Number(totalContracts) || 0} {Number(totalContracts) === 1 ? 'contract' : 'contracts'} found
         </Text>
       )}
     </View>
@@ -87,8 +88,9 @@ export default function ManageContractsPage() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-black">
-        <FlatList
+      <ScreenTransition direction="right">
+        <View className="flex-1 bg-black">
+          <FlatList
           data={contracts}
           renderItem={({ item }) => <ContractListCard item={item} />}
           keyExtractor={(item) =>
@@ -107,7 +109,8 @@ export default function ManageContractsPage() {
           }}
           showsVerticalScrollIndicator={false}
         />
-      </View>
+        </View>
+      </ScreenTransition>
     </>
   );
 }

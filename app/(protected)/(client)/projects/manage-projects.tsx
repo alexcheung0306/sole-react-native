@@ -10,6 +10,7 @@ import PaginationControl from '~/components/projects/PaginationControl';
 import ProjectListClient from '~/components/projects/ProjectListClient';
 import FilterSearch from '~/components/custom/filter-search';
 import FlatListEmpty from '~/components/custom/flatlist-empty';
+import ScreenTransition from '@/components/projects/ScreenTransition';
 
 export default function ManageProjectsPage() {
   const insets = useSafeAreaInsets();
@@ -62,8 +63,9 @@ export default function ManageProjectsPage() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-black">
-        <FlatList
+      <ScreenTransition direction="left">
+        <View className="flex-1 bg-black">
+          <FlatList
           ref={flatListRef}
           data={projectsData}
           keyExtractor={(item) => (item?.project?.id ?? item?.id ?? Math.random()).toString()}
@@ -136,7 +138,8 @@ export default function ManageProjectsPage() {
           }}
           showsVerticalScrollIndicator={false}
         />
-      </View>
+        </View>
+      </ScreenTransition>
     </>
   );
 }

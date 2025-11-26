@@ -125,7 +125,7 @@ export const ManageContractProvider = ({ children }: { children: ReactNode }) =>
     [contractResults]
   );
 
-  const totalContracts = contractResults?.total ?? contracts.length;
+  const totalContracts = contractResults?.total ?? contracts.length ?? 0;
 
   const resetFilters = useCallback(() => {
     setSearchBy('contractId');

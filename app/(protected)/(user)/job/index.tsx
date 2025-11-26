@@ -3,6 +3,7 @@ import { useJobTabContext } from '@/context/JobTabContext';
 import JobPosts from './job-posts';
 import AppliedRoles from './applied-roles';
 import MyContracts from './my-contracts';
+import ScreenTransition from '@/components/projects/ScreenTransition';
 
 export default function JobIndex() {
   const { activeTab } = useJobTabContext();
@@ -10,13 +11,19 @@ export default function JobIndex() {
   return (
     <View style={styles.container}>
       <View style={[styles.tabContent, activeTab !== 'job-posts' && styles.hidden]}>
-        <JobPosts />
+        <ScreenTransition direction="left" isActive={activeTab === 'job-posts'}>
+          <JobPosts />
+        </ScreenTransition>
       </View>
       <View style={[styles.tabContent, activeTab !== 'applied-roles' && styles.hidden]}>
-        <AppliedRoles />
+        <ScreenTransition direction="left" isActive={activeTab === 'applied-roles'}>
+          <AppliedRoles />
+        </ScreenTransition>
       </View>
       <View style={[styles.tabContent, activeTab !== 'my-contracts' && styles.hidden]}>
-        <MyContracts />
+        <ScreenTransition direction="right" isActive={activeTab === 'my-contracts'}>
+          <MyContracts />
+        </ScreenTransition>
       </View>
     </View>
   );
@@ -25,7 +32,7 @@ export default function JobIndex() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#000000',
   },
   tabContent: {
     flex: 1,
@@ -36,7 +43,7 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   hidden: {
-    opacity: 0,
     pointerEvents: 'none',
+    // Opacity is handled by ScreenTransition component
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, Image } from 'react-native';
 import { Pencil, Plus } from 'lucide-react-native';
 import { Formik } from 'formik';
@@ -44,9 +44,9 @@ export default function ProjectInfoFormModal({
   const [isCropModalVisible, setIsCropModalVisible] = useState(false);
   const [selectedImageForCrop, setSelectedImageForCrop] = useState<MediaItem | null>(null);
 
-  // Compute initial values using the actual data
-  const getInitialValues = (): ProjectFormValues => {
-    const values = {
+  // Compute initial values using the actual data - memoized to prevent excessive renders
+  const initialValues = useMemo((): ProjectFormValues => {
+    return {
       projectImage: initValues?.projectImage || null,
       isPrivate: initValues?.isPrivate ?? false,
       projectName: initValues?.projectName ?? '',
@@ -55,16 +55,7 @@ export default function ProjectInfoFormModal({
       remarks: initValues?.remarks ?? '',
       status: initValues?.status || 'Draft',
     };
-
-    // Debug logging
-    console.log('=== ProjectInfoFormModal Initial Values ===');
-    console.log('initValues:', initValues);
-    console.log('Computed initialValues:', values);
-
-    return values;
-  };
-
-  const initialValues = getInitialValues();
+  }, [initValues?.projectImage, initValues?.isPrivate, initValues?.projectName, initValues?.projectDescription, initValues?.usage, initValues?.remarks, initValues?.status]);
 
   // React Query mutations
   const projectMutation = useMutation({
