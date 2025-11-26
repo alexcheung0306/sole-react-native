@@ -222,7 +222,7 @@ export default function PreviewScreen() {
   };
 
   const navigateToCaption = () => {
-    router.push('/(protected)/(user)/create-post/caption' as any);
+    router.push('/(protected)/(user)/camera/caption' as any);
   };
 
   const getAspectRatioValue = (item: MediaItem) => {

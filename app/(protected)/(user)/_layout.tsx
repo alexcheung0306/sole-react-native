@@ -79,19 +79,13 @@ export default function ClientTabLayout() {
           headerShown: false,
           href: user?.username
             ? ({
-                pathname: '/(protected)/(user)/user/[username]',
-                params: { username: user.username },
-              } as any)
+              pathname: '/(protected)/(user)/user/[username]',
+              params: { username: user.username },
+            } as any)
             : '/sign-in',
         }}
       />
       {/* Hidden tabs */}
-      <Tabs.Screen
-        name="create-post"
-        options={{
-          href: null,
-        }}
-      />
       <Tabs.Screen
         name="post/[postId]"
         options={{

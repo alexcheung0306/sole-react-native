@@ -43,7 +43,7 @@ export default function CameraScreen() {
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync();
       setHasPermission(status === 'granted');
-      
+
       if (status === 'granted') {
         loadPhotos();
       } else {
@@ -101,7 +101,7 @@ export default function CameraScreen() {
   const openCamera = async () => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      
+
       if (status !== 'granted') {
         Alert.alert('Permission Required', 'Please grant camera access');
         return;
@@ -120,7 +120,7 @@ export default function CameraScreen() {
           id: `camera_${Date.now()}`,
           uri: asset.uri,
           mediaType: asset.type === 'video' ? 'video' : 'photo',
-          duration: asset.duration,
+          duration: asset.duration ?? undefined,
           width: asset.width,
           height: asset.height,
           filename: `capture_${Date.now()}`,
@@ -163,7 +163,7 @@ export default function CameraScreen() {
     }
 
     preserveSelectionRef.current = true;
-    router.push('/(protected)/(user)/create-post/preview' as any);
+    router.push('/(protected)/(user)/camera/edit' as any);
   };
 
   const renderMediaItem = ({ item, index }: { item: MediaItem; index: number }) => {
@@ -276,9 +276,8 @@ export default function CameraScreen() {
             className="p-2"
           >
             <Text
-              className={`font-semibold ${
-                selectedMedia.length > 0 ? 'text-blue-500' : 'text-gray-600'
-              }`}
+              className={`font-semibold ${selectedMedia.length > 0 ? 'text-blue-500' : 'text-gray-600'
+                }`}
             >
               Next
             </Text>
