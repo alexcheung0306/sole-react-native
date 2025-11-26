@@ -84,7 +84,7 @@ export function RolesBreadcrumb({
         <CollapseDrawer2
           showDrawer={isDrawerOpen}
           setShowDrawer={setIsDrawerOpen}
-          title={`${selectedRole?.role?.roleTitle || 'Role Details'} • Role #${selectedRole?.role?.id} • ${currentRole + 1} of ${rolesWithSchedules.length}`}>
+          title={`${selectedRole?.role?.roleTitle || 'Role Details'} • Role #${selectedRole?.role?.id ? String(selectedRole.role.id) : ''} • ${currentRole + 1} of ${rolesWithSchedules.length}`}>
           <View className="px-5 pb-6">
             <ScrollView
               showsVerticalScrollIndicator={false}

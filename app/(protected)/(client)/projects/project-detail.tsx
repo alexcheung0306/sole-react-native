@@ -128,17 +128,17 @@ export default function ProjectDetailPage() {
                 className="rounded-full px-3 py-1"
                 style={{ backgroundColor: `${statusTint}33` }}>
                 <Text className="text-xs font-semibold text-white" style={{ color: statusTint }}>
-                  {project?.status}
+                  {project?.status || ''}
                 </Text>
               </View>
               <View className="rounded-full border border-blue-500/40 bg-blue-500/15 px-3 py-1">
-                <Text className="text-xs font-semibold text-white">Project #{project?.id}</Text>
+                <Text className="text-xs font-semibold text-white">Project #{project?.id ? String(project.id) : ''}</Text>
               </View>
             </View>
 
             {/* Title and Description */}
             <View className={`gap-2 px-2`}>
-              <Text className="text-2xl font-bold text-white">{project?.projectName}</Text>
+              <Text className="text-2xl font-bold text-white">{project?.projectName || ''}</Text>
               <Text className="text-sm text-white/80">
                 Align your announcement timeline, audition workflow, and contract statuses in one
                 place.

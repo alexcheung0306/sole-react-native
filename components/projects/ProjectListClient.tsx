@@ -57,14 +57,14 @@ export default function ProjectListClient({ item }: { item: any }) {
       <View className="flex-1 justify-between">
         <View className="flex-row items-start justify-between">
           <View className="max-w-[70%]">
-            <Text className="text-2xs font-semibold text-white/80">#{project.id}</Text>
+            <Text className="text-2xs font-semibold text-white/80">#{project.id ? String(project.id) : ''}</Text>
             <Text className="mt-1 text-2xs font-semibold text-white" numberOfLines={2}>
               {project.projectName || 'Untitled Project'}
             </Text>
           </View>
           <View style={[styles.statusChip, { backgroundColor: `${statusColor}33` }]}>
             <Text className="text-[10px] font-semibold" style={{ color: statusColor }}>
-              {project.status || 'Draft'}
+              {project.status || 'Draft' || ''}
             </Text>
           </View>
         </View>

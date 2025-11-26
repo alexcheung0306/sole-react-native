@@ -33,7 +33,7 @@ function HeaderWrapper({ children }: { children: React.ReactNode }) {
     } else if (segmentString === 'contract') {
       // For contract, use ID from params if available
       if (params.id) {
-        setTitle(`Contract #${params.id}`);
+        setTitle(`Contract #${String(params.id)}`);
       } else {
         setTitle('Contract');
       }

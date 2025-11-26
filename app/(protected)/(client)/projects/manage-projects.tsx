@@ -104,15 +104,15 @@ export default function ManageProjectsPage() {
               <View className="mb-3 flex-row items-center justify-between">
                 {projectResults && (
                   <Text className="text-sm text-gray-400">
-                    {projectResults.total} {projectResults.total === 1 ? 'project' : 'projects'}{' '}
+                    {projectResults.total ?? 0} {projectResults.total === 1 ? 'project' : 'projects'}{' '}
                     found
-                    {isSearching && ' (filtered)'}
+                    {isSearching ? ' (filtered)' : ''}
                   </Text>
                 )}
 
                 {totalPages > 1 && (
                   <Text className="text-sm text-gray-400">
-                    Page {currentPage + 1} of {totalPages}
+                    Page {String(currentPage + 1)} of {String(totalPages)}
                   </Text>
                 )}
               </View>

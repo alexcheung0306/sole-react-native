@@ -39,6 +39,7 @@ export default function JobsNavTabs() {
           return (
             <TouchableOpacity
               key={tab.name}
+              activeOpacity={active ? 1 : 0.7}
               className={`flex-row items-center gap-2 px-4 py-3 rounded-t-lg border-b-2 ${
                 active
                   ? 'bg-white/10 border-white'
@@ -51,6 +52,7 @@ export default function JobsNavTabs() {
                 className={`text-sm font-semibold ${
                   active ? 'text-white' : 'text-gray-400'
                 }`}
+                style={active ? { color: '#ffffff' } : { color: '#9ca3af' }}
               >
                 {tab.name}
               </Text>

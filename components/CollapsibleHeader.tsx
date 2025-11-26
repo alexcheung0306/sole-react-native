@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Animated, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 interface CollapsibleHeaderProps {
   title: string | React.ReactNode;
@@ -11,6 +13,7 @@ interface CollapsibleHeaderProps {
   backgroundColor?: string;
   textColor?: string;
   isDark?: boolean;
+  gradientOpacity?: number; // Opacity for the top of the gradient (0-1)
 }
 
 export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
@@ -21,11 +24,12 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
   backgroundColor,
   textColor,
   isDark = true,
+  gradientOpacity = 1,
 }) => {
   const insets = useSafeAreaInsets();
   
   // Dark theme defaults
-  const defaultBg = isDark ? 'rgba(0, 0, 0, 0.9)' : '#fff';
+  const defaultBg = isDark ? `rgba(0, 0, 0, ${gradientOpacity})` : '#fff';
   const defaultText = isDark ? '#fff' : '#000';
   const borderColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0,0,0,0.1)';
 
@@ -37,15 +41,34 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
         left: 0,
         right: 0,
         zIndex: 1000,
-        backgroundColor: backgroundColor || defaultBg,
-        borderBottomWidth: 1,
-        borderBottomColor: borderColor,
         transform: [{ translateY }],
       }}
     >
+      {/* Blur Background */}
+
+      {/* Gradient Overlay */}
+      <LinearGradient
+        colors={
+          backgroundColor
+            ? [backgroundColor, 'transparent']
+            : isDark
+              ? [`rgba(0, 0, 0, ${gradientOpacity})`, 'rgba(0, 0, 0, 0)']
+              : [`rgba(255, 255, 255, ${gradientOpacity})`, 'rgba(255, 255, 255, 0)']
+        }
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: borderColor,
+        }}
+      />
       <StatusBar 
         barStyle={isDark ? "light-content" : "dark-content"} 
-        backgroundColor={backgroundColor || defaultBg} 
+        backgroundColor="transparent"
+        translucent
       />
       <View
         style={{

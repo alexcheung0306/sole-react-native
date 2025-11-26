@@ -14,6 +14,8 @@ interface HeaderContextType {
   handleScroll: (event: any) => void;
 }
 
+const HEADER_HEIGHT = 120; // Adjust this to match your actual header height
+
 const HeaderContext = createContext<HeaderContextType | undefined>(undefined);
 
 export const HeaderProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -21,41 +23,55 @@ export const HeaderProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [headerLeft, setHeaderLeft] = useState<ReactNode | null>(null);
   const [headerRight, setHeaderRight] = useState<ReactNode | null>(null);
   const [isDark, setIsDark] = useState(true);
-  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
-  const headerTranslateY = useRef(new Animated.Value(0)).current;
+
+  const headerTranslateY:any = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
+  const isScrollingDown = useRef(false);
 
-  const handleScroll = useCallback((event: any) => {
-    const currentScrollY = event.nativeEvent.contentOffset.y;
-    const scrollDelta = currentScrollY - lastScrollY.current;
+  const animateHeader = useCallback((toValue: number) => {
+    Animated.timing(headerTranslateY, {
+      toValue,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  }, [headerTranslateY]);
 
-    // Only trigger header animation if scroll delta is significant enough
-    if (Math.abs(scrollDelta) > 5) {
-      if (scrollDelta > 0 && currentScrollY > 100) {
-        // Scrolling down - hide header
-        if (isHeaderVisible) {
-          setIsHeaderVisible(false);
-          Animated.timing(headerTranslateY, {
-            toValue: -100,
-            duration: 250,
-            useNativeDriver: true,
-          }).start();
+  const handleScroll = useCallback(
+    (event: any) => {
+      const currentScrollY = event.nativeEvent.contentOffset.y;
+      const scrollDelta = currentScrollY - lastScrollY.current;
+      const isScrollingDownNow = scrollDelta > 0;
+
+      // Always show header when near the top (within 20px)
+      if (currentScrollY <= 20) {
+        if (headerTranslateY._value !== 0) {
+          animateHeader(0);
         }
-      } else if (scrollDelta < 0) {
-        // Scrolling up - show header
-        if (!isHeaderVisible) {
-          setIsHeaderVisible(true);
-          Animated.timing(headerTranslateY, {
-            toValue: 0,
-            duration: 250,
-            useNativeDriver: true,
-          }).start();
+        lastScrollY.current = currentScrollY;
+        isScrollingDown.current = false;
+        return;
+      }
+
+      // Only react if direction changed or significant movement
+      if (
+        Math.abs(scrollDelta) > 5 && // threshold
+        isScrollingDownNow !== isScrollingDown.current
+      ) {
+        isScrollingDown.current = isScrollingDownNow;
+
+        if (isScrollingDownNow && currentScrollY > 100) {
+          // Scrolling DOWN → HIDE header
+          animateHeader(-HEADER_HEIGHT);
+        } else {
+          // Scrolling UP → SHOW header
+          animateHeader(0);
         }
       }
-    }
 
-    lastScrollY.current = currentScrollY;
-  }, [isHeaderVisible, headerTranslateY]);
+      lastScrollY.current = currentScrollY;
+    },
+    [animateHeader, headerTranslateY]
+  );
 
   return (
     <HeaderContext.Provider
@@ -84,4 +100,3 @@ export const useHeaderContext = () => {
   }
   return context;
 };
-
