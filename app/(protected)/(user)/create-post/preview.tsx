@@ -10,13 +10,20 @@ import {
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
-import { X, Check, Trash2, Image as ImageIcon, Crop } from 'lucide-react-native';
+import { X, Check, Trash2, Image as ImageIcon, Crop, Square, RectangleVertical, RectangleHorizontal } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Video } from 'expo-av';
 import { useCreatePostContext, MediaItem } from '~/context/CreatePostContext';
 import { ImageCropModal } from '~/components/camera/ImageCropModal';
 
 const { width, height } = Dimensions.get('window');
+
+// Aspect ratio options matching web version
+const ASPECT_RATIOS = [
+  { key: '1/1', value: 1 / 1, label: '1:1', icon: Square },
+  { key: '4/5', value: 4 / 5, label: '4:5', icon: RectangleVertical },
+  { key: '16/9', value: 16 / 9, label: '16:9', icon: RectangleHorizontal },
+] as const;
 
 export default function PreviewScreen() {
   const insets = useSafeAreaInsets();
@@ -28,6 +35,8 @@ export default function PreviewScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isCropModalVisible, setIsCropModalVisible] = useState(false);
   const [cropTargetIndex, setCropTargetIndex] = useState<number | null>(null);
+  // Default to 1:1 aspect ratio as specified
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState<number>(1 / 1);
 
   const handleClose = () => {
     router.back();
@@ -200,6 +209,40 @@ export default function PreviewScreen() {
 
           {/* Controls */}
           <View className="px-4 py-4 border-b border-gray-800">
+            {/* Aspect Ratio Selector */}
+            <View className="mb-4">
+              <Text className="text-gray-400 text-sm mb-2">Aspect Ratio</Text>
+              <View className="flex-row gap-2">
+                {ASPECT_RATIOS.map((ratio) => {
+                  const Icon = ratio.icon;
+                  const isSelected = selectedAspectRatio === ratio.value;
+                  return (
+                    <TouchableOpacity
+                      key={ratio.key}
+                      onPress={() => setSelectedAspectRatio(ratio.value)}
+                      className={`flex-1 flex-row items-center justify-center gap-2 rounded-lg px-3 py-2 border ${
+                        isSelected
+                          ? 'bg-blue-500/20 border-blue-500'
+                          : 'bg-gray-800 border-gray-700'
+                      }`}
+                    >
+                      <Icon
+                        size={18}
+                        color={isSelected ? '#3b82f6' : '#9ca3af'}
+                      />
+                      <Text
+                        className={`text-sm font-medium ${
+                          isSelected ? 'text-blue-500' : 'text-gray-400'
+                        }`}
+                      >
+                        {ratio.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
             <View className="flex-row items-center justify-between">
               {/* Crop Button */}
               <TouchableOpacity
@@ -241,6 +284,8 @@ export default function PreviewScreen() {
         media={cropTargetIndex !== null ? selectedMedia[cropTargetIndex] : undefined}
         onClose={closeCropper}
         onApply={handleCropApply}
+        aspectRatio={selectedAspectRatio}
+        lockAspectRatio={true}
       />
     </>
   );

@@ -15,6 +15,7 @@ import { Image as ExpoImage } from 'expo-image';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { Check, X } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
+import { Slider, SliderTrack, SliderFilledTrack, SliderThumb } from '~/components/ui/slider';
 
 import { MediaItem } from '~/context/CreatePostContext';
 
@@ -57,6 +58,7 @@ export function ImageCropModal({
 }: ImageCropModalProps) {
   const insets = useSafeAreaInsets();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [zoomValue, setZoomValue] = useState(1);
 
   const baseCropArea = useMemo(() => {
     const horizontalPadding = 24;
@@ -124,7 +126,7 @@ export function ImageCropModal({
   }, [media?.width, media?.height, media?.cropData, baseCropArea.width, baseCropArea.height]);
 
   const minScale = 1;
-  const maxScale = 6;
+  const maxScale = 5; // Limit zoom to max 5x as specified
 
   const scale = useSharedValue(minScale);
   const translateX = useSharedValue(0);
@@ -137,8 +139,25 @@ export function ImageCropModal({
       scale.value = minScale;
       translateX.value = 0;
       translateY.value = 0;
-      cropWidth.value = baseCropArea.width;
-      cropHeight.value = baseCropArea.height;
+      setZoomValue(minScale);
+      
+      // Initialize crop frame based on aspect ratio
+      if (lockAspectRatio && aspectRatio) {
+        // Calculate dimensions based on aspect ratio
+        let initialWidth = baseCropArea.width;
+        let initialHeight = initialWidth / aspectRatio;
+        
+        if (initialHeight > baseCropArea.height) {
+          initialHeight = baseCropArea.height;
+          initialWidth = initialHeight * aspectRatio;
+        }
+        
+        cropWidth.value = initialWidth;
+        cropHeight.value = initialHeight;
+      } else {
+        cropWidth.value = baseCropArea.width;
+        cropHeight.value = baseCropArea.height;
+      }
     }
   }, [
     visible,
@@ -151,7 +170,17 @@ export function ImageCropModal({
     baseCropArea.height,
     cropHeight,
     cropWidth,
+    lockAspectRatio,
+    aspectRatio,
   ]);
+
+  // Sync zoom value with scale for slider
+  useEffect(() => {
+    const id = setInterval(() => {
+      setZoomValue(scale.value);
+    }, 100);
+    return () => clearInterval(id);
+  }, [scale]);
 
   const panGesture = useMemo(
     () =>
@@ -178,6 +207,7 @@ export function ImageCropModal({
         .onChange((event) => {
           const nextScale = clamp(scale.value * event.scaleChange, minScale, maxScale);
           scale.value = nextScale;
+          setZoomValue(nextScale);
 
           const scaledWidth = displayWidth * nextScale;
           const scaledHeight = displayHeight * nextScale;
@@ -228,22 +258,42 @@ export function ImageCropModal({
 
   const createEdgeGesture = (direction: 'top' | 'bottom' | 'left' | 'right') =>
     Gesture.Pan()
-      .enabled(!lockAspectRatio && !isProcessing)
+      .enabled(!isProcessing)
       .onChange((event) => {
         if (lockAspectRatio && aspectRatio) {
-          // When aspect ratio is locked, disable resizing
-          return;
-        }
-        
-        const isHorizontal = direction === 'left' || direction === 'right';
-        const delta = isHorizontal ? event.changeX : event.changeY;
-        const sign = direction === 'left' || direction === 'top' ? -1 : 1;
-        const adjusted = delta * sign;
+          // When aspect ratio is locked, maintain aspect ratio while resizing
+          const isHorizontal = direction === 'left' || direction === 'right';
+          const delta = isHorizontal ? event.changeX : event.changeY;
+          const sign = direction === 'left' || direction === 'top' ? -1 : 1;
+          const adjusted = delta * sign;
 
-        if (isHorizontal) {
-          cropWidth.value = clamp(cropWidth.value + adjusted, minCropWidth, baseCropArea.width);
+          if (isHorizontal) {
+            const newWidth = clamp(cropWidth.value + adjusted, minCropWidth, baseCropArea.width);
+            const newHeight = newWidth / aspectRatio;
+            if (newHeight <= baseCropArea.height && newHeight >= minCropHeight) {
+              cropWidth.value = newWidth;
+              cropHeight.value = newHeight;
+            }
+          } else {
+            const newHeight = clamp(cropHeight.value + adjusted, minCropHeight, baseCropArea.height);
+            const newWidth = newHeight * aspectRatio;
+            if (newWidth <= baseCropArea.width && newWidth >= minCropWidth) {
+              cropHeight.value = newHeight;
+              cropWidth.value = newWidth;
+            }
+          }
         } else {
-          cropHeight.value = clamp(cropHeight.value + adjusted, minCropHeight, baseCropArea.height);
+          // Free resize when aspect ratio is not locked
+          const isHorizontal = direction === 'left' || direction === 'right';
+          const delta = isHorizontal ? event.changeX : event.changeY;
+          const sign = direction === 'left' || direction === 'top' ? -1 : 1;
+          const adjusted = delta * sign;
+
+          if (isHorizontal) {
+            cropWidth.value = clamp(cropWidth.value + adjusted, minCropWidth, baseCropArea.width);
+          } else {
+            cropHeight.value = clamp(cropHeight.value + adjusted, minCropHeight, baseCropArea.height);
+          }
         }
 
         const scaledWidth = displayWidth * scale.value;
@@ -583,6 +633,40 @@ export function ImageCropModal({
         </View>
 
         <View className="px-8 py-6">
+          {/* Zoom Slider */}
+          <View className="mb-4">
+            <Text className="text-gray-300 text-sm mb-2 text-center">Zoom</Text>
+            <Slider
+              value={zoomValue}
+              onValueChange={(value) => {
+                const newScale = clamp(Array.isArray(value) ? value[0] : value, minScale, maxScale);
+                scale.value = newScale;
+                setZoomValue(newScale);
+                
+                // Update translate to keep image within bounds
+                const scaledWidth = displayWidth * newScale;
+                const scaledHeight = displayHeight * newScale;
+                const maxTranslateX = Math.max((scaledWidth - cropWidth.value) / 2, 0);
+                const maxTranslateY = Math.max((scaledHeight - cropHeight.value) / 2, 0);
+                translateX.value = clamp(translateX.value, -maxTranslateX, maxTranslateX);
+                translateY.value = clamp(translateY.value, -maxTranslateY, maxTranslateY);
+              }}
+              minValue={minScale}
+              maxValue={maxScale}
+              step={0.1}
+              className="w-full"
+            >
+              <SliderTrack>
+                <SliderFilledTrack />
+              </SliderTrack>
+              <SliderThumb />
+            </Slider>
+            <View className="flex-row justify-between mt-1">
+              <Text className="text-gray-500 text-xs">1x</Text>
+              <Text className="text-gray-500 text-xs">5x</Text>
+            </View>
+          </View>
+          
           <Text className="text-gray-300 text-center text-sm">
             Pinch to zoom, drag to reposition, and drag edges to resize the crop frame.
           </Text>
