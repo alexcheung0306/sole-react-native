@@ -143,7 +143,7 @@ export function ImageCropModal({
       const isNewMedia = prevMediaUriRef.current !== media?.uri;
 
       // Update crop frame based on aspect ratio (always recalculate)
-      if (lockAspectRatio && aspectRatio) {
+      if (aspectRatio) {
         // Calculate dimensions based on aspect ratio
         let newWidth = baseCropArea.width;
         let newHeight = newWidth / aspectRatio;

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
-import { X, Check, Trash2, Image as ImageIcon, Crop, Square, RectangleVertical, RectangleHorizontal, Scan } from 'lucide-react-native';
+import { X, Check, Trash2, Image as ImageIcon, Crop, Square, RectangleVertical, RectangleHorizontal } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Video, ResizeMode } from 'expo-av';
 import { useCreatePostContext, MediaItem } from '~/context/CreatePostContext';
@@ -20,7 +20,6 @@ const { width, height } = Dimensions.get('window');
 
 // Aspect ratio options matching web version
 const ASPECT_RATIOS = [
-  { key: 'free', value: null, label: 'Free', icon: Scan },
   { key: '1/1', value: 1 / 1, label: '1:1', icon: Square },
   { key: '4/5', value: 4 / 5, label: '4:5', icon: RectangleVertical },
   { key: '16/9', value: 16 / 9, label: '16:9', icon: RectangleHorizontal },
@@ -37,7 +36,7 @@ export default function PreviewScreen() {
   const [isCropModalVisible, setIsCropModalVisible] = useState(false);
   const [cropTargetIndex, setCropTargetIndex] = useState<number | null>(null);
   // Default to 1:1 aspect ratio as specified
-  const [selectedAspectRatio, setSelectedAspectRatio] = useState<number | null>(1 / 1);
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState<number>(1 / 1);
 
   // Calculate center crop for a given aspect ratio
   const calculateCenterCrop = (media: MediaItem, targetRatio: number) => {
@@ -69,36 +68,12 @@ export default function PreviewScreen() {
     };
   };
 
-  const handleAspectRatioChange = (ratio: number | null) => {
+  const handleAspectRatioChange = (ratio: number) => {
     setSelectedAspectRatio(ratio);
 
     // Apply center crop to ALL photos
     const updated = selectedMedia.map((item) => {
       if (item.mediaType !== 'photo') return item;
-
-      // If Free (null), we reset to original full image
-      if (ratio === null) {
-        const originalUri = item.originalUri ?? item.uri;
-        const naturalWidth = item.cropData?.naturalWidth ?? item.width ?? 1080;
-        const naturalHeight = item.cropData?.naturalHeight ?? item.height ?? 1080;
-
-        return {
-          ...item,
-          uri: originalUri,
-          originalUri: originalUri,
-          width: naturalWidth,
-          height: naturalHeight,
-          cropData: {
-            x: 0,
-            y: 0,
-            width: naturalWidth,
-            height: naturalHeight,
-            zoom: 1,
-            naturalWidth,
-            naturalHeight
-          }
-        };
-      }
 
       const newCropData = calculateCenterCrop(item, ratio);
       if (!newCropData) return item;
@@ -264,16 +239,8 @@ export default function PreviewScreen() {
 
     const item = selectedMedia[currentIndex];
 
-    // Determine aspect ratio to use for display
-    let aspectValue = selectedAspectRatio;
-
-    // If Free mode (null), calculate aspect ratio from the image's current crop or dimensions
-    if (aspectValue === null) {
-      const currentWidth = item.cropData?.width ?? item.width ?? 1080;
-      const currentHeight = item.cropData?.height ?? item.height ?? 1080;
-      aspectValue = currentWidth / currentHeight;
-    }
-
+    // Use the selected aspect ratio for the container
+    const aspectValue = selectedAspectRatio;
     const mediaHeight = width / aspectValue;
 
     return (
@@ -413,8 +380,8 @@ export default function PreviewScreen() {
         media={cropTargetIndex !== null ? selectedMedia[cropTargetIndex] : undefined}
         onClose={closeCropper}
         onApply={handleCropApply}
-        aspectRatio={selectedAspectRatio ?? undefined}
-        lockAspectRatio={selectedAspectRatio !== null}
+        aspectRatio={selectedAspectRatio}
+        lockAspectRatio={false}
       />
     </>
   );
