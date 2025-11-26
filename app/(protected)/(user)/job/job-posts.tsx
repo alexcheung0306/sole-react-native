@@ -1,97 +1,48 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Stack } from 'expo-router';
+import { View, Text, FlatList, TouchableOpacity, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useQuery } from '@tanstack/react-query';
-import { useSoleUserContext } from '~/context/SoleUserContext';
-import { getProject } from '~/api/apiservice/project_api';
+import { useHeaderContext } from '@/context/HeaderContext';
+import { useJobPostsContext } from '@/context/JobPostsContext';
 import { useRouter } from 'expo-router';
-import JobsNavTabs from '@/components/job/JobsNavTabs';
 import FilterSearch from '~/components/custom/filter-search';
 import FlatListEmpty from '~/components/custom/flatlist-empty';
+import PaginationControl from '~/components/projects/PaginationControl';
 import { Calendar, User, Briefcase } from 'lucide-react-native';
 
 export default function JobPosts() {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
+  const { handleScroll } = useHeaderContext();
   
-  const [searchBy, setSearchBy] = useState('projectName');
-  const [searchValue, setSearchValue] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
-
   const {
-    soleUserId,
-    jobPageSearchAPI,
-    setJobPageSearchAPI,
-    jobPageCurrentProjectPage,
-    setJobPageCurrentProjectPage,
-  } = useSoleUserContext();
-
-  const searchOptions = useMemo(
-    () => [
-      { id: 'projectName', label: 'Project Name' },
-      { id: 'projectId', label: 'Project ID' },
-      { id: 'publisherUsername', label: 'Publisher Username' },
-    ],
-    []
-  );
-
-  // Build search API
-  const buildSearchAPI = () => {
-    if (!searchValue.trim()) {
-      return `&status=Published&pageNo=${jobPageCurrentProjectPage}&pageSize=10&orderBy=id&orderSeq=dec`;
-    }
-
-    let searchParam = '';
-    switch (searchBy) {
-      case 'projectName':
-        searchParam = `&projectName=${encodeURIComponent(searchValue)}`;
-        break;
-      case 'projectId':
-        searchParam = `&projectId=${searchValue}`;
-        break;
-      case 'publisherUsername':
-        searchParam = `&username=${encodeURIComponent(searchValue)}`;
-        break;
-    }
-
-    return `${searchParam}&status=Published&pageNo=${jobPageCurrentProjectPage}&pageSize=10&orderBy=id&orderSeq=dec`;
-  };
-
-  // Fetch job posts with TanStack Query
-  const {
-    data: projectResults,
-    error: projectsError,
-    isLoading: isLoadingProjects,
-    refetch: refetchProjects,
-    isFetching,
-  } = useQuery({
-    queryKey: ['jobPosts', soleUserId, jobPageCurrentProjectPage, searchValue, searchBy],
-    queryFn: () => getProject(buildSearchAPI()),
-    enabled: !!soleUserId,
-    staleTime: 0, // Always refetch when query key changes
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-  });
+    projects,
+    projectResults,
+    isLoadingProjects,
+    projectsError,
+    totalPages,
+    currentPage,
+    setCurrentPage,
+    searchBy,
+    setSearchBy,
+    searchValue,
+    setSearchValue,
+    searchOptions,
+    isSearching,
+    refetchProjects,
+  } = useJobPostsContext();
 
   // Scroll to top when page changes
   useEffect(() => {
     if (flatListRef.current) {
       flatListRef.current.scrollToOffset({ offset: 0, animated: true });
     }
-  }, [jobPageCurrentProjectPage]);
-
-  // Reset page and refetch when search changes
-  useEffect(() => {
-    if (soleUserId) {
-      setJobPageCurrentProjectPage(0);
-      setIsSearching(!!searchValue.trim());
-    }
-  }, [searchValue, searchBy, soleUserId]);
+  }, [currentPage]);
 
   const handleJobSearch = () => {
-    // State updates will trigger useEffect above to reset page
-    // Query will automatically refetch due to queryKey including searchValue and searchBy
+    setCurrentPage(0);
+    refetchProjects();
   };
 
   const formatDate = (dateString: string) => {
@@ -104,20 +55,7 @@ export default function JobPosts() {
     router.push(`/(protected)/(user)/job/job-detail?id=${projectId}` as any);
   };
 
-  const loadMore = () => {
-    // Prevent loading if already fetching, no data, or reached last page
-    if (isFetching || !projectResults?.data || !projectResults?.totalPages) return;
-    
-    const hasMorePages = jobPageCurrentProjectPage + 1 < projectResults.totalPages;
-    const hasEnoughItems = projectResults.data.length >= 10;
-    
-    if (hasMorePages && hasEnoughItems) {
-      setJobPageCurrentProjectPage(jobPageCurrentProjectPage + 1);
-    }
-  };
-
-  const totalPages = projectResults?.totalPages || 0;
-  const projectsData = projectResults?.data || [];
+  const projectsData = projects;
 
   const renderJobPost = ({ item }: { item: any }) => {
     const project = item.project || item;
@@ -127,55 +65,55 @@ export default function JobPosts() {
     return (
       <TouchableOpacity
         onPress={() => handleJobPress(project.id)}
-        style={styles.jobCard}
+        className="bg-zinc-800/60 rounded-2xl p-4 mb-3 border border-white/10"
         activeOpacity={0.7}
       >
         {/* Project Image */}
         {project.projectImage && (
           <Image
             source={{ uri: project.projectImage }}
-            style={styles.projectImage}
+            className="w-full h-40 rounded-xl mb-3"
             resizeMode="cover"
           />
         )}
 
         {/* Project Title */}
-        <Text style={styles.projectTitle} numberOfLines={2}>
+        <Text className="text-lg font-bold text-white mb-2" numberOfLines={2}>
           {project.projectName}
         </Text>
 
         {/* Project ID */}
-        <View style={styles.infoRow}>
+        <View className="flex-row items-center mb-2 gap-2">
           <Briefcase size={14} color="#9ca3af" />
-          <Text style={styles.infoText}>ID: {project.id}</Text>
+          <Text className="text-sm text-gray-400">ID: {project.id}</Text>
         </View>
 
         {/* Client Info */}
-        <View style={styles.infoRow}>
+        <View className="flex-row items-center mb-2 gap-2">
           <User size={14} color="#9ca3af" />
-          <Text style={styles.clientText}>
+          <Text className="text-sm text-gray-300">
             {userInfoName} {soleUserName && `(@${soleUserName})`}
           </Text>
         </View>
 
         {/* Deadline */}
         {project.applicationDeadline && (
-          <View style={styles.infoRow}>
+          <View className="flex-row items-center mb-2 gap-2">
             <Calendar size={14} color="#9ca3af" />
-            <Text style={styles.infoText}>
+            <Text className="text-sm text-gray-400">
               Deadline: {formatDate(project.applicationDeadline)}
             </Text>
           </View>
         )}
 
         {/* Status Badge */}
-        <View style={styles.statusBadge}>
-          <Text style={styles.statusText}>{project.status}</Text>
+        <View className="bg-orange-500/20 px-3 py-1 rounded-full self-start mb-2">
+          <Text className="text-xs font-semibold text-orange-400">{project.status}</Text>
         </View>
 
         {/* Description Preview */}
         {project.projectDescription && (
-          <Text style={styles.description} numberOfLines={3}>
+          <Text className="text-sm text-gray-400 mt-2" numberOfLines={3}>
             {project.projectDescription}
           </Text>
         )}
@@ -184,7 +122,9 @@ export default function JobPosts() {
   };
 
   return (
-    <View style={styles.container}>
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View className="flex-1 bg-black">
         <FlatList
           ref={flatListRef}
           data={projectsData}
@@ -198,12 +138,10 @@ export default function JobPosts() {
             />
           }
           ListHeaderComponent={
-            <View style={styles.headerContent}>
-              <JobsNavTabs />
-
-              <View style={styles.titleSection}>
-                <Text style={styles.title}>Job Posts</Text>
-                <Text style={styles.subtitle}>Browse available job opportunities</Text>
+            <View className="mb-3 gap-2">
+              <View className="mb-5">
+                <Text className="mb-1 text-[28px] font-bold text-white">Job Posts</Text>
+                <Text className="text-sm text-gray-400">Browse available job opportunities</Text>
               </View>
 
               {/* Search Bar */}
@@ -217,134 +155,42 @@ export default function JobPosts() {
               />
 
               {/* Results Count & Pagination */}
-              {projectResults && (
-                <View style={styles.resultsRow}>
-                  <Text style={styles.resultsText}>
-                    {projectResults.total} {projectResults.total === 1 ? 'job' : 'jobs'} found
-                    {isSearching && ' (filtered)'}
+              <View className="mb-3 flex-row items-center justify-between">
+                {projectResults && (
+                  <Text className="text-sm text-gray-400">
+                    {projectResults.total ?? 0} {projectResults.total === 1 ? 'job' : 'jobs'} found
+                    {isSearching ? ' (filtered)' : ''}
                   </Text>
+                )}
 
-                  {totalPages > 1 && (
-                    <Text style={styles.pageText}>
-                      Page {jobPageCurrentProjectPage + 1} of {totalPages}
-                    </Text>
-                  )}
-                </View>
-              )}
+                {totalPages > 1 && (
+                  <Text className="text-sm text-gray-400">
+                    Page {String(currentPage + 1)} of {String(totalPages)}
+                  </Text>
+                )}
+              </View>
             </View>
           }
           renderItem={renderJobPost}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
           ListFooterComponent={
-            isFetching && projectsData.length ? (
-              <View style={styles.footer}>
-                <ActivityIndicator size="small" color="#3b82f6" />
-              </View>
-            ) : null
+            <PaginationControl
+              totalPages={totalPages}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              isLoadingProjects={isLoadingProjects}
+            />
           }
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           contentContainerStyle={{
-            paddingTop: insets.top + 16,
+            paddingTop: insets.top + 72,
             paddingBottom: 20,
             paddingHorizontal: 12,
           }}
           showsVerticalScrollIndicator={false}
         />
       </View>
+    </>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0a0a0a',
-  },
-  headerContent: {
-    marginBottom: 12,
-    gap: 8,
-  },
-  titleSection: {
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#9ca3af',
-  },
-  resultsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  resultsText: {
-    fontSize: 14,
-    color: '#9ca3af',
-  },
-  pageText: {
-    fontSize: 14,
-    color: '#9ca3af',
-  },
-  footer: {
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  jobCard: {
-    backgroundColor: 'rgba(31, 41, 55, 0.6)',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  projectImage: {
-    width: '100%',
-    height: 160,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  projectTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 8,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    gap: 8,
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#9ca3af',
-  },
-  clientText: {
-    fontSize: 14,
-    color: '#d1d5db',
-  },
-  statusBadge: {
-    backgroundColor: 'rgba(249, 115, 22, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 16,
-    alignSelf: 'flex-start',
-    marginTop: 8,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#fb923c',
-  },
-  description: {
-    fontSize: 14,
-    color: '#9ca3af',
-    marginTop: 12,
-    lineHeight: 20,
-  },
-});

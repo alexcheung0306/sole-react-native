@@ -2,6 +2,9 @@ import { Stack, useSegments, useLocalSearchParams, usePathname } from 'expo-rout
 import { useEffect } from 'react';
 import { View } from 'react-native';
 import { JobTabProvider } from '@/context/JobTabContext';
+import { JobPostsProvider } from '@/context/JobPostsContext';
+import { AppliedRolesProvider } from '@/context/AppliedRolesContext';
+import { MyContractsProvider } from '@/context/MyContractsContext';
 import { HeaderProvider, useHeaderContext } from '@/context/HeaderContext';
 import { CollapsibleHeader } from '@/components/CollapsibleHeader';
 import JobsNavTabs from '@/components/job/JobsNavTabs';
@@ -55,22 +58,28 @@ function HeaderWrapper({ children }: { children: React.ReactNode }) {
 export default function JobLayout() {
   return (
     <JobTabProvider>
-      <HeaderProvider>
-        <HeaderWrapper>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: '#0a0a0a' },
-            }}
-          >
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="job-posts" options={{ headerShown: false }} />
-            <Stack.Screen name="applied-roles" options={{ headerShown: false }} />
-            <Stack.Screen name="my-contracts" options={{ headerShown: false }} />
-            <Stack.Screen name="job-detail" options={{ headerShown: false }} />
-          </Stack>
-        </HeaderWrapper>
-      </HeaderProvider>
+      <JobPostsProvider>
+        <AppliedRolesProvider>
+          <MyContractsProvider>
+            <HeaderProvider>
+              <HeaderWrapper>
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    contentStyle: { backgroundColor: '#0a0a0a' },
+                  }}
+                >
+                  <Stack.Screen name="index" options={{ headerShown: false }} />
+                  <Stack.Screen name="job-posts" options={{ headerShown: false }} />
+                  <Stack.Screen name="applied-roles" options={{ headerShown: false }} />
+                  <Stack.Screen name="my-contracts" options={{ headerShown: false }} />
+                  <Stack.Screen name="job-detail" options={{ headerShown: false }} />
+                </Stack>
+              </HeaderWrapper>
+            </HeaderProvider>
+          </MyContractsProvider>
+        </AppliedRolesProvider>
+      </JobPostsProvider>
     </JobTabProvider>
   );
 }
