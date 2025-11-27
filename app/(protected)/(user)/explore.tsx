@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useScrollHeader } from '../../../hooks/useScrollHeader';
+import { CollapsibleHeader } from '../../../components/CollapsibleHeader';
 import { useSoleUserContext } from '~/context/SoleUserContext';
 import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { 
@@ -361,108 +362,97 @@ export default function Explore() {
     <BottomSheetModalProvider>
         <Stack.Screen options={{ headerShown: false }} />
         <View className="flex-1 bg-black">
-          {/* Enhanced Header */}
-          <View className="bg-black">
+          <CollapsibleHeader 
+            title="Explore" 
+            translateY={headerTranslateY} 
+            isDark={true}
+            headerRight={
+              <View className="flex-row items-center gap-3">
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowSearch(!showSearch);
+                    if (showSearch) {
+                      setSearchQuery('');
+                      setShowUserResults(false);
+                    }
+                  }}
+                  className="p-2"
+                  activeOpacity={0.7}
+                >
+                  <Search size={24} color="#ffffff" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+                  className="p-2"
+                  activeOpacity={0.7}
+                >
+                  {viewMode === 'grid' ? (
+                    <List size={24} color="#ffffff" />
+                  ) : (
+                    <Grid3X3 size={24} color="#ffffff" />
+                  )}
+                </TouchableOpacity>
+              </View>
+            }
+          />
+
+          {/* Search Bar with Dropdown - positioned below header */}
+          {showSearch && (
             <View 
-              className="pt-12 pb-4 px-4"
-              style={{ paddingTop: insets.top + 12 }}
+              ref={searchContainerRef} 
+              className="relative px-4 pb-4 bg-black"
+              style={{ paddingTop: insets.top + 72 }}
             >
-              {/* Top Row */}
-              <View className="flex-row items-center justify-between mb-4">
-                <Text className="text-2xl font-bold text-white">Explore</Text>
-                <View className="flex-row items-center gap-3">
+              <View className="flex-row items-center bg-gray-800/50 rounded-xl px-4 py-3">
+                <Search size={20} color="#9ca3af" />
+                <TextInput
+                  value={searchQuery}
+                  onChangeText={(text) => {
+                    setSearchQuery(text);
+                    setShowUserResults(text.trim().length > 0);
+                  }}
+                  placeholder="Search users..."
+                  placeholderTextColor="#9ca3af"
+                  className="flex-1 text-white ml-3 text-base"
+                  autoFocus={showSearch}
+                />
+                {searchQuery.length > 0 && (
                   <TouchableOpacity
                     onPress={() => {
-                      setShowSearch(!showSearch);
-                      if (showSearch) {
-                        setSearchQuery('');
-                        setShowUserResults(false);
-                      }
+                      setSearchQuery('');
+                      setShowUserResults(false);
                     }}
-                    className="p-2"
-                    activeOpacity={0.7}
+                    className="ml-2"
                   >
-                    <Search size={24} color="#ffffff" />
+                    <Text className="text-gray-400 text-lg">×</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                    className="p-2"
-                    activeOpacity={0.7}
-                  >
-                    {viewMode === 'grid' ? (
-                      <List size={24} color="#ffffff" />
-                    ) : (
-                      <Grid3X3 size={24} color="#ffffff" />
-                    )}
-                  </TouchableOpacity>
-                </View>
+                )}
               </View>
 
-              {/* Search Bar with Dropdown */}
-              {showSearch && (
-                <View ref={searchContainerRef} className="relative mb-4">
-                  <View className="flex-row items-center bg-gray-800/50 rounded-xl px-4 py-3">
-                    <Search size={20} color="#9ca3af" />
-                    <TextInput
-                      value={searchQuery}
-                      onChangeText={(text) => {
-                        setSearchQuery(text);
-                        setShowUserResults(text.trim().length > 0);
-                      }}
-                      placeholder="Search users..."
-                      placeholderTextColor="#9ca3af"
-                      className="flex-1 text-white ml-3 text-base"
-                      autoFocus={showSearch}
-                    />
-                    {searchQuery.length > 0 && (
-                      <TouchableOpacity
-                        onPress={() => {
-                          setSearchQuery('');
-                          setShowUserResults(false);
-                        }}
-                        className="ml-2"
-                      >
-                        <Text className="text-gray-400 text-lg">×</Text>
-                      </TouchableOpacity>
+              {/* User Search Results Dropdown */}
+              {showUserResults && (
+                <View className="absolute top-full left-4 right-4 mt-2 bg-gray-900 rounded-xl overflow-hidden z-50 max-h-64">
+                  <ScrollView 
+                    nestedScrollEnabled
+                    showsVerticalScrollIndicator={false}
+                    className="max-h-64"
+                  >
+                    {isLoadingUsers ? (
+                      <View className="py-6 items-center">
+                        <ActivityIndicator size="small" color="#3b82f6" />
+                      </View>
+                    ) : users.length > 0 ? (
+                      users.map((user) => renderUserDropdownItem(user))
+                    ) : (
+                      <View className="py-6 items-center">
+                        <Text className="text-gray-400 text-sm">No users found</Text>
+                      </View>
                     )}
-                  </View>
-
-                  {/* User Search Results Dropdown */}
-                  {showUserResults && (
-                    <View className="absolute top-full left-0 right-0 mt-2 bg-gray-900 rounded-xl overflow-hidden z-50 max-h-64">
-                      <ScrollView 
-                        nestedScrollEnabled
-                        showsVerticalScrollIndicator={false}
-                        className="max-h-64"
-                      >
-                        {isLoadingUsers ? (
-                          <View className="py-6 items-center">
-                            <ActivityIndicator size="small" color="#3b82f6" />
-                          </View>
-                        ) : users.length > 0 ? (
-                          users.map((user) => renderUserDropdownItem(user))
-                        ) : (
-                          <View className="py-6 items-center">
-                            <Text className="text-gray-400 text-sm">No users found</Text>
-                          </View>
-                        )}
-                      </ScrollView>
-                    </View>
-                  )}
+                  </ScrollView>
                 </View>
               )}
-
-              {/* Stats */}
-              <View className="flex-row items-center gap-6">
-                <Text className="text-gray-400 text-sm">
-                  {totalPosts.toLocaleString()} posts
-                </Text>
-                <Text className="text-gray-400 text-sm">
-                  {posts.length} loaded
-                </Text>
-              </View>
             </View>
-          </View>
+          )}
           
           {/* Grid/List Content */}
           <FlatList
@@ -475,6 +465,7 @@ export default function Explore() {
             scrollEventThrottle={16}
             contentContainerStyle={{
               paddingHorizontal: 4,
+              paddingTop: showSearch ? 0 : insets.top + 72,
               paddingBottom: insets.bottom + 20,
             }}
             onEndReached={loadMore}
@@ -487,7 +478,7 @@ export default function Explore() {
                 onRefresh={onRefresh}
                 tintColor="#3b82f6"
                 colors={['#3b82f6']}
-                progressViewOffset={insets.top + 120}
+                progressViewOffset={insets.top + 72}
               />
             }
             showsVerticalScrollIndicator={false}

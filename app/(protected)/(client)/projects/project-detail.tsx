@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'rea
 import { useEffect } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHeaderContext } from '@/context/HeaderContext';
+// No scroll header needed - header is static in projects route
 import { ChevronLeft } from 'lucide-react-native';
 import { useSoleUserContext } from '@/context/SoleUserContext';
 import { useManageProjectContext } from '@/context/ManageProjectContext';
@@ -26,7 +27,8 @@ const STATUS_COLORS: Record<string, string> = {
 export default function ProjectDetailPage() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { handleScroll, setTitle, setHeaderLeft } = useHeaderContext();
+  const { setTitle, setHeaderLeft } = useHeaderContext();
+  // No scroll handler - header is static in projects route
   const { id } = useLocalSearchParams();
   const { soleUserId } = useSoleUserContext();
   const { currentTab, setCurrentTab, currentRole, setCurrentRole } = useManageProjectContext();
@@ -114,7 +116,6 @@ export default function ProjectDetailPage() {
       <View className="flex-1 bg-[#0a0a0a]">
         <ScrollView
           className="flex-1"
-          onScroll={handleScroll}
           scrollEventThrottle={16}
           contentContainerStyle={{
             paddingTop: insets.top + 72,

@@ -299,7 +299,32 @@ export default function ClientProfileScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-black">
-        <Text className="text-white">{username} Client Profile</Text>
+        <CollapsibleHeader
+          title={isOwnProfile ? 'Client Profile' : `@${username}`}
+          headerLeft={
+            !isOwnProfile ? (
+              <TouchableOpacity onPress={handleBackPress} style={{ padding: 8 }}>
+                <Ionicons name="arrow-back" size={24} color="#fff" />
+              </TouchableOpacity>
+            ) : undefined
+          }
+          translateY={headerTranslateY}
+          isDark={true}
+        />
+        <ScrollView
+          className="flex-1 bg-black"
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          contentContainerStyle={{
+            paddingTop: insets.top + 72,
+            paddingBottom: 20,
+          }}>
+          <View className="px-4 py-4">
+            <Text className="text-white text-lg">Client Profile Content</Text>
+            <Text className="text-gray-400 mt-2">Username: {username}</Text>
+            {/* Add more profile content here */}
+          </View>
+        </ScrollView>
       </View>
     </>
   );

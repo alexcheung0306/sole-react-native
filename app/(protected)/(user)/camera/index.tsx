@@ -17,6 +17,8 @@ import { Camera, X, Check, Image as ImageIcon, Video as VideoIcon } from 'lucide
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCreatePostContext, MediaItem } from '~/context/CreatePostContext';
+import { useScrollHeader } from '~/hooks/useScrollHeader';
+import { CollapsibleHeader } from '~/components/CollapsibleHeader';
 
 const { width } = Dimensions.get('window');
 const ITEM_SIZE = width / 3;
@@ -24,6 +26,7 @@ const MAX_SELECTION = 10;
 
 export default function CameraScreen() {
   const insets = useSafeAreaInsets();
+  const { headerTranslateY, handleScroll } = useScrollHeader();
   const { selectedMedia, setSelectedMedia, clearMedia } = useCreatePostContext();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [photos, setPhotos] = useState<MediaItem[]>([]);
@@ -336,32 +339,35 @@ export default function CameraScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-black" style={{ paddingTop: insets.top }}>
-        {/* Header */}
-        <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-800">
-          <TouchableOpacity onPress={() => router.back()} className="p-2">
-            <X size={24} color="#ffffff" />
-          </TouchableOpacity>
-          <Text className="text-white font-semibold text-lg">
-            {selectedMedia.length > 0 ? `${selectedMedia.length}/${MAX_SELECTION}` : 'Select Media'}
-          </Text>
-          <TouchableOpacity
-            onPress={navigateToPreview}
-            disabled={selectedMedia.length === 0}
-            className="p-2"
-          >
-            <Text
-              className={`font-semibold ${selectedMedia.length > 0 ? 'text-blue-500' : 'text-gray-600'
-                }`}
+      <View className="flex-1 bg-black">
+        <CollapsibleHeader
+          title={selectedMedia.length > 0 ? `${selectedMedia.length}/${MAX_SELECTION}` : 'Select Media'}
+          translateY={headerTranslateY}
+          isDark={true}
+          headerLeft={
+            <TouchableOpacity onPress={() => router.back()} className="p-2">
+              <X size={24} color="#ffffff" />
+            </TouchableOpacity>
+          }
+          headerRight={
+            <TouchableOpacity
+              onPress={navigateToPreview}
+              disabled={selectedMedia.length === 0}
+              className="p-2"
             >
-              Next
-            </Text>
-          </TouchableOpacity>
-        </View>
+              <Text
+                className={`font-semibold ${selectedMedia.length > 0 ? 'text-blue-500' : 'text-gray-600'
+                  }`}
+              >
+                Next
+              </Text>
+            </TouchableOpacity>
+          }
+        />
 
         {/* Gallery Grid */}
         {isLoading ? (
-          <View className="flex-1 items-center justify-center">
+          <View className="flex-1 items-center justify-center" style={{ paddingTop: insets.top + 72 }}>
             <ActivityIndicator size="large" color="#3b82f6" />
             <Text className="text-gray-400 mt-2">Loading media...</Text>
           </View>
@@ -371,8 +377,13 @@ export default function CameraScreen() {
             renderItem={renderMediaItem}
             keyExtractor={(item) => item.id}
             numColumns={3}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 20 }}
+            contentContainerStyle={{ 
+              paddingTop: insets.top + 72,
+              paddingBottom: 20 
+            }}
           />
         )}
 

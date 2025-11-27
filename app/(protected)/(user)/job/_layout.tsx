@@ -1,54 +1,44 @@
-import { Stack, useSegments, useLocalSearchParams, usePathname } from 'expo-router';
-import { useEffect } from 'react';
+import { Stack } from 'expo-router';
+import { createContext, useContext, ReactNode } from 'react';
 import { View } from 'react-native';
 import { JobTabProvider } from '@/context/JobTabContext';
 import { JobPostsProvider } from '@/context/JobPostsContext';
 import { AppliedRolesProvider } from '@/context/AppliedRolesContext';
 import { MyContractsProvider } from '@/context/MyContractsContext';
-import { HeaderProvider, useHeaderContext } from '@/context/HeaderContext';
 import { CollapsibleHeader } from '@/components/CollapsibleHeader';
 import JobsNavTabs from '@/components/job/JobsNavTabs';
+import { useScrollHeader } from '@/hooks/useScrollHeader';
+
+// Create a context to share the scroll handler across job screens
+const JobScrollContext = createContext<ReturnType<typeof useScrollHeader> | null>(null);
+
+export const useJobScrollHeader = () => {
+  const context = useContext(JobScrollContext);
+  if (!context) {
+    throw new Error('useJobScrollHeader must be used within JobScrollProvider');
+  }
+  return context;
+};
+
+export function JobScrollProvider({ children }: { children: ReactNode }) {
+  const scrollHeader = useScrollHeader();
+  return (
+    <JobScrollContext.Provider value={scrollHeader}>
+      {children}
+    </JobScrollContext.Provider>
+  );
+}
 
 function HeaderWrapper({ children }: { children: React.ReactNode }) {
-  const segments = useSegments();
-  const params = useLocalSearchParams();
-  const pathname = usePathname();
-  const { title, setTitle, headerLeft, headerRight, isDark, setIsDark, headerTranslateY, setHeaderLeft, setHeaderRight } = useHeaderContext();
-
-  useEffect(() => {
-    // Reset header state when route changes
-    setHeaderLeft(null);
-    setHeaderRight(null);
-    setIsDark(true);
-
-    // Determine current route and set title based on route params
-    const lastSegment = segments[segments.length - 1];
-    const segmentString = String(lastSegment);
-    
-    if (segmentString === 'index' || pathname?.endsWith('/job') || pathname?.endsWith('/job/')) {
-      setTitle(<JobsNavTabs />);
-    } else if (segmentString === 'job-posts') {
-      setTitle(<JobsNavTabs />);
-    } else if (segmentString === 'applied-roles') {
-      setTitle(<JobsNavTabs />);
-    } else if (segmentString === 'my-contracts') {
-      setTitle(<JobsNavTabs />);
-    } else if (segmentString === 'job-detail') {
-      // For job-detail, title will be set by the screen when data loads
-      setTitle('Job');
-    } else {
-      setTitle('Jobs');
-    }
-  }, [segments, pathname, setTitle, setHeaderLeft, setHeaderRight, setIsDark]);
+  // Use shared scroll header hook - this will be shared across all job screens
+  const { headerTranslateY } = useJobScrollHeader();
 
   return (
     <View style={{ flex: 1, backgroundColor: '#000000' }}>
       <CollapsibleHeader
-        title={title}
+        title={<JobsNavTabs />}
         translateY={headerTranslateY}
-        headerLeft={headerLeft}
-        headerRight={headerRight}
-        isDark={isDark}
+        isDark={true}
       />
       {children}
     </View>
@@ -61,7 +51,7 @@ export default function JobLayout() {
       <JobPostsProvider>
         <AppliedRolesProvider>
           <MyContractsProvider>
-            <HeaderProvider>
+            <JobScrollProvider>
               <HeaderWrapper>
                 <Stack
                   screenOptions={{
@@ -76,7 +66,7 @@ export default function JobLayout() {
                   <Stack.Screen name="job-detail" options={{ headerShown: false }} />
                 </Stack>
               </HeaderWrapper>
-            </HeaderProvider>
+            </JobScrollProvider>
           </MyContractsProvider>
         </AppliedRolesProvider>
       </JobPostsProvider>

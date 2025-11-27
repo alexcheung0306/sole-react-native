@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Stack } from 'expo-router';
 import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useHeaderContext } from '@/context/HeaderContext';
+import { useJobScrollHeader } from './_layout';
 import { useAppliedRolesContext } from '@/context/AppliedRolesContext';
 import { useRouter } from 'expo-router';
 import FilterSearch from '~/components/custom/filter-search';
@@ -14,7 +14,7 @@ export default function AppliedRoles() {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
-  const { handleScroll } = useHeaderContext();
+  const { handleScroll } = useJobScrollHeader();
   
   const {
     appliedRoles,
