@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from 'expo-router';
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 type JobTab = 'job-posts' | 'applied-roles' | 'my-contracts';
@@ -10,8 +11,9 @@ interface JobTabContextType {
 const JobTabContext = createContext<JobTabContextType | undefined>(undefined);
 
 export const JobTabProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const {params} = useLocalSearchParams();
   const [activeTab, setActiveTab] = useState<JobTab>('job-posts');
-
+  console.log('activeTab', activeTab);
   return (
     <JobTabContext.Provider value={{ activeTab, setActiveTab }}>
       {children}
