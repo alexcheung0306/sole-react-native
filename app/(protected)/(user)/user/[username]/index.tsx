@@ -27,7 +27,10 @@ export default function ProfileScreen() {
   const { user } = useUser();
   const insets = useSafeAreaInsets();
   const { headerTranslateY, handleScroll } = useScrollHeader();
-  const { username } = useLocalSearchParams<{ username: string }>();
+  const params = useLocalSearchParams<{ username?: string }>();
+  
+  // Get username from params, or fallback to current user's username (for swipeable container)
+  const username = params.username || user?.username;
 
   // Check if viewing own profile
   const isOwnProfile = user?.username === username;

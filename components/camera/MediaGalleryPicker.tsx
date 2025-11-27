@@ -51,7 +51,30 @@ export function MediaGalleryPicker({
 
   const loadMedia = async () => {
     try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
+      // Check existing permissions first
+      let { status } = await MediaLibrary.getPermissionsAsync();
+      
+      if (status !== 'granted') {
+        try {
+          const result = await MediaLibrary.requestPermissionsAsync();
+          status = result.status;
+        } catch (permissionError) {
+          // Suppress AUDIO permission error on emulator (expected behavior)
+          const errorMessage = (permissionError as Error).message || '';
+          if (errorMessage.includes('AUDIO permission') && errorMessage.includes('AndroidManifest')) {
+            // This is expected on emulator - try to continue with photos/videos only
+            if (__DEV__) {
+              // Only log in dev, not in production
+              console.warn('AUDIO permission not available (expected on emulator), continuing with photos/videos only');
+            }
+            // Try to get permissions again - might work for photos/videos
+            const retryResult = await MediaLibrary.getPermissionsAsync();
+            status = retryResult.status;
+          } else {
+            throw permissionError;
+          }
+        }
+      }
       
       if (status !== 'granted') {
         setHasPermission(false);
@@ -73,9 +96,29 @@ export function MediaGalleryPicker({
       setHasNextPage(media.hasNextPage);
       setIsLoading(false);
     } catch (error) {
-      console.error('Error loading media:', error);
       setIsLoading(false);
-      Alert.alert('Error', 'Failed to load media library');
+      const errorMessage = (error as Error).message || 'Unknown error';
+      
+      // Suppress AUDIO permission error logging on emulator
+      if (errorMessage.includes('AUDIO permission') && errorMessage.includes('AndroidManifest')) {
+        if (__DEV__) {
+          console.warn('AUDIO permission error suppressed (expected on emulator)');
+        }
+        setHasPermission(false);
+        return;
+      }
+      
+      // Log other errors normally
+      console.error('Error loading media:', error);
+      if (errorMessage.includes('MEDIA_LIBRARY') || errorMessage.includes('permission')) {
+        Alert.alert(
+          'Permission Error',
+          'Media library permission is required. If using an emulator, try:\n1. Granting permissions in device settings\n2. Adding media files to the emulator\n3. Testing on a physical device'
+        );
+        setHasPermission(false);
+      } else {
+        Alert.alert('Error', 'Failed to load media library');
+      }
     }
   };
 

@@ -1,97 +1,93 @@
-import { Link, Tabs, useRouter } from 'expo-router';
+import { Stack, useSegments, usePathname } from 'expo-router';
+import { useEffect } from 'react';
 import { View } from 'react-native';
-import { TabBarIcon } from '../../../components/TabBarIcon';
-import { BriefcaseBusiness, Camera, Home, Plus, Search, UserCircle } from 'lucide-react-native';
-import { useUser } from '@clerk/clerk-expo';
-import { AccountDropDownMenu } from '../../../components/AccountDropDownMenu';
+import { UserTabProvider, useUserTabContext } from '@/context/UserTabContext';
+import { JobTabProvider } from '@/context/JobTabContext';
+import { HeaderProvider, useHeaderContext } from '@/context/HeaderContext';
+import { CollapsibleHeader } from '@/components/CollapsibleHeader';
+import JobsNavTabs from '@/components/job/JobsNavTabs';
+import UserTabBar from '@/components/user/UserTabBar';
 
-export default function ClientTabLayout() {
-  const { user } = useUser();
-  const router = useRouter();
+function HeaderWrapper({ children }: { children: React.ReactNode }) {
+  const segments = useSegments();
+  const pathname = usePathname();
+  const { activeTab } = useUserTabContext();
+  const { title, setTitle, headerLeft, headerRight, isDark, setIsDark, headerTranslateY, setHeaderLeft, setHeaderRight } = useHeaderContext();
 
-  const handleProfilePress = () => {
-    if (user?.username) {
-      router.push({
-        pathname: '/(protected)/(user)/user/[username]',
-        params: { username: user.username },
-      } as any);
+  useEffect(() => {
+    // Reset header state when route changes
+    setHeaderLeft(null);
+    setHeaderRight(null);
+    setIsDark(true);
+
+    // Determine current route and set title
+    const lastSegment = segments[segments.length - 1];
+    const segmentString = String(lastSegment);
+    
+    // Check if we're in the job route - use activeTab from context (for swipeable container) or check pathname/segments
+    const isJobRoute = 
+      activeTab === 'job' ||
+      pathname?.includes('/job') || 
+      segmentString === 'job' || 
+      segmentString === 'job-posts' ||
+      segmentString === 'applied-roles' ||
+      segmentString === 'my-contracts' ||
+      segmentString === 'job-detail' ||
+      (segments.length > 0 && segments[segments.length - 2] === 'job');
+    
+    if (isJobRoute) {
+      // Only set JobsNavTabs if we're not on job-detail (which should show a different title)
+      if (segmentString === 'job-detail') {
+        setTitle('Job');
+      } else {
+        setTitle(<JobsNavTabs />);
+      }
+    } else {
+      setTitle(null);
     }
-  };
+  }, [segments, pathname, activeTab, setTitle, setHeaderLeft, setHeaderRight, setIsDark]);
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: '#ffffff',
-        tabBarInactiveTintColor: '#6b7280',
-        tabBarStyle: {
-          backgroundColor: 'rgba(0, 0, 0, 0.9)',
-          borderTopColor: 'rgba(255, 255, 255, 0.1)',
-          borderTopWidth: 1,
-        },
-        tabBarBackground: () => (
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: 'rgba(0, 0, 0, 0.9)',
-              backdropFilter: 'blur(20px)',
-            }}
-          />
-        ),
-      }}>
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <Home color={color} size={24} />,
-          headerShown: false,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <Search color={color} size={24} />,
-          headerShown: false,
-        }}
-      />
-      <Tabs.Screen
-        name="camera"
-        options={{
-          title: 'Camera',
-          tabBarIcon: ({ color }) => <Camera color={color} size={24} />,
-        }}
-      />
-      <Tabs.Screen
-        name="job"
-        options={{
-          title: 'Job',
-          tabBarIcon: ({ color }) => <BriefcaseBusiness color={color} size={24} />,
-          headerShown: false,
-        }}
-      />
-      <Tabs.Screen
-        name="user/[username]"
-        options={{
-          title: 'User',
-          tabBarIcon: ({ color, focused }) => (
-            <AccountDropDownMenu color={color} focused={focused} onPress={handleProfilePress} />
-          ),
-          headerShown: false,
-          href: user?.username
-            ? ({
-              pathname: '/(protected)/(user)/user/[username]',
-              params: { username: user.username },
-            } as any)
-            : '/sign-in',
-        }}
-      />
-      {/* Hidden tabs */}
-      <Tabs.Screen
-        name="post/[postId]"
-        options={{
-          href: null,
-        }}
-      />
-    </Tabs>
+    <View style={{ flex: 1, backgroundColor: '#000000' }}>
+      {title && (
+        <CollapsibleHeader
+          title={title}
+          translateY={headerTranslateY}
+          headerLeft={headerLeft}
+          headerRight={headerRight}
+          isDark={isDark}
+        />
+      )}
+      {children}
+    </View>
+  );
+}
+
+export default function UserTabLayout() {
+  return (
+    <UserTabProvider>
+      <JobTabProvider>
+        <HeaderProvider>
+          <HeaderWrapper>
+            <View style={{ flex: 1, backgroundColor: '#000000' }}>
+              <Stack
+        screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: '#000000' },
+                }}>
+                <Stack.Screen name="index" options={{ headerShown: false }} />
+                <Stack.Screen name="home" options={{ headerShown: false }} />
+                <Stack.Screen name="explore" options={{ headerShown: false }} />
+                <Stack.Screen name="camera" options={{ headerShown: false }} />
+                <Stack.Screen name="job" options={{ headerShown: false }} />
+                <Stack.Screen name="user" options={{ headerShown: false }} />
+                <Stack.Screen name="post" options={{ headerShown: false }} />
+              </Stack>
+              <UserTabBar />
+            </View>
+          </HeaderWrapper>
+        </HeaderProvider>
+      </JobTabProvider>
+    </UserTabProvider>
   );
 }

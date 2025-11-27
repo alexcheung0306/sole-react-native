@@ -1,10 +1,11 @@
+import React from 'react';
 import { useSoleUserContext } from '@/context/SoleUserContext';
 import { useQuery } from '@tanstack/react-query';
 import { getFollowingListByUsername, getFollowerListByUsername } from '~/api/apiservice/follow_api';
 import { useRouter } from 'expo-router';
 import { Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 
-export default function FollowList({
+const FollowList = React.memo(function FollowList({
   username,
   isLoading,
   type,
@@ -16,7 +17,12 @@ export default function FollowList({
   const router = useRouter();
   const { soleUser, soleUserId } = useSoleUserContext();
 
-  console.log('username', username);
+  // Only log in development mode
+  React.useEffect(() => {
+    if (__DEV__) {
+      console.log('username', username);
+    }
+  }, [username]);
   const { data: followersData } = useQuery({
     queryKey: ['FollowerList', username],
     queryFn: async () => {
@@ -40,12 +46,16 @@ export default function FollowList({
   });
 
   const handlePress = () => {
-    console.log('FollowList handlePress called');
-    console.log('Type:', type);
-    console.log('Username:', username);
+    if (__DEV__) {
+      console.log('FollowList handlePress called');
+      console.log('Type:', type);
+      console.log('Username:', username);
+    }
     const pageType = type === 'follower' ? 'followers' : 'following';
     const route = `/(protected)/(user)/user/${username}/${pageType}`;
-    console.log('Navigating to:', route);
+    if (__DEV__) {
+      console.log('Navigating to:', route);
+    }
     router.push(route as any);
   };
 
@@ -67,4 +77,13 @@ export default function FollowList({
       <Text className="text-gray-400 text-sm">{label}</Text>
     </TouchableOpacity>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison to prevent unnecessary re-renders
+  return (
+    prevProps.username === nextProps.username &&
+    prevProps.isLoading === nextProps.isLoading &&
+    prevProps.type === nextProps.type
+  );
+});
+
+export default FollowList;

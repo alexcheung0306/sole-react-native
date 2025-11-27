@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useRouter } from 'expo-router';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import FollowList from '../follow/follow-list';
@@ -7,7 +8,7 @@ import { useUser } from '@clerk/clerk-expo';
 import { User } from 'lucide-react-native';
 import { UserInfoForm } from './UserInfo-form';
 
-export function UserInfo({
+export const UserInfo = React.memo(function UserInfo({
   userPostsData,
   username,
   userProfileData,
@@ -28,8 +29,13 @@ export function UserInfo({
     userInfo?.category?.split(',').filter((item: string) => item !== '') || [];
   const isOwnProfile = user?.username === username;
 
-  console.log('UserInfo - soleUser:', soleUser);
-  console.log('UserInfo - userInfo:', userInfo);
+  // Only log in development mode
+  if (__DEV__) {
+    React.useEffect(() => {
+      console.log('UserInfo - soleUser:', soleUser);
+      console.log('UserInfo - userInfo:', userInfo);
+    }, [soleUser, userInfo]);
+  }
 
   return (
     <View className="px-4 py-4">
@@ -94,4 +100,11 @@ export function UserInfo({
       </View>
     </View>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison function to prevent unnecessary re-renders
+  return (
+    prevProps.username === nextProps.username &&
+    prevProps.userPostsData === nextProps.userPostsData &&
+    prevProps.userProfileData === nextProps.userProfileData
+  );
+});

@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { View } from 'react-native';
 import { ManageProjectProvider } from '@/context/ManageProjectContext';
 import { ManageContractProvider } from '@/context/ManageContractContext';
+import { ProjectTabProvider } from '@/context/ProjectTabContext';
 import { HeaderProvider, useHeaderContext } from '@/context/HeaderContext';
 import { CollapsibleHeader } from '@/components/CollapsibleHeader';
 import ProjectsNavTabs from '@/components/projects/ProjectsNavTabs';
@@ -23,9 +24,7 @@ function HeaderWrapper({ children }: { children: React.ReactNode }) {
     const lastSegment = segments[segments.length - 1];
     const segmentString = String(lastSegment);
     
-    if (segmentString === 'manage-projects' || pathname?.endsWith('/projects') || pathname?.endsWith('/projects/')) {
-      setTitle(<ProjectsNavTabs />);
-    } else if (segmentString === 'manage-contracts') {
+    if (segmentString === 'index' || segmentString === 'manage-projects' || segmentString === 'manage-contracts' || pathname?.endsWith('/projects') || pathname?.endsWith('/projects/')) {
       setTitle(<ProjectsNavTabs />);
     } else if (segmentString === 'project-detail') {
       // For project-detail, title will be set by the screen when data loads
@@ -60,27 +59,29 @@ function HeaderWrapper({ children }: { children: React.ReactNode }) {
 
 export default function ProjectsLayout() {
   return (
-    <ManageProjectProvider>
-      <ManageContractProvider>
-        <HeaderProvider>
-          <HeaderWrapper>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: '#000000' },
-              }}
-            >
-              <Stack.Screen name="index" options={{ headerShown: false }} />
-              <Stack.Screen name="manage-projects" options={{ headerShown: false }} />
-              <Stack.Screen name="project-detail" options={{ headerShown: false }} />
-              <Stack.Screen name="manage-contracts" options={{ headerShown: false }} />
-              <Stack.Screen name="contract" options={{ headerShown: false }} />
-              <Stack.Screen name="activate-contract" options={{ headerShown: false }} />
-            </Stack>
-          </HeaderWrapper>
-        </HeaderProvider>
-      </ManageContractProvider>
-    </ManageProjectProvider>
+    <ProjectTabProvider>
+      <ManageProjectProvider>
+        <ManageContractProvider>
+          <HeaderProvider>
+            <HeaderWrapper>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: '#000000' },
+                }}
+              >
+                <Stack.Screen name="index" options={{ headerShown: false }} />
+                <Stack.Screen name="manage-projects" options={{ headerShown: false }} />
+                <Stack.Screen name="project-detail" options={{ headerShown: false }} />
+                <Stack.Screen name="manage-contracts" options={{ headerShown: false }} />
+                <Stack.Screen name="contract" options={{ headerShown: false }} />
+                <Stack.Screen name="activate-contract" options={{ headerShown: false }} />
+              </Stack>
+            </HeaderWrapper>
+          </HeaderProvider>
+        </ManageContractProvider>
+      </ManageProjectProvider>
+    </ProjectTabProvider>
   );
 }
 

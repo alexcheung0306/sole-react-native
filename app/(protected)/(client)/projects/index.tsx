@@ -1,29 +1,24 @@
-import { useEffect } from 'react';
-import { useRouter } from 'expo-router';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { useProjectTabContext } from '@/context/ProjectTabContext';
+import ManageProjectsPage from './manage-projects';
+import ManageContractsPage from './manage-contracts';
+import ProjectSwipeableContainer from '@/components/projects/ProjectSwipeableContainer';
+
+// Map tab names to indices
+const tabToIndex = {
+  'manage-projects': 0,
+  'manage-contracts': 1,
+} as const;
 
 export default function ProjectsIndex() {
-  const router = useRouter();
+  const { activeTab } = useProjectTabContext();
 
-  useEffect(() => {
-    // Redirect to manage-projects page
-    router.replace('/(protected)/(client)/projects/manage-projects');
-  }, []);
+  const activeIndex = tabToIndex[activeTab];
 
   return (
-    <View style={styles.container}>
-      <ActivityIndicator size="large" color="#3b82f6" />
-      CollapsibleHeader
-    </View>
+    <ProjectSwipeableContainer activeIndex={activeIndex}>
+      <ManageProjectsPage />
+      <ManageContractsPage />
+    </ProjectSwipeableContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#0a0a0a',
-  },
-});
 

@@ -1,17 +1,17 @@
 import React, { useCallback, useRef } from 'react';
-import { useJobTabContext } from '~/context/JobTabContext';
+import { useProjectTabContext } from '~/context/ProjectTabContext';
 import SwipeableContainer from '@/components/common/SwipeableContainer';
 
-type JobSwipeableContainerProps = {
+type ProjectSwipeableContainerProps = {
   children: React.ReactNode[];
   activeIndex: number;
 };
 
-export default function JobSwipeableContainer({
+export default function ProjectSwipeableContainer({
   children,
   activeIndex,
-}: JobSwipeableContainerProps) {
-  const { activeTab, setActiveTab } = useJobTabContext();
+}: ProjectSwipeableContainerProps) {
+  const { activeTab, setActiveTab } = useProjectTabContext();
   const activeTabRef = useRef(activeTab);
 
   // Keep ref updated with latest activeTab value
@@ -19,7 +19,7 @@ export default function JobSwipeableContainer({
     activeTabRef.current = activeTab;
   }, [activeTab]);
 
-  const indexToTab = ['job-posts', 'applied-roles', 'my-contracts'] as const;
+  const indexToTab = ['manage-projects', 'manage-contracts'] as const;
   const onIndexChange = useCallback(
     (index: number) => {
       // Get the latest activeTab value from ref to avoid stale closure
@@ -38,12 +38,9 @@ export default function JobSwipeableContainer({
   );
 
   return (
-    <SwipeableContainer 
-      activeIndex={activeIndex} 
-      onIndexChange={onIndexChange}
-      shouldFailAtEdges={true} // Allow parent to handle swipes at edges
-    >
+    <SwipeableContainer activeIndex={activeIndex} onIndexChange={onIndexChange}>
       {children}
     </SwipeableContainer>
   );
 }
+

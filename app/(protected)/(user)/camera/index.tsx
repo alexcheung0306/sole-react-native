@@ -54,8 +54,30 @@ export default function CameraScreen() {
         );
       }
     } catch (error) {
-      console.error('Error requesting permissions:', error);
-      setHasPermission(false);
+      // Suppress AUDIO permission error logging on emulator (expected behavior)
+      const errorMessage = (error as Error).message || '';
+      if (errorMessage.includes('AUDIO permission') && errorMessage.includes('AndroidManifest')) {
+        if (__DEV__) {
+          // Only log as warning in dev, not as error
+          console.warn('AUDIO permission error suppressed (expected on emulator)');
+        }
+        // Try to continue - might still work for photos/videos
+        try {
+          const { status: retryStatus } = await MediaLibrary.getPermissionsAsync();
+          if (retryStatus === 'granted') {
+            setHasPermission(true);
+            loadPhotos();
+          } else {
+            setHasPermission(false);
+          }
+        } catch {
+          setHasPermission(false);
+        }
+      } else {
+        // Log other errors normally
+        console.error('Error requesting permissions:', error);
+        setHasPermission(false);
+      }
     }
   };
 
@@ -73,6 +95,39 @@ export default function CameraScreen() {
   const loadPhotos = async () => {
     try {
       setIsLoading(true);
+      
+      // Re-check permissions before accessing media library
+      // This helps with emulator permission issues
+      const { status } = await MediaLibrary.getPermissionsAsync();
+      if (status !== 'granted') {
+        try {
+          const { status: newStatus } = await MediaLibrary.requestPermissionsAsync();
+          if (newStatus !== 'granted') {
+            setHasPermission(false);
+            setIsLoading(false);
+            Alert.alert('Permission Required', 'Please grant photo library access to select media');
+            return;
+          }
+        } catch (permissionError) {
+          // Suppress AUDIO permission error on emulator (expected behavior)
+          const errorMessage = (permissionError as Error).message || '';
+          if (errorMessage.includes('AUDIO permission') && errorMessage.includes('AndroidManifest')) {
+            if (__DEV__) {
+              console.warn('AUDIO permission error suppressed (expected on emulator)');
+            }
+            // Try to continue with existing permissions
+            const retryStatus = await MediaLibrary.getPermissionsAsync();
+            if (retryStatus.status !== 'granted') {
+              setHasPermission(false);
+              setIsLoading(false);
+              return;
+            }
+          } else {
+            throw permissionError;
+          }
+        }
+      }
+
       const media = await MediaLibrary.getAssetsAsync({
         first: 100,
         mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
@@ -91,8 +146,28 @@ export default function CameraScreen() {
 
       setPhotos(assets);
     } catch (error) {
+      // Suppress AUDIO permission error logging on emulator
+      const errorMessage = (error as Error).message || 'Unknown error';
+      if (errorMessage.includes('AUDIO permission') && errorMessage.includes('AndroidManifest')) {
+        if (__DEV__) {
+          console.warn('AUDIO permission error suppressed (expected on emulator)');
+        }
+        setHasPermission(false);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Log other errors normally
       console.error('Error loading photos:', error);
-      Alert.alert('Error', 'Failed to load media library');
+      if (errorMessage.includes('MEDIA_LIBRARY') || errorMessage.includes('permission')) {
+        Alert.alert(
+          'Permission Error',
+          'Media library permission is required. If using an emulator, try:\n1. Granting permissions in device settings\n2. Adding media files to the emulator\n3. Testing on a physical device'
+        );
+        setHasPermission(false);
+      } else {
+        Alert.alert('Error', 'Failed to load media library');
+      }
     } finally {
       setIsLoading(false);
     }

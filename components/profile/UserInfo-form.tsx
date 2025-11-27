@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -36,7 +36,7 @@ export interface ProfileFormValues {
   category: string[];
 }
 
-export function UserInfoForm({ userProfileData, isLoading = false }: UserInfoFormProps) {
+export const UserInfoForm = React.memo(function UserInfoForm({ userProfileData, isLoading = false }: UserInfoFormProps) {
   const [showCategorySelector, setShowCategorySelector] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -48,12 +48,12 @@ export function UserInfoForm({ userProfileData, isLoading = false }: UserInfoFor
   const username = soleUser?.username || '';
   const soleUserId = soleUser?.id || '';
 
-  console.log('soleUserx', soleUser);
-
   // Get initial category array from userInfo
-  const initialCategories = userInfo?.category
-    ? userInfo.category.split(',').filter((c: string) => c.trim())
-    : [];
+  const initialCategories = useMemo(() => {
+    return userInfo?.category
+      ? userInfo.category.split(',').filter((c: string) => c.trim())
+      : [];
+  }, [userInfo?.category]);
 
   const [selectedCategories, setSelectedCategories] = useState<string[]>(initialCategories);
 
@@ -65,8 +65,8 @@ export function UserInfoForm({ userProfileData, isLoading = false }: UserInfoFor
     }
   }, [userInfo?.category]);
 
-  // Compute initial values using the actual data
-  const getInitialValues = (): ProfileFormValues => {
+  // Compute initial values using useMemo to prevent recalculation on every render
+  const initialValues = useMemo((): ProfileFormValues => {
     const values = {
       profilePic: userInfo?.profilePic || '',
       username: soleUser?.username || '',
@@ -77,16 +77,23 @@ export function UserInfoForm({ userProfileData, isLoading = false }: UserInfoFor
         : [],
     };
 
-    // Debug logging
-    console.log('=== UserInfoForm Initial Values ===');
-    console.log('soleUser:', soleUser);
-    console.log('userInfo:', userInfo);
-    console.log('Computed initialValues:', values);
+    // Debug logging - only in development
+    if (__DEV__) {
+      console.log('=== UserInfoForm Initial Values ===');
+      console.log('soleUser:', soleUser);
+      console.log('userInfo:', userInfo);
+      console.log('Computed initialValues:', values);
+    }
 
     return values;
-  };
+  }, [soleUser, userInfo]);
 
-  const initialValues = getInitialValues();
+  // Log soleUser only in development and only when it changes
+  React.useEffect(() => {
+    if (__DEV__) {
+      console.log('soleUserx', soleUser);
+    }
+  }, [soleUser]);
 
   // React Query mutations matching web pattern
   const updateUserInfoMutation = useMutation({
@@ -420,4 +427,10 @@ export function UserInfoForm({ userProfileData, isLoading = false }: UserInfoFor
       }}
     </Formik>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison to prevent unnecessary re-renders
+  return (
+    prevProps.isLoading === nextProps.isLoading &&
+    prevProps.userProfileData === nextProps.userProfileData
+  );
+});

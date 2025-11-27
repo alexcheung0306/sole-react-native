@@ -1,53 +1,42 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { useRouter, usePathname } from 'expo-router';
+import { useProjectTabContext } from '@/context/ProjectTabContext';
 import { FolderKanban, FileText } from 'lucide-react-native';
 
 export default function ProjectsNavTabs() {
-  const router = useRouter();
-  const pathname = usePathname();
+  const { activeTab, setActiveTab } = useProjectTabContext();
 
   const tabs = [
     {
       name: 'Manage Projects',
-      href: '/(protected)/(client)/projects/manage-projects',
+      tab: 'manage-projects' as const,
       icon: FolderKanban,
     },
     {
       name: 'Manage Contracts',
-      href: '/(protected)/(client)/projects/manage-contracts',
+      tab: 'manage-contracts' as const,
       icon: FileText,
     },
   ];
-
-  const isActive = (href: string) => {
-    return pathname.includes(href.split('/').pop() || '');
-  };
 
   return (
     <View className="flex-row border-b border-white/10">
       {tabs.map((tab) => {
         const Icon = tab.icon;
-        const active = isActive(tab.href);
+        const active = activeTab === tab.tab;
 
         return (
           <TouchableOpacity
             key={tab.name}
             activeOpacity={1}
-            className={`flex-1 flex-row items-center justify-center px-2 py-3 border-b-2 ${
-              active
-                ? 'border-white'
-                : 'border-transparent'
+            className={`flex-1 flex-row items-center justify-center border-b-2 px-2 py-3 ${
+              active ? 'border-white' : 'border-transparent'
             }`}
-            onPress={() => router.push(tab.href as any)}
-          >
-            <Icon color={active ? '#ffffff' : '#9ca3af'} size={12} />
+            onPress={() => setActiveTab(tab.tab)}>
+            <Icon color={active ? '#ffffff' : '#9ca3af'} size={18} />
             <Text
-              className={`text-xs font-semibold ml-1 ${
-                active ? 'text-white' : 'text-gray-400'
-              }`}
-              style={active ? { color: '#ffffff' } : { color: '#9ca3af' }}
-            >
+              className={`ml-1 text-sm font-semibold ${active ? 'text-white' : 'text-gray-400'}`}
+              style={active ? { color: '#ffffff' } : { color: '#9ca3af' }}>
               {tab.name}
             </Text>
           </TouchableOpacity>
