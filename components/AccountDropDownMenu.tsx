@@ -1,8 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { Pressable, TouchableOpacity, View, Text } from 'react-native';
+import { TouchableOpacity, View, Text } from 'react-native';
 import { UserCircle, Settings, LogOut, User, Users } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuth, useUser } from '@clerk/clerk-expo';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 import CollapseDrawer2 from './custom/collapse-drawer2';
 import { SwitchInterface } from './profile/switch-interface';
 
@@ -17,8 +19,6 @@ export function AccountDropDownMenu({ color, focused, onPress }: AccountDropDown
   const router = useRouter();
   const { signOut } = useAuth();
   const { user, isLoaded } = useUser();
-  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const justOpenedRef = useRef(false);
 
   const handleSettings = (close: () => void) => {
     close();
@@ -67,45 +67,55 @@ export function AccountDropDownMenu({ color, focused, onPress }: AccountDropDown
     },
   ];
 
-  const handlePressIn = () => {
-    // Start timer for long press - opens drawer while holding
-    longPressTimerRef.current = setTimeout(() => {
-      console.log('Long press detected, opening drawer');
-      justOpenedRef.current = true;
+  const longPressTriggeredRef = useRef(false);
+
+  const handleLongPress = () => {
+    longPressTriggeredRef.current = true;
+    if (!isOpen) {
       setIsOpen(true);
-      longPressTimerRef.current = null;
-      // Reset the flag after a short delay to allow the drawer to fully open
-      setTimeout(() => {
-        justOpenedRef.current = false;
-      }, 500);
-    }, 400);
+    }
+    // Reset flag after delay to allow tap to check it
+    setTimeout(() => {
+      longPressTriggeredRef.current = false;
+    }, 500);
   };
 
-  const handlePressOut = () => {
-    // Clear timer if still running (means it was a short tap)
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-      // Single tap - navigate to profile (only if drawer is not open and wasn't just opened)
-      if (!isOpen && !justOpenedRef.current) {
-        console.log('Single tap detected, navigating');
-        if (onPress) {
-          onPress();
-        }
-      }
+  const handleTap = () => {
+    // Don't navigate if long press was just triggered or drawer is open
+    if (longPressTriggeredRef.current || isOpen) {
+      return;
     }
-    // If drawer is already open or just opened, don't do anything - let user close it manually
-    // The drawer will stay open until user drags it down or taps backdrop
+    
+    // Navigate on tap
+    if (onPress) {
+      onPress();
+    }
   };
+
+  // Long press gesture to open drawer
+  const longPressGesture = Gesture.LongPress()
+    .minDuration(400) // 400ms long press
+    .onStart(() => {
+      runOnJS(handleLongPress)();
+    });
+
+  // Tap gesture to navigate to profile
+  const tapGesture = Gesture.Tap()
+    .maxDuration(300) // Must be shorter than long press duration
+    .onEnd(() => {
+      runOnJS(handleTap)();
+    });
+
+  // Use Simultaneous so both gestures can be detected, but logic prevents conflict
+  const composedGesture = Gesture.Simultaneous(tapGesture, longPressGesture);
 
   return (
     <>
-      <Pressable
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        style={{ alignItems: 'center', justifyContent: 'center' }}>
-        <UserCircle color={color} size={24} />
-      </Pressable>
+      <GestureDetector gesture={composedGesture}>
+        <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+          <UserCircle color={color} size={24} />
+        </View>
+      </GestureDetector>
 
       <CollapseDrawer2
         showDrawer={isOpen}
