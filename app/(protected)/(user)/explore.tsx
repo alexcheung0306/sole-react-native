@@ -3,7 +3,6 @@ import { View, FlatList, ActivityIndicator, Text, RefreshControl, Dimensions, To
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useScrollHeader } from '../../../hooks/useScrollHeader';
 import { useSoleUserContext } from '~/context/SoleUserContext';
@@ -359,8 +358,7 @@ export default function Explore() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <BottomSheetModalProvider>
+    <BottomSheetModalProvider>
         <Stack.Screen options={{ headerShown: false }} />
         <View className="flex-1 bg-black">
           {/* Enhanced Header */}
@@ -516,6 +514,5 @@ export default function Explore() {
           />
         )}
       </BottomSheetModalProvider>
-    </GestureHandlerRootView>
   );
 }

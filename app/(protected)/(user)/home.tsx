@@ -13,7 +13,6 @@ import { CollapsibleHeader } from '../../../components/CollapsibleHeader';
 import { useScrollHeader } from '../../../hooks/useScrollHeader';
 import { PostCard } from '../../../components/feed/PostCard';
 import { useSoleUserContext } from '~/context/SoleUserContext';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -188,8 +187,7 @@ export default function UserHome() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <BottomSheetModalProvider>
+    <BottomSheetModalProvider>
         <Stack.Screen options={{ headerShown: false }} />
         <View className="flex-1 bg-black">
           <CollapsibleHeader title="Feed" translateY={headerTranslateY} isDark={true} />
@@ -249,6 +247,5 @@ export default function UserHome() {
           />
         </View>
       </BottomSheetModalProvider>
-    </GestureHandlerRootView>
   );
 }
