@@ -53,6 +53,9 @@ export default function SwipeableContainer({
     // Safety check
     if (activeIndex < 0 || activeIndex >= children.length) return;
 
+    // Always sync currentIndex immediately - this ensures gesture handler has correct value
+    currentIndex.value = activeIndex;
+
     // Only animate if not already at target position
     const targetPos = -activeIndex * SCREEN_WIDTH;
     const currentPos = translateX.value;
@@ -75,8 +78,11 @@ export default function SwipeableContainer({
           }
         }
       );
+    } else {
+      // If already at position, ensure translateX is exactly at target
+      translateX.value = targetPos;
+      isAnimating.value = false;
     }
-    currentIndex.value = activeIndex;
   }, [activeIndex, children.length]);
 
   // Track if we should fail the gesture (for nested containers at edges)

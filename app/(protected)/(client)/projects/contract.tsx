@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHeaderContext } from '@/context/HeaderContext';
-// No scroll header needed - header is static in projects route
+import { useProjectScrollHeader } from './_layout';
 import { useQuery } from '@tanstack/react-query';
 import { getJobContractsById } from '@/api/apiservice/jobContracts_api';
 import { formatDateTime } from '@/utils/time-converts';
@@ -21,7 +21,7 @@ export default function ContractDetailPage() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { setTitle, setHeaderLeft } = useHeaderContext();
-  // No scroll handler - header is static in projects route
+  const { handleScroll } = useProjectScrollHeader();
   const { id } = useLocalSearchParams();
 
   const contractId = parseInt(id as string);
@@ -108,6 +108,7 @@ export default function ContractDetailPage() {
       <View style={styles.container}>
         <ScrollView
           style={styles.scrollView}
+          onScroll={handleScroll}
           scrollEventThrottle={16}
           contentContainerStyle={{
             paddingTop: insets.top + 72,

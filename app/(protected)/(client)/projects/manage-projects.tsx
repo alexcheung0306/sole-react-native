@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Stack } from 'expo-router';
 import { View, Text, FlatList, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-// No scroll header needed - header is static in projects route
+import { useProjectScrollHeader } from './_layout';
 import { useManageProjectContext } from '@/context/ManageProjectContext';
 import ProjectInfoFormModal from '@/components/projects/ProjectInfoFormModal';
 import ProjectStatusTabs from '@/components/projects/ProjectStatusTabs';
@@ -15,7 +15,7 @@ import ScreenTransition from '@/components/projects/ScreenTransition';
 export default function ManageProjectsPage() {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
-  // No scroll handler - header is static in projects route
+  const { handleScroll } = useProjectScrollHeader();
   const {
     projects,
     projectResults,
@@ -129,6 +129,7 @@ export default function ManageProjectsPage() {
               isLoadingProjects={isLoadingProjects}
             />
           }
+          onScroll={handleScroll}
           scrollEventThrottle={16}
           contentContainerStyle={{
             paddingTop: insets.top + 72,

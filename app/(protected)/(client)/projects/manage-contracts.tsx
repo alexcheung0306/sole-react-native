@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { View, Text, FlatList, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-// No scroll header needed - header is static in projects route
+import { useProjectScrollHeader } from './_layout';
 import ContractListCard from '@/components/projects/ContractListCard';
 import FilterSearch from '~/components/custom/filter-search';
 import { useManageContractContext } from '@/context/ManageContractContext';
@@ -9,7 +9,7 @@ import ScreenTransition from '@/components/projects/ScreenTransition';
 
 export default function ManageContractsPage() {
   const insets = useSafeAreaInsets();
-  // No scroll handler - header is static in projects route
+  const { handleScroll } = useProjectScrollHeader();
   const {
     contractResults,
     contracts,
@@ -100,6 +100,7 @@ export default function ManageContractsPage() {
           columnWrapperStyle={{ justifyContent: 'space-between' }}
           ListHeaderComponent={renderHeader}
           ListEmptyComponent={renderEmpty}
+          onScroll={handleScroll}
           scrollEventThrottle={16}
           contentContainerStyle={{
             paddingTop: insets.top + 72,

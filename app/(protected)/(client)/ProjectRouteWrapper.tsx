@@ -5,9 +5,14 @@ import { HeaderProvider, useHeaderContext } from '@/context/HeaderContext';
 import { CollapsibleHeader } from '@/components/CollapsibleHeader';
 import ProjectsNavTabs from '@/components/projects/ProjectsNavTabs';
 import ProjectsIndex from './projects/index';
+import { useProjectScrollHeader, ProjectScrollProvider } from './projects/_layout';
+
+// Re-export for convenience
+export { useProjectScrollHeader };
 
 function ProjectHeaderWrapper({ children }: { children: React.ReactNode }) {
   const { title } = useHeaderContext();
+  const { headerTranslateY } = useProjectScrollHeader();
   
   // Show ProjectsNavTabs when title is default 'Projects' or when title is a ReactNode that's not ProjectsNavTabs
   // Otherwise show the custom title (for project-detail, contract, etc.)
@@ -17,7 +22,7 @@ function ProjectHeaderWrapper({ children }: { children: React.ReactNode }) {
     <View style={{ flex: 1, backgroundColor: '#000000' }}>
       <CollapsibleHeader
         title={headerTitle}
-        translateY={0}
+        translateY={headerTranslateY}
         isDark={true}
       />
       {children}
@@ -30,9 +35,11 @@ export default function ProjectRouteWrapper() {
     <ManageProjectProvider>
       <ManageContractProvider>
         <HeaderProvider>
-          <ProjectHeaderWrapper>
-            <ProjectsIndex />
-          </ProjectHeaderWrapper>
+          <ProjectScrollProvider>
+            <ProjectHeaderWrapper>
+              <ProjectsIndex />
+            </ProjectHeaderWrapper>
+          </ProjectScrollProvider>
         </HeaderProvider>
       </ManageContractProvider>
     </ManageProjectProvider>

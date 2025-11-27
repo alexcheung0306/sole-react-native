@@ -12,6 +12,21 @@ export const useScrollHeader = () => {
     const currentScrollY = event.nativeEvent.contentOffset.y;
     const scrollDelta = currentScrollY - lastScrollY.current;
 
+    // Always show header when near the top (within 20px)
+    if (currentScrollY <= 20) {
+      if (!isHeaderVisible) {
+        setIsHeaderVisible(true);
+        Animated.timing(headerTranslateY, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }).start();
+      }
+      lastScrollY.current = currentScrollY;
+      scrollY.setValue(currentScrollY);
+      return;
+    }
+
     // Only trigger header animation if scroll delta is significant enough
     if (Math.abs(scrollDelta) > 5) {
       if (scrollDelta > 0 && currentScrollY > 100) {
