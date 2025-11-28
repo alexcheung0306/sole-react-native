@@ -1,25 +1,19 @@
-import { View } from 'react-native';
 import { JobPostsProvider } from '@/context/JobPostsContext';
 import { AppliedRolesProvider } from '@/context/AppliedRolesContext';
 import { MyContractsProvider } from '@/context/MyContractsContext';
-import { CollapsibleHeader } from '@/components/CollapsibleHeader';
-import JobsNavTabs from '@/components/job/JobsNavTabs';
 import JobIndex from './job/index';
-import { useJobScrollHeader, JobScrollProvider } from './job/_layout';
+import { View } from 'react-native';
+import { CollapsibleHeader } from '~/components/CollapsibleHeader';
+import JobsNavTabs from '~/components/job/JobsNavTabs';
+import { useScrollHeader } from '~/hooks/useScrollHeader';
 
-// Re-export for convenience
-export { useJobScrollHeader };
+function HeaderWrapper({ children }: { children: React.ReactNode }) {
+  // Use shared scroll header hook - this will be shared across all job screens
+  const { headerTranslateY } = useScrollHeader();
 
-function JobHeaderWrapper({ children }: { children: React.ReactNode }) {
-  const { headerTranslateY } = useJobScrollHeader();
-  
   return (
     <View style={{ flex: 1, backgroundColor: '#000000' }}>
-      <CollapsibleHeader
-        title={<JobsNavTabs />}
-        translateY={headerTranslateY}
-        isDark={true}
-      />
+      <CollapsibleHeader title={<JobsNavTabs />} translateY={headerTranslateY} isDark={true} />
       {children}
     </View>
   );
@@ -30,14 +24,11 @@ export default function JobRouteWrapper() {
     <JobPostsProvider>
       <AppliedRolesProvider>
         <MyContractsProvider>
-          <JobScrollProvider>
-            <JobHeaderWrapper>
-              <JobIndex />
-            </JobHeaderWrapper>
-          </JobScrollProvider>
+          <HeaderWrapper>
+            <JobIndex />
+          </HeaderWrapper>
         </MyContractsProvider>
       </AppliedRolesProvider>
     </JobPostsProvider>
   );
 }
-

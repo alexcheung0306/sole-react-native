@@ -11,13 +11,9 @@ interface JobTabContextType {
 const JobTabContext = createContext<JobTabContextType | undefined>(undefined);
 
 export const JobTabProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const {params} = useLocalSearchParams();
   const [activeTab, setActiveTab] = useState<JobTab>('job-posts');
-  console.log('activeTab', activeTab);
   return (
-    <JobTabContext.Provider value={{ activeTab, setActiveTab }}>
-      {children}
-    </JobTabContext.Provider>
+    <JobTabContext.Provider value={{ activeTab, setActiveTab }}>{children}</JobTabContext.Provider>
   );
 };
 
@@ -28,4 +24,3 @@ export const useJobTabContext = () => {
   }
   return context;
 };
-

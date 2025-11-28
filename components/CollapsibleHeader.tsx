@@ -33,6 +33,7 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
   const defaultText = isDark ? '#fff' : '#000';
   const borderColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0,0,0,0.1)';
 
+
   return (
     <Animated.View
       style={{

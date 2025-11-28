@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Stack } from 'expo-router';
 import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useJobScrollHeader } from './_layout';
+import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { useMyContractsContext } from '@/context/MyContractsContext';
 import { useRouter } from 'expo-router';
 import FilterSearch from '~/components/custom/filter-search';
@@ -14,7 +14,7 @@ export default function MyContracts() {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
-  const { handleScroll } = useJobScrollHeader();
+  const { handleScroll } = useScrollHeader();
   
   const {
     contracts,

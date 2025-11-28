@@ -12,6 +12,8 @@ export const useScrollHeader = () => {
     const currentScrollY = event.nativeEvent.contentOffset.y;
     const scrollDelta = currentScrollY - lastScrollY.current;
 
+    console.log('currentScrollY', currentScrollY, 'scrollDelta', scrollDelta);
+
     // Always show header when near the top (within 20px)
     if (currentScrollY <= 20) {
       if (!isHeaderVisible) {

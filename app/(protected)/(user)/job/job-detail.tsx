@@ -8,14 +8,14 @@ import { getRolesByProjectId } from '~/api/apiservice/role_api';
 import { getJobApplicantsByProjectIdAndSoleUserId } from '~/api/apiservice/applicant_api';
 import { getJobContractsWithProfileByProjectIdAndTalentId } from '~/api/apiservice/jobContracts_api';
 import { useState } from 'react';
-import { useJobScrollHeader } from './_layout';
+import { useScrollHeader } from '~/hooks/useScrollHeader';
 
 export default function JobDetail() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const projectId = parseInt(params.id as string);
   const { soleUserId } = useSoleUserContext();
-  const { handleScroll } = useJobScrollHeader();
+  const { handleScroll } = useScrollHeader();
   const [selectedTab, setSelectedTab] = useState<'details' | 'roles' | 'contracts'>('details');
   const [selectedRoleIndex, setSelectedRoleIndex] = useState(0);
 
