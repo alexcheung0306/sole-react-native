@@ -5,8 +5,14 @@ import ClientSwipeableContainer from '@/components/client/ClientSwipeableContain
 import ClientDashboard from './dashboard';
 import ClientBookmark from './bookmark';
 import ClientTalents from './talents';
-import ProjectRouteWrapper from './ProjectRouteWrapper';
 import ClientProfileWrapper from './ClientProfileWrapper';
+import ProjectsIndex from './projects/index';
+import { View } from 'react-native';
+import { CollapsibleHeader } from '@/components/CollapsibleHeader';
+import ProjectsNavTabs from '@/components/projects/ProjectsNavTabs';
+import { useScrollHeader } from '~/hooks/useScrollHeader';
+import { ManageContractProvider } from '~/context/ManageContractContext';
+import { ManageProjectProvider } from '~/context/ManageProjectContext';
 
 // Map tab names to indices
 const tabToIndex = {
@@ -21,8 +27,28 @@ const tabToIndex = {
 const MemoizedClientDashboard = React.memo(ClientDashboard);
 const MemoizedClientBookmark = React.memo(ClientBookmark);
 const MemoizedClientTalents = React.memo(ClientTalents);
-const MemoizedProjectRouteWrapper = React.memo(ProjectRouteWrapper);
+const MemoizedProjectRouteWrapper = React.memo(() => (
+  <ManageProjectProvider>
+    <ManageContractProvider>
+      <HeaderWrapper>
+        <ProjectsIndex />
+      </HeaderWrapper>
+    </ManageContractProvider>
+  </ManageProjectProvider>
+));
 const MemoizedClientProfileWrapper = React.memo(ClientProfileWrapper);
+
+function HeaderWrapper({ children }: { children: React.ReactNode }) {
+  // Use shared scroll header hook - this will be shared across all job screens
+  const { headerTranslateY } = useScrollHeader();
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#000000' }}>
+      <CollapsibleHeader title={<ProjectsNavTabs />} translateY={headerTranslateY} isDark={true} />
+      {children}
+    </View>
+  );
+}
 
 export default function ClientIndex() {
   const { activeTab, setActiveTab } = useAppTabContext();
@@ -39,7 +65,11 @@ export default function ClientIndex() {
       if (activeTab !== 'client') {
         setActiveTab('client');
       }
-    } else if (pathname?.includes('/dashboard') || pathname === '/(protected)/(client)/' || pathname === '/(protected)/(client)') {
+    } else if (
+      pathname?.includes('/dashboard') ||
+      pathname === '/(protected)/(client)/' ||
+      pathname === '/(protected)/(client)'
+    ) {
       if (activeTab !== 'dashboard') {
         setActiveTab('dashboard');
       }
@@ -70,4 +100,3 @@ export default function ClientIndex() {
     </ClientSwipeableContainer>
   );
 }
-

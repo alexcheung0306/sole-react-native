@@ -20,8 +20,6 @@ export default function UserSwipeableContainer({
     return null; // Don't render if not in user mode
   }
   const activeTabRef = useRef(activeTab);
-  const { user } = useUser();
-  const router = useRouter();
 
   // Keep ref updated with latest activeTab value
   React.useEffect(() => {

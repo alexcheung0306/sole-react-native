@@ -5,8 +5,15 @@ import UserSwipeableContainer from '@/components/user/UserSwipeableContainer';
 import UserHome from './home';
 import Explore from './explore';
 import CameraScreen from './camera/index';
-import JobRouteWrapper from './JobRouteWrapper';
 import UserProfileWrapper from './UserProfileWrapper';
+import { AppliedRolesProvider } from '~/context/AppliedRolesContext';
+import { JobPostsProvider } from '~/context/JobPostsContext';
+import { MyContractsProvider } from '~/context/MyContractsContext';
+import JobIndex from './job';
+import { View } from 'react-native';
+import { CollapsibleHeader } from '~/components/CollapsibleHeader';
+import JobsNavTabs from '~/components/job/JobsNavTabs';
+import { useScrollHeader } from '~/hooks/useScrollHeader';
 
 // Map tab names to indices
 const tabToIndex = {
@@ -21,8 +28,30 @@ const tabToIndex = {
 const MemoizedUserHome = React.memo(UserHome);
 const MemoizedExplore = React.memo(Explore);
 const MemoizedCameraScreen = React.memo(CameraScreen);
-const MemoizedJobRouteWrapper = React.memo(JobRouteWrapper);
+const MemoizedJobRouteWrapper = React.memo(() => (
+  <JobPostsProvider>
+    <AppliedRolesProvider>
+      <MyContractsProvider>
+        <HeaderWrapper>
+          <JobIndex />
+        </HeaderWrapper>
+      </MyContractsProvider>
+    </AppliedRolesProvider>
+  </JobPostsProvider>
+));
 const MemoizedUserProfileWrapper = React.memo(UserProfileWrapper);
+
+function HeaderWrapper({ children }: { children: React.ReactNode }) {
+  // Use shared scroll header hook - this will be shared across all job screens
+  const { headerTranslateY } = useScrollHeader();
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#000000' }}>
+      <CollapsibleHeader title={<JobsNavTabs />} translateY={headerTranslateY} isDark={true} />
+      {children}
+    </View>
+  );
+}
 
 export default function UserIndex() {
   const { activeTab, setActiveTab } = useAppTabContext();
@@ -39,7 +68,11 @@ export default function UserIndex() {
       if (activeTab !== 'user') {
         setActiveTab('user');
       }
-    } else if (pathname?.includes('/home') || pathname === '/(protected)/(user)/' || pathname === '/(protected)/(user)') {
+    } else if (
+      pathname?.includes('/home') ||
+      pathname === '/(protected)/(user)/' ||
+      pathname === '/(protected)/(user)'
+    ) {
       if (activeTab !== 'home') {
         setActiveTab('home');
       }
@@ -70,4 +103,3 @@ export default function UserIndex() {
     </UserSwipeableContainer>
   );
 }
-
