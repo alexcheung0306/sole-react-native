@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 type ProjectTab = 'manage-projects' | 'manage-contracts';
@@ -11,7 +11,6 @@ interface ProjectTabContextType {
 const ProjectTabContext = createContext<ProjectTabContextType | undefined>(undefined);
 
 export const ProjectTabProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { params } = useLocalSearchParams();
   const [activeTab, setActiveTab] = useState<ProjectTab>('manage-projects');
 
   return (

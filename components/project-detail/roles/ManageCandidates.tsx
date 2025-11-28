@@ -1,7 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, FlatList, TouchableOpacity } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { useManageProjectContext } from '@/context/ManageProjectContext';
 import {
   getApplicationProcessCounts,
   searchApplicants,
@@ -39,7 +38,9 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
   }
 
   const activities = roleWithSchedules?.activities || [];
-  const { currentProcess, setCurrentProcess } = useManageProjectContext();
+  
+  // Local state for process selection (not from context)
+  const [currentProcess, setCurrentProcess] = useState('applied');
 
   // Search state
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);

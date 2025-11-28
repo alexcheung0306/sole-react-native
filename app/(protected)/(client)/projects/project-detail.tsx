@@ -1,12 +1,11 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useHeaderContext } from '@/context/HeaderContext';
-import { useProjectScrollHeader } from './_layout';
+import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { ChevronLeft } from 'lucide-react-native';
+import { CollapsibleHeader } from '@/components/CollapsibleHeader';
 import { useSoleUserContext } from '@/context/SoleUserContext';
-import { useManageProjectContext } from '@/context/ManageProjectContext';
 import { useProjectDetailQueries } from '@/hooks/useProjectDetailQueries';
 import { ProjectContractsTab } from '~/components/project-detail/contracts/ProjectContractsTab';
 import { ProjectInformationCard } from '~/components/project-detail/details/ProjectInformationCard';
@@ -27,11 +26,13 @@ const STATUS_COLORS: Record<string, string> = {
 export default function ProjectDetailPage() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { setTitle, setHeaderLeft } = useHeaderContext();
-  const { handleScroll } = useProjectScrollHeader();
+  const { headerTranslateY, handleScroll } = useScrollHeader();
   const { id } = useLocalSearchParams();
   const { soleUserId } = useSoleUserContext();
-  const { currentTab, setCurrentTab, currentRole, setCurrentRole } = useManageProjectContext();
+
+  // Local state for tab and role selection (not in context)
+  const [currentTab, setCurrentTab] = useState('project-information');
+  const [currentRole, setCurrentRole] = useState(0);
 
   const projectId = id ? parseInt(id as string, 10) : 0;
 
@@ -57,22 +58,6 @@ export default function ProjectDetailPage() {
       setCurrentRole(0);
     }
   }, [rolesWithSchedules.length, currentRole, setCurrentRole]);
-
-  // Update header title and left button when project data loads
-  useEffect(() => {
-    if (projectData) {
-      const project = projectData?.project || projectData;
-      setTitle(project?.projectName || 'Project');
-      setHeaderLeft(
-        <TouchableOpacity
-          onPress={() => router.replace('/(protected)/(client)/projects/manage-projects')}
-          activeOpacity={0.85}
-          className="flex items-center justify-center p-2">
-          <ChevronLeft color="#93c5fd" size={24} />
-        </TouchableOpacity>
-      );
-    }
-  }, [projectData, setTitle, setHeaderLeft, router]);
 
   if (isInitialLoading) {
     return (
@@ -114,6 +99,19 @@ export default function ProjectDetailPage() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-[#0a0a0a]">
+        <CollapsibleHeader
+          title={project?.projectName || 'Project'}
+          headerLeft={
+            <TouchableOpacity
+              onPress={() => router.back()}
+              activeOpacity={0.85}
+              className="flex items-center justify-center p-2">
+              <ChevronLeft color="#93c5fd" size={24} />
+            </TouchableOpacity>
+          }
+          translateY={headerTranslateY}
+          isDark={true}
+        />
         <ScrollView
           className="flex-1"
           onScroll={handleScroll}

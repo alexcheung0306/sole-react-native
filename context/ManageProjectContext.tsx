@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
   ReactNode,
 } from 'react';
@@ -16,18 +17,22 @@ interface Project {
   projectName: string;
   projectDescription: string;
   projectStatus: string;
+  status?: string;
   clientId: string;
   createdAt: string;
   updatedAt: string;
-  // Add other project properties as needed
+  projectImage?: string;
+  applicationDeadline?: string;
+  [key: string]: any;
 }
 
 interface ProjectResults {
-  data?: Project[]; // API returns 'data'
-  content?: Project[]; // Fallback for 'content'
+  data?: Project[];
+  content?: Project[];
   total: number;
   page: number;
   pageSize: number;
+  totalPages?: number;
 }
 
 interface ManageProjectContextType {
@@ -41,8 +46,6 @@ interface ManageProjectContextType {
   // Search and Pagination State
   currentPage: number;
   setCurrentPage: (page: number) => void;
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
   projectStatus: string;
   setProjectStatus: (status: string) => void;
   searchBy: string;
@@ -53,22 +56,17 @@ interface ManageProjectContextType {
   isSearching: boolean;
   setIsSearching: (searching: boolean) => void;
 
-  // API State
-  searchAPI: string;
-  setSearchAPI: (api: string) => void;
-
-  // Selected Project State
+  // Selected Project State (for detail page)
   selectedProject: Project | null;
   setSelectedProject: (project: Project | null) => void;
 
-  // View State
+  // View State (for detail page)
   currentRole: number;
   setCurrentRole: (role: number) => void;
   currentTab: string;
   setCurrentTab: (tab: string) => void;
 
   // Actions
-  refreshProjects: () => void;
   refetchProjects: () => void;
   resetFilters: () => void;
 }
@@ -99,18 +97,17 @@ export const ManageProjectProvider: React.FC<ManageProjectProviderProps> = ({
   // Local state for manage project page
   const [projectStatus, setProjectStatus] = useState('Draft');
   const [currentPage, setCurrentPage] = useState(0);
-  const [searchAPI, setSearchAPI] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [pageSize, setPageSize] = useState(10);
   const [searchBy, setSearchBy] = useState<string>('projectName');
   const [searchValue, setSearchValue] = useState<string>('');
-  // Selected state
+  const pageSize = 10;
+  
+  // Selected state (for detail page)
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [currentRole, setCurrentRole] = useState(0);
   const [currentTab, setCurrentTab] = useState('project-information');
 
-  const projectSearchOptions = React.useMemo(
+  const searchOptions = useMemo(
     () => [
       { id: 'projectName', label: 'Project Name' },
       { id: 'projectId', label: 'Project ID' },
@@ -119,12 +116,8 @@ export const ManageProjectProvider: React.FC<ManageProjectProviderProps> = ({
     []
   );
 
-  // Effect to update search API when dependencies change
-  useEffect(() => {
-    if (!soleUserId) {
-      return;
-    }
-
+  // Build search API
+  const buildSearchAPI = useCallback(() => {
     const params = new URLSearchParams();
     params.append('status', projectStatus);
     params.append('pageNo', currentPage.toString());
@@ -138,53 +131,40 @@ export const ManageProjectProvider: React.FC<ManageProjectProviderProps> = ({
       params.append(searchBy, trimmedSearch);
     }
 
-    setSearchAPI(`?${params.toString()}`);
-    setSearchQuery(trimmedSearch);
-    setIsSearching(Boolean(trimmedSearch));
-  }, [soleUserId, projectStatus, currentPage, pageSize, searchBy, searchValue]);
+    return `?${params.toString()}`;
+  }, [projectStatus, currentPage, pageSize, searchBy, searchValue]);
 
+  // Effect to reset page when search changes
   useEffect(() => {
-    setCurrentPage(0);
-  }, [projectStatus, searchBy, searchValue]);
+    if (soleUserId) {
+      setCurrentPage(0);
+      setIsSearching(!!searchValue.trim());
+    }
+  }, [searchValue, searchBy, projectStatus, soleUserId]);
 
   // Projects query
   const {
     data: projectResults,
     error: projectsError,
     isLoading: isLoadingProjects,
-    refetch: refreshProjects,
+    refetch: refetchProjects,
   } = useQuery({
-    queryKey: ['manageProjects', soleUserId, searchAPI],
-    queryFn: () => getProjectBySoleUserId(soleUserId || '', searchAPI),
-    enabled: !!searchAPI && !!soleUserId && searchAPI !== '',
+    queryKey: ['manageProjects', soleUserId, projectStatus, currentPage, searchValue, searchBy],
+    queryFn: () => getProjectBySoleUserId(soleUserId || '', buildSearchAPI()),
+    enabled: !!soleUserId,
     staleTime: 5 * 60 * 1000,
-    retry: 1, // Only retry once on failure
-    retryDelay: 1000, // Wait 1 second before retrying
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // Computed values - handle both 'data' and 'content' structures
   const projects = projectResults?.data || projectResults?.content || [];
-  const totalPages = projectResults
-    ? Math.ceil(projectResults.total / projectResults.pageSize)
-    : 1;
-
-  // Debug logging
-  useEffect(() => {
-    if (projectResults) {
-      console.log('ProjectResults structure:', {
-        hasData: !!projectResults.data,
-        hasContent: !!projectResults.content,
-        total: projectResults.total,
-        dataLength: projectResults.data?.length,
-        contentLength: projectResults.content?.length,
-      });
-    }
-  }, [projectResults]);
+  const totalPages = projectResults?.totalPages || 
+    (projectResults ? Math.ceil(projectResults.total / projectResults.pageSize) : 1);
 
   // Actions
   const resetFilters = useCallback(() => {
     setCurrentPage(0);
-    setSearchQuery('');
     setIsSearching(false);
     setSelectedProject(null);
     setSearchBy('projectName');
@@ -202,21 +182,15 @@ export const ManageProjectProvider: React.FC<ManageProjectProviderProps> = ({
     // Search and Pagination State
     currentPage,
     setCurrentPage,
-    searchQuery,
-    setSearchQuery,
     projectStatus,
     setProjectStatus,
     searchBy,
     setSearchBy,
     searchValue,
     setSearchValue,
-    searchOptions: projectSearchOptions,
+    searchOptions,
     isSearching,
     setIsSearching,
-
-    // API State
-    searchAPI,
-    setSearchAPI,
 
     // Selected Project State
     selectedProject,
@@ -229,8 +203,7 @@ export const ManageProjectProvider: React.FC<ManageProjectProviderProps> = ({
     setCurrentTab,
 
     // Actions
-    refreshProjects,
-    refetchProjects: refreshProjects,
+    refetchProjects,
     resetFilters,
   };
 

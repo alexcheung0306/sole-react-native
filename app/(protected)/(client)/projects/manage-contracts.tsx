@@ -1,21 +1,27 @@
+import { useEffect, useRef } from 'react';
 import { Stack } from 'expo-router';
-import { View, Text, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useProjectScrollHeader } from './_layout';
 import ContractListCard from '@/components/projects/ContractListCard';
 import FilterSearch from '~/components/custom/filter-search';
+import FlatListEmpty from '~/components/custom/flatlist-empty';
+import PaginationControl from '~/components/projects/PaginationControl';
 import { useManageContractContext } from '@/context/ManageContractContext';
 import ScreenTransition from '@/components/projects/ScreenTransition';
+import { useScrollHeader } from '~/hooks/useScrollHeader';
 
 export default function ManageContractsPage() {
   const insets = useSafeAreaInsets();
-  const { handleScroll } = useProjectScrollHeader();
+  const flatListRef = useRef<FlatList>(null);
+  const { handleScroll } = useScrollHeader();
   const {
-    contractResults,
     contracts,
+    contractResults,
     isLoadingContracts,
     contractsError,
-    totalContracts,
+    totalPages,
+    currentPage,
+    setCurrentPage,
     searchBy,
     setSearchBy,
     searchValue,
@@ -24,66 +30,23 @@ export default function ManageContractsPage() {
     setSelectedStatuses,
     searchOptions,
     statusOptions,
-    setCurrentPage,
+    isSearching,
     refetchContracts,
   } = useManageContractContext();
 
-  const handleSearch = () => {
+  // Scroll to top when page changes
+  useEffect(() => {
+    if (flatListRef.current) {
+      flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+    }
+  }, [currentPage]);
+
+  const handleContractSearch = () => {
     setCurrentPage(0);
     refetchContracts();
   };
 
-  const renderHeader = () => (
-    <View>
-      <View className="mb-5">
-        <Text className="text-[28px] font-bold text-white mb-1">Manage Contracts</Text>
-        <Text className="text-sm text-gray-400">View and manage all contracts</Text>
-      </View>
-
-      <FilterSearch
-        searchBy={searchBy}
-        setSearchBy={setSearchBy}
-        searchValue={searchValue}
-        setSearchValue={setSearchValue}
-        selectedStatuses={selectedStatuses}
-        setSelectedStatuses={setSelectedStatuses}
-        onSearch={handleSearch}
-        searchOptions={searchOptions}
-        statusOptions={statusOptions}
-      />
-
-      {contractResults && (
-        <Text className="text-sm text-gray-400 mb-3">
-          {Number(totalContracts) || 0} {Number(totalContracts) === 1 ? 'contract' : 'contracts'} found
-        </Text>
-      )}
-    </View>
-  );
-
-  const renderEmpty = () => {
-    if (isLoadingContracts) {
-      return (
-        <View className="py-15 items-center">
-          <ActivityIndicator size="large" color="#3b82f6" />
-          <Text className="text-gray-400 mt-3 text-sm">Loading contracts...</Text>
-        </View>
-      );
-    }
-
-    if (contractsError) {
-      return (
-        <View className="py-15 items-center">
-          <Text className="text-red-400 text-base font-semibold">Error loading contracts</Text>
-        </View>
-      );
-    }
-
-    return (
-      <View className="py-15 items-center">
-        <Text className="text-gray-400 text-base">No contracts found</Text>
-      </View>
-    );
-  };
+  const contractsData = contracts;
 
   return (
     <>
@@ -91,24 +54,76 @@ export default function ManageContractsPage() {
       <ScreenTransition direction="right">
         <View className="flex-1 bg-black">
           <FlatList
-          data={contracts}
-          renderItem={({ item }) => <ContractListCard item={item} />}
-          keyExtractor={(item) =>
-            (item?.jobContract?.id ?? item?.id ?? Math.random()).toString()
-          }
-          numColumns={2}
-          columnWrapperStyle={{ justifyContent: 'space-between' }}
-          ListHeaderComponent={renderHeader}
-          ListEmptyComponent={renderEmpty}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          contentContainerStyle={{
-            paddingTop: insets.top + 72,
-            paddingBottom: 20,
-            paddingHorizontal: 12,
-          }}
-          showsVerticalScrollIndicator={false}
-        />
+            ref={flatListRef}
+            data={contractsData}
+            renderItem={({ item }) => <ContractListCard item={item} />}
+            keyExtractor={(item) =>
+              (item?.jobContract?.id ?? item?.id ?? Math.random()).toString()
+            }
+            numColumns={2}
+            columnWrapperStyle={{ justifyContent: 'space-between' }}
+            ListEmptyComponent={
+              <FlatListEmpty
+                title="contracts"
+                description={searchValue ? 'No contracts found matching your search' : "You don't have any contracts yet"}
+                isLoading={isLoadingContracts}
+                error={contractsError}
+              />
+            }
+            ListHeaderComponent={
+              <View className="mb-3 gap-2">
+                <View className="mb-5">
+                  <Text className="mb-1 text-[28px] font-bold text-white">Manage Contracts</Text>
+                  <Text className="text-sm text-gray-400">View and manage all contracts</Text>
+                </View>
+
+                {/* Search Bar */}
+                <FilterSearch
+                  searchBy={searchBy}
+                  setSearchBy={setSearchBy}
+                  searchValue={searchValue}
+                  setSearchValue={setSearchValue}
+                  selectedStatuses={selectedStatuses}
+                  setSelectedStatuses={setSelectedStatuses}
+                  onSearch={handleContractSearch}
+                  searchOptions={searchOptions}
+                  statusOptions={statusOptions}
+                />
+
+                {/* Results Count & Pagination */}
+                <View className="mb-3 flex-row items-center justify-between">
+                  {contractResults && (
+                    <Text className="text-sm text-gray-400">
+                      {contractResults.total ?? 0} {contractResults.total === 1 ? 'contract' : 'contracts'} found
+                      {isSearching ? ' (filtered)' : ''}
+                    </Text>
+                  )}
+
+                  {totalPages > 1 && (
+                    <Text className="text-sm text-gray-400">
+                      Page {String(currentPage + 1)} of {String(totalPages)}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            }
+            ListFooterComponent={
+              <PaginationControl
+                totalPages={totalPages}
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+                isLoadingProjects={isLoadingContracts}
+              />
+            }
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            contentContainerStyle={{
+              paddingTop: insets.top + 72,
+              paddingBottom: 20,
+              paddingHorizontal: 12,
+            }}
+            showsVerticalScrollIndicator={false}
+          />
         </View>
       </ScreenTransition>
     </>

@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Stack } from 'expo-router';
 import { View, Text, FlatList, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useProjectScrollHeader } from './_layout';
+import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { useManageProjectContext } from '@/context/ManageProjectContext';
 import ProjectInfoFormModal from '@/components/projects/ProjectInfoFormModal';
 import ProjectStatusTabs from '@/components/projects/ProjectStatusTabs';
@@ -15,7 +15,7 @@ import ScreenTransition from '@/components/projects/ScreenTransition';
 export default function ManageProjectsPage() {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
-  const { handleScroll } = useProjectScrollHeader();
+  const { handleScroll } = useScrollHeader();
   const {
     projects,
     projectResults,
@@ -29,7 +29,6 @@ export default function ManageProjectsPage() {
     searchValue,
     setSearchValue,
     searchOptions,
-    searchQuery,
     isSearching,
     refetchProjects,
   } = useManageProjectContext();
@@ -41,24 +40,12 @@ export default function ManageProjectsPage() {
     }
   }, [currentPage]);
 
-  const projectSearchOptions = useMemo(
-    () =>
-      searchOptions.length
-        ? searchOptions
-        : [
-            { id: 'projectName', label: 'Project Name' },
-            { id: 'projectId', label: 'Project ID' },
-            { id: 'username', label: 'Publisher Username' },
-          ],
-    [searchOptions]
-  );
-
   const handleProjectSearch = () => {
     setCurrentPage(0);
     refetchProjects();
   };
 
-  const projectsData = projectResults?.data || projects || [];
+  const projectsData = projects;
 
   return (
     <>
@@ -66,78 +53,78 @@ export default function ManageProjectsPage() {
       <ScreenTransition direction="left">
         <View className="flex-1 bg-black">
           <FlatList
-          ref={flatListRef}
-          data={projectsData}
-          keyExtractor={(item) => (item?.project?.id ?? item?.id ?? Math.random()).toString()}
-          numColumns={2}
-          columnWrapperStyle={{ justifyContent: 'space-between' }}
-          ListEmptyComponent={
-            <FlatListEmpty
-              title="projects"
-              description="Create your first project to get started"
-              isLoading={isLoadingProjects}
-              error={projectsError}
-            />
-          }
-          ListHeaderComponent={
-            <View className="mb-3 gap-2">
-              <View className="mb-5">
-                <Text className="mb-1 text-[28px] font-bold text-white">Manage Projects</Text>
-                <Text className="text-sm text-gray-400">Create and manage your projects</Text>
-              </View>
-
-              {/* Create Project Button */}
-              <ProjectInfoFormModal method="POST" />
-
-              {/* Status Tabs */}
-              <ProjectStatusTabs />
-
-              {/* Search Bar */}
-              <FilterSearch
-                searchBy={searchBy}
-                setSearchBy={setSearchBy}
-                searchValue={searchValue}
-                setSearchValue={setSearchValue}
-                onSearch={handleProjectSearch}
-                searchOptions={projectSearchOptions}
+            ref={flatListRef}
+            data={projectsData}
+            keyExtractor={(item) => (item?.project?.id ?? item?.id ?? Math.random()).toString()}
+            numColumns={2}
+            columnWrapperStyle={{ justifyContent: 'space-between' }}
+            ListEmptyComponent={
+              <FlatListEmpty
+                title="projects"
+                description="Create your first project to get started"
+                isLoading={isLoadingProjects}
+                error={projectsError}
               />
+            }
+            ListHeaderComponent={
+              <View className="mb-3 gap-2">
+                <View className="mb-5">
+                  <Text className="mb-1 text-[28px] font-bold text-white">Manage Projects</Text>
+                  <Text className="text-sm text-gray-400">Create and manage your projects</Text>
+                </View>
 
-              {/* Results Count & Pagination */}
-              <View className="mb-3 flex-row items-center justify-between">
-                {projectResults && (
-                  <Text className="text-sm text-gray-400">
-                    {projectResults.total ?? 0} {projectResults.total === 1 ? 'project' : 'projects'}{' '}
-                    found
-                    {isSearching ? ' (filtered)' : ''}
-                  </Text>
-                )}
+                {/* Create Project Button */}
+                <ProjectInfoFormModal method="POST" />
 
-                {totalPages > 1 && (
-                  <Text className="text-sm text-gray-400">
-                    Page {String(currentPage + 1)} of {String(totalPages)}
-                  </Text>
-                )}
+                {/* Status Tabs */}
+                <ProjectStatusTabs />
+
+                {/* Search Bar */}
+                <FilterSearch
+                  searchBy={searchBy}
+                  setSearchBy={setSearchBy}
+                  searchValue={searchValue}
+                  setSearchValue={setSearchValue}
+                  onSearch={handleProjectSearch}
+                  searchOptions={searchOptions}
+                />
+
+                {/* Results Count & Pagination */}
+                <View className="mb-3 flex-row items-center justify-between">
+                  {projectResults && (
+                    <Text className="text-sm text-gray-400">
+                      {projectResults.total ?? 0} {projectResults.total === 1 ? 'project' : 'projects'}{' '}
+                      found
+                      {isSearching ? ' (filtered)' : ''}
+                    </Text>
+                  )}
+
+                  {totalPages > 1 && (
+                    <Text className="text-sm text-gray-400">
+                      Page {String(currentPage + 1)} of {String(totalPages)}
+                    </Text>
+                  )}
+                </View>
               </View>
-            </View>
-          }
-          renderItem={({ item }: { item: any }) => <ProjectListClient item={item} />}
-          ListFooterComponent={
-            <PaginationControl
-              totalPages={totalPages}
-              currentPage={currentPage}
-              setCurrentPage={setCurrentPage}
-              isLoadingProjects={isLoadingProjects}
-            />
-          }
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          contentContainerStyle={{
-            paddingTop: insets.top + 72,
-            paddingBottom: 20,
-            paddingHorizontal: 12,
-          }}
-          showsVerticalScrollIndicator={false}
-        />
+            }
+            renderItem={({ item }: { item: any }) => <ProjectListClient item={item} />}
+            ListFooterComponent={
+              <PaginationControl
+                totalPages={totalPages}
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+                isLoadingProjects={isLoadingProjects}
+              />
+            }
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            contentContainerStyle={{
+              paddingTop: insets.top + 72,
+              paddingBottom: 20,
+              paddingHorizontal: 12,
+            }}
+            showsVerticalScrollIndicator={false}
+          />
         </View>
       </ScreenTransition>
     </>

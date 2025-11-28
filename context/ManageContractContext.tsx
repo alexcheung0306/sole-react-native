@@ -28,6 +28,7 @@ interface ManageContractContextType {
   isLoadingContracts: boolean;
   contractsError: any;
   totalContracts: number;
+  totalPages: number;
   currentPage: number;
   setCurrentPage: (page: number) => void;
   searchBy: string;
@@ -38,6 +39,7 @@ interface ManageContractContextType {
   setSelectedStatuses: (statuses: string[]) => void;
   searchOptions: SearchOption[];
   statusOptions: StatusOption[];
+  isSearching: boolean;
   refetchContracts: () => void;
   resetFilters: () => void;
 }
@@ -59,6 +61,7 @@ export const ManageContractProvider = ({ children }: { children: ReactNode }) =>
   const [searchValue, setSearchValue] = useState<string>('');
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(0);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
 
   const searchOptions = useMemo<SearchOption[]>(
     () => [
@@ -118,6 +121,7 @@ export const ManageContractProvider = ({ children }: { children: ReactNode }) =>
 
   useEffect(() => {
     setCurrentPage(0);
+    setIsSearching(!!searchValue.trim() || selectedStatuses.length > 0);
   }, [searchBy, searchValue, selectedStatuses]);
 
   const contracts = useMemo(
@@ -126,6 +130,9 @@ export const ManageContractProvider = ({ children }: { children: ReactNode }) =>
   );
 
   const totalContracts = contractResults?.total ?? contracts.length ?? 0;
+  const pageSize = 20;
+  const totalPages = contractResults?.totalPages || 
+    (contractResults ? Math.ceil(contractResults.total / pageSize) : 1);
 
   const resetFilters = useCallback(() => {
     setSearchBy('contractId');
@@ -141,6 +148,7 @@ export const ManageContractProvider = ({ children }: { children: ReactNode }) =>
       isLoadingContracts,
       contractsError,
       totalContracts,
+      totalPages,
       currentPage,
       setCurrentPage,
       searchBy,
@@ -151,6 +159,7 @@ export const ManageContractProvider = ({ children }: { children: ReactNode }) =>
       setSelectedStatuses,
       searchOptions,
       statusOptions,
+      isSearching,
       refetchContracts,
       resetFilters,
     }),
@@ -160,12 +169,14 @@ export const ManageContractProvider = ({ children }: { children: ReactNode }) =>
       isLoadingContracts,
       contractsError,
       totalContracts,
+      totalPages,
       currentPage,
       searchBy,
       searchValue,
       selectedStatuses,
       searchOptions,
       statusOptions,
+      isSearching,
       refetchContracts,
       resetFilters,
     ]
