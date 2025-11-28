@@ -1,6 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { router, useSegments } from 'expo-router';
 import { useUser } from '@clerk/clerk-expo';
+import { UserTabProvider, useUserTabContext } from './UserTabContext';
+import { ClientTabProvider, useClientTabContext } from './ClientTabContext';
+import { JobTabProvider } from './JobTabContext';
+import { ProjectTabProvider } from './ProjectTabContext';
+import { HeaderProvider } from './HeaderContext';
 
 type NavigationMode = 'client' | 'user';
 
@@ -14,10 +19,27 @@ interface NavigationContextType {
 
 const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
 
-export function NavigationProvider({ children }: { children: React.ReactNode }) {
+// Inner component that has access to tab contexts
+function NavigationProviderInner({ children }: { children: React.ReactNode }) {
   const [currentMode, setCurrentMode] = useState<NavigationMode>('user');
   const segments = useSegments();
   const { user } = useUser();
+
+  // Try to use tab contexts - they might not be available at all times
+  let userTabContext: ReturnType<typeof useUserTabContext> | null = null;
+  let clientTabContext: ReturnType<typeof useClientTabContext> | null = null;
+
+  try {
+    userTabContext = useUserTabContext();
+  } catch {
+    // UserTabContext not available
+  }
+
+  try {
+    clientTabContext = useClientTabContext();
+  } catch {
+    // ClientTabContext not available
+  }
 
   // Sync mode with current route
   const syncModeFromRoute = () => {
@@ -42,21 +64,30 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   const switchToClient = () => {
     console.log('Switching to client mode');
     setCurrentMode('client');
-    router.replace('/(protected)/(client)/client/[username]' as any);
+    // Set client tab to client profile if user has username
+    if (clientTabContext && user?.username) {
+      clientTabContext.setActiveTab('client');
+    } else if (clientTabContext) {
+      clientTabContext.setActiveTab('dashboard');
+    }
+
     if (user?.username) {
-      router.replace(`/(protected)/(client)/client/${user.username}` as any);
-    } else {
-      router.replace('/(protected)/(client)/dashboard' as any);
+      router.replace(`/(protected)/(client)` as any);
     }
   };
 
   const switchToUser = () => {
     console.log('Switching to user mode');
     setCurrentMode('user');
+    // Set user tab to user profile if user has username
+    if (userTabContext && user?.username) {
+      userTabContext.setActiveTab('user');
+    } else if (userTabContext) {
+      userTabContext.setActiveTab('home');
+    }
+
     if (user?.username) {
-      router.replace(`/(protected)/(user)/user/${user.username}` as any);
-    } else {
-      router.replace('/(protected)/(user)/home' as any);
+      router.replace('/(protected)/(user)' as any);
     }
   };
 
@@ -79,6 +110,22 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
       }}>
       {children}
     </NavigationContext.Provider>
+  );
+}
+
+export function NavigationProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <UserTabProvider>
+      <ClientTabProvider>
+        <JobTabProvider>
+          <ProjectTabProvider>
+            <HeaderProvider>
+              <NavigationProviderInner>{children}</NavigationProviderInner>
+            </HeaderProvider>
+          </ProjectTabProvider>
+        </JobTabProvider>
+      </ClientTabProvider>
+    </UserTabProvider>
   );
 }
 

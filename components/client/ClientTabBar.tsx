@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useClientTabContext } from '~/context/ClientTabContext';
 import { useUser } from '@clerk/clerk-expo';
 import { useRouter, usePathname } from 'expo-router';
-import { LayoutDashboard, Bookmark, Search, FolderKanban, UserCircle } from 'lucide-react-native';
+import { LayoutDashboard, Bookmark, Search, FolderKanban } from 'lucide-react-native';
 import { AccountDropDownMenu } from '@/components/AccountDropDownMenu';
 
 export default function ClientTabBar() {
@@ -29,11 +29,39 @@ export default function ClientTabBar() {
     }
   }, [pathname, setActiveTab]);
 
+  // Individual handler functions for each tab
+  const handleDashboardPress = () => {
+    if (activeTab !== 'dashboard') {
+      setActiveTab('dashboard');
+      router.replace('/(protected)/(client)' as any);
+    }
+  };
+
+  const handleBookmarkPress = () => {
+    if (activeTab !== 'bookmark') {
+      setActiveTab('bookmark');
+      router.replace('/(protected)/(client)' as any);
+    }
+  };
+
+  const handleExplorePress = () => {
+    if (activeTab !== 'explore') {
+      setActiveTab('explore');
+      router.replace('/(protected)/(client)' as any);
+    }
+  };
+
+  const handleProjectsPress = () => {
+    if (activeTab !== 'projects') {
+      setActiveTab('projects');
+      router.replace('/(protected)/(client)' as any);
+    }
+  };
+
   const handleProfilePress = () => {
-    if (user?.username) {
+    if (activeTab !== 'client') {
       setActiveTab('client');
-      // Navigate to index route to show the swipeable container at client tab
-      router.replace('/(protected)/(client)/');
+      router.replace('/(protected)/(client)' as any);
     }
   };
 
@@ -42,27 +70,25 @@ export default function ClientTabBar() {
       name: 'Dashboard',
       tab: 'dashboard' as const,
       icon: LayoutDashboard,
+      onPress: handleDashboardPress,
     },
     {
       name: 'Bookmark',
       tab: 'bookmark' as const,
       icon: Bookmark,
+      onPress: handleBookmarkPress,
     },
     {
       name: 'Explore',
       tab: 'explore' as const,
       icon: Search,
+      onPress: handleExplorePress,
     },
     {
       name: 'Projects',
       tab: 'projects' as const,
       icon: FolderKanban,
-    },
-    {
-      name: 'Client',
-      tab: 'client' as const,
-      icon: UserCircle,
-      customIcon: AccountDropDownMenu,
+      onPress: handleProjectsPress,
     },
   ];
 
@@ -78,38 +104,23 @@ export default function ClientTabBar() {
         justifyContent: 'space-around',
         alignItems: 'center',
       }}>
+      {/* Render regular tabs */}
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const active = activeTab === tab.tab;
-        const CustomIcon = tab.customIcon;
 
         return (
           <TouchableOpacity
             key={tab.name}
             activeOpacity={0.7}
-            onPress={() => {
-              if (tab.tab === 'client') {
-                handleProfilePress();
-              } else {
-                setActiveTab(tab.tab);
-                router.replace('/(protected)/(client)/');
-              }
-            }}
+            onPress={tab.onPress}
             style={{
               flex: 1,
               alignItems: 'center',
               justifyContent: 'center',
               paddingVertical: 4,
             }}>
-            {tab.customIcon ? (
-              <CustomIcon
-                color={active ? '#ffffff' : '#6b7280'}
-                focused={active}
-                onPress={handleProfilePress}
-              />
-            ) : (
-              <Icon color={active ? '#ffffff' : '#6b7280'} size={24} />
-            )}
+            <Icon color={active ? '#ffffff' : '#6b7280'} size={24} />
             <Text
               style={{
                 color: active ? '#ffffff' : '#6b7280',
@@ -121,6 +132,29 @@ export default function ClientTabBar() {
           </TouchableOpacity>
         );
       })}
+
+      {/* Render client tab with AccountDropDownMenu */}
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingVertical: 4,
+        }}>
+        <AccountDropDownMenu
+          color={activeTab === 'client' ? '#ffffff' : '#6b7280'}
+          focused={activeTab === 'client'}
+          onPress={handleProfilePress}
+        />
+        <Text
+          style={{
+            color: activeTab === 'client' ? '#ffffff' : '#6b7280',
+            fontSize: 10,
+            marginTop: 4,
+          }}>
+          Client
+        </Text>
+      </View>
     </View>
   );
 }
