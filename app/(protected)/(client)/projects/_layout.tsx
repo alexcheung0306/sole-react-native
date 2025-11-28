@@ -2,9 +2,7 @@ import { Stack } from 'expo-router';
 import { createContext, useContext, ReactNode } from 'react';
 import { View } from 'react-native';
 import { ProjectTabProvider } from '@/context/ProjectTabContext';
-import { ManageProjectProvider } from '@/context/ManageProjectContext';
-import { ManageContractProvider } from '@/context/ManageContractContext';
-import { HeaderProvider, useHeaderContext } from '@/context/HeaderContext';
+import { useHeaderContext } from '@/context/HeaderContext';
 import { CollapsibleHeader } from '@/components/CollapsibleHeader';
 import ProjectsNavTabs from '@/components/projects/ProjectsNavTabs';
 import { useScrollHeader } from '@/hooks/useScrollHeader';
@@ -29,7 +27,7 @@ export function ProjectScrollProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function HeaderWrapper({ children }: { children: React.ReactNode }) {
+export function HeaderWrapper({ children }: { children: React.ReactNode }) {
   const { title } = useHeaderContext();
   const { headerTranslateY } = useProjectScrollHeader();
 
@@ -52,29 +50,23 @@ function HeaderWrapper({ children }: { children: React.ReactNode }) {
 export default function ProjectsLayout() {
   return (
     <ProjectTabProvider>
-      <ManageProjectProvider>
-        <ManageContractProvider>
-          <HeaderProvider>
-            <ProjectScrollProvider>
-              <HeaderWrapper>
-                <Stack
-                  screenOptions={{
-                    headerShown: false,
-                    contentStyle: { backgroundColor: '#000000' },
-                  }}
-                >
-                  <Stack.Screen name="index" options={{ headerShown: false }} />
-                  <Stack.Screen name="manage-projects" options={{ headerShown: false }} />
-                  <Stack.Screen name="project-detail" options={{ headerShown: false }} />
-                  <Stack.Screen name="manage-contracts" options={{ headerShown: false }} />
-                  <Stack.Screen name="contract" options={{ headerShown: false }} />
-                  <Stack.Screen name="activate-contract" options={{ headerShown: false }} />
-                </Stack>
-              </HeaderWrapper>
-            </ProjectScrollProvider>
-          </HeaderProvider>
-        </ManageContractProvider>
-      </ManageProjectProvider>
+      <ProjectScrollProvider>
+        <HeaderWrapper>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: '#000000' },
+            }}
+          >
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="manage-projects" options={{ headerShown: false }} />
+            <Stack.Screen name="project-detail" options={{ headerShown: false }} />
+            <Stack.Screen name="manage-contracts" options={{ headerShown: false }} />
+            <Stack.Screen name="contract" options={{ headerShown: false }} />
+            <Stack.Screen name="activate-contract" options={{ headerShown: false }} />
+          </Stack>
+        </HeaderWrapper>
+      </ProjectScrollProvider>
     </ProjectTabProvider>
   );
 }
