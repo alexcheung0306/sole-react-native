@@ -1,11 +1,27 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Animated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAppTabContext, isUserTab, isClientTab, UserTab, ClientTab } from '~/context/AppTabContext';
+import {
+  useAppTabContext,
+  isUserTab,
+  isClientTab,
+  UserTab,
+  ClientTab,
+} from '~/context/AppTabContext';
 import { useUser } from '@clerk/clerk-expo';
 import { useRouter, usePathname } from 'expo-router';
-import { BriefcaseBusiness, Camera, Home, Search, LayoutDashboard, Bookmark, FolderKanban } from 'lucide-react-native';
+import {
+  BriefcaseBusiness,
+  Camera,
+  Home,
+  Search,
+  LayoutDashboard,
+  Bookmark,
+  FolderKanban,
+} from 'lucide-react-native';
 import { AccountDropDownMenu } from '@/components/AccountDropDownMenu';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 type TabConfig = {
   name: string;
@@ -28,7 +44,7 @@ export default function AppTabBar() {
   // Animate fade when mode changes
   useEffect(() => {
     const currentMode = isUserMode ? 'user' : isClientMode ? 'client' : null;
-    
+
     if (currentMode && prevModeRef.current && prevModeRef.current !== currentMode) {
       // Mode changed - fade out then fade in
       Animated.sequence([
@@ -60,7 +76,11 @@ export default function AppTabBar() {
   // Sync active tab with pathname
   useEffect(() => {
     if (isUserMode) {
-      if (pathname?.includes('/home') || pathname === '/(protected)/(user)/' || pathname === '/(protected)/(user)') {
+      if (
+        pathname?.includes('/home') ||
+        pathname === '/(protected)/(user)/' ||
+        pathname === '/(protected)/(user)'
+      ) {
         setActiveTab('home');
       } else if (pathname?.includes('/explore')) {
         setActiveTab('explore');
@@ -72,7 +92,11 @@ export default function AppTabBar() {
         setActiveTab('user');
       }
     } else if (isClientMode) {
-      if (pathname?.includes('/dashboard') || pathname === '/(protected)/(client)/' || pathname === '/(protected)/(client)') {
+      if (
+        pathname?.includes('/dashboard') ||
+        pathname === '/(protected)/(client)/' ||
+        pathname === '/(protected)/(client)'
+      ) {
         setActiveTab('dashboard');
       } else if (pathname?.includes('/bookmark')) {
         setActiveTab('bookmark');
@@ -226,12 +250,43 @@ export default function AppTabBar() {
   return (
     <View
       style={{
-        backgroundColor: 'rgba(0, 0, 0, 0.9)',
-        borderTopColor: 'rgba(255, 255, 255, 0.1)',
-        borderTopWidth: 1,
-        paddingBottom: insets.bottom,
-        paddingTop: 8,
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        overflow: 'hidden',
       }}>
+      {/* Blur Background */}
+      <BlurView
+        intensity={80}
+        tint="dark"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+        }}
+      />
+      {/* Gradient Overlay */}
+      <LinearGradient
+        colors={['rgba(0, 0, 0, 0.45)', 'rgba(0, 0, 0, 0.4)']}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          borderTopColor: 'rgba(255, 255, 255, 0.1)',
+          borderTopWidth: 1,
+        }}
+      />
+      {/* Content */}
+      <View
+        style={{
+          paddingBottom: insets.bottom,
+          paddingTop: 4,
+        }}>
       <Animated.View
         style={{
           flexDirection: 'row',
@@ -255,10 +310,10 @@ export default function AppTabBar() {
                 justifyContent: 'center',
                 paddingVertical: 4,
               }}>
-              <Icon color={active ? '#ffffff' : '#6b7280'} size={24} />
+              <Icon color={active ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)'} size={24} />
               <Text
                 style={{
-                  color: active ? '#ffffff' : '#6b7280',
+                  color: active ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)',
                   fontSize: 10,
                   marginTop: 4,
                 }}>
@@ -277,13 +332,13 @@ export default function AppTabBar() {
             paddingVertical: 4,
           }}>
           <AccountDropDownMenu
-            color={activeTab === profileTab ? '#ffffff' : '#6b7280'}
+            color={activeTab === profileTab ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)'}
             focused={activeTab === profileTab}
             onPress={profilePressHandler}
           />
           <Text
             style={{
-              color: activeTab === profileTab ? '#ffffff' : '#6b7280',
+              color: activeTab === profileTab ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)',
               fontSize: 10,
               marginTop: 4,
             }}>
@@ -291,6 +346,7 @@ export default function AppTabBar() {
           </Text>
         </View>
       </Animated.View>
+      </View>
     </View>
   );
 }

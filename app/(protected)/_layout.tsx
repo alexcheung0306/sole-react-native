@@ -26,7 +26,10 @@ export default function ProtectedLayout() {
     <View style={styles.container}>
       <AuthWrapper>
         <View style={{ flex: 1, backgroundColor: '#000000' }}>
-          <Stack>
+          <Stack
+            screenOptions={{
+              contentStyle: { backgroundColor: '#000000' },
+            }}>
             {/* <Stack.Screen name="index" options={{ headerShown: false, href: null }} /> */}
             <Stack.Screen name="(client)" options={{ headerShown: false }} />
             <Stack.Screen name="(user)" options={{ headerShown: false }} />
@@ -53,7 +56,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000',
+    backgroundColor: 'transparent',
     zIndex: 9999,
   },
 });

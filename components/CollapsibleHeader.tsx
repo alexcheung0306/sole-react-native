@@ -24,7 +24,7 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
   backgroundColor,
   textColor,
   isDark = true,
-  gradientOpacity = 1,
+  gradientOpacity = 0.9,
 }) => {
   const insets = useSafeAreaInsets();
   
@@ -52,7 +52,7 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
           backgroundColor
             ? [backgroundColor, 'transparent']
             : isDark
-              ? [`rgba(0, 0, 0, ${gradientOpacity})`, 'rgba(0, 0, 0, 0)']
+              ? [`rgba(0, 0, 0, ${gradientOpacity})`, 'rgba(0, 0, 0, 0.4)']
               : [`rgba(255, 255, 255, ${gradientOpacity})`, 'rgba(255, 255, 255, 0)']
         }
         style={{
