@@ -1,6 +1,5 @@
 import { Stack } from 'expo-router';
 import { View } from 'react-native';
-import AppTabBar from '@/components/AppTabBar';
 
 export default function ClientTabLayout() {
   return (
@@ -17,7 +16,6 @@ export default function ClientTabLayout() {
         <Stack.Screen name="projects" options={{ headerShown: false }} />
         <Stack.Screen name="client" options={{ headerShown: false }} />
       </Stack>
-      <AppTabBar />
     </View>
   );
 }

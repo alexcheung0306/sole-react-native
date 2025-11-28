@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, Animated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTabContext, isUserTab, isClientTab, UserTab, ClientTab } from '~/context/AppTabContext';
 import { useUser } from '@clerk/clerk-expo';
@@ -20,6 +20,37 @@ export default function AppTabBar() {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+
+  // Simple fade animation for mode transitions
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const prevModeRef = useRef<'user' | 'client' | null>(null);
+
+  // Animate fade when mode changes
+  useEffect(() => {
+    const currentMode = isUserMode ? 'user' : isClientMode ? 'client' : null;
+    
+    if (currentMode && prevModeRef.current && prevModeRef.current !== currentMode) {
+      // Mode changed - fade out then fade in
+      Animated.sequence([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 150,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+
+    if (currentMode) {
+      prevModeRef.current = currentMode;
+    }
+  }, [isUserMode, isClientMode, fadeAnim]);
 
   // If not in a valid mode, don't render
   if (!isUserMode && !isClientMode) {
@@ -200,61 +231,66 @@ export default function AppTabBar() {
         borderTopWidth: 1,
         paddingBottom: insets.bottom,
         paddingTop: 8,
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'center',
       }}>
-      {/* Render regular tabs */}
-      {tabs.map((tab) => {
-        const Icon = tab.icon;
-        const active = activeTab === tab.tab;
-
-        return (
-          <TouchableOpacity
-            key={tab.name}
-            activeOpacity={0.7}
-            onPress={tab.onPress}
-            style={{
-              flex: 1,
-              alignItems: 'center',
-              justifyContent: 'center',
-              paddingVertical: 4,
-            }}>
-            <Icon color={active ? '#ffffff' : '#6b7280'} size={24} />
-            <Text
-              style={{
-                color: active ? '#ffffff' : '#6b7280',
-                fontSize: 10,
-                marginTop: 4,
-              }}>
-              {tab.name}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-
-      {/* Render profile tab with AccountDropDownMenu */}
-      <View
+      <Animated.View
         style={{
-          flex: 1,
+          flexDirection: 'row',
+          justifyContent: 'space-around',
           alignItems: 'center',
-          justifyContent: 'center',
-          paddingVertical: 4,
+          opacity: fadeAnim,
         }}>
-        <AccountDropDownMenu
-          color={activeTab === profileTab ? '#ffffff' : '#6b7280'}
-          focused={activeTab === profileTab}
-          onPress={profilePressHandler}
-        />
-        <Text
+        {/* Render regular tabs */}
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const active = activeTab === tab.tab;
+
+          return (
+            <TouchableOpacity
+              key={tab.name}
+              activeOpacity={0.7}
+              onPress={tab.onPress}
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingVertical: 4,
+              }}>
+              <Icon color={active ? '#ffffff' : '#6b7280'} size={24} />
+              <Text
+                style={{
+                  color: active ? '#ffffff' : '#6b7280',
+                  fontSize: 10,
+                  marginTop: 4,
+                }}>
+                {tab.name}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+
+        {/* Render profile tab with AccountDropDownMenu */}
+        <View
           style={{
-            color: activeTab === profileTab ? '#ffffff' : '#6b7280',
-            fontSize: 10,
-            marginTop: 4,
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 4,
           }}>
-          {profileLabel}
-        </Text>
-      </View>
+          <AccountDropDownMenu
+            color={activeTab === profileTab ? '#ffffff' : '#6b7280'}
+            focused={activeTab === profileTab}
+            onPress={profilePressHandler}
+          />
+          <Text
+            style={{
+              color: activeTab === profileTab ? '#ffffff' : '#6b7280',
+              fontSize: 10,
+              marginTop: 4,
+            }}>
+            {profileLabel}
+          </Text>
+        </View>
+      </Animated.View>
     </View>
   );
 }

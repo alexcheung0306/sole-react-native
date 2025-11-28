@@ -168,7 +168,7 @@ export default function PostDetail() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-black">
+      <View className="flex-1 bg-black" style={{ zIndex: 1000 }}>
         {/* Custom Header */}
         <View className="bg-black pt-12 pb-4 px-4 border-b border-gray-700/50">
           <View className="flex-row items-center justify-between">
