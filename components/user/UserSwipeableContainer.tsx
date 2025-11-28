@@ -1,5 +1,5 @@
 import React, { useCallback, useRef } from 'react';
-import { useUserTabContext } from '~/context/UserTabContext';
+import { useAppTabContext, isUserTab } from '~/context/AppTabContext';
 import { useUser } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import SwipeableContainer from '@/components/common/SwipeableContainer';
@@ -13,7 +13,12 @@ export default function UserSwipeableContainer({
   children,
   activeIndex,
 }: UserSwipeableContainerProps) {
-  const { activeTab, setActiveTab } = useUserTabContext();
+  const { activeTab, setActiveTab } = useAppTabContext();
+
+  // Type guard to ensure we're in user mode
+  if (!isUserTab(activeTab)) {
+    return null; // Don't render if not in user mode
+  }
   const activeTabRef = useRef(activeTab);
   const { user } = useUser();
   const router = useRouter();

@@ -9,11 +9,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = width / 3;
 
-export default function ClientExplore() {
+export default function ClientTalents() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { headerTranslateY, handleScroll } = useScrollHeader();
-  
+
   const images = Array.from({ length: 30 }, (_, i) => ({
     id: i.toString(),
     uri: `https://picsum.photos/300/300?random=${i}`,
@@ -25,11 +25,11 @@ export default function ClientExplore() {
 
   const renderImage = ({ item }: { item: { id: string; uri: string } }) => (
     <View className="p-0.5">
-      <Image 
-        source={{ uri: item.uri }} 
-        style={{ 
-          width: IMAGE_SIZE - 4, 
-          height: IMAGE_SIZE - 4 
+      <Image
+        source={{ uri: item.uri }}
+        style={{
+          width: IMAGE_SIZE - 4,
+          height: IMAGE_SIZE - 4
         }}
         className="rounded-lg"
       />
@@ -38,14 +38,14 @@ export default function ClientExplore() {
 
   return (
     <>
-      <Stack.Screen 
-        options={{ 
+      <Stack.Screen
+        options={{
           headerShown: false, // Hide the default header
-        }} 
+        }}
       />
       <View className="flex-1 bg-black">
         <CollapsibleHeader
-          title="Client Explore"
+          title="Talents"
           headerRight={
             <TouchableOpacity onPress={handleUsersPress} style={{ padding: 8 }}>
               <Ionicons name="people-outline" size={24} color="#fff" />

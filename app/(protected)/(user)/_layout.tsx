@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { View } from 'react-native';
-import UserTabBar from '@/components/user/UserTabBar';
+import AppTabBar from '@/components/AppTabBar';
 
 export default function UserTabLayout() {
   return (
@@ -18,7 +18,7 @@ export default function UserTabLayout() {
         <Stack.Screen name="user" options={{ headerShown: false }} />
         <Stack.Screen name="post" options={{ headerShown: false }} />
       </Stack>
-      <UserTabBar />
+      <AppTabBar />
     </View>
   );
 }

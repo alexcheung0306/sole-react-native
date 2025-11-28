@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
-import { useClientTabContext } from '@/context/ClientTabContext';
+import { useAppTabContext, isClientTab } from '@/context/AppTabContext';
 import { usePathname } from 'expo-router';
 import ClientSwipeableContainer from '@/components/client/ClientSwipeableContainer';
 import ClientDashboard from './dashboard';
 import ClientBookmark from './bookmark';
-import ClientExplore from './explore';
+import ClientTalents from './talents';
 import ProjectRouteWrapper from './ProjectRouteWrapper';
 import ClientProfileWrapper from './ClientProfileWrapper';
 
@@ -12,7 +12,7 @@ import ClientProfileWrapper from './ClientProfileWrapper';
 const tabToIndex = {
   dashboard: 0,
   bookmark: 1,
-  explore: 2,
+  talents: 2,
   projects: 3,
   client: 4,
 } as const;
@@ -20,12 +20,17 @@ const tabToIndex = {
 // Memoize children to prevent re-creation on every render
 const MemoizedClientDashboard = React.memo(ClientDashboard);
 const MemoizedClientBookmark = React.memo(ClientBookmark);
-const MemoizedClientExplore = React.memo(ClientExplore);
+const MemoizedClientTalents = React.memo(ClientTalents);
 const MemoizedProjectRouteWrapper = React.memo(ProjectRouteWrapper);
 const MemoizedClientProfileWrapper = React.memo(ClientProfileWrapper);
 
 export default function ClientIndex() {
-  const { activeTab, setActiveTab } = useClientTabContext();
+  const { activeTab, setActiveTab } = useAppTabContext();
+
+  // Type guard to ensure we're in client mode
+  if (!isClientTab(activeTab)) {
+    return null; // Don't render if not in client mode
+  }
   const pathname = usePathname();
 
   // Initialize tab based on pathname on mount and when pathname changes
@@ -42,9 +47,9 @@ export default function ClientIndex() {
       if (activeTab !== 'bookmark') {
         setActiveTab('bookmark');
       }
-    } else if (pathname?.includes('/explore')) {
-      if (activeTab !== 'explore') {
-        setActiveTab('explore');
+    } else if (pathname?.includes('/talents')) {
+      if (activeTab !== 'talents') {
+        setActiveTab('talents');
       }
     } else if (pathname?.includes('/projects')) {
       if (activeTab !== 'projects') {
@@ -59,7 +64,7 @@ export default function ClientIndex() {
     <ClientSwipeableContainer activeIndex={activeIndex}>
       <MemoizedClientDashboard />
       <MemoizedClientBookmark />
-      <MemoizedClientExplore />
+      <MemoizedClientTalents />
       <MemoizedProjectRouteWrapper />
       <MemoizedClientProfileWrapper />
     </ClientSwipeableContainer>

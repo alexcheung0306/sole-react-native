@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useUserTabContext } from '@/context/UserTabContext';
+import { useAppTabContext, isUserTab } from '@/context/AppTabContext';
 import { usePathname } from 'expo-router';
 import UserSwipeableContainer from '@/components/user/UserSwipeableContainer';
 import UserHome from './home';
@@ -25,7 +25,12 @@ const MemoizedJobRouteWrapper = React.memo(JobRouteWrapper);
 const MemoizedUserProfileWrapper = React.memo(UserProfileWrapper);
 
 export default function UserIndex() {
-  const { activeTab, setActiveTab } = useUserTabContext();
+  const { activeTab, setActiveTab } = useAppTabContext();
+
+  // Type guard to ensure we're in user mode
+  if (!isUserTab(activeTab)) {
+    return null; // Don't render if not in user mode
+  }
   const pathname = usePathname();
 
   // Initialize tab based on pathname on mount and when pathname changes

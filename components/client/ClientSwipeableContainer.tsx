@@ -1,5 +1,5 @@
 import React, { useCallback, useRef } from 'react';
-import { useClientTabContext } from '~/context/ClientTabContext';
+import { useAppTabContext, isClientTab } from '~/context/AppTabContext';
 import { useUser } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import SwipeableContainer from '@/components/common/SwipeableContainer';
@@ -13,7 +13,12 @@ export default function ClientSwipeableContainer({
   children,
   activeIndex,
 }: ClientSwipeableContainerProps) {
-  const { activeTab, setActiveTab } = useClientTabContext();
+  const { activeTab, setActiveTab } = useAppTabContext();
+
+  // Type guard to ensure we're in client mode
+  if (!isClientTab(activeTab)) {
+    return null; // Don't render if not in client mode
+  }
   const activeTabRef = useRef(activeTab);
   const { user } = useUser();
   const router = useRouter();
@@ -23,7 +28,7 @@ export default function ClientSwipeableContainer({
     activeTabRef.current = activeTab;
   }, [activeTab]);
 
-  const indexToTab = ['dashboard', 'bookmark', 'explore', 'projects', 'client'] as const;
+  const indexToTab = ['dashboard', 'bookmark', 'talents', 'projects', 'client'] as const;
   const onIndexChange = useCallback(
     (index: number) => {
       // Get the latest activeTab value from ref to avoid stale closure
