@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Stack } from 'expo-router';
-import { View, Text, FlatList, TouchableOpacity, Image } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Image, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { useJobPostsContext } from '@/context/JobPostsContext';
 import { useRouter } from 'expo-router';
 import FilterSearch from '~/components/custom/filter-search';
@@ -10,11 +9,14 @@ import FlatListEmpty from '~/components/custom/flatlist-empty';
 import PaginationControl from '~/components/projects/PaginationControl';
 import { Calendar, User, Briefcase } from 'lucide-react-native';
 
-export default function JobPosts() {
+type JobPostsProps = {
+  scrollHandler?: (event: any) => void;
+};
+
+export default function JobPosts({ scrollHandler }: JobPostsProps) {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
-  const { handleScroll } = useScrollHeader();
   
   const {
     projects,
@@ -125,7 +127,7 @@ export default function JobPosts() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-black">
-        <FlatList
+        <Animated.FlatList
           ref={flatListRef}
           data={projectsData}
           keyExtractor={(item) => (item?.project?.id ?? item?.id ?? Math.random()).toString()}
@@ -180,7 +182,7 @@ export default function JobPosts() {
               isLoadingProjects={isLoadingProjects}
             />
           }
-          onScroll={handleScroll}
+          onScroll={scrollHandler}
           scrollEventThrottle={16}
           contentContainerStyle={{
             paddingTop: insets.top + 72,

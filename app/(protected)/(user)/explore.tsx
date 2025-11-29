@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Stack } from 'expo-router';
-import { View, FlatList, ActivityIndicator, Text, RefreshControl, Dimensions, TouchableOpacity, TextInput, Image, ScrollView } from 'react-native';
+import { View, FlatList, Animated, ActivityIndicator, Text, RefreshControl, Dimensions, TouchableOpacity, TextInput, Image, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
@@ -31,7 +31,7 @@ const EXPLORE_THUMBNAIL_SIZE = (SCREEN_WIDTH - (GAP * (EXPLORE_COLUMNS + 1))) / 
 
 export default React.memo(function Explore() {
   const insets = useSafeAreaInsets();
-  const { headerTranslateY, handleScroll } = useScrollHeader();
+  const { headerTranslateY, animatedScrollHandler, handleHeightChange } = useScrollHeader();
   const { soleUserId } = useSoleUserContext();
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -362,9 +362,10 @@ export default React.memo(function Explore() {
     <BottomSheetModalProvider>
         <Stack.Screen options={{ headerShown: false }} />
         <View className="flex-1 bg-black">
-          <CollapsibleHeader 
-            title="Explore" 
-            translateY={headerTranslateY} 
+          <CollapsibleHeader
+            title="Explore"
+            translateY={headerTranslateY}
+            onHeightChange={handleHeightChange}
             isDark={true}
             headerRight={
               <View className="flex-row items-center gap-3">
@@ -395,6 +396,8 @@ export default React.memo(function Explore() {
               </View>
             }
           />
+
+          
 
           {/* Search Bar with Dropdown - positioned below header */}
           {showSearch && (
@@ -455,13 +458,13 @@ export default React.memo(function Explore() {
           )}
           
           {/* Grid/List Content */}
-          <FlatList
+          <Animated.FlatList
             data={posts}
             renderItem={renderThumbnail}
             keyExtractor={(item, index) => item?.id?.toString() ?? `post-${index}`}
             numColumns={viewMode === 'grid' ? EXPLORE_COLUMNS : 1}
             key={`${viewMode}-${EXPLORE_COLUMNS}`}
-            onScroll={handleScroll}
+            onScroll={animatedScrollHandler}
             scrollEventThrottle={16}
             contentContainerStyle={{
               paddingHorizontal: 4,

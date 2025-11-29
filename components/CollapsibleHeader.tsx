@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity, Animated, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ interface CollapsibleHeaderProps {
   headerRight?: React.ReactNode;
   headerLeft?: React.ReactNode;
   translateY: Animated.Value;
+  onHeightChange?: (height: number) => void;
   backgroundColor?: string;
   textColor?: string;
   isDark?: boolean;
@@ -21,18 +22,30 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
   headerRight,
   headerLeft,
   translateY,
+  onHeightChange,
   backgroundColor,
   textColor,
   isDark = true,
   gradientOpacity = 0.9,
 }) => {
   const insets = useSafeAreaInsets();
-  
+
   // Dark theme defaults
   const defaultBg = isDark ? `rgba(0, 0, 0, ${gradientOpacity})` : '#fff';
   const defaultText = isDark ? '#fff' : '#000';
   const borderColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0,0,0,0.1)';
 
+  const handleLayout = useCallback((event: any) => {
+    const { height } = event.nativeEvent.layout;
+    // console.log('Header height:', height); // Debug: Remove after testing
+    onHeightChange?.(height);
+  }, [onHeightChange]);
+
+  // Debug: Remove after testing
+  // console.log('🎭 CollapsibleHeader render, translateY:', (translateY as any)?._value);
+
+  // Fallback to 0 if translateY is not a valid Animated.Value
+  const safeTranslateY = translateY && typeof translateY === 'object' && (translateY as any)._value !== undefined ? translateY : new Animated.Value(0);
 
   return (
     <Animated.View
@@ -42,8 +55,9 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
         left: 0,
         right: 0,
         zIndex: 1000,
-        transform: [{ translateY }],
+        transform: [{ translateY: safeTranslateY }],
       }}
+      onLayout={handleLayout}
     >
       {/* Blur Background */}
 
@@ -75,7 +89,6 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
         style={{
           paddingTop: insets.top + 8, // Add extra padding for better spacing
           paddingHorizontal: 16,
-          paddingBottom: 16, // Increased bottom padding
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -87,6 +100,7 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
           {typeof title === 'string' ? (
             <Text
               style={{
+                paddingBottom: 16,
                 fontSize: 18,
                 fontWeight: '600',
                 color: textColor || defaultText,

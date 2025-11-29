@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import {
   View,
   FlatList,
+  Animated,
   ActivityIndicator,
   Text,
   RefreshControl,
@@ -24,7 +25,7 @@ import {
 
 export default React.memo(function UserHome() {
   const insets = useSafeAreaInsets();
-  const { headerTranslateY, handleScroll } = useScrollHeader();
+  const { headerTranslateY, animatedScrollHandler, handleHeightChange } = useScrollHeader();
   const { soleUserId } = useSoleUserContext();
   const queryClient = useQueryClient();
 
@@ -189,9 +190,9 @@ export default React.memo(function UserHome() {
     <BottomSheetModalProvider>
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-black">
-        <CollapsibleHeader title="Feed" translateY={headerTranslateY} isDark={true} />
+        <CollapsibleHeader title="Feed" translateY={headerTranslateY} onHeightChange={handleHeightChange} isDark={true} />
 
-        <FlatList
+        <Animated.FlatList
           data={posts}
           renderItem={({ item }) => {
             const transformedPost = transformPost(item);
@@ -205,10 +206,10 @@ export default React.memo(function UserHome() {
             );
           }}
           keyExtractor={(item) => item.id.toString()}
-          onScroll={handleScroll}
+          onScroll={animatedScrollHandler}
           scrollEventThrottle={16}
           contentContainerStyle={{
-            paddingTop: insets.top + 72,
+            paddingTop: insets.top + 120, // Increased for header space
           }}
           onEndReached={() => {
             if (hasNextPage && !isFetchingNextPage) {

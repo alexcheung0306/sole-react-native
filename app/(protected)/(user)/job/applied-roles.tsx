@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Stack } from 'expo-router';
-import { View, Text, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppliedRolesContext } from '@/context/AppliedRolesContext';
 import { useRouter } from 'expo-router';
@@ -8,13 +8,15 @@ import FilterSearch from '~/components/custom/filter-search';
 import FlatListEmpty from '~/components/custom/flatlist-empty';
 import PaginationControl from '~/components/projects/PaginationControl';
 import { Calendar, Briefcase, FileText } from 'lucide-react-native';
-import { useScrollHeader } from '~/hooks/useScrollHeader';
 
-export default function AppliedRoles() {
+type AppliedRolesProps = {
+  scrollHandler?: (event: any) => void;
+};
+
+export default function AppliedRoles({ scrollHandler }: AppliedRolesProps) {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
-  const { handleScroll } = useScrollHeader();
   
   const {
     appliedRoles,
@@ -145,7 +147,7 @@ export default function AppliedRoles() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-black">
-        <FlatList
+        <Animated.FlatList
           ref={flatListRef}
           data={applicationsData}
           keyExtractor={(item, index) => item?.id?.toString() || index.toString()}
@@ -200,7 +202,7 @@ export default function AppliedRoles() {
               isLoadingProjects={isLoading}
             />
           }
-          onScroll={handleScroll}
+          onScroll={scrollHandler}
           scrollEventThrottle={16}
           contentContainerStyle={{
             paddingTop: insets.top + 72,

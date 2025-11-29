@@ -3,6 +3,7 @@ import {
   View,
   Text,
   FlatList,
+  Animated,
   TouchableOpacity,
   Dimensions,
   ActivityIndicator,
@@ -26,7 +27,7 @@ const MAX_SELECTION = 10;
 
 export default React.memo(function CameraScreen() {
   const insets = useSafeAreaInsets();
-  const { headerTranslateY, handleScroll } = useScrollHeader();
+  const { headerTranslateY, animatedScrollHandler, handleHeightChange } = useScrollHeader();
   const { selectedMedia, setSelectedMedia, clearMedia } = useCreatePostContext();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [photos, setPhotos] = useState<MediaItem[]>([]);
@@ -343,6 +344,7 @@ export default React.memo(function CameraScreen() {
         <CollapsibleHeader
           title={selectedMedia.length > 0 ? `${selectedMedia.length}/${MAX_SELECTION}` : 'Select Media'}
           translateY={headerTranslateY}
+          onHeightChange={handleHeightChange}
           isDark={true}
           headerLeft={
             <TouchableOpacity onPress={() => router.back()} className="p-2">
@@ -372,12 +374,12 @@ export default React.memo(function CameraScreen() {
             <Text className="text-gray-400 mt-2">Loading media...</Text>
           </View>
         ) : (
-          <FlatList
+          <Animated.FlatList
             data={mediaItems}
             renderItem={renderMediaItem}
             keyExtractor={(item) => item.id}
             numColumns={3}
-            onScroll={handleScroll}
+            onScroll={animatedScrollHandler}
             scrollEventThrottle={16}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ 

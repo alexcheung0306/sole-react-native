@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Stack } from 'expo-router';
-import { View, Text, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { useMyContractsContext } from '@/context/MyContractsContext';
 import { useRouter } from 'expo-router';
 import FilterSearch from '~/components/custom/filter-search';
@@ -10,11 +9,14 @@ import FlatListEmpty from '~/components/custom/flatlist-empty';
 import PaginationControl from '~/components/projects/PaginationControl';
 import { FileCheck, Calendar, Briefcase } from 'lucide-react-native';
 
-export default function MyContracts() {
+type MyContractsProps = {
+  scrollHandler?: (event: any) => void;
+};
+
+export default function MyContracts({ scrollHandler }: MyContractsProps) {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
-  const { handleScroll } = useScrollHeader();
   
   const {
     contracts,
@@ -155,7 +157,7 @@ export default function MyContracts() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-black">
-        <FlatList
+        <Animated.FlatList
           ref={flatListRef}
           data={contractsList}
           keyExtractor={(item, index) => item?.id?.toString() || index.toString()}
@@ -210,7 +212,7 @@ export default function MyContracts() {
               isLoadingProjects={isLoading}
             />
           }
-          onScroll={handleScroll}
+          onScroll={scrollHandler}
           scrollEventThrottle={16}
           contentContainerStyle={{
             paddingTop: insets.top + 72,

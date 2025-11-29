@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Animated } from 'react-native';
 import { AppliedRolesProvider } from '~/context/AppliedRolesContext';
 import { JobPostsProvider } from '~/context/JobPostsContext';
 import { MyContractsProvider } from '~/context/MyContractsContext';
@@ -13,15 +14,16 @@ import { useScrollHeader } from '~/hooks/useScrollHeader';
 type JobTab = 'job-posts' | 'applied-roles' | 'my-contracts';
 
 export default React.memo(function JobIndex() {
-  const { headerTranslateY, handleScroll } = useScrollHeader();
+  const { headerTranslateY, animatedScrollHandler, handleHeightChange } = useScrollHeader();
   const [activeTab, setActiveTab] = useState<JobTab>('job-posts');
 
   return (
     <>
-      <CollapsibleHeader 
-        title={<JobsNavTabs activeTab={activeTab} setActiveTab={setActiveTab} />} 
-        translateY={headerTranslateY} 
-        isDark={true} 
+      <CollapsibleHeader
+        title={<JobsNavTabs activeTab={activeTab} setActiveTab={setActiveTab} />}
+        translateY={headerTranslateY}
+        onHeightChange={handleHeightChange}
+        isDark={true}
       />
 
       <JobPostsProvider>
@@ -29,9 +31,9 @@ export default React.memo(function JobIndex() {
           <MyContractsProvider>
 
             <JobTabContainer activeTab={activeTab}>
-              <JobPosts />
-              <AppliedRoles />
-              <MyContracts />
+              <JobPosts scrollHandler={animatedScrollHandler} />
+              <AppliedRoles scrollHandler={animatedScrollHandler} />
+              <MyContracts scrollHandler={animatedScrollHandler} />
             </JobTabContainer>
 
           </MyContractsProvider>
