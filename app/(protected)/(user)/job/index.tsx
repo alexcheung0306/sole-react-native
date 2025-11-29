@@ -7,6 +7,9 @@ import AppliedRoles from './applied-roles';
 import MyContracts from './my-contracts';
 import JobTabContainer from '@/components/job/JobTabContainer';
 
+
+
+
 export default React.memo(function JobIndex() {
   return (
     <JobPostsProvider>

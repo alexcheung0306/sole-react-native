@@ -1,3 +1,4 @@
+import React from 'react';
 import { Stack } from 'expo-router';
 import { View, ScrollView, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -5,7 +6,7 @@ import { useScrollHeader } from '../../../hooks/useScrollHeader';
 import { CollapsibleHeader } from '../../../components/CollapsibleHeader';
 import { Bookmark } from 'lucide-react-native';
 
-export default function ClientBookmark() {
+export default React.memo(function ClientBookmark() {
   const insets = useSafeAreaInsets();
   const { headerTranslateY, handleScroll } = useScrollHeader();
 
@@ -54,7 +55,7 @@ export default function ClientBookmark() {
       </View>
     </>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

@@ -3,7 +3,7 @@ import { View, Text } from 'react-native';
 import { useUser } from '@clerk/clerk-expo';
 import ClientProfileScreen from './client/[username]/index';
 
-export default function ClientProfileWrapper() {
+export default React.memo(function ClientProfileWrapper() {
   const { user } = useUser();
 
   if (!user?.username) {
@@ -16,5 +16,5 @@ export default function ClientProfileWrapper() {
 
   // Render ClientProfileScreen - it will use the current user's username as fallback
   return <ClientProfileScreen />;
-}
+});
 

@@ -1,3 +1,4 @@
+import React from 'react';
 import { Stack } from 'expo-router';
 import { View, FlatList, Image, Dimensions, TouchableOpacity, Text } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -9,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = width / 3;
 
-export default function ClientTalents() {
+export default React.memo(function ClientTalents() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { headerTranslateY, handleScroll } = useScrollHeader();
@@ -69,4 +70,4 @@ export default function ClientTalents() {
       </View>
     </>
   );
-}
+});

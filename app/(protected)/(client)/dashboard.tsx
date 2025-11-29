@@ -1,3 +1,4 @@
+import React from 'react';
 import { Stack, Link } from 'expo-router';
 import { StyleSheet, View, ScrollView, Text, TouchableOpacity } from 'react-native';
 import { ScreenContent } from '../../../components/ScreenContent';
@@ -7,7 +8,7 @@ import { CollapsibleHeader } from '../../../components/CollapsibleHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HeaderButton } from '../../../components/HeaderButton';
 
-export default function ClientDashboard() {
+export default React.memo(function ClientDashboard() {
   const insets = useSafeAreaInsets();
   const { headerTranslateY, handleScroll } = useScrollHeader();
 
@@ -71,7 +72,7 @@ export default function ClientDashboard() {
       </View>
     </>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

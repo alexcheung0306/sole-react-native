@@ -43,33 +43,33 @@ export default function UserIndex() {
   const pathname = usePathname();
 
   // Initialize tab based on pathname on mount and when pathname changes
-  useEffect(() => {
-    if (pathname?.includes('/user/')) {
-      if (activeTab !== 'user') {
-        setActiveTab('user');
-      }
-    } else if (
-      pathname?.includes('/home') ||
-      pathname === '/(protected)/(user)/' ||
-      pathname === '/(protected)/(user)'
-    ) {
-      if (activeTab !== 'home') {
-        setActiveTab('home');
-      }
-    } else if (pathname?.includes('/explore')) {
-      if (activeTab !== 'explore') {
-        setActiveTab('explore');
-      }
-    } else if (pathname?.includes('/camera')) {
-      if (activeTab !== 'camera') {
-        setActiveTab('camera');
-      }
-    } else if (pathname?.includes('/job')) {
-      if (activeTab !== 'job') {
-        setActiveTab('job');
-      }
-    }
-  }, [pathname, activeTab, setActiveTab]);
+  // useEffect(() => {
+  //   if (pathname?.includes('/user/')) {
+  //     if (activeTab !== 'user') {
+  //       setActiveTab('user');
+  //     }
+  //   } else if (
+  //     pathname?.includes('/home') ||
+  //     pathname === '/(protected)/(user)/' ||
+  //     pathname === '/(protected)/(user)'
+  //   ) {
+  //     if (activeTab !== 'home') {
+  //       setActiveTab('home');
+  //     }
+  //   } else if (pathname?.includes('/explore')) {
+  //     if (activeTab !== 'explore') {
+  //       setActiveTab('explore');
+  //     }
+  //   } else if (pathname?.includes('/camera')) {
+  //     if (activeTab !== 'camera') {
+  //       setActiveTab('camera');
+  //     }
+  //   } else if (pathname?.includes('/job')) {
+  //     if (activeTab !== 'job') {
+  //       setActiveTab('job');
+  //     }
+  //   }
+  // }, [pathname, activeTab, setActiveTab]);
 
   const activeIndex = tabToIndex[activeTab] ?? 0;
 
