@@ -23,13 +23,12 @@ const STATUS_COLORS: Record<string, string> = {
   Completed: '#3b82f6',
 };
 
-export default function ProjectDetailPage() {
+export default function ProjectDetailPage({ scrollHandler }: { scrollHandler: (event: any) => void }) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { headerTranslateY, handleScroll } = useScrollHeader();
   const { id } = useLocalSearchParams();
   const { soleUserId } = useSoleUserContext();
-
+  const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   // Local state for tab and role selection (not in context)
   const [currentTab, setCurrentTab] = useState('project-information');
   const [currentRole, setCurrentRole] = useState(0);
@@ -109,12 +108,13 @@ export default function ProjectDetailPage() {
               <ChevronLeft color="#93c5fd" size={24} />
             </TouchableOpacity>
           }
-          translateY={headerTranslateY}
+          animatedStyle={animatedHeaderStyle}
+          onHeightChange={handleHeightChange}
           isDark={true}
         />
         <ScrollView
           className="flex-1"
-          onScroll={handleScroll}
+          onScroll={scrollHandler}
           scrollEventThrottle={16}
           contentContainerStyle={{
             paddingTop: insets.top + 72,

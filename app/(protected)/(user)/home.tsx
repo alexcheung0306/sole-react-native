@@ -190,7 +190,10 @@ export default React.memo(function UserHome() {
     <BottomSheetModalProvider>
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-black">
-        <CollapsibleHeader title="Feed" animatedStyle={animatedHeaderStyle} onHeightChange={handleHeightChange} isDark={true} />
+        <CollapsibleHeader title="Feed" 
+        animatedStyle={animatedHeaderStyle} 
+        onHeightChange={handleHeightChange} 
+        isDark={true} />
 
         <Animated.FlatList
           data={posts}

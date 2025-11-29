@@ -10,7 +10,7 @@ import { HeaderButton } from '../../../components/HeaderButton';
 
 export default React.memo(function ClientDashboard() {
   const insets = useSafeAreaInsets();
-  const { headerTranslateY, handleScroll } = useScrollHeader();
+  const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
 
   // Create some dummy content to make it scrollable
   const dummyContent = Array.from({ length: 20 }, (_, i) => ({
@@ -30,12 +30,13 @@ export default React.memo(function ClientDashboard() {
               <HeaderButton />
             </Link>
           }
-          translateY={headerTranslateY}
+          animatedStyle={animatedHeaderStyle}
+          onHeightChange={handleHeightChange}
           isDark={true}
         />
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
-          onScroll={handleScroll}
+          onScroll={onScroll}
           scrollEventThrottle={16}
           contentContainerStyle={{
             paddingTop: insets.top + 72, // Increased to account for larger header

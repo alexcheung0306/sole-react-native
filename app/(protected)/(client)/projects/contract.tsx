@@ -16,12 +16,11 @@ import { ChevronLeft } from 'lucide-react-native';
 import { CollapsibleHeader } from '@/components/CollapsibleHeader';
 import AlterContractStatusModal from '@/components/projects/AlterContractStatusModal';
 
-export default function ContractDetailPage() {
+export default function ContractDetailPage({ scrollHandler }: { scrollHandler: (event: any) => void } ) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { headerTranslateY, handleScroll } = useScrollHeader();
   const { id } = useLocalSearchParams();
-
+  const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   const contractId = parseInt(id as string);
 
   const {
@@ -97,12 +96,13 @@ export default function ContractDetailPage() {
               <ChevronLeft color="#93c5fd" size={24} />
             </TouchableOpacity>
           }
-          translateY={headerTranslateY}
+          animatedStyle={animatedHeaderStyle}
+          onHeightChange={handleHeightChange}
           isDark={true}
         />
         <ScrollView
           style={styles.scrollView}
-          onScroll={handleScroll}
+          onScroll={scrollHandler}
           scrollEventThrottle={16}
           contentContainerStyle={{
             paddingTop: insets.top + 72,

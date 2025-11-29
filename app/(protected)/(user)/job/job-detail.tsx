@@ -23,12 +23,12 @@ const STATUS_COLORS: Record<string, string> = {
   Completed: '#3b82f6',
 };
 
-export default function JobDetail() {
+export default function JobDetail({ scrollHandler }: { scrollHandler: (event: any) => void }) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { headerTranslateY, handleScroll } = useScrollHeader();
   const params = useLocalSearchParams();
   const { soleUserId } = useSoleUserContext();
+  const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   
   const projectId = params.id ? parseInt(params.id as string, 10) : 0;
   const [currentTab, setCurrentTab] = useState('job-information');
@@ -134,12 +134,13 @@ export default function JobDetail() {
               <ChevronLeft color="#93c5fd" size={24} />
             </TouchableOpacity>
           }
-          translateY={headerTranslateY}
+          animatedStyle={animatedHeaderStyle}
+          onHeightChange={handleHeightChange}
           isDark={true}
         />
         <ScrollView
           className="flex-1"
-          onScroll={handleScroll}
+          onScroll={scrollHandler}
           scrollEventThrottle={16}
           contentContainerStyle={{
             paddingTop: insets.top + 72,

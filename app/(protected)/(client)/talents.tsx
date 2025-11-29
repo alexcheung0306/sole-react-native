@@ -1,4 +1,3 @@
-import React from 'react';
 import { Stack } from 'expo-router';
 import { View, FlatList, Image, Dimensions, TouchableOpacity, Text } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -10,10 +9,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = width / 3;
 
-export default React.memo(function ClientTalents() {
+export default function ClientTalents() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { headerTranslateY, handleScroll } = useScrollHeader();
+  const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
 
   const images = Array.from({ length: 30 }, (_, i) => ({
     id: i.toString(),
@@ -52,7 +51,8 @@ export default React.memo(function ClientTalents() {
               <Ionicons name="people-outline" size={24} color="#fff" />
             </TouchableOpacity>
           }
-          translateY={headerTranslateY}
+          animatedStyle={animatedHeaderStyle}
+          onHeightChange={handleHeightChange}
           isDark={true}
         />
         <FlatList
@@ -61,7 +61,7 @@ export default React.memo(function ClientTalents() {
           numColumns={3}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
-          onScroll={handleScroll}
+          onScroll={onScroll}
           scrollEventThrottle={16}
           contentContainerStyle={{
             paddingTop: insets.top + 72, // Increased to account for larger header
@@ -70,4 +70,4 @@ export default React.memo(function ClientTalents() {
       </View>
     </>
   );
-});
+}

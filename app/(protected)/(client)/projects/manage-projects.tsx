@@ -12,10 +12,9 @@ import FilterSearch from '~/components/custom/filter-search';
 import FlatListEmpty from '~/components/custom/flatlist-empty';
 import ScreenTransition from '@/components/projects/ScreenTransition';
 
-export default function ManageProjectsPage() {
+export default function ManageProjectsPage({ scrollHandler }: { scrollHandler: (event: any) => void }) {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
-  const { handleScroll } = useScrollHeader();
   const {
     projects,
     projectResults,
@@ -116,7 +115,7 @@ export default function ManageProjectsPage() {
                 isLoadingProjects={isLoadingProjects}
               />
             }
-            onScroll={handleScroll}
+            onScroll={scrollHandler}
             scrollEventThrottle={16}
             contentContainerStyle={{
               paddingTop: insets.top + 72,

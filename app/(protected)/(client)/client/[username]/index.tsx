@@ -38,7 +38,7 @@ export default function ClientProfileScreen() {
   const { signOut } = useAuth();
   const { user } = useUser();
   const insets = useSafeAreaInsets();
-  const { headerTranslateY, handleScroll } = useScrollHeader();
+  const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   const { username } = useLocalSearchParams<{ username: string }>();
   const { currentMode } = useNavigation();
   const queryClient = useQueryClient();
@@ -308,12 +308,13 @@ export default function ClientProfileScreen() {
               </TouchableOpacity>
             ) : undefined
           }
-          translateY={headerTranslateY}
+          animatedStyle={animatedHeaderStyle}
+          onHeightChange={handleHeightChange}
           isDark={true}
         />
         <ScrollView
           className="flex-1 bg-black"
-          onScroll={handleScroll}
+          onScroll={onScroll}
           scrollEventThrottle={16}
           contentContainerStyle={{
             paddingTop: insets.top + 72,

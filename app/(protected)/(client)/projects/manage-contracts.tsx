@@ -10,10 +10,9 @@ import { useManageContractContext } from '@/context/ManageContractContext';
 import ScreenTransition from '@/components/projects/ScreenTransition';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 
-export default function ManageContractsPage() {
+export default function ManageContractsPage({ scrollHandler }: { scrollHandler: (event: any) => void }) {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
-  const { handleScroll } = useScrollHeader();
   const {
     contracts,
     contractResults,
@@ -115,7 +114,7 @@ export default function ManageContractsPage() {
                 isLoadingProjects={isLoadingContracts}
               />
             }
-            onScroll={handleScroll}
+            onScroll={scrollHandler}
             scrollEventThrottle={16}
             contentContainerStyle={{
               paddingTop: insets.top + 72,
