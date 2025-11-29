@@ -6,9 +6,6 @@ import UserHome from './home';
 import Explore from './explore';
 import CameraScreen from './camera/index';
 import UserProfileWrapper from './UserProfileWrapper';
-import { AppliedRolesProvider } from '~/context/AppliedRolesContext';
-import { JobPostsProvider } from '~/context/JobPostsContext';
-import { MyContractsProvider } from '~/context/MyContractsContext';
 import JobIndex from './job';
 import { View } from 'react-native';
 import { CollapsibleHeader } from '~/components/CollapsibleHeader';
@@ -23,23 +20,6 @@ const tabToIndex = {
   job: 3,
   user: 4,
 } as const;
-
-// Memoize children to prevent re-creation on every render
-const MemoizedUserHome = React.memo(UserHome);
-const MemoizedExplore = React.memo(Explore);
-const MemoizedCameraScreen = React.memo(CameraScreen);
-const MemoizedJobRouteWrapper = React.memo(() => (
-  <JobPostsProvider>
-    <AppliedRolesProvider>
-      <MyContractsProvider>
-        <HeaderWrapper>
-          <JobIndex />
-        </HeaderWrapper>
-      </MyContractsProvider>
-    </AppliedRolesProvider>
-  </JobPostsProvider>
-));
-const MemoizedUserProfileWrapper = React.memo(UserProfileWrapper);
 
 function HeaderWrapper({ children }: { children: React.ReactNode }) {
   // Use shared scroll header hook - this will be shared across all job screens
@@ -95,11 +75,13 @@ export default function UserIndex() {
 
   return (
     <UserSwipeableContainer activeIndex={activeIndex}>
-      <MemoizedUserHome />
-      <MemoizedExplore />
-      <MemoizedCameraScreen />
-      <MemoizedJobRouteWrapper />
-      <MemoizedUserProfileWrapper />
+      <UserHome />
+      <Explore />
+      <CameraScreen />
+      <HeaderWrapper>
+        <JobIndex />
+      </HeaderWrapper>
+      <UserProfileWrapper />
     </UserSwipeableContainer>
   );
 }

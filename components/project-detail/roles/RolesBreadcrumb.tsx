@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { AlertCircle } from 'lucide-react-native';
-import CollapseDrawer2 from '@/components/custom/collapse-drawer2';
+import CollapseDrawer from '@/components/custom/collapse-drawer';
 import { DisplayRoleInformation } from './DisplayRoleInformation';
 import { ManageCandidates } from './ManageCandidates';
 
@@ -81,7 +81,7 @@ export function RolesBreadcrumb({
 
       {/* Role Details Drawer */}
       {selectedRole && (
-        <CollapseDrawer2
+        <CollapseDrawer
           showDrawer={isDrawerOpen}
           setShowDrawer={setIsDrawerOpen}
           title={`${selectedRole?.role?.roleTitle || 'Role Details'} • Role #${selectedRole?.role?.id ? String(selectedRole.role.id) : ''} • ${currentRole + 1} of ${rolesWithSchedules.length}`}>
@@ -112,7 +112,7 @@ export function RolesBreadcrumb({
               )}
             </ScrollView>
           </View>
-        </CollapseDrawer2>
+        </CollapseDrawer>
       )}
     </View>
   );

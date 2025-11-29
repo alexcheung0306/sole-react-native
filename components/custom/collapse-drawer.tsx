@@ -1,4 +1,4 @@
-// custom/collapse-drawer2.tsx
+// custom/collapse-drawer.tsx
 import React, { useEffect, useState, useRef } from 'react';
 import {
   Modal,
@@ -29,7 +29,7 @@ type Props = {
   height?: number;
 };
 
-export default function CollapseDrawer2({
+export default function CollapseDrawer({
   showDrawer,
   setShowDrawer,
   title = '',

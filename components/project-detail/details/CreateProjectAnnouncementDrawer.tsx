@@ -3,8 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-nativ
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { createProjectAnnouncement } from '@/api/apiservice/project_announcement_api';
-import CollapseDrawer2 from '~/components/custom/collapse-drawer2';
 import { PlusIcon } from 'lucide-react-native';
+import CollapseDrawer from '~/components/custom/collapse-drawer';
 
 type CreateProjectAnnouncementDrawerProps = {
   projectId: number;
@@ -126,7 +126,7 @@ export function CreateProjectAnnouncementDrawer({
         <Text className="text-sm font-semibold">Create Project Announcement</Text>
       </TouchableOpacity>
       
-      <CollapseDrawer2
+      <CollapseDrawer
         showDrawer={showDrawer}
         setShowDrawer={setShowDrawer}
         title="New Announcement">
@@ -265,7 +265,7 @@ export function CreateProjectAnnouncementDrawer({
             </View>
           </View>
         </ScrollView>
-      </CollapseDrawer2>
+      </CollapseDrawer>
     </>
   );
 }

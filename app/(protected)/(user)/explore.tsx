@@ -1,6 +1,6 @@
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { View, FlatList, ActivityIndicator, Text, RefreshControl, Dimensions, TouchableOpacity, TextInput, Image, ScrollView } from 'react-native';
-import { useState, useCallback, useRef, useEffect } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
@@ -29,7 +29,7 @@ const GAP = 4;
 // Calculate thumbnail size for 3 columns
 const EXPLORE_THUMBNAIL_SIZE = (SCREEN_WIDTH - (GAP * (EXPLORE_COLUMNS + 1))) / EXPLORE_COLUMNS;
 
-export default function Explore() {
+export default React.memo(function Explore() {
   const insets = useSafeAreaInsets();
   const { headerTranslateY, handleScroll } = useScrollHeader();
   const { soleUserId } = useSoleUserContext();
@@ -506,4 +506,4 @@ export default function Explore() {
         )}
       </BottomSheetModalProvider>
   );
-}
+});

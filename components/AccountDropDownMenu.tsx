@@ -5,16 +5,19 @@ import { useRouter } from 'expo-router';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
-import CollapseDrawer2 from './custom/collapse-drawer2';
 import { SwitchInterface } from './profile/switch-interface';
+import CollapseDrawer from './custom/collapse-drawer';
 
 interface AccountDropDownMenuProps {
   color: string;
   focused: boolean;
   onPress: () => void;
+  profileLabel: string;
+  activeTab: string;
+  profileTab: string;
 }
 
-export function AccountDropDownMenu({ color, focused, onPress }: AccountDropDownMenuProps) {
+export function AccountDropDownMenu({ color, focused, onPress, activeTab, profileTab, profileLabel }: AccountDropDownMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const { signOut } = useAuth();
@@ -85,7 +88,7 @@ export function AccountDropDownMenu({ color, focused, onPress }: AccountDropDown
     if (longPressTriggeredRef.current || isOpen) {
       return;
     }
-    
+
     // Navigate on tap
     if (onPress) {
       onPress();
@@ -112,12 +115,30 @@ export function AccountDropDownMenu({ color, focused, onPress }: AccountDropDown
   return (
     <>
       <GestureDetector gesture={composedGesture}>
-        <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-          <UserCircle color={color} size={24} />
+        <View
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 4,
+          }}>
+          <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+            <UserCircle color={color} size={24} />
+          </View>
+          <Text
+            style={{
+              color: activeTab === profileTab ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)',
+              fontSize: 10,
+              marginTop: 4,
+            }}>
+            {profileLabel}
+          </Text>
         </View>
+
+
       </GestureDetector>
 
-      <CollapseDrawer2
+      <CollapseDrawer
         showDrawer={isOpen}
         setShowDrawer={setIsOpen}
         title={
@@ -145,7 +166,7 @@ export function AccountDropDownMenu({ color, focused, onPress }: AccountDropDown
 
           {/* Switch Interface */}
           <View style={{ width: '100%', overflow: 'hidden', paddingHorizontal: 20 }}>
-            <SwitchInterface setIsOpen={setIsOpen}/>
+            <SwitchInterface setIsOpen={setIsOpen} />
           </View>
 
           {/* Menu Items */}
@@ -156,21 +177,18 @@ export function AccountDropDownMenu({ color, focused, onPress }: AccountDropDown
                 <TouchableOpacity
                   key={index}
                   onPress={() => item.onPress(() => setIsOpen(false))}
-                  className={`flex-row items-center gap-3 rounded-2xl border px-4 py-3 ${
-                    item.danger ? 'border-rose-500/30 bg-rose-500/10' : 'border-white/10 bg-white/5'
-                  }`}
+                  className={`flex-row items-center gap-3 rounded-2xl border px-4 py-3 ${item.danger ? 'border-rose-500/30 bg-rose-500/10' : 'border-white/10 bg-white/5'
+                    }`}
                   activeOpacity={0.85}>
                   <View
-                    className={`rounded-full p-2 ${
-                      item.danger ? 'bg-rose-500/20' : 'bg-blue-500/20'
-                    }`}>
+                    className={`rounded-full p-2 ${item.danger ? 'bg-rose-500/20' : 'bg-blue-500/20'
+                      }`}>
                     <Icon size={20} color={item.danger ? '#fecaca' : '#bfdbfe'} />
                   </View>
                   <View className="flex-1">
                     <Text
-                      className={`text-sm font-semibold ${
-                        item.danger ? 'text-rose-300' : 'text-white'
-                      }`}>
+                      className={`text-sm font-semibold ${item.danger ? 'text-rose-300' : 'text-white'
+                        }`}>
                       {item.label}
                     </Text>
                   </View>
@@ -179,7 +197,7 @@ export function AccountDropDownMenu({ color, focused, onPress }: AccountDropDown
             })}
           </View>
         </View>
-      </CollapseDrawer2>
+      </CollapseDrawer>
     </>
   );
 }

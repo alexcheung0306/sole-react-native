@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { Search, X, Filter } from 'lucide-react-native';
-import CollapseDrawer2 from './collapse-drawer2';
+import CollapseDrawer from './collapse-drawer';
 
 interface FilterSearchProps {
   searchBy: string;
@@ -126,7 +126,7 @@ export default function FilterSearch({
           <Filter color="#9ca3af" size={20} />
         </TouchableOpacity>
 
-        <CollapseDrawer2
+        <CollapseDrawer
           showDrawer={showDrawer}
           setShowDrawer={setShowDrawer}
           title="Search & Filter">
@@ -238,7 +238,7 @@ export default function FilterSearch({
               </TouchableOpacity>
             </View>
           </View>
-        </CollapseDrawer2>
+        </CollapseDrawer>
 
         {/* Search Input */}
         <View className="flex-1 flex-row items-center rounded-xl border border-white/10 bg-black/30 px-3">

@@ -1,3 +1,4 @@
+import React from 'react';
 import { Stack } from 'expo-router';
 import {
   View,
@@ -7,7 +8,6 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
-import { useCallback } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CollapsibleHeader } from '../../../components/CollapsibleHeader';
 import { useScrollHeader } from '../../../hooks/useScrollHeader';
@@ -18,12 +18,11 @@ import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-q
 import {
   searchPosts,
   togglePostLike,
-  getPostComments,
   createPostComment,
   PostWithDetailsResponse,
 } from '~/api/apiservice/post_api';
 
-export default function UserHome() {
+export default React.memo(function UserHome() {
   const insets = useSafeAreaInsets();
   const { headerTranslateY, handleScroll } = useScrollHeader();
   const { soleUserId } = useSoleUserContext();
@@ -119,7 +118,7 @@ export default function UserHome() {
     });
   };
 
- 
+
 
   // Transform backend response to component format with defensive null checks
   const transformPost = (backendPost: PostWithDetailsResponse) => {
@@ -188,64 +187,64 @@ export default function UserHome() {
 
   return (
     <BottomSheetModalProvider>
-        <Stack.Screen options={{ headerShown: false }} />
-        <View className="flex-1 bg-black">
-          <CollapsibleHeader title="Feed" translateY={headerTranslateY} isDark={true} />
+      <Stack.Screen options={{ headerShown: false }} />
+      <View className="flex-1 bg-black">
+        <CollapsibleHeader title="Feed" translateY={headerTranslateY} isDark={true} />
 
-          <FlatList
-            data={posts}
-            renderItem={({ item }) => {
-              const transformedPost = transformPost(item);
-              return (
-                <PostCard
-                  post={transformedPost}
-                  onLike={handleLike}
-                  onAddComment={handleAddComment}
-                  comments={[]} // Comments will be fetched when sheet opens
-                />
-              );
-            }}
-            keyExtractor={(item) => item.id.toString()}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            contentContainerStyle={{
-              paddingTop: insets.top + 72,
-            }}
-            onEndReached={() => {
-              if (hasNextPage && !isFetchingNextPage) {
-                fetchNextPage();
-              }
-            }}
-            onEndReachedThreshold={0.5}
-            ListFooterComponent={() => {
-              if (!isFetchingNextPage) return null;
-              return (
-                <View className="items-center py-4">
-                  <ActivityIndicator size="large" color="#3b82f6" />
-                </View>
-              );
-            }}
-            ListEmptyComponent={() => {
-              if (isLoading) return null;
-              return (
-                <View className="items-center justify-center py-20">
-                  <Text className="text-lg text-gray-400">No posts yet</Text>
-                  <Text className="mt-2 text-sm text-gray-500">Be the first to create a post!</Text>
-                </View>
-              );
-            }}
-            refreshControl={
-              <RefreshControl
-                refreshing={false}
-                onRefresh={() => refetch()}
-                tintColor="#3b82f6"
-                colors={['#3b82f6']}
-                progressViewOffset={insets.top + 72}
+        <FlatList
+          data={posts}
+          renderItem={({ item }) => {
+            const transformedPost = transformPost(item);
+            return (
+              <PostCard
+                post={transformedPost}
+                onLike={handleLike}
+                onAddComment={handleAddComment}
+                comments={[]} // Comments will be fetched when sheet opens
               />
+            );
+          }}
+          keyExtractor={(item) => item.id.toString()}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          contentContainerStyle={{
+            paddingTop: insets.top + 72,
+          }}
+          onEndReached={() => {
+            if (hasNextPage && !isFetchingNextPage) {
+              fetchNextPage();
             }
-            showsVerticalScrollIndicator={false}
-          />
-        </View>
-      </BottomSheetModalProvider>
+          }}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={() => {
+            if (!isFetchingNextPage) return null;
+            return (
+              <View className="items-center py-4">
+                <ActivityIndicator size="large" color="#3b82f6" />
+              </View>
+            );
+          }}
+          ListEmptyComponent={() => {
+            if (isLoading) return null;
+            return (
+              <View className="items-center justify-center py-20">
+                <Text className="text-lg text-gray-400">No posts yet</Text>
+                <Text className="mt-2 text-sm text-gray-500">Be the first to create a post!</Text>
+              </View>
+            );
+          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={false}
+              onRefresh={() => refetch()}
+              tintColor="#3b82f6"
+              colors={['#3b82f6']}
+              progressViewOffset={insets.top + 72}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
+    </BottomSheetModalProvider>
   );
-}
+});

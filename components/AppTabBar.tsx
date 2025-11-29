@@ -277,65 +277,50 @@ export default function AppTabBar() {
           paddingBottom: insets.bottom,
           paddingTop: 4,
         }}>
-      <Animated.View
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'space-around',
-          alignItems: 'center',
-          opacity: fadeAnim,
-        }}>
-        {/* Render regular tabs */}
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const active = activeTab === tab.tab;
-
-          return (
-            <TouchableOpacity
-              key={tab.name}
-              activeOpacity={0.7}
-              onPress={tab.onPress}
-              style={{
-                flex: 1,
-                alignItems: 'center',
-                justifyContent: 'center',
-                paddingVertical: 4,
-              }}>
-              <Icon color={active ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)'} size={24} />
-              <Text
-                style={{
-                  color: active ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)',
-                  fontSize: 10,
-                  marginTop: 4,
-                }}>
-                {tab.name}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-
-        {/* Render profile tab with AccountDropDownMenu */}
-        <View
+        <Animated.View
           style={{
-            flex: 1,
+            flexDirection: 'row',
+            justifyContent: 'space-around',
             alignItems: 'center',
-            justifyContent: 'center',
-            paddingVertical: 4,
+            opacity: fadeAnim,
           }}>
+          {/* Render regular tabs */}
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const active = activeTab === tab.tab;
+
+            return (
+              <TouchableOpacity
+                key={tab.name}
+                activeOpacity={0.7}
+                onPress={tab.onPress}
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingVertical: 4,
+                }}>
+                <Icon color={active ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)'} size={24} />
+                <Text
+                  style={{
+                    color: active ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)',
+                    fontSize: 10,
+                    marginTop: 4,
+                  }}>
+                  {tab.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+
+          {/* Render profile tab with AccountDropDownMenu */}
+
           <AccountDropDownMenu
             color={activeTab === profileTab ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)'}
             focused={activeTab === profileTab}
-            onPress={profilePressHandler}
-          />
-          <Text
-            style={{
-              color: activeTab === profileTab ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)',
-              fontSize: 10,
-              marginTop: 4,
-            }}>
-            {profileLabel}
-          </Text>
-        </View>
-      </Animated.View>
+            onPress={profilePressHandler} profileLabel={profileLabel} activeTab={activeTab} profileTab={profileTab} />
+
+        </Animated.View>
       </View>
     </View>
   );

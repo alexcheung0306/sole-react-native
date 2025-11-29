@@ -16,7 +16,7 @@ import {
 } from '@/api/apiservice/jobContracts_api';
 import PaginationControl from '~/components/projects/PaginationControl';
 import FilterSearch from '~/components/custom/filter-search';
-import CollapseDrawer2 from '~/components/custom/collapse-drawer2';
+import CollapseDrawer from '~/components/custom/collapse-drawer';
 
 type ProjectContractsTabProps = {
   projectId: number;
@@ -217,7 +217,7 @@ export function ProjectContractsTab({
             </Text>
           </TouchableOpacity>
           
-          <CollapseDrawer2
+          <CollapseDrawer
             showDrawer={showBatchDrawer}
             setShowDrawer={setShowBatchDrawer}
             title="Batch update contracts">
@@ -286,7 +286,7 @@ export function ProjectContractsTab({
                 </TouchableOpacity>
               </View>
             </View>
-          </CollapseDrawer2>
+          </CollapseDrawer>
         </View>
 
         <FilterSearch

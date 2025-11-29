@@ -24,7 +24,7 @@ const { width } = Dimensions.get('window');
 const ITEM_SIZE = width / 3;
 const MAX_SELECTION = 10;
 
-export default function CameraScreen() {
+export default React.memo(function CameraScreen() {
   const insets = useSafeAreaInsets();
   const { headerTranslateY, handleScroll } = useScrollHeader();
   const { selectedMedia, setSelectedMedia, clearMedia } = useCreatePostContext();
@@ -403,4 +403,4 @@ export default function CameraScreen() {
       </View>
     </>
   );
-}
+});
