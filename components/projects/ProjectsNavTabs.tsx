@@ -1,10 +1,15 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { useProjectTabContext } from '@/context/ProjectTabContext';
 import { FolderKanban, FileText } from 'lucide-react-native';
 
-export default function ProjectsNavTabs() {
-  const { activeTab, setActiveTab } = useProjectTabContext();
+type ProjectTab = 'manage-projects' | 'manage-contracts';
+
+type ProjectsNavTabsProps = {
+  activeTab: ProjectTab;
+  setActiveTab: (tab: ProjectTab) => void;
+};
+
+export default function ProjectsNavTabs({ activeTab, setActiveTab }: ProjectsNavTabsProps) {
 
   const tabs = [
     {

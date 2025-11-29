@@ -2,8 +2,6 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { router, useSegments } from 'expo-router';
 import { useUser } from '@clerk/clerk-expo';
 import { AppTabProvider, useAppTabContext } from './AppTabContext';
-import { JobTabProvider } from './JobTabContext';
-import { ProjectTabProvider } from './ProjectTabContext';
 import { HeaderProvider } from './HeaderContext';
 
 type NavigationMode = 'client' | 'user';
@@ -100,13 +98,9 @@ function NavigationProviderInner({ children }: { children: React.ReactNode }) {
 export function NavigationProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppTabProvider>
-      <JobTabProvider>
-        <ProjectTabProvider>
-          <HeaderProvider>
-            <NavigationProviderInner>{children}</NavigationProviderInner>
-          </HeaderProvider>
-        </ProjectTabProvider>
-      </JobTabProvider>
+      <HeaderProvider>
+        <NavigationProviderInner>{children}</NavigationProviderInner>
+      </HeaderProvider>
     </AppTabProvider>
   );
 }

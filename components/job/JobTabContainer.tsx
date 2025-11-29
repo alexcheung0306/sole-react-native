@@ -6,12 +6,14 @@ import Animated, {
   withSpring,
   cancelAnimation,
 } from 'react-native-reanimated';
-import { useJobTabContext } from '@/context/JobTabContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+type JobTab = 'job-posts' | 'applied-roles' | 'my-contracts';
+
 type JobTabContainerProps = {
   children: React.ReactNode[];
+  activeTab: JobTab;
 };
 
 // Map tab names to indices
@@ -21,8 +23,7 @@ const tabToIndex = {
   'my-contracts': 2,
 } as const;
 
-export default function JobTabContainer({ children }: JobTabContainerProps) {
-  const { activeTab } = useJobTabContext();
+export default function JobTabContainer({ children, activeTab }: JobTabContainerProps) {
   const translateX = useSharedValue(-tabToIndex[activeTab] * SCREEN_WIDTH);
 
   // Update translateX when activeTab changes (with animation)

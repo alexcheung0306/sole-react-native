@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppliedRolesProvider } from '~/context/AppliedRolesContext';
 import { JobPostsProvider } from '~/context/JobPostsContext';
 import { MyContractsProvider } from '~/context/MyContractsContext';
@@ -10,30 +10,33 @@ import { CollapsibleHeader } from '~/components/CollapsibleHeader';
 import JobsNavTabs from '~/components/job/JobsNavTabs';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 
-
-
+type JobTab = 'job-posts' | 'applied-roles' | 'my-contracts';
 
 export default React.memo(function JobIndex() {
   const { headerTranslateY, handleScroll } = useScrollHeader();
+  const [activeTab, setActiveTab] = useState<JobTab>('job-posts');
 
   return (
     <>
-      <CollapsibleHeader title={<JobsNavTabs />} translateY={headerTranslateY} isDark={true} />
+      <CollapsibleHeader 
+        title={<JobsNavTabs activeTab={activeTab} setActiveTab={setActiveTab} />} 
+        translateY={headerTranslateY} 
+        isDark={true} 
+      />
 
+      <JobPostsProvider>
+        <AppliedRolesProvider>
+          <MyContractsProvider>
 
-    <JobPostsProvider>
-      <AppliedRolesProvider>
-        <MyContractsProvider>
+            <JobTabContainer activeTab={activeTab}>
+              <JobPosts />
+              <AppliedRoles />
+              <MyContracts />
+            </JobTabContainer>
 
-          <JobTabContainer>
-            <JobPosts />
-            <AppliedRoles />
-            <MyContracts />
-          </JobTabContainer>
-
-        </MyContractsProvider>
-      </AppliedRolesProvider>
-    </JobPostsProvider>
+          </MyContractsProvider>
+        </AppliedRolesProvider>
+      </JobPostsProvider>
     </>
   );
 });

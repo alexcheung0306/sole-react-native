@@ -6,12 +6,14 @@ import Animated, {
   withSpring,
   cancelAnimation,
 } from 'react-native-reanimated';
-import { useProjectTabContext } from '@/context/ProjectTabContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+type ProjectTab = 'manage-projects' | 'manage-contracts';
+
 type ProjectTabContainerProps = {
   children: React.ReactNode[];
+  activeTab: ProjectTab;
 };
 
 // Map tab names to indices
@@ -20,8 +22,7 @@ const tabToIndex = {
   'manage-contracts': 1,
 } as const;
 
-export default function ProjectTabContainer({ children }: ProjectTabContainerProps) {
-  const { activeTab } = useProjectTabContext();
+export default function ProjectTabContainer({ children, activeTab }: ProjectTabContainerProps) {
   const translateX = useSharedValue(-tabToIndex[activeTab] * SCREEN_WIDTH);
 
   // Update translateX when activeTab changes (with animation)

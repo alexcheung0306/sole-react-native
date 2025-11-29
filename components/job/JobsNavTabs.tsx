@@ -1,10 +1,15 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { useJobTabContext } from '@/context/JobTabContext';
 import { Briefcase, FileText, Search } from 'lucide-react-native';
 
-export default function JobsNavTabs() {
-  const { activeTab, setActiveTab } = useJobTabContext();
+type JobTab = 'job-posts' | 'applied-roles' | 'my-contracts';
+
+type JobsNavTabsProps = {
+  activeTab: JobTab;
+  setActiveTab: (tab: JobTab) => void;
+};
+
+export default function JobsNavTabs({ activeTab, setActiveTab }: JobsNavTabsProps) {
 
   const tabs = [
     {
