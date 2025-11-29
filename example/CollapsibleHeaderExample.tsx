@@ -4,19 +4,19 @@ import { CollapsibleHeader } from '../components/CollapsibleHeader';
 import { useScrollHeader } from '../hooks/useScrollHeader';
 
 export const CollapsibleHeaderExample = () => {
-  const { headerTranslateY, scrollY, animatedScrollHandler, handleHeightChange } = useScrollHeader();
+  const { animatedHeaderStyle, scrollY, onScroll, handleHeightChange } = useScrollHeader();
 
   return (
     <View style={styles.container}>
       <CollapsibleHeader
         title="Collapsible Header"
-        translateY={headerTranslateY}
+        animatedStyle={animatedHeaderStyle}
         onHeightChange={handleHeightChange}
       />
 
       <Animated.ScrollView
         style={styles.scrollView}
-        onScroll={animatedScrollHandler}
+        onScroll={onScroll}
         scrollEventThrottle={16}
       >
         <View style={styles.content}>

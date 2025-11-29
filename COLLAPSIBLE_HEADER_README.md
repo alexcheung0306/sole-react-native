@@ -5,8 +5,9 @@ The collapsible header wasn't showing slide transitions because the ScrollView w
 
 ## The Fix
 1. **Use `Animated.ScrollView`** instead of regular `ScrollView`
-2. **Use `animatedScrollHandler`** instead of `onScroll` prop
-3. **Ensure proper height measurement** with `onHeightChange`
+2. **Use `onScroll` handler** from the hook
+3. **Use `animatedStyle`** prop on CollapsibleHeader
+4. **Ensure proper height measurement** with `onHeightChange`
 
 ## Correct Usage
 
@@ -17,18 +18,18 @@ import { CollapsibleHeader } from './components/CollapsibleHeader';
 import { useScrollHeader } from './hooks/useScrollHeader';
 
 export const MyScreen = () => {
-  const { headerTranslateY, animatedScrollHandler, handleHeightChange } = useScrollHeader();
+  const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
 
   return (
     <View style={{ flex: 1 }}>
       <CollapsibleHeader
         title="My Header"
-        translateY={headerTranslateY}
+        animatedStyle={animatedHeaderStyle}
         onHeightChange={handleHeightChange}
       />
 
       <Animated.ScrollView
-        onScroll={animatedScrollHandler}
+        onScroll={onScroll}
         scrollEventThrottle={16}
       >
         {/* Your content here */}
@@ -44,20 +45,19 @@ export const MyScreen = () => {
 ## How It Works
 
 1. **Header measures its height** using `onLayout` and reports it via `onHeightChange`
-2. **ScrollView uses Animated.event** to track scroll position
-3. **Header animates** based on scroll direction and position:
-   - At top (≤20px): Always visible
-   - Scrolling down past header height: Slides up to hide
-   - Scrolling up: Slides down to show
+2. **ScrollView uses reanimated worklets** to track scroll position on UI thread
+3. **Header animates with reanimated** `withSpring` and `withTiming` for smooth 60fps animations:
+   - At top (≤20px): Smooth spring animation to show (no bounce)
+   - Scrolling down: Fast timing animation to hide immediately
+   - Scrolling up: Smooth spring animation to show (no bounce)
 
 ## Debug Logs
 Check console for:
 - `Header height measured: X` - Confirms height is measured
-- `Hiding header (scroll down)` - Animation triggered on scroll down
-- `Showing header (scroll up)` - Animation triggered on scroll up
-- `Showing header at top` - Animation triggered when reaching top
+- Animation triggers (commented out for production)
 
 ## Common Issues
-- Make sure to import `Animated` from react-native
+- Make sure to import `Animated` from `react-native-reanimated`
 - Use `Animated.ScrollView` not regular `ScrollView`
-- Use `animatedScrollHandler` not `handleScroll`
+- Use `animatedStyle` prop on CollapsibleHeader (not `translateY`)
+- Use `onScroll` handler from hook (not `handleScroll`)

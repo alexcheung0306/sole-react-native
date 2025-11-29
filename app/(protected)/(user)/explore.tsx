@@ -31,7 +31,7 @@ const EXPLORE_THUMBNAIL_SIZE = (SCREEN_WIDTH - (GAP * (EXPLORE_COLUMNS + 1))) / 
 
 export default React.memo(function Explore() {
   const insets = useSafeAreaInsets();
-  const { headerTranslateY, animatedScrollHandler, handleHeightChange } = useScrollHeader();
+  const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   const { soleUserId } = useSoleUserContext();
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -364,7 +364,7 @@ export default React.memo(function Explore() {
         <View className="flex-1 bg-black">
           <CollapsibleHeader
             title="Explore"
-            translateY={headerTranslateY}
+            animatedStyle={animatedHeaderStyle}
             onHeightChange={handleHeightChange}
             isDark={true}
             headerRight={
@@ -464,7 +464,7 @@ export default React.memo(function Explore() {
             keyExtractor={(item, index) => item?.id?.toString() ?? `post-${index}`}
             numColumns={viewMode === 'grid' ? EXPLORE_COLUMNS : 1}
             key={`${viewMode}-${EXPLORE_COLUMNS}`}
-            onScroll={animatedScrollHandler}
+            onScroll={onScroll}
             scrollEventThrottle={16}
             contentContainerStyle={{
               paddingHorizontal: 4,

@@ -25,7 +25,7 @@ import {
 
 export default React.memo(function UserHome() {
   const insets = useSafeAreaInsets();
-  const { headerTranslateY, animatedScrollHandler, handleHeightChange } = useScrollHeader();
+  const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   const { soleUserId } = useSoleUserContext();
   const queryClient = useQueryClient();
 
@@ -190,7 +190,7 @@ export default React.memo(function UserHome() {
     <BottomSheetModalProvider>
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-black">
-        <CollapsibleHeader title="Feed" translateY={headerTranslateY} onHeightChange={handleHeightChange} isDark={true} />
+        <CollapsibleHeader title="Feed" animatedStyle={animatedHeaderStyle} onHeightChange={handleHeightChange} isDark={true} />
 
         <Animated.FlatList
           data={posts}
@@ -206,7 +206,7 @@ export default React.memo(function UserHome() {
             );
           }}
           keyExtractor={(item) => item.id.toString()}
-          onScroll={animatedScrollHandler}
+          onScroll={onScroll}
           scrollEventThrottle={16}
           contentContainerStyle={{
             paddingTop: insets.top + 120, // Increased for header space

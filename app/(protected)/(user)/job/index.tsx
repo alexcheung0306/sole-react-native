@@ -14,14 +14,14 @@ import { useScrollHeader } from '~/hooks/useScrollHeader';
 type JobTab = 'job-posts' | 'applied-roles' | 'my-contracts';
 
 export default React.memo(function JobIndex() {
-  const { headerTranslateY, animatedScrollHandler, handleHeightChange } = useScrollHeader();
+  const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   const [activeTab, setActiveTab] = useState<JobTab>('job-posts');
 
   return (
     <>
       <CollapsibleHeader
         title={<JobsNavTabs activeTab={activeTab} setActiveTab={setActiveTab} />}
-        translateY={headerTranslateY}
+        animatedStyle={animatedHeaderStyle}
         onHeightChange={handleHeightChange}
         isDark={true}
       />
@@ -31,9 +31,9 @@ export default React.memo(function JobIndex() {
           <MyContractsProvider>
 
             <JobTabContainer activeTab={activeTab}>
-              <JobPosts scrollHandler={animatedScrollHandler} />
-              <AppliedRoles scrollHandler={animatedScrollHandler} />
-              <MyContracts scrollHandler={animatedScrollHandler} />
+              <JobPosts scrollHandler={onScroll} />
+              <AppliedRoles scrollHandler={onScroll} />
+              <MyContracts scrollHandler={onScroll} />
             </JobTabContainer>
 
           </MyContractsProvider>

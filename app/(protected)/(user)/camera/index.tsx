@@ -27,7 +27,7 @@ const MAX_SELECTION = 10;
 
 export default React.memo(function CameraScreen() {
   const insets = useSafeAreaInsets();
-  const { headerTranslateY, animatedScrollHandler, handleHeightChange } = useScrollHeader();
+  const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   const { selectedMedia, setSelectedMedia, clearMedia } = useCreatePostContext();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [photos, setPhotos] = useState<MediaItem[]>([]);
@@ -343,7 +343,7 @@ export default React.memo(function CameraScreen() {
       <View className="flex-1 bg-black">
         <CollapsibleHeader
           title={selectedMedia.length > 0 ? `${selectedMedia.length}/${MAX_SELECTION}` : 'Select Media'}
-          translateY={headerTranslateY}
+          animatedStyle={animatedHeaderStyle}
           onHeightChange={handleHeightChange}
           isDark={true}
           headerLeft={
@@ -379,7 +379,7 @@ export default React.memo(function CameraScreen() {
             renderItem={renderMediaItem}
             keyExtractor={(item) => item.id}
             numColumns={3}
-            onScroll={animatedScrollHandler}
+            onScroll={onScroll}
             scrollEventThrottle={16}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ 

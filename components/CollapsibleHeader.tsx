@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
-import { View, Text, TouchableOpacity, Animated, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, StatusBar } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,7 +10,7 @@ interface CollapsibleHeaderProps {
   title: string | React.ReactNode;
   headerRight?: React.ReactNode;
   headerLeft?: React.ReactNode;
-  translateY: Animated.Value;
+  animatedStyle?: any; // Reanimated animated style
   onHeightChange?: (height: number) => void;
   backgroundColor?: string;
   textColor?: string;
@@ -21,7 +22,7 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
   title,
   headerRight,
   headerLeft,
-  translateY,
+  animatedStyle,
   onHeightChange,
   backgroundColor,
   textColor,
@@ -41,22 +42,18 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
     onHeightChange?.(height);
   }, [onHeightChange]);
 
-  // Debug: Remove after testing
-  // console.log('🎭 CollapsibleHeader render, translateY:', (translateY as any)?._value);
-
-  // Fallback to 0 if translateY is not a valid Animated.Value
-  const safeTranslateY = translateY && typeof translateY === 'object' && (translateY as any)._value !== undefined ? translateY : new Animated.Value(0);
-
   return (
     <Animated.View
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1000,
-        transform: [{ translateY: safeTranslateY }],
-      }}
+      style={[
+        {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000,
+        },
+        animatedStyle,
+      ]}
       onLayout={handleLayout}
     >
       {/* Blur Background */}
