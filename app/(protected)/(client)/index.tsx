@@ -1,6 +1,5 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useAppTabContext, isClientTab } from '@/context/AppTabContext';
-import { usePathname } from 'expo-router';
 import ClientSwipeableContainer from '@/components/client/ClientSwipeableContainer';
 import ClientDashboard from './dashboard';
 import ClientBookmark from './bookmark';
@@ -21,56 +20,14 @@ const tabToIndex = {
   client: 4,
 } as const;
 
-function HeaderWrapper({ children }: { children: React.ReactNode }) {
-  // Use shared scroll header hook - this will be shared across all job screens
-  const { headerTranslateY } = useScrollHeader();
-
-  return (
-    <View style={{ flex: 1, backgroundColor: '#000000' }}>
-      <CollapsibleHeader title={<ProjectsNavTabs />} translateY={headerTranslateY} isDark={true} />
-      {children}
-    </View>
-  );
-}
-
 export default function ClientIndex() {
-  const { activeTab, setActiveTab } = useAppTabContext();
+  const { activeTab } = useAppTabContext();
 
   // Type guard to ensure we're in client mode
   if (!isClientTab(activeTab)) {
     return null; // Don't render if not in client mode
   }
-  const pathname = usePathname();
-
-  // Initialize tab based on pathname on mount and when pathname changes
-  // useEffect(() => {
-  //   if (pathname?.includes('/client/')) {
-  //     if (activeTab !== 'client') {
-  //       setActiveTab('client');
-  //     }
-  //   } else if (
-  //     pathname?.includes('/dashboard') ||
-  //     pathname === '/(protected)/(client)/' ||
-  //     pathname === '/(protected)/(client)'
-  //   ) {
-  //     if (activeTab !== 'dashboard') {
-  //       setActiveTab('dashboard');
-  //     }
-  //   } else if (pathname?.includes('/bookmark')) {
-  //     if (activeTab !== 'bookmark') {
-  //       setActiveTab('bookmark');
-  //     }
-  //   } else if (pathname?.includes('/talents')) {
-  //     if (activeTab !== 'talents') {
-  //       setActiveTab('talents');
-  //     }
-  //   } else if (pathname?.includes('/projects')) {
-  //     if (activeTab !== 'projects') {
-  //       setActiveTab('projects');
-  //     }
-  //   }
-  // }, [pathname, activeTab, setActiveTab]);
-
+ 
   const activeIndex = tabToIndex[activeTab] ?? 0;
 
   return (
@@ -78,9 +35,7 @@ export default function ClientIndex() {
       <ClientDashboard />
       <ClientBookmark />
       <ClientTalents />
-      <HeaderWrapper>
         <ProjectsIndex />
-      </HeaderWrapper>
       <ClientProfileWrapper />
     </ClientSwipeableContainer>
   );
