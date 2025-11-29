@@ -114,35 +114,30 @@ export default function AppTabBar() {
   const handleUserHomePress = () => {
     if (activeTab !== 'home') {
       setActiveTab('home');
-      router.replace('/(protected)/(user)' as any);
     }
   };
 
   const handleUserExplorePress = () => {
     if (activeTab !== 'explore') {
       setActiveTab('explore');
-      router.replace('/(protected)/(user)' as any);
     }
   };
 
   const handleUserCameraPress = () => {
     if (activeTab !== 'camera') {
       setActiveTab('camera');
-      router.replace('/(protected)/(user)' as any);
     }
   };
 
   const handleUserJobPress = () => {
     if (activeTab !== 'job') {
       setActiveTab('job');
-      router.replace('/(protected)/(user)' as any);
     }
   };
 
   const handleUserProfilePress = () => {
     if (activeTab !== 'user') {
       setActiveTab('user');
-      router.replace('/(protected)/(user)' as any);
     }
   };
 
@@ -150,35 +145,30 @@ export default function AppTabBar() {
   const handleClientDashboardPress = () => {
     if (activeTab !== 'dashboard') {
       setActiveTab('dashboard');
-      router.replace('/(protected)/(client)' as any);
     }
   };
 
   const handleClientBookmarkPress = () => {
     if (activeTab !== 'bookmark') {
       setActiveTab('bookmark');
-      router.replace('/(protected)/(client)' as any);
     }
   };
 
   const handleClientTalentsPress = () => {
     if (activeTab !== 'talents') {
       setActiveTab('talents');
-      router.replace('/(protected)/(client)' as any);
     }
   };
 
   const handleClientProjectsPress = () => {
     if (activeTab !== 'projects') {
       setActiveTab('projects');
-      router.replace('/(protected)/(client)' as any);
     }
   };
 
   const handleClientProfilePress = () => {
     if (activeTab !== 'client') {
       setActiveTab('client');
-      router.replace('/(protected)/(client)' as any);
     }
   };
 

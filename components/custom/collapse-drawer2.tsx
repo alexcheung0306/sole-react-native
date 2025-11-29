@@ -1,5 +1,5 @@
 // custom/collapse-drawer2.tsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Modal,
   View,
@@ -39,29 +39,31 @@ export default function CollapseDrawer2({
   const { height: SCREEN_HEIGHT } = Dimensions.get('window');
   const DRAWER_HEIGHT = SCREEN_HEIGHT * height;
   const translateY = useSharedValue(SCREEN_HEIGHT);
+  const [isVisible, setIsVisible] = useState(false);
 
-  // Gentle open animation
+  // Handle drawer show/hide with animation
   useEffect(() => {
-    if (showDrawer) {
+    if (showDrawer && !isVisible) {
+      // Opening
+      setIsVisible(true);
       translateY.value = withSpring(0, {
         damping: 25,
         stiffness: 90,
         mass: 1,
       });
-    } else {
-      // Reset position when drawer is closed
+    } else if (!showDrawer && isVisible) {
+      // Closing - animate out, then hide
       cancelAnimation(translateY);
-      translateY.value = SCREEN_HEIGHT;
+      translateY.value = withTiming(SCREEN_HEIGHT, { duration: 400 }, (finished) => {
+        if (finished) {
+          runOnJS(setIsVisible)(false);
+        }
+      });
     }
-  }, [showDrawer]);
+  }, [showDrawer, isVisible]);
 
   const closeDrawer = () => {
-    cancelAnimation(translateY);
-    translateY.value = withTiming(SCREEN_HEIGHT, { duration: 400 }, (finished) => {
-      if (finished) {
-        runOnJS(setShowDrawer)(false);
-      }
-    });
+    setShowDrawer(false);
   };
 
   const panGesture = Gesture.Pan()
@@ -75,10 +77,12 @@ export default function CollapseDrawer2({
       }
     })
     .onEnd((e) => {
+      'worklet';
       const shouldClose = e.translationY > 180 || e.velocityY > 1000;
       if (shouldClose) {
         cancelAnimation(translateY);
         translateY.value = withTiming(SCREEN_HEIGHT, { duration: 300 }, (finished) => {
+          'worklet';
           if (finished) {
             runOnJS(setShowDrawer)(false);
           }
@@ -93,10 +97,10 @@ export default function CollapseDrawer2({
     transform: [{ translateY: translateY.value }],
   }));
 
-  if (!showDrawer) return null;
+  if (!isVisible) return null;
 
   return (
-    <Modal transparent visible={showDrawer} animationType="none">
+    <Modal transparent visible={isVisible} animationType="none">
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={{ flex: 1, justifyContent: 'flex-end' }}>
           {/* Backdrop - only this area is pressable */}

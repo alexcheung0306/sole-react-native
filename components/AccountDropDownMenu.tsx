@@ -145,7 +145,7 @@ export function AccountDropDownMenu({ color, focused, onPress }: AccountDropDown
 
           {/* Switch Interface */}
           <View style={{ width: '100%', overflow: 'hidden', paddingHorizontal: 20 }}>
-            <SwitchInterface />
+            <SwitchInterface setIsOpen={setIsOpen}/>
           </View>
 
           {/* Menu Items */}

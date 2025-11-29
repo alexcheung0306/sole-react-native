@@ -17,7 +17,7 @@ const TOGGLE_HEIGHT = 56;
 const TOGGLE_CIRCLE_SIZE = 48;
 const TOGGLE_PADDING = 4;
 
-export function SwitchInterface() {
+export function SwitchInterface({ setIsOpen }: { setIsOpen: (isOpen: boolean) => void }) {
   const { currentMode, switchToClient, switchToUser } = useNavigation();
   
   // Use a ref to measure the actual width
@@ -50,10 +50,14 @@ export function SwitchInterface() {
       if (mode === 'client') {
         switchToClient();
       } else {
-        switchToUser();
+        switchToUser(); 
       }
+      // Delay closing to allow switch animation to complete, then close drawer with animation
+      setTimeout(() => {
+        setIsOpen(false);
+      }, 250); // Wait for switch animation (200ms) plus small buffer
     }
-  }, [currentMode, switchToClient, switchToUser]);
+  }, [currentMode, switchToClient, switchToUser, setIsOpen]);
 
   const panGesture = Gesture.Pan()
     .minDistance(5) // Require minimum movement to activate
