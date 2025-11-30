@@ -15,7 +15,6 @@ export default function UserTabLayout() {
         <Stack.Screen name="camera" options={{ headerShown: false }} />
         <Stack.Screen name="job" options={{ headerShown: false }} />
         <Stack.Screen name="user" options={{ headerShown: false }} />
-        <Stack.Screen name="post" options={{ headerShown: false }} />
       </Stack>
     </View>
   );

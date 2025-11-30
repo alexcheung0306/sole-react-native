@@ -1,35 +1,38 @@
+import React, { useMemo } from 'react';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TouchableOpacity, View, Text, Image, ImageBackground, StyleSheet } from 'react-native';
 import { formatDateTime } from '~/utils/time-converts';
 
-export default function ProjectListClient({ item }: { item: any }) {
-  const getStatusColorValue = (status: string) => {
-    const colorMap: { [key: string]: string } = {
-      Draft: '#6b7280',
-      Published: '#f59e0b',
-      InProgress: '#10b981',
-      Completed: '#3b82f6',
-    };
-    return colorMap[status] || '#6b7280';
-  };
-
-  const handleProjectPress = (projectId: number) => {
-    router.push({
-      pathname: '/(protected)/(client)/projects/project-detail',
-      params: { id: projectId },
-    });
-  };
-
+export default function JobPostCard({ item }: { item: any }) {
   const project = item?.project || item;
 
   if (!project) {
     return null;
   }
 
-  const statusColor = getStatusColorValue(project.status || 'Draft');
+  const getStatusColorValue = (status: string) => {
+    const colorMap: { [key: string]: string } = {
+      Draft: '#6b7280',
+      Published: '#f59e0b',
+      InProgress: '#10b981',
+      Completed: '#3b82f6',
+      Active: '#10b981',
+      Closed: '#ef4444',
+    };
+    return colorMap[status] || '#f59e0b';
+  };
+
+  const handleJobPress = () => {
+    router.push({
+      pathname: '/(protected)/(user)/job/job-detail',
+      params: { id: project.id },
+    });
+  };
+
+  const statusColor = useMemo(() => getStatusColorValue(project.status || 'Published'), [project.status]);
   const hasClientMeta = item?.userInfoName || item?.soleUserName || item?.userInfoProfilePic;
-  const clientInitial =
+  const clientInitial = useMemo(() =>
     item?.userInfoName && typeof item.userInfoName === 'string'
       ? item.userInfoName
           .split(' ')
@@ -37,20 +40,19 @@ export default function ProjectListClient({ item }: { item: any }) {
           .join('')
           .slice(0, 2)
           .toUpperCase()
-      : '';
+      : '', [item?.userInfoName]);
 
   const handleProfilePress = () => {
     if (!item?.soleUserName) {
       return;
     }
-
     router.push({
       pathname: '/(protected)/profile/[username]',
       params: { username: item.soleUserName },
     });
   };
 
-  const renderCardOverlay = () => (
+  const renderCardOverlay = useMemo(() => (
     <LinearGradient
       colors={['rgba(0,0,0,0.85)', 'rgba(0,0,0,0.45)', 'rgba(0,0,0,0.15)']}
       style={styles.overlayGradient}>
@@ -59,23 +61,23 @@ export default function ProjectListClient({ item }: { item: any }) {
           <View className="max-w-[70%]">
             <Text className="text-2xs font-semibold text-white/80">#{project.id ? String(project.id) : ''}</Text>
             <Text className="mt-1 text-2xs font-semibold text-white" numberOfLines={2}>
-              {project.projectName || 'Untitled Project'}
+              {project.projectName || 'Untitled Job'}
             </Text>
           </View>
           <View style={[styles.statusChip, { backgroundColor: `${statusColor}33` }]}>
             <Text className="text-[10px] font-semibold" style={{ color: statusColor }}>
-              {project.status || 'Draft'}
+              {project.status || 'Published'}
             </Text>
           </View>
         </View>
       </View>
     </LinearGradient>
-  );
+  ), [statusColor, project.id, project.projectName, project.status]);
 
   return (
     <TouchableOpacity activeOpacity={0.85} className="mx-1 mb-5 flex-1">
 
-        {/* Client Name and Profile Picture */}
+      {/* Client Name and Profile Picture */}
       {hasClientMeta && (
         <TouchableOpacity className="mb-2 flex-row items-center gap-2 px-1" onPress={handleProfilePress}>
           {item?.userInfoProfilePic ? (
@@ -102,18 +104,18 @@ export default function ProjectListClient({ item }: { item: any }) {
 
       {/* Project Image and Overlay */}
       <TouchableOpacity
-        className="overflow-hidden rounded-2xl border border-white/15 bg-zinc-900/80"
-        onPress={() => handleProjectPress(project.id)}>
+        className="overflow-hidden rounded-2xl border bg-zinc-900/80"
+        onPress={handleJobPress}>
         {project.projectImage ? (
           <ImageBackground
             source={{ uri: project.projectImage }}
             style={styles.cardBackground}
             imageStyle={styles.cardImage}>
-            {renderCardOverlay()}
+            {renderCardOverlay}
           </ImageBackground>
         ) : (
           <LinearGradient colors={['#27272a', '#18181b']} style={styles.cardBackground}>
-            {renderCardOverlay()}
+            {renderCardOverlay}
           </LinearGradient>
         )}
       </TouchableOpacity>
@@ -146,7 +148,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     justifyContent: 'space-between',
-    borderRadius: 18,
   },
   statusChip: {
     paddingHorizontal: 10,

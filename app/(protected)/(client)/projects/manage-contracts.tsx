@@ -55,7 +55,6 @@ export default function ManageContractsPage({ scrollHandler }: { scrollHandler: 
           <FlatList
             ref={flatListRef}
             data={contractsData}
-            renderItem={({ item }) => <ContractListCard item={item} />}
             keyExtractor={(item) =>
               (item?.jobContract?.id ?? item?.id ?? Math.random()).toString()
             }
@@ -106,6 +105,7 @@ export default function ManageContractsPage({ scrollHandler }: { scrollHandler: 
                 </View>
               </View>
             }
+            renderItem={({ item }) => <ContractListCard item={item} />}
             ListFooterComponent={
               <PaginationControl
                 totalPages={totalPages}

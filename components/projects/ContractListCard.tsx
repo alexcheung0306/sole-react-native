@@ -78,7 +78,7 @@ export default function ContractListCard({ item }: ContractListCardProps) {
 
   return (
     <TouchableOpacity activeOpacity={0.9} className="mx-1 mb-5 flex-1" onPress={handleContractPress}>
-      <View className="overflow-hidden rounded-2xl border border-white/15 bg-zinc-900/80">
+      <View className="overflow-hidden rounded-2xl border  bg-zinc-900/80">
         {projectImage ? (
           <ImageBackground
             source={{ uri: projectImage }}
@@ -122,7 +122,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     justifyContent: 'space-between',
-    borderRadius: 18,
   },
   statusChip: {
     paddingHorizontal: 10,

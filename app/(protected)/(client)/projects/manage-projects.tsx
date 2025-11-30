@@ -2,12 +2,11 @@ import { useEffect, useRef } from 'react';
 import { Stack } from 'expo-router';
 import { View, Text, FlatList, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { useManageProjectContext } from '@/context/ManageProjectContext';
 import ProjectInfoFormModal from '@/components/projects/ProjectInfoFormModal';
 import ProjectStatusTabs from '@/components/projects/ProjectStatusTabs';
 import PaginationControl from '~/components/projects/PaginationControl';
-import ProjectListClient from '~/components/projects/ProjectListClient';
+import ProjectPostCard from '~/components/projects/ProjectPostCard';
 import FilterSearch from '~/components/custom/filter-search';
 import FlatListEmpty from '~/components/custom/flatlist-empty';
 import ScreenTransition from '@/components/projects/ScreenTransition';
@@ -106,7 +105,7 @@ export default function ManageProjectsPage({ scrollHandler }: { scrollHandler: (
                 </View>
               </View>
             }
-            renderItem={({ item }: { item: any }) => <ProjectListClient item={item} />}
+            renderItem={({ item }) => (<ProjectPostCard item={item} />)}
             ListFooterComponent={
               <PaginationControl
                 totalPages={totalPages}

@@ -29,8 +29,9 @@ export const useScrollHeader = () => {
     // Update scrollY shared value
     scrollY.value = currentScrollY;
 
+
     // Always show header when near the top (within 20px)
-    if (currentScrollY <= 20) {
+    if (currentScrollY <= 10) {
       if (headerTranslateY.value !== 0 && !isAnimating.value) {
         isAnimating.value = true;
         headerTranslateY.value = withSpring(0, {
