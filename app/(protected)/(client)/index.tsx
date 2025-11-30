@@ -27,7 +27,7 @@ export default function ClientIndex() {
   if (!isClientTab(activeTab)) {
     return null; // Don't render if not in client mode
   }
- 
+
   const activeIndex = tabToIndex[activeTab] ?? 0;
 
   return (
@@ -35,7 +35,7 @@ export default function ClientIndex() {
       <ClientDashboard />
       <ClientBookmark />
       <ClientTalents />
-        <ProjectsIndex />
+      <ProjectsIndex />
       <ClientProfileWrapper />
     </ClientSwipeableContainer>
   );

@@ -10,7 +10,7 @@ import Animated, {
   runOnJS,
   cancelAnimation,
 } from 'react-native-reanimated';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import React from 'react';
 
 const TOGGLE_HEIGHT = 56;
@@ -19,19 +19,23 @@ const TOGGLE_PADDING = 4;
 
 export function SwitchInterface({ setIsOpen }: { setIsOpen: (isOpen: boolean) => void }) {
   const { currentMode, switchToClient, switchToUser } = useNavigation();
-  
+
+  // Preserve the toggle position using state to avoid flickering on modal open
+  const [togglePosition, setTogglePosition] = useState<'user' | 'client'>(() => currentMode);
+
   // Use a ref to measure the actual width
   const toggleWidth = useSharedValue(280); // Will be updated on layout
   const maxTranslateX = useSharedValue(280 - TOGGLE_CIRCLE_SIZE - TOGGLE_PADDING * 2);
-  
+
   // Initialize translateX based on current mode
   // 0 = User (left), maxTranslateX = Client (right)
   const translateX = useSharedValue(0);
   const isGestureActive = useSharedValue(false);
   const startX = useSharedValue(0); // Track starting position when gesture begins
   
-  // Update translateX when mode changes externally
+  // Update translateX when mode changes externally and sync togglePosition
   React.useEffect(() => {
+    setTogglePosition(currentMode); // Update preserved position
     if (maxTranslateX.value > 0) {
       if (currentMode === 'client') {
         translateX.value = withTiming(maxTranslateX.value, {
@@ -47,10 +51,11 @@ export function SwitchInterface({ setIsOpen }: { setIsOpen: (isOpen: boolean) =>
 
   const handleModeChange = useCallback((mode: 'user' | 'client') => {
     if (mode !== currentMode) {
+      setTogglePosition(mode); // Update preserved position immediately
       if (mode === 'client') {
         switchToClient();
       } else {
-        switchToUser(); 
+        switchToUser();
       }
       // Delay closing to allow switch animation to complete, then close drawer with animation
       setTimeout(() => {
@@ -147,11 +152,9 @@ export function SwitchInterface({ setIsOpen }: { setIsOpen: (isOpen: boolean) =>
             toggleWidth.value = width;
             const newMaxTranslateX = width - TOGGLE_CIRCLE_SIZE - TOGGLE_PADDING * 2;
             maxTranslateX.value = newMaxTranslateX;
-            // Update initial position based on current mode
-            if (currentMode === 'client') {
-              translateX.value = withTiming(newMaxTranslateX, {
-                duration: 200,
-              });
+            // Set initial position based on preserved togglePosition
+            if (togglePosition === 'client') {
+              translateX.value = newMaxTranslateX; // Set directly without animation on first layout
             } else {
               translateX.value = 0;
             }

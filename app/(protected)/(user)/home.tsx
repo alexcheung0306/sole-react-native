@@ -16,6 +16,7 @@ import { PostCard } from '../../../components/feed/PostCard';
 import { useSoleUserContext } from '~/context/SoleUserContext';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { SoleLogo } from '../../../components/SoleLogo';
 import {
   searchPosts,
   togglePostLike,
@@ -190,9 +191,13 @@ export default React.memo(function UserHome() {
     <BottomSheetModalProvider>
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-black">
-        <CollapsibleHeader title="Feed" 
-        animatedStyle={animatedHeaderStyle} 
-        onHeightChange={handleHeightChange} 
+        <CollapsibleHeader title={
+          <View className="pb-2">
+            <SoleLogo  />
+          </View>
+        }
+        animatedStyle={animatedHeaderStyle}
+        onHeightChange={handleHeightChange}
         isDark={true} />
 
         <Animated.FlatList
