@@ -20,7 +20,7 @@ export default function Page() {
     return <Redirect href="/sign-in" />;
   }
 
-  // If signed in, redirect to protected home
-  return <Redirect href="/(protected)/(user)/home" />;
+  // If signed in, redirect to protected user tabs
+  return <Redirect href="/(protected)/(user)" />;
 }
 
