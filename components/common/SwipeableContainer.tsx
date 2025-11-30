@@ -6,6 +6,8 @@ import Animated, {
   withSpring,
   cancelAnimation,
   runOnJS,
+  interpolate,
+  Extrapolate,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
@@ -31,6 +33,10 @@ export default function SwipeableContainer({
   const onIndexChangeRef = useRef(onIndexChange);
   const isAnimating = useSharedValue(false);
   const childrenLength = useSharedValue(children.length);
+
+  // For swipe transition effects
+  const isSwiping = useSharedValue(false);
+  const swipeOffset = useSharedValue(0); // Distance from center position
 
   // Update children length when it changes
   useEffect(() => {
@@ -98,6 +104,8 @@ export default function SwipeableContainer({
       cancelAnimation(translateX);
       isGestureActive.value = true;
       startX.value = translateX.value;
+      isSwiping.value = true;
+      swipeOffset.value = 0;
     })
     .onUpdate((e) => {
       'worklet';
@@ -108,22 +116,28 @@ export default function SwipeableContainer({
       // Only update if horizontal movement is clearly dominant (2:1 ratio)
       // This allows vertical scrolling to work when movement is more vertical
       if (Math.abs(e.translationX) > Math.abs(e.translationY) * 2) {
+        const currentIdx = currentIndex.value;
+
+        // Check if we're trying to swipe beyond boundaries (hard boundary lock)
+        const atLeftEdge = currentIdx === 0 && e.translationX > 0;
+        const atRightEdge = currentIdx === len - 1 && e.translationX < 0;
+
+        // If at edge and trying to swipe beyond, completely block movement
+        if (atLeftEdge || atRightEdge) {
+          // Don't move at all - stay at current position
+          translateX.value = startX.value;
+          // Still track swipe offset for visual effects
+          swipeOffset.value = 0; // No offset when blocked
+          return;
+        }
+
         // If shouldFailAtEdges is true, check if we're at an edge trying to swipe beyond
         if (shouldFailAtEdges) {
-          const currentIdx = currentIndex.value;
           // At first index and swiping right, or at last index and swiping left
-          if ((currentIdx === 0 && e.translationX > 30) || 
+          if ((currentIdx === 0 && e.translationX > 30) ||
               (currentIdx === len - 1 && e.translationX < -30)) {
             // Mark gesture to fail - don't handle it, let parent take over
             shouldFailGesture.value = true;
-            // Apply slight resistance for visual feedback, then snap back
-            const resistance = 0.2;
-            if (currentIdx === 0 && e.translationX > 0) {
-              translateX.value = Math.min(0, startX.value + e.translationX * resistance);
-            } else if (currentIdx === len - 1 && e.translationX < 0) {
-              const minTranslateX = -(len - 1) * SCREEN_WIDTH;
-              translateX.value = Math.max(minTranslateX, startX.value + e.translationX * resistance);
-            }
             return;
           }
         }
@@ -133,11 +147,16 @@ export default function SwipeableContainer({
         const maxTranslateX = 0;
         const clampedPos = Math.max(minTranslateX, Math.min(newPos, maxTranslateX));
         translateX.value = clampedPos;
+
+        // Track swipe offset for visual effects
+        swipeOffset.value = e.translationX;
       }
     })
     .onEnd((e) => {
       'worklet';
       isGestureActive.value = false;
+      isSwiping.value = false;
+      swipeOffset.value = 0;
 
       // Safety check for children length
       const len = childrenLength.value;
@@ -204,6 +223,49 @@ export default function SwipeableContainer({
     transform: [{ translateX: translateX.value }],
   }));
 
+  // Create animated style for swipe transition effects
+  const createSwipeEffectStyle = useAnimatedStyle(() => {
+    const swipeProgress = Math.abs(swipeOffset.value) / SCREEN_WIDTH;
+    const isActive = isSwiping.value;
+
+    // Scale down during swipe (shrink effect)
+    const scale = interpolate(
+      swipeProgress,
+      [0, 0.3, 1],
+      [1, 0.95, 0.9],
+      Extrapolate.CLAMP
+    );
+
+    // Border radius increases during swipe (phone-like rounded corners)
+    const borderRadius = interpolate(
+      swipeProgress,
+      [0, 0.5, 1],
+      [0, 20, 30],
+      Extrapolate.CLAMP
+    );
+
+    // Shadow opacity increases during swipe
+    const shadowOpacity = interpolate(
+      swipeProgress,
+      [0, 0.2, 1],
+      [0, 0.3, 0.6],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      transform: [{ scale: isActive ? scale : 1 }],
+      borderRadius: isActive ? borderRadius : 0,
+      shadowColor: '#ffffff',
+      shadowOffset: {
+        width: 0,
+        height: 0,
+      },
+      shadowOpacity: isActive ? shadowOpacity : 0,
+      shadowRadius: isActive ? 20 : 0,
+      elevation: isActive ? 10 : 0,
+    };
+  });
+
   // Early return if no children
   if (!children || children.length === 0) {
     return <View style={{ flex: 1, backgroundColor: '#000000' }} />;
@@ -227,15 +289,19 @@ export default function SwipeableContainer({
             },
           ]}>
           {children.map((child, index) => (
-            <View
+            <Animated.View
               key={index}
-              style={{
-                width: SCREEN_WIDTH,
-                flex: 1,
-                backgroundColor: '#000000',
-              }}>
+              style={[
+                createSwipeEffectStyle,
+                {
+                  width: SCREEN_WIDTH,
+                  flex: 1,
+                  backgroundColor: '#000000',
+                  overflow: 'hidden', // Ensure border radius clips content
+                },
+              ]}>
               {child}
-            </View>
+            </Animated.View>
           ))}
         </Animated.View>
       </GestureDetector>
