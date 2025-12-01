@@ -77,9 +77,11 @@ module.exports = ({ config }) => {
       "**/*"
     ],
     ios: {
+      ...config.ios,
       supportsTablet: true
     },
     android: {
+      ...config.android,
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff"
