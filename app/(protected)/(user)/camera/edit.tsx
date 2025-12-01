@@ -35,8 +35,8 @@ export default function PreviewScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isCropModalVisible, setIsCropModalVisible] = useState(false);
   const [cropTargetIndex, setCropTargetIndex] = useState<number | null>(null);
-  // Default to 1:1 aspect ratio as specified
-  const [selectedAspectRatio, setSelectedAspectRatio] = useState<number>(1 / 1);
+  // Default to natural aspect ratio (-1) so full image is shown
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState<number>(-1);
 
   // Calculate center crop for a given aspect ratio
   const calculateCenterCrop = (media: MediaItem, targetRatio: number) => {
@@ -75,7 +75,15 @@ export default function PreviewScreen() {
     const updated = selectedMedia.map((item) => {
       if (item.mediaType !== 'photo') return item;
 
-      const newCropData = calculateCenterCrop(item, ratio);
+      // If Original (-1), we reset the crop to the full image
+      let targetRatio = ratio;
+      if (ratio === -1) {
+        const w = item.cropData?.naturalWidth ?? item.width ?? 1;
+        const h = item.cropData?.naturalHeight ?? item.height ?? 1;
+        targetRatio = w / h;
+      }
+
+      const newCropData = calculateCenterCrop(item, targetRatio);
       if (!newCropData) return item;
 
       // Ensure we have originalUri saved if it's not already
@@ -227,9 +235,12 @@ export default function PreviewScreen() {
   };
 
   const getAspectRatioValue = (item: MediaItem) => {
-    // If we have an explicit aspect ratio selected, use that for the container
-    // But we also want to respect the image's actual crop if it differs slightly?
-    // No, enforce the selected aspect ratio.
+    if (selectedAspectRatio === -1) {
+      // Calculate natural aspect ratio
+      const w = item.cropData?.naturalWidth ?? item.width ?? 1;
+      const h = item.cropData?.naturalHeight ?? item.height ?? 1;
+      return w / h;
+    }
     return selectedAspectRatio;
   };
 
@@ -241,7 +252,7 @@ export default function PreviewScreen() {
     const item = selectedMedia[currentIndex];
 
     // Use the selected aspect ratio for the container
-    const aspectValue = selectedAspectRatio;
+    const aspectValue = getAspectRatioValue(item);
     const mediaHeight = width / aspectValue;
 
     return (
@@ -302,7 +313,7 @@ export default function PreviewScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
           {/* Main Media Display */}
           {renderMainMedia()}
 
@@ -392,7 +403,11 @@ export default function PreviewScreen() {
         }
         onClose={closeCropper}
         onApply={handleCropApply}
-        aspectRatio={selectedAspectRatio}
+        aspectRatio={
+          selectedAspectRatio === -1 && cropTargetIndex !== null
+            ? getAspectRatioValue(selectedMedia[cropTargetIndex])
+            : selectedAspectRatio
+        }
         lockAspectRatio={false}
       />
     </>
