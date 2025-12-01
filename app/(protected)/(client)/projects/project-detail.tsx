@@ -23,7 +23,11 @@ const STATUS_COLORS: Record<string, string> = {
   Completed: '#3b82f6',
 };
 
-export default function ProjectDetailPage({ scrollHandler }: { scrollHandler: (event: any) => void }) {
+export default function ProjectDetailPage({
+  scrollHandler,
+}: {
+  scrollHandler: (event: any) => void;
+}) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id } = useLocalSearchParams();
@@ -48,6 +52,8 @@ export default function ProjectDetailPage({ scrollHandler }: { scrollHandler: (e
     refetchRoles,
     refetchContracts,
   } = useProjectDetailQueries({ projectId, soleUserId: soleUserId || '' });
+
+  console.log('projectData', projectData);
 
   const isInitialLoading = projectLoading;
 
@@ -118,7 +124,7 @@ export default function ProjectDetailPage({ scrollHandler }: { scrollHandler: (e
           scrollEventThrottle={16}
           contentContainerStyle={{
             paddingTop: insets.top + 72,
-            paddingBottom: 28,
+            paddingBottom: insets.bottom + 80,
             paddingHorizontal: 0,
           }}>
           <View className="gap-6">
@@ -132,17 +138,10 @@ export default function ProjectDetailPage({ scrollHandler }: { scrollHandler: (e
                 </Text>
               </View>
               <View className="rounded-full border border-blue-500/40 bg-blue-500/15 px-3 py-1">
-                <Text className="text-xs font-semibold text-white">Project #{project?.id ? String(project.id) : ''}</Text>
+                <Text className="text-xs font-semibold text-white">
+                  Project #{project?.id ? String(project.id) : ''}
+                </Text>
               </View>
-            </View>
-
-            {/* Title and Description */}
-            <View className={`gap-2 px-2`}>
-              <Text className="text-2xl font-bold text-white">{project?.projectName || ''}</Text>
-              <Text className="text-sm text-white/80">
-                Align your announcement timeline, audition workflow, and contract statuses in one
-                place.
-              </Text>
             </View>
 
             {/* Tabs */}
@@ -158,7 +157,7 @@ export default function ProjectDetailPage({ scrollHandler }: { scrollHandler: (e
 
             {/* ---------------------------------------Project Information--------------------------------------- */}
             {currentTab === 'project-information' && (
-              <View className="gap-0 px-2">
+              <View className="gap-2 px-2">
                 <ProjectInformationCard project={project} soleUserId={soleUserId || ''} />
                 <CreateProjectAnnouncementDrawer
                   projectId={projectId}
@@ -187,13 +186,15 @@ export default function ProjectDetailPage({ scrollHandler }: { scrollHandler: (e
                 </View>
 
                 {rolesWithSchedules.length === 0 ? (
-                  <View className="items-center gap-3 rounded-2xl border border-white/10 bg-zinc-800 p-8">
-                    <Text className="text-lg font-semibold text-white">No roles yet</Text>
-                    <Text className="text-center text-sm text-white/70">
-                      {project?.status === 'Draft'
-                        ? 'Create your first role to get started.'
-                        : 'No roles have been created for this project.'}
-                    </Text>
+                  <View className="px-2">
+                    <View className="items-center gap-3 rounded-2xl border border-white/10 bg-zinc-800 p-8">
+                      <Text className="text-lg font-semibold text-white">No roles yet</Text>
+                      <Text className="text-center text-sm text-white/70">
+                        {project?.status === 'Draft'
+                          ? 'Create your first role to get started.'
+                          : 'No roles have been created for this project.'}
+                      </Text>
+                    </View>
                   </View>
                 ) : (
                   <RolesBreadcrumb
@@ -225,16 +226,14 @@ export default function ProjectDetailPage({ scrollHandler }: { scrollHandler: (e
 
             {/* Publish Project Button - Only show when project is Draft */}
             {project?.status === 'Draft' && (
-              <View className="px-2">
-                <PublishProjectButton
-                  projectData={project}
-                  isDisable={roleCount > 0 && jobNotReadyCount === 0 ? false : true}
-                  onSuccess={() => {
-                    // Optionally handle success callback
-                    router.replace('/(protected)/(client)/projects/manage-projects');
-                  }}
-                />
-              </View>
+              <PublishProjectButton
+                projectData={project}
+                isDisable={roleCount > 0 && jobNotReadyCount === 0 ? false : true}
+                onSuccess={() => {
+                  // Optionally handle success callback
+                  router.replace('/(protected)/(client)/projects/manage-projects');
+                }}
+              />
             )}
           </View>
         </ScrollView>

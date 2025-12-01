@@ -97,8 +97,7 @@ export default function FilterSearch({
   const handleClear = () => {
     setInputValue('');
     setSearchValue('');
-    setSelectedSearchBy('');
-    setSearchBy('');
+    // Don't clear searchBy - preserve the selected search by option
     setLocalSelectedStatuses([]);
     if (statusOptionsList.length && setSelectedStatuses) {
       setSelectedStatuses([]);
@@ -131,36 +130,42 @@ export default function FilterSearch({
           setShowDrawer={setShowDrawer}
           title="Search & Filter">
           <View className="p-5">
+
+
+
+            {/* --------------------------------Search By-------------------------------- */}
             <Text className="mb-3 text-xs font-semibold text-gray-400">SEARCH BY</Text>
-            <View className="mb-6 gap-2">
+            <View className="mb-6 gap-3">
               {searchOptions.map((option) => (
                 <TouchableOpacity
                   key={option.id}
-                  className={`flex-row items-center justify-between rounded-lg border p-4 ${
+                  className={`flex-row items-center justify-between rounded-2xl border px-4 py-3 ${
                     selectedSearchBy === option.id
                       ? 'border-white bg-white/10'
-                      : 'border-white/10 bg-gray-800/60'
+                      : 'border-white/10 bg-white/5'
                   }`}
+                  activeOpacity={0.85}
                   onPress={() => setSelectedSearchBy(option.id)}>
-                  <Text
-                    className={`text-sm font-semibold ${
-                      selectedSearchBy === option.id ? 'text-white' : 'text-white'
-                    }`}>
+                  <Text className="text-sm font-semibold text-white">
                     {option.label}
                   </Text>
                   {selectedSearchBy === option.id && (
-                    <Text className="text-lg font-bold text-white">✓</Text>
+                    <View className="rounded-full bg-blue-500/20 p-1">
+                      <Text className="text-sm font-bold text-blue-300">✓</Text>
+                    </View>
                   )}
                 </TouchableOpacity>
               ))}
             </View>
 
+            {/* --------------------------------Filters By-------------------------------- */}
             {hasStatusFilters && (
               <>
                 <Text className="mb-3 text-xs font-semibold text-gray-400">STATUS FILTER</Text>
 
                 <TouchableOpacity
-                  className="mb-2 flex-row items-center justify-between rounded-lg border border-white/10 bg-gray-800/60 p-4"
+                  className="mb-3 flex-row items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
+                  activeOpacity={0.85}
                   onPress={handleAllStatusToggle}>
                   <Text className="text-sm font-semibold text-white">
                     {localSelectedStatuses.length === 0
@@ -170,24 +175,27 @@ export default function FilterSearch({
                         : 'Select All Statuses'}
                   </Text>
                   {localSelectedStatuses.length === statusOptionsList.length && (
-                    <Text className="text-lg font-bold text-green-500">✓</Text>
+                    <View className="rounded-full bg-green-500/20 p-1">
+                      <Text className="text-sm font-bold text-green-300">✓</Text>
+                    </View>
                   )}
                 </TouchableOpacity>
 
-                <View className="mb-6 gap-2">
+                <View className="mb-6 gap-3">
                   {statusOptionsList.map((option) => (
                     <TouchableOpacity
                       key={option.id}
-                      className={`flex-row items-center justify-between rounded-lg border p-4 ${
+                      className={`flex-row items-center justify-between rounded-2xl border px-4 py-3 ${
                         localSelectedStatuses.includes(option.id)
                           ? 'border-white/20'
-                          : 'border-white/10 bg-gray-800/60'
+                          : 'border-white/10 bg-white/5'
                       }`}
                       style={{
                         backgroundColor: localSelectedStatuses.includes(option.id)
                           ? option.color + '20'
                           : undefined,
                       }}
+                      activeOpacity={0.85}
                       onPress={() => handleStatusToggle(option.id)}>
                       <Text
                         className="text-sm font-semibold"
@@ -199,9 +207,13 @@ export default function FilterSearch({
                         {option.label}
                       </Text>
                       {localSelectedStatuses.includes(option.id) && (
-                        <Text className="text-lg font-bold" style={{ color: option.color }}>
-                          ✓
-                        </Text>
+                        <View 
+                          className="rounded-full p-1"
+                          style={{ backgroundColor: option.color + '33' }}>
+                          <Text className="text-sm font-bold" style={{ color: option.color }}>
+                            ✓
+                          </Text>
+                        </View>
                       )}
                     </TouchableOpacity>
                   ))}
@@ -209,32 +221,43 @@ export default function FilterSearch({
               </>
             )}
 
-            {(selectedSearchBy || localSelectedStatuses.length > 0) && (
+            {/* --------------------------------Clear All Filters-------------------------------- */}
+            {(inputValue || localSelectedStatuses.length > 0) && (
               <TouchableOpacity
-                className="mb-4 rounded-lg border border-red-500 bg-red-500/20 p-4"
+                className="mb-4 flex-row items-center gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3"
+                activeOpacity={0.85}
                 onPress={handleClear}>
-                <Text className="text-center text-sm font-semibold text-red-500">
-                  Clear All Filters
-                </Text>
+                <View className="rounded-full bg-rose-500/20 p-2">
+                  <X size={20} color="#fecaca" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm font-semibold text-rose-300">
+                    Clear All Filters
+                  </Text>
+                </View>
               </TouchableOpacity>
             )}
 
+
+{/* --------------------------------Cancel & Apply Filters-------------------------------- */}
             <View className="flex-row gap-3 border-t border-white/10 pt-5">
               <TouchableOpacity
-                className="flex-1 items-center rounded-lg border border-white/10 bg-gray-800/60 py-3.5"
+                className="flex-1 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
+                activeOpacity={0.85}
                 onPress={() => {
                   setLocalSelectedStatuses(selectedStatusesProp ?? []);
                   setSelectedSearchBy(searchBy);
                   setInputValue(searchValue);
                   setShowDrawer(false);
                 }}>
-                <Text className="text-base font-semibold text-white">Cancel</Text>
+                <Text className="text-sm font-semibold text-white">Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                className="flex-1 items-center rounded-lg bg-blue-500 py-3.5"
+                className="flex-1 items-center justify-center rounded-2xl border border-blue-500/30 bg-blue-500/10 px-4 py-3"
+                activeOpacity={0.85}
                 onPress={handleApplyFilters}>
-                <Text className="text-base font-semibold text-white">Apply</Text>
+                <Text className="text-sm font-semibold text-blue-300">Apply</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -247,7 +270,7 @@ export default function FilterSearch({
             className="ml-2 flex-1 text-base text-white"
             value={inputValue}
             onChangeText={setInputValue}
-            placeholder={`Search by ${selectedSearchBy || 'contract'}...`}
+            placeholder={`Search ${selectedSearchBy || ''}...`}
             placeholderTextColor="#6b7280"
             onSubmitEditing={handleSearch}
             returnKeyType="search"

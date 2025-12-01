@@ -5,6 +5,7 @@ import { EllipsisVertical, ShieldX, ShieldCheck } from 'lucide-react-native';
 import { ProjectInfoActionsDrawer } from '~/components/project-detail/details/ProjectInfoActionsDrawer';
 import ProjectInfoFormModal from '@/components/projects/ProjectInfoFormModal';
 import { formatDateTime } from '@/utils/time-converts';
+import { LinearGradient } from 'expo-linear-gradient';
 
 type ProjectInformationCardProps = {
   project: any;
@@ -18,8 +19,8 @@ export function ProjectInformationCard({ project, soleUserId }: ProjectInformati
   return (
     <View className="gap-4">
       {/* ---------------------------------------Project Header and Image--------------------------------------- */}
-      <View className="overflow-hidden rounded-2xl border border-white/10">
-        {hasImage ? (
+      {hasImage ? (
+        <View className="overflow-hidden rounded-2xl border border-white/10">
           <ImageBackground
             source={{ uri: project.projectImage }}
             className="h-52 w-full"
@@ -33,15 +34,15 @@ export function ProjectInformationCard({ project, soleUserId }: ProjectInformati
               </View>
             </View>
           </ImageBackground>
-        ) : (
-          <View className="h-40 w-full justify-end bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-700 p-4">
-            <Text className="text-2xl font-bold text-white" numberOfLines={1}>
-              {project?.projectName || 'Project'}
-            </Text>
-            <Text className="text-sm text-white/80">Project Information</Text>
-          </View>
-        )}
-      </View>
+        </View>
+      ) : (
+        <>
+          <Text className="text-2xl font-bold text-white" numberOfLines={1}>
+            {project?.projectName || 'Project'}
+          </Text>
+          <Text className="text-sm text-white/80">Project Information</Text>
+        </>
+      )}
 
       {/* ---------------------------------------Project Details--------------------------------------- */}
       <View className="rounded-2xl border border-white/10 bg-zinc-800 p-5">
@@ -101,7 +102,7 @@ export function ProjectInformationCard({ project, soleUserId }: ProjectInformati
                 {project?.isPrivate ? 'Private' : 'Public'}
               </Text>
             </View>
-            <View className="rounded-full border border-white/15 bg-white/10 px-3 py-1">
+            <View className="rounded-full border border-white/15 bg-white/10 px-3 py-1 items-center justify-center">
               <Text className="text-xs font-semibold text-white">
                 Status: {project?.status ?? '—'}
               </Text>

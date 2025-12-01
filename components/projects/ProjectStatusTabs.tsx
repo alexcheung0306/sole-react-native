@@ -8,7 +8,6 @@ export default function ProjectStatusTabs() {
     setProjectStatus,
     setCurrentPage,
     setIsSearching,
-    setSearchQuery,
     setSearchValue,
     setSearchBy,
   } = useManageProjectContext();
@@ -23,7 +22,6 @@ export default function ProjectStatusTabs() {
     setProjectStatus(statusId);
     setCurrentPage(0);
     setIsSearching(false);
-    setSearchQuery('');
     setSearchValue('');
     setSearchBy('projectName');
   };

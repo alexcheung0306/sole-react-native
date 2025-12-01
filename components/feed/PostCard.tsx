@@ -31,8 +31,6 @@ export function PostCard({ post, onLike, onAddComment, comments }: PostCardProps
     return date.toLocaleDateString();
   };
 
-  
-
   const renderCaption = () => {
     if (!post.content) return null;
 

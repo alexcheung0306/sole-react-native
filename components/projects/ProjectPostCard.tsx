@@ -35,12 +35,12 @@ export default function ProjectPostCard({ item }: { item: any }) {
 
   const statusColor = getStatusColorValue(project.status || 'Draft');
   const projectImage = project.projectImage || null;
-  const hasImage = !!projectImage;
+  const hasImage = !!projectImage && projectImage !== 'default_image_url';
 
   const renderCardOverlay = () => (
     <LinearGradient
       colors={hasImage
-        ? ['rgba(174, 174, 174, 0.4)', 'rgba(0,0,0,0.5)', 'rgba(174, 174, 174, 0.4)']
+        ? ['rgba(0,0,0,0.5)', 'rgba(174, 174, 174, 0.18)', 'rgba(0,0,0,0.5)']
         : ['rgba(174, 174, 174, 0.4)', 'rgba(0,0,0,0.5)', 'rgba(174, 174, 174, 0.4)']}
       style={styles.overlayGradient}
     >
