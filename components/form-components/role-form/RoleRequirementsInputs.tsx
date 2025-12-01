@@ -1,5 +1,3 @@
-import React from 'react';
-import { View } from 'react-native';
 import { InputField } from '@/components/form-components/InputField';
 import { RadioGroupSingleOption } from '@/components/form-components/RadioGroupSingleOption';
 import { RangeInput } from '@/components/form-components/RangeInput';

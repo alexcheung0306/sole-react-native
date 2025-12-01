@@ -1,4 +1,3 @@
-import React from 'react';
 import { MultiSelectCard } from './MultiSelectCard';
 import { CategorySelector } from '@/components/profile/CategorySelector';
 

@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { View, Text } from 'react-native';
 import { Input, InputField } from '@/components/ui/input';
 import { FormControl, FormControlLabel, FormControlLabelText } from '@/components/ui/form-control';
@@ -55,7 +55,7 @@ export function RangeInput({
       <FormControlLabel>
         <FormControlLabelText className="text-white">{title}</FormControlLabelText>
       </FormControlLabel>
-      <View className="mt-3 gap-4 rounded-lg border border-white/10 bg-zinc-800/50 p-4">
+      <View className="mt-3 gap-4 rounded-lg border border-white/10 bg-zinc-800  p-4">
         <View className="flex-row items-center gap-4">
           <View className="flex-1">
             <Text className="mb-2 text-sm text-white/80">Min</Text>

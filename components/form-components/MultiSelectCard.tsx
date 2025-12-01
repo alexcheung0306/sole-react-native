@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import   { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { FormControl, FormControlLabel, FormControlLabelText } from '@/components/ui/form-control';
 import { PrimaryButton } from '@/components/custom/primary-button';
@@ -74,7 +74,7 @@ export function MultiSelectCard({
       <FormControlLabel>
         <FormControlLabelText className="text-white">{label}</FormControlLabelText>
       </FormControlLabel>
-      <View className="mt-3 rounded-lg border border-white/10 bg-zinc-800/50 p-4">
+      <View className="mt-3 rounded-lg border border-white/10 bg-zinc-800  p-4">
         {/* Selected Items */}
         {hasItems && (
           <View className="mb-3 flex-row flex-wrap gap-2">

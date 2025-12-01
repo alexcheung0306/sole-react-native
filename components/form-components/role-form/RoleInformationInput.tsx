@@ -100,7 +100,7 @@ export function RoleInformationInput({ values, touched, setFieldValue, setFieldT
       />
 
       {/* Other Options */}
-      <View className="mb-5 rounded-lg border border-white/10 bg-zinc-800/50 p-5">
+      <View className="mb-5 rounded-lg border border-white/10 bg-zinc-800  p-5">
         <Text className="mb-4 text-white">Other Options</Text>
 
         {/* Talents Quoting Price */}
