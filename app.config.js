@@ -7,7 +7,7 @@ module.exports = ({ config }) => {
   const APP_ENV = process.env.APP_ENV || process.env.NODE_ENV || 'development';
 
   // Load environment-specific .env file
-  const envFile = `.env.${APP_ENV}`;
+  const envFile = `.env.local`;
   const envPath = path.resolve(__dirname, envFile);
 
   // Check if environment file exists
