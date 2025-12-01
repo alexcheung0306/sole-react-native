@@ -439,6 +439,12 @@ export function ImageCropModal({
       const cropWidthPx = clamp(frameWidth / totalScale, minCropWidth / totalScale, originalWidth);
       const cropHeightPx = clamp(frameHeight / totalScale, minCropHeight / totalScale, originalHeight);
 
+      // Safety check: Ensure crop dimensions are valid
+      if (cropWidthPx <= 0 || cropHeightPx <= 0) {
+        console.warn('Invalid crop dimensions, skipping manipulation', { cropWidthPx, cropHeightPx });
+        return;
+      }
+
       const cropResult = await ImageManipulator.manipulateAsync(
         media.uri,
         [

@@ -208,7 +208,8 @@ export default function PreviewScreen() {
         //
         // FIX: I will check if `originalUri` exists. If not, I'll set it on the first crop.
 
-        originalUri: item.originalUri ?? item.uri, // Save original if not exists
+        // Ensure we keep the originalUri so we can always re-crop from the source
+        originalUri: item.originalUri ?? item.uri,
         uri: payload.uri,
         width: payload.width,
         height: payload.height,
@@ -377,7 +378,18 @@ export default function PreviewScreen() {
 
       <ImageCropModal
         visible={isCropModalVisible}
-        media={cropTargetIndex !== null ? selectedMedia[cropTargetIndex] : undefined}
+        media={
+          cropTargetIndex !== null
+            ? {
+              ...selectedMedia[cropTargetIndex],
+              // CRITICAL: Always pass the ORIGINAL URI and DIMENSIONS to the cropper
+              // This ensures we are working with the full source image, not the cropped version.
+              uri: selectedMedia[cropTargetIndex].originalUri ?? selectedMedia[cropTargetIndex].uri,
+              width: selectedMedia[cropTargetIndex].cropData?.naturalWidth ?? selectedMedia[cropTargetIndex].width,
+              height: selectedMedia[cropTargetIndex].cropData?.naturalHeight ?? selectedMedia[cropTargetIndex].height,
+            }
+            : undefined
+        }
         onClose={closeCropper}
         onApply={handleCropApply}
         aspectRatio={selectedAspectRatio}
