@@ -105,7 +105,11 @@ export default function ManageContractsPage({ scrollHandler }: { scrollHandler: 
                 </View>
               </View>
             }
-            renderItem={({ item }) => <ContractListCard item={item} />}
+            renderItem={({ item }) => (
+              <View style={{ width: '48%' }}>
+                <ContractListCard item={item} />
+              </View>
+            )}
             ListFooterComponent={
               <PaginationControl
                 totalPages={totalPages}

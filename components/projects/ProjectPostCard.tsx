@@ -1,7 +1,12 @@
-import React, { useMemo } from 'react';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { TouchableOpacity, View, Text, Image, ImageBackground, StyleSheet } from 'react-native';
+import {
+  TouchableOpacity,
+  View,
+  Text,
+  ImageBackground,
+  StyleSheet,
+} from 'react-native';
 import { formatDateTime } from '~/utils/time-converts';
 
 export default function ProjectPostCard({ item }: { item: any }) {
@@ -28,37 +33,24 @@ export default function ProjectPostCard({ item }: { item: any }) {
     return null;
   }
 
-  const statusColor = useMemo(() => getStatusColorValue(project.status || 'Draft'), [project.status]);
-  const hasClientMeta = item?.userInfoName || item?.soleUserName || item?.userInfoProfilePic;
-  const clientInitial = useMemo(() =>
-    item?.userInfoName && typeof item.userInfoName === 'string'
-      ? item.userInfoName
-          .split(' ')
-          .map((segment: string) => segment.charAt(0))
-          .join('')
-          .slice(0, 2)
-          .toUpperCase()
-      : '', [item?.userInfoName]);
+  const statusColor = getStatusColorValue(project.status || 'Draft');
+  const projectImage = project.projectImage || null;
+  const hasImage = !!projectImage;
 
-  const handleProfilePress = () => {
-    if (!item?.soleUserName) {
-      return;
-    }
-    router.push({
-      pathname: '/(protected)/profile/[username]',
-      params: { username: item.soleUserName },
-    });
-  };
-
-  const renderCardOverlay = useMemo(() => (
+  const renderCardOverlay = () => (
     <LinearGradient
-      colors={['rgba(0,0,0,0.85)', 'rgba(0,0,0,0.45)', 'rgba(0,0,0,0.15)']}
-      style={styles.overlayGradient}>
+      colors={hasImage
+        ? ['rgba(174, 174, 174, 0.4)', 'rgba(0,0,0,0.5)', 'rgba(174, 174, 174, 0.4)']
+        : ['rgba(174, 174, 174, 0.4)', 'rgba(0,0,0,0.5)', 'rgba(174, 174, 174, 0.4)']}
+      style={styles.overlayGradient}
+    >
       <View className="flex-1 justify-between">
-        <View className="flex-row items-start justify-between">
-          <View className="max-w-[70%]">
-            <Text className="text-2xs font-semibold text-white/80">#{project.id ? String(project.id) : ''}</Text>
-            <Text className="mt-1 text-2xs font-semibold text-white" numberOfLines={2}>
+        <View className="flex-row items-start justify-between gap-3">
+          <View className="flex-1">
+            <Text className="text-[10px] font-semibold text-white/80">
+              Project #{project.id ? String(project.id) : ''}
+            </Text>
+            <Text className="mt-1 text-xs font-semibold text-white" numberOfLines={2}>
               {project.projectName || 'Untitled Project'}
             </Text>
           </View>
@@ -70,61 +62,33 @@ export default function ProjectPostCard({ item }: { item: any }) {
         </View>
       </View>
     </LinearGradient>
-  ), [statusColor, project.id, project.projectName, project.status]);
+  );
 
   return (
-    <TouchableOpacity activeOpacity={0.85} className="mx-1 mb-5 flex-1">
-
-        {/* Client Name and Profile Picture */}
-      {hasClientMeta && (
-        <TouchableOpacity className="mb-2 flex-row items-center gap-2 px-1" onPress={handleProfilePress}>
-          {item?.userInfoProfilePic ? (
-            <Image source={{ uri: item.userInfoProfilePic }} className="h-6 w-6 rounded-full" />
-          ) : (
-            <View className="h-6 w-6 items-center justify-center rounded-full bg-white/10">
-              <Text className="text-[10px] font-semibold text-white/80">{clientInitial}</Text>
-            </View>
-          )}
-          <View className="flex-1">
-            {item?.userInfoName && (
-              <Text className="text-xs font-semibold text-white" numberOfLines={1}>
-                {item.userInfoName}
-              </Text>
-            )}
-            {item?.soleUserName && (
-              <Text className="text-[10px] text-white/70" numberOfLines={1}>
-                @{item.soleUserName}
-              </Text>
-            )}
-          </View>
-        </TouchableOpacity>
-      )}
-
-      {/* Project Image and Overlay */}
-      <TouchableOpacity
-        className="overflow-hidden rounded-2xl border bg-zinc-900/80"
-        onPress={() => handleProjectPress(project.id)}>
-        {project.projectImage ? (
+    <TouchableOpacity activeOpacity={0.9} className="mx-1 mb-5" style={{ width: '100%' }} onPress={() => handleProjectPress(project.id)}>
+      <View className="overflow-hidden rounded-2xl border bg-zinc-900/80">
+        {projectImage ? (
           <ImageBackground
-            source={{ uri: project.projectImage }}
+            source={{ uri: projectImage }}
             style={styles.cardBackground}
-            imageStyle={styles.cardImage}>
-            {renderCardOverlay}
+            imageStyle={styles.cardImage}
+          >
+            {renderCardOverlay()}
           </ImageBackground>
         ) : (
-          <LinearGradient colors={['#27272a', '#18181b']} style={styles.cardBackground}>
-            {renderCardOverlay}
+          <LinearGradient colors={['rgba(255, 255, 255, 0.4)', 'rgba(250, 250, 250, 0.35)', 'rgba(245, 245, 245, 0.3)']} style={styles.cardBackground}>
+            {renderCardOverlay()}
           </LinearGradient>
         )}
-      </TouchableOpacity>
+      </View>
 
-      {/* Project Details */}
       <View className="mt-2 gap-1 px-1">
         <Text className="text-[11px] text-gray-400">
           Updated: {formatDateTime(project.updatedAt)}
         </Text>
+
         {project.applicationDeadline && (
-          <Text className="text-[11px] text-amber-400">
+          <Text className="text-[11px] text-amber-400" numberOfLines={1}>
             Deadline: {formatDateTime(project.applicationDeadline)}
           </Text>
         )}

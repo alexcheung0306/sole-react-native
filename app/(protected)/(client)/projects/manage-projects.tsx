@@ -66,10 +66,6 @@ export default function ManageProjectsPage({ scrollHandler }: { scrollHandler: (
             }
             ListHeaderComponent={
               <View className="mb-3 gap-2">
-                <View className="mb-5">
-                  <Text className="mb-1 text-[28px] font-bold text-white">Manage Projects</Text>
-                  <Text className="text-sm text-gray-400">Create and manage your projects</Text>
-                </View>
 
                 {/* Create Project Button */}
                 <ProjectInfoFormModal method="POST" />
@@ -105,7 +101,11 @@ export default function ManageProjectsPage({ scrollHandler }: { scrollHandler: (
                 </View>
               </View>
             }
-            renderItem={({ item }) => (<ProjectPostCard item={item} />)}
+            renderItem={({ item }) => (
+              <View style={{ width: '48%' }}>
+                <ProjectPostCard item={item} />
+              </View>
+            )}
             ListFooterComponent={
               <PaginationControl
                 totalPages={totalPages}

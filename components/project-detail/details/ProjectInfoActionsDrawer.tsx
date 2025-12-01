@@ -74,13 +74,21 @@ export function ProjectInfoActionsDrawer({
             setIsDeleting(true);
             try {
               await deleteProjectById(project.id);
-              invalidateProjectQueries();
+              // Close drawer first
               onOpenChange(false);
-              router.replace('/(protected)/(client)/projects/manage-projects');
+              // Remove queries for the deleted project from cache to prevent refetch errors
+              queryClient.removeQueries({ queryKey: ['project-detail', project.id, soleUserId] });
+              queryClient.removeQueries({ queryKey: ['project', project.id] });
+              queryClient.removeQueries({ queryKey: ['project-roles', project.id] });
+              queryClient.removeQueries({ queryKey: ['rolesWithSchedules', project.id] });
+              queryClient.removeQueries({ queryKey: ['project-contracts', project.id] });
+              // Only invalidate the manageProjects query to refresh the list
+              queryClient.invalidateQueries({ queryKey: ['manageProjects'] });
+              // Navigate away immediately - using replace to avoid back navigation issues
+              router.back();
             } catch (error) {
               console.error('Failed to delete project', error);
               Alert.alert('Delete failed', 'We could not delete the project. Please try again.');
-            } finally {
               setIsDeleting(false);
             }
           },

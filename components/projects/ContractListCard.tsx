@@ -46,9 +46,13 @@ export default function ContractListCard({ item }: ContractListCardProps) {
     });
   };
 
+  const hasImage = !!projectImage;
+  
   const renderCardOverlay = () => (
     <LinearGradient
-      colors={['rgba(0,0,0,0.85)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.1)']}
+      colors={hasImage
+        ? ['rgba(0,0,0,0.85)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.1)']
+        : ['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.25)', 'rgba(0,0,0,0.1)']}
       style={styles.overlayGradient}
     >
       <View className="flex-1 justify-between">
@@ -77,7 +81,7 @@ export default function ContractListCard({ item }: ContractListCardProps) {
   );
 
   return (
-    <TouchableOpacity activeOpacity={0.9} className="mx-1 mb-5 flex-1" onPress={handleContractPress}>
+    <TouchableOpacity activeOpacity={0.9} className="mx-1 mb-5" style={{ width: '100%' }} onPress={handleContractPress}>
       <View className="overflow-hidden rounded-2xl border  bg-zinc-900/80">
         {projectImage ? (
           <ImageBackground
@@ -88,7 +92,7 @@ export default function ContractListCard({ item }: ContractListCardProps) {
             {renderCardOverlay()}
           </ImageBackground>
         ) : (
-          <LinearGradient colors={['#27272a', '#18181b']} style={styles.cardBackground}>
+          <LinearGradient colors={['rgba(255, 255, 255, 0.4)', 'rgba(250, 250, 250, 0.35)', 'rgba(245, 245, 245, 0.3)']} style={styles.cardBackground}>
             {renderCardOverlay()}
           </LinearGradient>
         )}

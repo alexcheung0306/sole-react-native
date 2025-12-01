@@ -106,7 +106,9 @@ export default function JobPosts({ scrollHandler }: JobPostsProps) {
             </View>
           }
           renderItem={({ item }) => (
-            <JobPostCard item={item}  />
+            <View style={{ width: '48%' }}>
+              <JobPostCard item={item} />
+            </View>
           )}
           ListFooterComponent={
             <PaginationControl
