@@ -1,6 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { FormControl, FormControlLabel, FormControlLabelText, FormControlError, FormControlErrorText } from '@/components/ui/form-control';
+import {
+  FormControl,
+  FormControlLabel,
+  FormControlLabelText,
+  FormControlError,
+  FormControlErrorText,
+} from '@/components/ui/form-control';
 import { getFieldError } from '@/lib/validations/form-field-validations';
 import { paymentBasis, showBudgetTo, gender } from './options-to-use';
 
@@ -34,12 +40,19 @@ export function RadioGroupSingleOption({
   const [localTouched, setLocalTouched] = useState(false);
   const value = values[fieldname] || '';
 
-  const isFieldTouched = typeof touched === 'boolean' ? touched || localTouched : touched?.[fieldname] || localTouched;
+  const isFieldTouched =
+    typeof touched === 'boolean' ? touched || localTouched : touched?.[fieldname] || localTouched;
   const error = isFieldTouched && validation ? validation(value) : null;
   const hasError = !!error;
 
   const optionsToUse =
-    options === 'showBudgetTo' ? showBudgetTo : options === 'gender' ? gender : options === 'paymentBasis' ? paymentBasis : [];
+    options === 'showBudgetTo'
+      ? showBudgetTo
+      : options === 'gender'
+        ? gender
+        : options === 'paymentBasis'
+          ? paymentBasis
+          : [];
 
   const handleSelect = (optionValue: string) => {
     if (setFieldValue) {
@@ -54,33 +67,43 @@ export function RadioGroupSingleOption({
 
   return (
     <FormControl isInvalid={hasError} isRequired={isRequired} className="mb-4">
-      <View className="rounded-lg border border-white/10 bg-zinc-800/50 p-4">
+      <View className="rounded-lg border border-white/10 bg-zinc-800  p-4">
         <TouchableOpacity onPress={handleBlur}>
           <Text className="text-white">{label}</Text>
           {isRequired && <Text className="text-red-500">*</Text>}
         </TouchableOpacity>
+        
         <View className="mt-3 gap-2">
           {optionsToUse.map((option, index) => (
-            <TouchableOpacity
-              key={index}
-              onPress={() => {
-                handleSelect(option.value);
-                handleBlur();
-              }}
-              className={`flex-row items-center rounded-lg border p-3 ${
-                value === option.value ? 'border-gray-400 bg-gray-500/20' : 'border-white/10 bg-zinc-900/70'
-              }`}>
-              <View
-                className={`mr-3 h-5 w-5 rounded-full border-2 ${
-                  value === option.value ? 'border-gray-400 bg-gray-500' : 'border-white/30'
+
+             // option container
+              <TouchableOpacity
+                key={index}
+                onPress={() => {
+                  handleSelect(option.value);
+                  handleBlur();
+                }}
+                activeOpacity={0.85}
+                className={`flex-row items-center justify-between rounded-2xl border px-4 py-3 ${
+                  value === option.value
+                    ? 'border-white bg-white/10'
+                    : 'border-white/10 bg-white/5'
                 }`}>
-                {value === option.value && <View className="m-auto h-2 w-2 rounded-full bg-white" />}
-              </View>
-              <View className="flex-1">
-                <Text className="text-white">{option.label}</Text>
-                {option.tooltip && <Text className="mt-1 text-xs text-white/60">{option.tooltip}</Text>}
-              </View>
-            </TouchableOpacity>
+               {/* label and tooltip */}
+               <View className="flex-1">
+                 <Text className="text-sm font-semibold text-white">{option.label}</Text>
+                 {option.tooltip && (
+                   <Text className="mt-1 text-xs text-white/60">{option.tooltip}</Text>
+                 )}
+               </View>
+               
+               {/* checkmark indicator */}
+               {value === option.value && (
+                 <View className="rounded-full bg-blue-500/20 p-1">
+                   <Text className="text-sm font-bold text-blue-300">✓</Text>
+                 </View>
+               )}
+             </TouchableOpacity>
           ))}
         </View>
         {hasError && (
@@ -92,4 +115,3 @@ export function RadioGroupSingleOption({
     </FormControl>
   );
 }
-

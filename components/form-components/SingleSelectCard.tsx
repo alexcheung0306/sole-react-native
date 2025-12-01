@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { FormControl, FormControlLabel, FormControlLabelText } from '@/components/ui/form-control';
-import { PrimaryButton } from '@/components/custom/primary-button';
 import { X } from 'lucide-react-native';
 
 interface SingleSelectCardProps {
@@ -11,7 +10,6 @@ interface SingleSelectCardProps {
   fieldName: string;
   setFieldValue: (field: string, value: string) => void;
   selectorComponent: React.ComponentType<any>;
-  buttonText?: string;
   placeholder?: string;
   selectorProps?: Record<string, any>;
 }
@@ -23,7 +21,6 @@ export function SingleSelectCard({
   fieldName,
   setFieldValue,
   selectorComponent: SelectorComponent,
-  buttonText,
   placeholder = 'Select',
   selectorProps = {},
 }: SingleSelectCardProps) {
@@ -66,23 +63,22 @@ export function SingleSelectCard({
       <FormControlLabel>
         <FormControlLabelText className="text-white">{label}</FormControlLabelText>
       </FormControlLabel>
-      <View className="mt-3 rounded-lg border border-white/10 bg-zinc-800/50 p-4">
-        {/* Selected Item */}
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={() => setShowSelector(true)}
+        className="mt-3 flex-row items-center justify-between rounded-2xl border border-white bg-white/10 px-4 py-3">
+        <Text className={`flex-1 text-sm font-semibold ${hasItem ? 'text-white' : 'text-gray-400'}`}>
+          {displayText}
+        </Text>
         {hasItem && (
-          <View className="mb-3 flex-row items-center justify-between rounded-lg border border-gray-400 bg-gray-500/20 px-3 py-2">
-            <Text className="text-sm text-gray-300">{selectedItem}</Text>
-            <TouchableOpacity onPress={handleRemove}>
-              <X size={16} color="#9ca3af" />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={handleRemove}
+            activeOpacity={0.85}
+            className="ml-2">
+            <X size={16} color="#ffffff" />
+          </TouchableOpacity>
         )}
-        <PrimaryButton
-          variant="primary"
-          onPress={() => setShowSelector(true)}
-          className="w-full">
-          {buttonText || (hasItem ? `Change ${label}` : `Select ${label}`)}
-        </PrimaryButton>
-      </View>
+      </TouchableOpacity>
       <SelectorComponent
         visible={showSelector}
         onClose={() => setShowSelector(false)}

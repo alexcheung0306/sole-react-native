@@ -81,10 +81,10 @@ export function MultiSelectCard({
             {itemsArray.map((item) => (
               <View
                 key={item}
-                className="mb-2 flex-row items-center rounded-full border border-gray-400 bg-gray-500/20 px-3 py-1">
-                <Text className="mr-1 text-xs text-gray-300">{item}</Text>
-                <TouchableOpacity onPress={() => handleRemove(item)}>
-                  <X size={14} color="#9ca3af" />
+                className="mb-2 flex-row items-center gap-2 rounded-full border border-white bg-white/10 px-3 py-1.5">
+                <Text className="text-xs font-semibold text-white">{item}</Text>
+                <TouchableOpacity onPress={() => handleRemove(item)} activeOpacity={0.85}>
+                  <X size={14} color="#ffffff" />
                 </TouchableOpacity>
               </View>
             ))}

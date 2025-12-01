@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { Search, X, Filter } from 'lucide-react-native';
 import CollapseDrawer from './collapse-drawer';

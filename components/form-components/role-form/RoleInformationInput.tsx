@@ -1,4 +1,3 @@
-import React from 'react';
 import { View, Text } from 'react-native';
 import { InputField } from '@/components/form-components/InputField';
 import { NumberInputField } from '@/components/form-components/NumberInputField';
@@ -131,8 +130,8 @@ export function RoleInformationInput({ values, touched, setFieldValue, setFieldT
         label="Questions to applicants for the role"
         data={values}
         tooltip="Questions to applicants for the role"
-        touched={null}
-        validation={null}
+        touched={undefined}
+        validation={undefined}
         warning={false}
         setFieldTouched={setFieldTouched}
         setFieldValue={setFieldValue}

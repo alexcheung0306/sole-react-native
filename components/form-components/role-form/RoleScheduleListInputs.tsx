@@ -73,25 +73,14 @@ export function RoleScheduleListInputs({
 }: RoleScheduleListInputsProps) {
   const [localTouched, setLocalTouched] = useState<Record<string, boolean>>({});
   
-  // Accordion state - track which activities are expanded (all expanded by default)
-  const [expandedActivities, setExpandedActivities] = useState<Set<number>>(new Set());
+  // Accordion state - track which single activity is expanded (closed by default)
+  const [expandedActivity, setExpandedActivity] = useState<number | null>(null);
   
-  // Initialize all activities as expanded when component mounts or activities change
-  useEffect(() => {
-    const activities = values.activityScheduleLists || [];
-    setExpandedActivities(new Set(activities.map((_: any, index: number) => index)));
-  }, [values.activityScheduleLists?.length]);
-  
-  // Toggle accordion for a specific activity
+  // Toggle accordion for a specific activity (only one can be open at a time)
   const toggleActivity = (activityIndex: number) => {
-    setExpandedActivities((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(activityIndex)) {
-        newSet.delete(activityIndex);
-      } else {
-        newSet.add(activityIndex);
-      }
-      return newSet;
+    setExpandedActivity((prev) => {
+      // If clicking the same activity, close it. Otherwise, open the new one
+      return prev === activityIndex ? null : activityIndex;
     });
   };
 
@@ -171,8 +160,11 @@ export function RoleScheduleListInputs({
       remarks: '',
     };
     const updatedActivities = [...(values.activityScheduleLists || [])];
+    const newActivityIndex = updatedActivities.length;
     updatedActivities.push(newActivity);
     setFieldValue('activityScheduleLists', updatedActivities);
+    // Open the newly created activity (and close any other open activity)
+    setExpandedActivity(newActivityIndex);
   };
 
   const removeActivity = (activityIndex: number) => {
@@ -480,7 +472,7 @@ export function RoleScheduleListInputs({
                   (activityHasErrors || (scheduleHasErrors && scheduleHasErrors.some(Boolean))) &&
                   !isActivityComplete(activity);
 
-                const isExpanded = expandedActivities.has(activityIndex);
+                const isExpanded = expandedActivity === activityIndex;
 
                 return (
                   <View 
@@ -530,7 +522,7 @@ export function RoleScheduleListInputs({
                     {/* Activity Title */}
                     <View className="mb-3">
                       <Text className="mb-2 text-sm text-white">Activity Title *</Text>
-                      <Input className="border-white/20 bg-zinc-700">
+                      <Input className="rounded-2xl border-white/20 bg-zinc-700">
                         <InputField
                           value={activity.title || ''}
                           onChangeText={(text: string) => {
@@ -577,7 +569,6 @@ export function RoleScheduleListInputs({
                           // This won't be called directly, but kept for compatibility
                         }}
                         selectorComponent={ActivityTypeSelector}
-                        buttonText={activity.type ? 'Change Activity Type' : 'Select Activity Type'}
                         placeholder="Select activity type"
                         selectorProps={{
                           availableTypes: getAvailableActivityTypes(activityIndex),
@@ -614,7 +605,7 @@ export function RoleScheduleListInputs({
                           return (
                             <View
                               key={schedule.id || scheduleIndex}
-                              className="mb-3 rounded-lg border border-white/10 bg-zinc-700/50 p-3">
+                              className="mb-3 rounded-2xl border border-white/10 bg-zinc-700/50 p-3">
                               <View className="mb-2 flex-row items-center justify-between">
                                 <Text className="text-xs text-white/80">
                                   Schedule {scheduleIndex + 1}
@@ -630,7 +621,7 @@ export function RoleScheduleListInputs({
                               {/* Location */}
                               <View className="mb-3">
                                 <Text className="mb-1 text-xs text-white/80">Location *</Text>
-                                <Input className="border-white/20 bg-zinc-600">
+                                <Input className="rounded-2xl border-white/20 bg-zinc-600">
                                   <InputField
                                     value={schedule.location || ''}
                                     onChangeText={(text: string) => {
@@ -647,7 +638,7 @@ export function RoleScheduleListInputs({
                                   />
                                 </Input>
                                 {scheduleError ? (
-                                  <Text className="mt-1 text-xs text-red-400">{scheduleError}</Text>
+                                  <Text className="mt-1 text-xs text-red-400 ">{scheduleError}</Text>
                                 ) : null}
                               </View>
 
@@ -659,7 +650,7 @@ export function RoleScheduleListInputs({
                                   onPress={() =>
                                     openDateTimePicker(activityIndex, scheduleIndex, 'fromTime')
                                   }
-                                  className="flex-row items-center justify-between rounded-lg border border-white/20 bg-zinc-600 p-3">
+                                  className="flex-row items-center justify-between rounded-2xl border border-white/20 bg-zinc-600 p-3">
                                   <View className="flex-row items-center gap-2">
                                     <Calendar size={16} color="#ffffff" />
                                     <Text className="text-white">
@@ -683,7 +674,7 @@ export function RoleScheduleListInputs({
                                   onPress={() =>
                                     openDateTimePicker(activityIndex, scheduleIndex, 'toTime')
                                   }
-                                  className="flex-row items-center justify-between rounded-lg border border-white/20 bg-zinc-600 p-3">
+                                  className="flex-row items-center justify-between rounded-2xl border border-white/20 bg-zinc-600 p-3">
                                   <View className="flex-row items-center gap-2">
                                     <Calendar size={16} color="#ffffff" />
                                     <Text className="text-white">
@@ -708,7 +699,7 @@ export function RoleScheduleListInputs({
                         variant="outline"
                         size="sm"
                         onPress={() => addSchedule(activityIndex)}
-                        className="w-full">
+                        className="w-full rounded-2xl">
                         <ButtonIcon as={Plus} size={16} />
                         <ButtonText>Add Time Slot</ButtonText>
                       </Button>
@@ -721,7 +712,7 @@ export function RoleScheduleListInputs({
                         <Textarea
                           variant="default"
                           size="md"
-                          className="border-white/20 bg-zinc-700">
+                          className="rounded-2xl border-white/20 bg-zinc-700">
                           <TextareaInput
                             value={activity.remarks || ''}
                             onChangeText={(text: string) => {
@@ -748,7 +739,7 @@ export function RoleScheduleListInputs({
             </ScrollView>
 
             <View className="flex-row gap-3">
-              <Button action="primary" onPress={addActivity} className="flex-1">
+              <Button action="primary" onPress={addActivity} className="flex-1 rounded-2xl">
                 <ButtonIcon as={Plus} size={20} />
                 <ButtonText>New Activity</ButtonText>
               </Button>
@@ -757,7 +748,7 @@ export function RoleScheduleListInputs({
                   action="secondary"
                   variant="outline"
                   onPress={onFillLater}
-                  className="flex-1">
+                  className="flex-1 rounded-2xl">
                   <ButtonText>Fill Later</ButtonText>
                 </Button>
               )}
