@@ -28,7 +28,8 @@
           "photosPermission": "Allow $(PRODUCT_NAME) to access your photos.",
           "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera."
         }
-      ]
+      ],
+      "react-native-date-picker"
     ],
     "experiments": {
       "typedRoutes": true,

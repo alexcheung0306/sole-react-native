@@ -1,4 +1,3 @@
-import React from 'react';
 import { TouchableOpacity, Text } from 'react-native';
 
 interface FillRoleFormButtonProps {
@@ -31,7 +30,6 @@ export function FillRoleFormButton({
         setFieldValue('ageMax', 28);
         setFieldValue('heightMin', 160);
         setFieldValue('heightMax', 210);
-        
         // Set categories
         const categories = [
           'Spokespersons',
@@ -44,16 +42,13 @@ export function FillRoleFormButton({
         if (setSelectedCategories) {
           setSelectedCategories(categories);
         }
-        
         // Set ethnic groups
         const ethnicGroups = 'berbers,ashanti';
         setFieldValue('requiredEthnicGroup', ethnicGroups);
         if (setEthnic) {
           setEthnic(new Set(ethnicGroups.split(',')));
         }
-        
         setFieldValue('skills', `test-skills-${Date.now()}`);
-        
         // Set activity schedules
         const now = Date.now();
         setFieldValue('activityScheduleLists', [

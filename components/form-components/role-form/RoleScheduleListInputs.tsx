@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import  { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
-  Platform,
 } from 'react-native';
 import { Plus, Trash2, MapPin, Calendar, Clock } from 'lucide-react-native';
 import { Input, InputField } from '@/components/ui/input';
@@ -19,16 +18,7 @@ import {
   ActionsheetItem,
   ActionsheetItemText,
 } from '@/components/ui/actionsheet';
-import {
-  Modal,
-  ModalBackdrop,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  ModalCloseButton,
-} from '@/components/ui/modal';
-import { ChevronDown } from 'lucide-react-native';
+import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import {
   validateActivityTitle,
   validateActivityType,
@@ -40,7 +30,7 @@ import { getFieldError } from '@/lib/validations/form-field-validations';
 import { activityTypes } from '@/components/form-components/options-to-use';
 import { SingleSelectCard } from '@/components/form-components/SingleSelectCard';
 import { ActivityTypeSelector } from '~/components/form-components/role-form/ActivityTypeSelector';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DatePicker from 'react-native-date-picker';
 
 interface RoleScheduleListInputsProps {
   values: any;
@@ -82,6 +72,28 @@ export function RoleScheduleListInputs({
   setActivityTypeSelectCallback,
 }: RoleScheduleListInputsProps) {
   const [localTouched, setLocalTouched] = useState<Record<string, boolean>>({});
+  
+  // Accordion state - track which activities are expanded (all expanded by default)
+  const [expandedActivities, setExpandedActivities] = useState<Set<number>>(new Set());
+  
+  // Initialize all activities as expanded when component mounts or activities change
+  useEffect(() => {
+    const activities = values.activityScheduleLists || [];
+    setExpandedActivities(new Set(activities.map((_: any, index: number) => index)));
+  }, [values.activityScheduleLists?.length]);
+  
+  // Toggle accordion for a specific activity
+  const toggleActivity = (activityIndex: number) => {
+    setExpandedActivities((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(activityIndex)) {
+        newSet.delete(activityIndex);
+      } else {
+        newSet.add(activityIndex);
+      }
+      return newSet;
+    });
+  };
 
   // Use internal state if not provided by parent
   const [internalShowTypePicker, setInternalShowTypePicker] = useState(false);
@@ -106,6 +118,8 @@ export function RoleScheduleListInputs({
     currentValue: string;
   } | null>(null);
   const [pickerInitialDate, setPickerInitialDate] = useState<Date>(new Date());
+  const [pickerMinDate, setPickerMinDate] = useState<Date | undefined>(undefined);
+  const [pickerMaxDate, setPickerMaxDate] = useState<Date | undefined>(undefined);
 
   // Set up callback for activity type selection (if needed for legacy support)
   useEffect(() => {
@@ -208,7 +222,44 @@ export function RoleScheduleListInputs({
   const parseDateTime = (dateTimeStr: string): Date | null => {
     if (!dateTimeStr) return null;
     try {
-      const date = new Date(dateTimeStr);
+      // Handle the format: "2025-08-27 09:00:00.000 +0800"
+      // Convert timezone offset from +0800 to +08:00 for better compatibility
+      let normalizedStr = dateTimeStr.trim();
+      
+      // If the string has a timezone offset like +0800 or -0800, convert it to +08:00 or -08:00
+      const timezoneMatch = normalizedStr.match(/([+-])(\d{4})$/);
+      if (timezoneMatch) {
+        const sign = timezoneMatch[1];
+        const offset = timezoneMatch[2];
+        const hours = offset.substring(0, 2);
+        const minutes = offset.substring(2, 4);
+        normalizedStr = normalizedStr.replace(/([+-])(\d{4})$/, `${sign}${hours}:${minutes}`);
+      }
+      
+      // Try parsing with the normalized string
+      let date = new Date(normalizedStr);
+      
+      // If that fails, try parsing as ISO format by replacing space with T
+      if (isNaN(date.getTime())) {
+        const isoStr = normalizedStr.replace(' ', 'T');
+        date = new Date(isoStr);
+      }
+      
+      // If still fails, try manual parsing for format: "YYYY-MM-DD HH:mm:ss.SSS +HHMM"
+      if (isNaN(date.getTime())) {
+        const match = dateTimeStr.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+        if (match) {
+          const [, year, month, day, hour, minute] = match;
+          date = new Date(
+            parseInt(year),
+            parseInt(month) - 1,
+            parseInt(day),
+            parseInt(hour),
+            parseInt(minute)
+          );
+        }
+      }
+      
       return isNaN(date.getTime()) ? null : date;
     } catch {
       return null;
@@ -225,9 +276,9 @@ export function RoleScheduleListInputs({
   };
 
   const formatDisplayDateTime = (dateTimeStr: string): string => {
-    if (!dateTimeStr) return 'Select date & time';
+    if (!dateTimeStr) return 'Select time';
     const date = parseDateTime(dateTimeStr);
-    if (!date) return 'Select date & time';
+    if (!date) return 'Select time';
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -274,7 +325,44 @@ export function RoleScheduleListInputs({
     }
 
     // Create new date instance to avoid reference issues
-    const dateInstance = new Date(parsedDate);
+    let dateInstance = new Date(parsedDate);
+    
+    // Ensure date is valid
+    if (isNaN(dateInstance.getTime())) {
+      dateInstance = new Date(Date.now());
+    }
+
+    // Calculate min/max dates based on the other time field
+    let minDate: Date | undefined = undefined;
+    let maxDate: Date | undefined = undefined;
+
+    if (field === 'fromTime') {
+      // When selecting start time, max date should be the end time (if it exists)
+      const toTimeValue = schedule?.toTime || '';
+      if (toTimeValue) {
+        const toDate = parseDateTime(toTimeValue);
+        if (toDate && !isNaN(toDate.getTime())) {
+          maxDate = toDate;
+          // Ensure initial date doesn't exceed max date
+          if (dateInstance > maxDate) {
+            dateInstance = new Date(maxDate);
+          }
+        }
+      }
+    } else if (field === 'toTime') {
+      // When selecting end time, min date should be the start time (if it exists)
+      const fromTimeValue = schedule?.fromTime || '';
+      if (fromTimeValue) {
+        const fromDate = parseDateTime(fromTimeValue);
+        if (fromDate && !isNaN(fromDate.getTime())) {
+          minDate = fromDate;
+          // Ensure initial date doesn't go below min date
+          if (dateInstance < minDate) {
+            dateInstance = new Date(minDate);
+          }
+        }
+      }
+    }
 
     setDatePickerConfig({
       activityIndex,
@@ -282,29 +370,19 @@ export function RoleScheduleListInputs({
       field,
       currentValue,
     });
-    setPickerInitialDate(new Date(dateInstance));
+    setPickerInitialDate(dateInstance);
+    setPickerMinDate(minDate);
+    setPickerMaxDate(maxDate);
     setShowDatePicker(true);
   };
 
-  const handleDateTimeChange = (event: any, selectedDate?: Date) => {
-    // On Android, the picker closes automatically, so we handle it here
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-      if (event.type === 'set' && selectedDate && datePickerConfig) {
-        handleDateTimeConfirm(selectedDate);
-      } else {
-        // User cancelled
-        setDatePickerConfig(null);
-      }
-    } else {
-      // On iOS, we keep the picker open and let user confirm/cancel
-      if (selectedDate && datePickerConfig) {
-        setPickerInitialDate(selectedDate);
-      }
+  const handleDateTimeChange = (date: Date) => {
+    if (datePickerConfig) {
+      setPickerInitialDate(date);
     }
   };
 
-  const handleDateTimeConfirm = (date: Date) => {
+  const handleDateTimeConfirm = (selectedTime: Date) => {
     if (!datePickerConfig) return;
 
     // Get fresh copy of activities from values
@@ -315,6 +393,8 @@ export function RoleScheduleListInputs({
       console.error('Activity index out of bounds:', datePickerConfig.activityIndex);
       setShowDatePicker(false);
       setDatePickerConfig(null);
+      setPickerMinDate(undefined);
+      setPickerMaxDate(undefined);
       return;
     }
 
@@ -328,13 +408,19 @@ export function RoleScheduleListInputs({
       console.error('Schedule index out of bounds:', datePickerConfig.scheduleIndex);
       setShowDatePicker(false);
       setDatePickerConfig(null);
+      setPickerMinDate(undefined);
+      setPickerMaxDate(undefined);
       return;
     }
+
+    // Use the selected date/time directly from the picker
+    // The selectedTime contains both the date and time that the user selected
+    const finalDate = selectedTime;
 
     // Update the specific field
     currentActivities[datePickerConfig.activityIndex].schedules[datePickerConfig.scheduleIndex][
       datePickerConfig.field
-    ] = formatDateTime(date);
+    ] = formatDateTime(finalDate);
 
     // Update form value
     setFieldValue('activityScheduleLists', currentActivities);
@@ -344,6 +430,8 @@ export function RoleScheduleListInputs({
 
     setShowDatePicker(false);
     setDatePickerConfig(null);
+    setPickerMinDate(undefined);
+    setPickerMaxDate(undefined);
   };
 
   // Always get activities directly from values to ensure fresh data
@@ -360,7 +448,9 @@ export function RoleScheduleListInputs({
           </View>
         ) : (
           <>
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+            <ScrollView 
+              className="flex-1" 
+              showsVerticalScrollIndicator={false}>
               {getActivities().map((activity: any, activityIndex: number) => {
                 const titleFieldname = `activityScheduleLists.${activityIndex}.title`;
                 const typeFieldname = `activityScheduleLists.${activityIndex}.type`;
@@ -390,14 +480,28 @@ export function RoleScheduleListInputs({
                   (activityHasErrors || (scheduleHasErrors && scheduleHasErrors.some(Boolean))) &&
                   !isActivityComplete(activity);
 
+                const isExpanded = expandedActivities.has(activityIndex);
+
                 return (
-                  <View
-                    key={activityIndex}
-                    className={`mb-4 rounded-lg border p-4 ${
+                  <View 
+                    key={`activity-${activityIndex}`}
+                    className={`mb-4 rounded-lg border ${
                       hasErrors ? 'border-red-500 bg-red-500/10' : 'border-white/10 bg-zinc-800/50'
                     }`}>
-                    <View className="mb-4 flex-row items-center justify-between">
-                      <View className="flex-row items-center gap-2">
+                    {/* Accordion Header */}
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={() => toggleActivity(activityIndex)}
+                      className={`flex-row items-center justify-between rounded-lg px-4 py-3 ${
+                        hasErrors ? 'border-red-500 bg-red-500/10' : 'border-white/10 bg-zinc-800/50'
+                      }`}
+                      style={{ backgroundColor: hasErrors ? 'rgba(239, 68, 68, 0.1)' : 'rgba(39, 39, 42, 0.5)' }}>
+                      <View className="flex-row items-center gap-2 flex-1">
+                        {isExpanded ? (
+                          <ChevronUp size={20} color="#ffffff" />
+                        ) : (
+                          <ChevronDown size={20} color="#ffffff" />
+                        )}
                         <View className="rounded-full bg-blue-500 px-3 py-1">
                           <Text className="text-xs font-semibold text-white">
                             {activityIndex + 1}
@@ -408,14 +512,20 @@ export function RoleScheduleListInputs({
                             <Text className="text-xs text-white">{activity.type}</Text>
                           </View>
                         )}
-                        <Text className="text-white">{activity.title || 'Untitled'}</Text>
+                        <Text className="text-white flex-1">{activity.title || 'Untitled'}</Text>
                       </View>
                       {getActivities().length > 1 && (
-                        <TouchableOpacity onPress={() => removeActivity(activityIndex)}>
+                        <TouchableOpacity 
+                          onPress={() => removeActivity(activityIndex)}
+                          className="ml-2">
                           <Trash2 size={20} color="#ef4444" />
                         </TouchableOpacity>
                       )}
-                    </View>
+                    </TouchableOpacity>
+
+                    {/* Content - Conditionally Rendered */}
+                    {isExpanded && (
+                      <View className="p-4">
 
                     {/* Activity Title */}
                     <View className="mb-3">
@@ -423,7 +533,7 @@ export function RoleScheduleListInputs({
                       <Input className="border-white/20 bg-zinc-700">
                         <InputField
                           value={activity.title || ''}
-                          onChangeText={(text) => {
+                          onChangeText={(text: string) => {
                             const updated = [...getActivities()];
                             updated[activityIndex].title = text;
                             setFieldValue('activityScheduleLists', updated);
@@ -523,7 +633,7 @@ export function RoleScheduleListInputs({
                                 <Input className="border-white/20 bg-zinc-600">
                                   <InputField
                                     value={schedule.location || ''}
-                                    onChangeText={(text) => {
+                                    onChangeText={(text: string) => {
                                       const updated = [...getActivities()];
                                       updated[activityIndex].schedules[scheduleIndex].location =
                                         text;
@@ -558,6 +668,11 @@ export function RoleScheduleListInputs({
                                   </View>
                                   <Clock size={16} color="#ffffff" />
                                 </TouchableOpacity>
+                                {validateTimeSlot(schedule) ? (
+                                  <Text className="mt-1 text-xs text-red-400">
+                                    {validateTimeSlot(schedule)}
+                                  </Text>
+                                ) : null}
                               </View>
 
                               {/* To Time */}
@@ -609,7 +724,7 @@ export function RoleScheduleListInputs({
                           className="border-white/20 bg-zinc-700">
                           <TextareaInput
                             value={activity.remarks || ''}
-                            onChangeText={(text) => {
+                            onChangeText={(text: string) => {
                               const updated = [...getActivities()];
                               updated[activityIndex].remarks = text;
                               setFieldValue('activityScheduleLists', updated);
@@ -623,6 +738,8 @@ export function RoleScheduleListInputs({
                             style={{ textAlignVertical: 'top', color: '#ffffff' }}
                           />
                         </Textarea>
+                      </View>
+                    )}
                       </View>
                     )}
                   </View>
@@ -686,62 +803,28 @@ export function RoleScheduleListInputs({
         </Actionsheet>
       )}
 
-      {/* Date/Time Picker */}
-      {Platform.OS === 'ios' ? (
-        <Modal isOpen={showDatePicker} onClose={() => {
+      {/* Time Picker */}
+      <DatePicker
+        modal
+        open={showDatePicker}
+        date={pickerInitialDate}
+        mode="datetime"
+        minimumDate={pickerMinDate}
+        maximumDate={pickerMaxDate}
+        onConfirm={(date) => {
+          handleDateTimeConfirm(date);
+        }}
+        onCancel={() => {
           setShowDatePicker(false);
           setDatePickerConfig(null);
-        }}>
-          <ModalBackdrop />
-          <ModalContent>
-            <ModalHeader>
-              <Text className="text-lg font-semibold text-white">Select Date & Time</Text>
-              <ModalCloseButton>
-                <Text className="text-white">✕</Text>
-              </ModalCloseButton>
-            </ModalHeader>
-            <ModalBody>
-              <View className="items-center justify-center">
-                <DateTimePicker
-                  value={pickerInitialDate}
-                  mode="datetime"
-                  display="spinner"
-                  onChange={handleDateTimeChange}
-                  minuteInterval={5}
-                  style={{ backgroundColor: 'transparent' }}
-                />
-              </View>
-            </ModalBody>
-            <ModalFooter>
-              <Button
-                variant="outline"
-                onPress={() => {
-                  setShowDatePicker(false);
-                  setDatePickerConfig(null);
-                }}
-                className="mr-2">
-                <ButtonText>Cancel</ButtonText>
-              </Button>
-              <Button
-                onPress={() => {
-                  handleDateTimeConfirm(pickerInitialDate);
-                }}>
-                <ButtonText>Confirm</ButtonText>
-              </Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
-      ) : (
-        showDatePicker && (
-          <DateTimePicker
-            value={pickerInitialDate}
-            mode="datetime"
-            display="default"
-            onChange={handleDateTimeChange}
-            minuteInterval={5}
-          />
-        )
-      )}
+          setPickerMinDate(undefined);
+          setPickerMaxDate(undefined);
+        }}
+        minuteInterval={5}
+        theme="dark"
+        locale="en"
+        title="Select Date & Time"
+      />
     </>
   );
 }

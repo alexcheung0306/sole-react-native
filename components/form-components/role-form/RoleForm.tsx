@@ -188,6 +188,7 @@ export function RoleForm({
           setFillSchedulesLater(true);
           setFieldValue('activityScheduleLists', []);
         };
+        console.log('values', values);
 
         // Validation functions
         const validateRoleInformation = () => {
@@ -281,10 +282,11 @@ export function RoleForm({
           resetFormState();
         };
 
+
         return (
           <>
             <FormModal
-              trigger={({ open }) => (
+              trigger={({ open }: { open: () => void }) => (
                 <PrimaryButton
                   variant={method === 'POST' ? 'create' : 'edit'}
                   disabled={isDisabled}
@@ -345,7 +347,7 @@ export function RoleForm({
               onReset={resetFormState}
               headerClassName="border-b border-white/10 px-4 pb-3 pt-12"
               contentClassName="flex-1">
-              {(close) => (
+              {(close: () => void) => (
                 <View className="flex-1">
                   <ScrollView
                     className="flex-1 px-4"
