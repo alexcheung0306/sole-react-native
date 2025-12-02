@@ -233,20 +233,23 @@ export default React.memo(function CameraScreen() {
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
+
+        // Save to library first
+        const savedAsset = await MediaLibrary.createAssetAsync(asset.uri);
+
         const newMedia: MediaItem = {
-          id: `camera_${Date.now()}`,
-          uri: asset.uri,
-          mediaType: asset.type === 'video' ? 'video' : 'photo',
-          duration: asset.duration ?? undefined,
-          width: asset.width,
-          height: asset.height,
-          filename: `capture_${Date.now()}`,
+          id: savedAsset.id,
+          uri: savedAsset.uri,
+          mediaType: savedAsset.mediaType === MediaLibrary.MediaType.video ? 'video' : 'photo',
+          duration: savedAsset.duration,
+          width: savedAsset.width,
+          height: savedAsset.height,
+          filename: savedAsset.filename,
         };
 
-        // Add to selection and navigate to preview
-        setSelectedMedia([newMedia]);
-        preserveSelectionRef.current = true;
-        navigateToPreview();
+        // Add to selection (append) and refresh list
+        setSelectedMedia([...selectedMedia, newMedia]);
+        loadPhotos();
       }
     } catch (error) {
       console.error('Error opening camera:', error);
@@ -375,6 +378,34 @@ export default React.memo(function CameraScreen() {
   // Add camera option as first item
   const mediaItems = [{ id: 'camera' } as any, ...photos];
 
+  // Determine which image to show in the preview
+  // 1. The last selected item (most recently selected)
+  // 2. Or the first photo in the library if nothing is selected
+  const previewItem = selectedMedia.length > 0
+    ? selectedMedia[selectedMedia.length - 1]
+    : photos.length > 0
+      ? photos[0]
+      : null;
+
+  const renderPreview = () => {
+    if (!previewItem) return null;
+
+    return (
+      <View style={{ width, height: width }} className="bg-black relative">
+        <ExpoImage
+          source={{ uri: previewItem.uri }}
+          style={{ width, height: width }}
+          contentFit="cover"
+        />
+        {previewItem.mediaType === 'video' && (
+          <View className="absolute inset-0 items-center justify-center bg-black/30">
+            <VideoIcon size={48} color="#ffffff" />
+          </View>
+        )}
+      </View>
+    );
+  };
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -384,20 +415,6 @@ export default React.memo(function CameraScreen() {
           animatedStyle={animatedHeaderStyle}
           onHeightChange={handleHeightChange}
           isDark={true}
-          headerLeft={
-            <TouchableOpacity
-              onPress={() => {
-                if (router.canGoBack()) {
-                  router.back();
-                } else {
-                  router.replace('/(protected)/(user)/home');
-                }
-              }}
-              className="p-2"
-            >
-              <X size={24} color="#ffffff" />
-            </TouchableOpacity>
-          }
           headerRight={
             <TouchableOpacity
               onPress={navigateToPreview}
@@ -433,6 +450,7 @@ export default React.memo(function CameraScreen() {
               paddingTop: insets.top + 72,
               paddingBottom: 20
             }}
+            ListHeaderComponent={renderPreview}
           />
         )}
 
