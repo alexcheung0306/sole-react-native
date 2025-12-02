@@ -23,6 +23,8 @@ export function ProjectInformationCard({ project, soleUserId }: ProjectInformati
   const hasImage = project?.projectImage && project.projectImage !== 'default_image_url';
   const [openActions, setOpenActions] = useState(false);
 
+console.log('project', project);
+
   return (
     <View className="gap-4">
       {/* ---------------------------------------Project Header and Image--------------------------------------- */}
@@ -63,14 +65,16 @@ export function ProjectInformationCard({ project, soleUserId }: ProjectInformati
           </View>
 
           {/* Actions */}
-          <View className="flex-row items-center gap-2">
-            <TouchableOpacity
-              className="rounded-full border border-white/10 px-2 py-1"
-              activeOpacity={0.85}
-              onPress={() => setOpenActions(true)}>
-              <EllipsisVertical color="#ffffff" size={18} />
-            </TouchableOpacity>
-          </View>
+          {project?.soleUserId === soleUserId && (
+            <View className="flex-row items-center gap-2">
+              <TouchableOpacity
+                className="rounded-full border border-white/10 px-2 py-1"
+                activeOpacity={0.85}
+                onPress={() => setOpenActions(true)}>
+                <EllipsisVertical color="#ffffff" size={18} />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* Content */}

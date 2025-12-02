@@ -216,7 +216,7 @@ export default function MyContracts({ scrollHandler }: MyContractsProps) {
           scrollEventThrottle={16}
           contentContainerStyle={{
             paddingTop: insets.top + 72,
-            paddingBottom: 20,
+            paddingBottom: insets.bottom + 80,
             paddingHorizontal: 12,
           }}
           showsVerticalScrollIndicator={false}
