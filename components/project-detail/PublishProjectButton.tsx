@@ -28,6 +28,8 @@ export function PublishProjectButton({
   const [applicationDeadline, setApplicationDeadline] = useState<string>('');
   const [dateError, setDateError] = useState<string>('');
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [pickerInitialDate, setPickerInitialDate] = useState<Date>(new Date());
 
   const projectId = projectData?.id || projectData?.project?.id;
@@ -75,6 +77,8 @@ export function PublishProjectButton({
     setApplicationDeadline('');
     setDateError('');
     setShowDatePicker(false);
+    setShowTimePicker(false);
+    setSelectedDate(null);
   };
 
   const openDateTimePicker = () => {
@@ -93,22 +97,65 @@ export function PublishProjectButton({
       initialDate.setHours(12, 0, 0, 0);
     }
     setPickerInitialDate(initialDate);
+    setSelectedDate(null);
     setShowDatePicker(true);
   };
 
-  const handleDateTimeConfirm = (date: Date) => {
-    // Validate that the date is in the future
-    const now = new Date();
-    if (date <= now) {
-      setDateError('Application deadline must be in the future');
+  const handleDateChange = (date: Date) => {
+    setPickerInitialDate(date);
+  };
+
+  const handleDateConfirm = (selectedDateValue: Date) => {
+    // Validate that the date is not in the past (allow today)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDateOnly = new Date(selectedDateValue);
+    selectedDateOnly.setHours(0, 0, 0, 0);
+    
+    if (selectedDateOnly < today) {
+      setDateError('Application deadline date cannot be in the past');
       setShowDatePicker(false);
+      setSelectedDate(null);
+      return;
+    }
+
+    // Store the selected date and move to time picker
+    setSelectedDate(selectedDateValue);
+    setPickerInitialDate(selectedDateValue);
+    setShowDatePicker(false);
+    setShowTimePicker(true);
+    setDateError('');
+  };
+
+  const handleTimeConfirm = (selectedTime: Date) => {
+    if (!selectedDate) return;
+
+    // Combine the selected date with the selected time
+    const finalDate = new Date(selectedDate);
+    finalDate.setHours(selectedTime.getHours());
+    finalDate.setMinutes(selectedTime.getMinutes());
+    finalDate.setSeconds(selectedTime.getSeconds());
+
+    // Validate that the complete date/time is in the future
+    const now = new Date();
+    if (finalDate <= now) {
+      setDateError('Application deadline must be in the future');
+      setShowTimePicker(false);
+      setSelectedDate(null);
       return;
     }
     
-    const formatted = formatDateTime(date);
+    const formatted = formatDateTime(finalDate);
     setApplicationDeadline(formatted);
     setDateError('');
+    setShowTimePicker(false);
+    setSelectedDate(null);
+  };
+
+  const handlePickerCancel = () => {
     setShowDatePicker(false);
+    setShowTimePicker(false);
+    setSelectedDate(null);
   };
 
   const handlePublish = () => {
@@ -212,21 +259,38 @@ export function PublishProjectButton({
         </View>
       </CollapseDrawer>
 
-      {/* Date/Time Picker */}
+      {/* Date Picker - Step 1: Select Date (with year) */}
       <DatePicker
         modal
         open={showDatePicker}
         date={pickerInitialDate}
-        mode="datetime"
-        minimumDate={new Date()}
-        onConfirm={handleDateTimeConfirm}
-        onCancel={() => {
-          setShowDatePicker(false);
-        }}
+        mode="date"
+        minimumDate={(() => {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          return today;
+        })()}
+        onConfirm={handleDateConfirm}
+        onCancel={handlePickerCancel}
+        onDateChange={handleDateChange}
+        theme="dark"
+        locale="en"
+        title="Select Application Deadline Date"
+      />
+
+      {/* Time Picker - Step 2: Select Time */}
+      <DatePicker
+        modal
+        open={showTimePicker}
+        date={pickerInitialDate}
+        mode="time"
+        onConfirm={handleTimeConfirm}
+        onCancel={handlePickerCancel}
+        onDateChange={handleDateChange}
         minuteInterval={5}
         theme="dark"
         locale="en"
-        title="Select Application Deadline"
+        title="Select Application Deadline Time"
       />
     </View>
   );

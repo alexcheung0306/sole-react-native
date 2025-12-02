@@ -99,8 +99,10 @@ export function RoleScheduleListInputs({
   const actualSetSelectedActivityIndex =
     setSelectedActivityIndex || setInternalSelectedActivityIndex;
 
-  // Date/Time picker state
+  // Date/Time picker state - two-step process: date first, then time
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
   const [datePickerConfig, setDatePickerConfig] = useState<{
     activityIndex: number;
     scheduleIndex: number;
@@ -108,6 +110,7 @@ export function RoleScheduleListInputs({
     currentValue: string;
   } | null>(null);
   const [pickerInitialDate, setPickerInitialDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [pickerMinDate, setPickerMinDate] = useState<Date | undefined>(undefined);
   const [pickerMaxDate, setPickerMaxDate] = useState<Date | undefined>(undefined);
 
@@ -297,19 +300,47 @@ export function RoleScheduleListInputs({
       currentValue,
     });
     setPickerInitialDate(dateInstance);
+    setSelectedDate(null);
     setPickerMinDate(minDate);
     setPickerMaxDate(maxDate);
+    setPickerMode('date');
     setShowDatePicker(true);
   };
 
   const handleDateTimeChange = (date: Date) => {
     if (datePickerConfig) {
-      setPickerInitialDate(date);
+      if (pickerMode === 'date') {
+        setPickerInitialDate(date);
+      } else {
+        // When in time mode, update the time while keeping the selected date
+        if (selectedDate) {
+          const updatedDate = new Date(selectedDate);
+          updatedDate.setHours(date.getHours());
+          updatedDate.setMinutes(date.getMinutes());
+          updatedDate.setSeconds(date.getSeconds());
+          setPickerInitialDate(updatedDate);
+        }
+      }
     }
   };
 
-  const handleDateTimeConfirm = (selectedTime: Date) => {
-    if (!datePickerConfig) return;
+  const handleDateConfirm = (selectedDateValue: Date) => {
+    // Store the selected date and move to time picker
+    setSelectedDate(selectedDateValue);
+    setPickerInitialDate(selectedDateValue);
+    setShowDatePicker(false);
+    setShowTimePicker(true);
+    setPickerMode('time');
+  };
+
+  const handleTimeConfirm = (selectedTime: Date) => {
+    if (!datePickerConfig || !selectedDate) return;
+
+    // Combine the selected date with the selected time
+    const finalDate = new Date(selectedDate);
+    finalDate.setHours(selectedTime.getHours());
+    finalDate.setMinutes(selectedTime.getMinutes());
+    finalDate.setSeconds(selectedTime.getSeconds());
 
     // Get fresh copy of activities from values
     const currentActivities = [...(values.activityScheduleLists || [])];
@@ -317,8 +348,9 @@ export function RoleScheduleListInputs({
     // Ensure the structure exists
     if (!currentActivities[datePickerConfig.activityIndex]) {
       console.error('Activity index out of bounds:', datePickerConfig.activityIndex);
-      setShowDatePicker(false);
+      setShowTimePicker(false);
       setDatePickerConfig(null);
+      setSelectedDate(null);
       setPickerMinDate(undefined);
       setPickerMaxDate(undefined);
       return;
@@ -332,16 +364,13 @@ export function RoleScheduleListInputs({
       !currentActivities[datePickerConfig.activityIndex].schedules[datePickerConfig.scheduleIndex]
     ) {
       console.error('Schedule index out of bounds:', datePickerConfig.scheduleIndex);
-      setShowDatePicker(false);
+      setShowTimePicker(false);
       setDatePickerConfig(null);
+      setSelectedDate(null);
       setPickerMinDate(undefined);
       setPickerMaxDate(undefined);
       return;
     }
-
-    // Use the selected date/time directly from the picker
-    // The selectedTime contains both the date and time that the user selected
-    const finalDate = selectedTime;
 
     // Update the specific field
     currentActivities[datePickerConfig.activityIndex].schedules[datePickerConfig.scheduleIndex][
@@ -354,10 +383,23 @@ export function RoleScheduleListInputs({
     const fieldname = `activityScheduleLists.${datePickerConfig.activityIndex}.schedules.${datePickerConfig.scheduleIndex}.${datePickerConfig.field}`;
     handleFieldBlur(fieldname);
 
-    setShowDatePicker(false);
+    // Reset all picker state
+    setShowTimePicker(false);
     setDatePickerConfig(null);
+    setSelectedDate(null);
     setPickerMinDate(undefined);
     setPickerMaxDate(undefined);
+    setPickerMode('date');
+  };
+
+  const handlePickerCancel = () => {
+    setShowDatePicker(false);
+    setShowTimePicker(false);
+    setDatePickerConfig(null);
+    setSelectedDate(null);
+    setPickerMinDate(undefined);
+    setPickerMaxDate(undefined);
+    setPickerMode('date');
   };
 
   // Always get activities directly from values to ensure fresh data
@@ -728,27 +770,47 @@ export function RoleScheduleListInputs({
         </Actionsheet>
       )}
 
-      {/* Time Picker */}
+      {/* Date Picker - Step 1: Select Date (with year) */}
       <DatePicker
         modal
         open={showDatePicker}
         date={pickerInitialDate}
-        mode="datetime"
+        mode="date"
         minimumDate={pickerMinDate}
         maximumDate={pickerMaxDate}
-        onConfirm={(date) => {
-          handleDateTimeConfirm(date);
-        }}
-        onCancel={() => {
-          setShowDatePicker(false);
-          setDatePickerConfig(null);
-          setPickerMinDate(undefined);
-          setPickerMaxDate(undefined);
-        }}
+        onConfirm={handleDateConfirm}
+        onCancel={handlePickerCancel}
+        onDateChange={handleDateTimeChange}
+        theme="dark"
+        locale="en"
+        title={
+          datePickerConfig?.field === 'fromTime'
+            ? 'Select Start Date'
+            : datePickerConfig?.field === 'toTime'
+              ? 'Select End Date'
+              : 'Select Date'
+        }
+      />
+
+      {/* Time Picker - Step 2: Select Time */}
+      <DatePicker
+        modal
+        open={showTimePicker}
+        date={pickerInitialDate}
+        mode="time"
+        onConfirm={handleTimeConfirm}
+        onCancel={handlePickerCancel}
+        onDateChange={handleDateTimeChange}
         minuteInterval={5}
         theme="dark"
         locale="en"
-        title="Select Date & Time"
+        title={
+          datePickerConfig?.field === 'fromTime'
+            ? 'Select Start Time'
+            : datePickerConfig?.field === 'toTime'
+              ? 'Select End Time'
+              : 'Select Time'
+        }
       />
     </>
   );
