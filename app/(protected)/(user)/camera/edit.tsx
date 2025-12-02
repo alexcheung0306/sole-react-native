@@ -198,33 +198,47 @@ export default function PreviewScreen() {
 
     const item = selectedMedia[currentIndex];
 
-    // Use the selected aspect ratio for the container
-    const aspectValue = getAspectRatioValue(item);
-    const mediaHeight = width / aspectValue;
+    // Fixed container aspect ratio (4:5)
+    const FIXED_RATIO = 4 / 5;
+    const fixedContainerHeight = width / FIXED_RATIO;
+
+    // Calculate dimensions for the EditableImage based on selected aspect ratio
+    // fitting inside the fixed container (contain)
+    const targetRatio = getAspectRatioValue(item);
+
+    let renderWidth = width;
+    let renderHeight = width / targetRatio;
+
+    if (renderHeight > fixedContainerHeight) {
+      renderHeight = fixedContainerHeight;
+      renderWidth = renderHeight * targetRatio;
+    }
 
     return (
       <View
-        style={{ width, height: mediaHeight }}
+        style={{ width, height: fixedContainerHeight }}
         className="bg-black items-center justify-center overflow-hidden relative"
       >
         {item.mediaType === 'video' ? (
           <Video
             source={{ uri: item.uri }}
-            style={{ width, height: mediaHeight }}
+            style={{ width: renderWidth, height: renderHeight }}
             resizeMode={ResizeMode.COVER}
             shouldPlay={false}
             useNativeControls
           />
         ) : (
-          <EditableImage
-            uri={item.originalUri ?? item.uri}
-            containerWidth={width}
-            containerHeight={mediaHeight}
-            naturalWidth={item.cropData?.naturalWidth ?? item.width ?? 1000}
-            naturalHeight={item.cropData?.naturalHeight ?? item.height ?? 1000}
-            cropData={item.cropData}
-            onUpdate={handleCropUpdate}
-          />
+          <View style={{ width: renderWidth, height: renderHeight, overflow: 'hidden' }}>
+            <EditableImage
+              uri={item.originalUri ?? item.uri}
+              containerWidth={renderWidth}
+              containerHeight={renderHeight}
+              naturalWidth={item.cropData?.naturalWidth ?? item.width ?? 1000}
+              naturalHeight={item.cropData?.naturalHeight ?? item.height ?? 1000}
+              cropData={item.cropData}
+              onUpdate={handleCropUpdate}
+            />
+          </View>
         )}
       </View>
     );

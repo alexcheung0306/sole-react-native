@@ -16,7 +16,7 @@ const ASPECT_RATIOS = [
 ];
 
 const PAGE_WIDTH = 120; // Increased width
-const PAGE_HEIGHT = 80; // Increased height
+const PAGE_HEIGHT = 60; // Increased height
 
 export function AspectRatioWheel({ selectedRatio, onRatioChange }: AspectRatioWheelProps) {
     const carouselRef = useRef<ICarouselInstance>(null);
