@@ -36,7 +36,7 @@ export function JobContractsTab({ contracts, isLoading }: JobContractsTabProps) 
 
     return (
       <TouchableOpacity
-        onPress={() => router.push(`/(protected)/(user)/job/contract-detail?id=${contract?.id}` as any)}
+        onPress={() => router.push(`/(protected)/contract-detail/${contract?.id}` as any)}
         className="bg-zinc-800/60 rounded-2xl p-4 mb-3 border border-white/10"
         activeOpacity={0.7}>
         <View className="flex-row items-center justify-between mb-2">

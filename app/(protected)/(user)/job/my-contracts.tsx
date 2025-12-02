@@ -75,7 +75,7 @@ export default function MyContracts({ scrollHandler }: MyContractsProps) {
   };
 
   const handleContractPress = (contract: any) => {
-    router.push(`/(protected)/(user)/job/contract-detail?id=${contract.id}` as any);
+    router.push(`/(protected)/contract-detail/${contract.id}` as any);
   };
 
   const contractsList = contracts;

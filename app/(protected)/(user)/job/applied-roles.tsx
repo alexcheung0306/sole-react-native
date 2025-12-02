@@ -73,7 +73,7 @@ export default function AppliedRoles({ scrollHandler }: AppliedRolesProps) {
   };
 
   const handleApplicationPress = (application: any) => {
-    router.push(`/(protected)/(user)/job/job-detail?id=${application.projectId}&roleId=${application.roleId}` as any);
+    router.push(`/(protected)/job-detail/${application.projectId}${application.roleId ? `?roleId=${application.roleId}` : ''}` as any);
   };
 
   const applicationsData = appliedRoles;
