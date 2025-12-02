@@ -22,8 +22,7 @@ export default function ProjectPostCard({ item }: { item: any }) {
 
   const handleProjectPress = (projectId: number) => {
     router.push({
-      pathname: '/(protected)/(client)/projects/project-detail',
-      params: { id: projectId },
+      pathname: `/(protected)/project-detail/${projectId}` as any,
     });
   };
 

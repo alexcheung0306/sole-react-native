@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import React, { useEffect, useState, useMemo } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,21 +24,22 @@ const STATUS_COLORS: Record<string, string> = {
   Completed: '#3b82f6',
 };
 
-export default function ProjectDetail({
-  scrollHandler,
-}: {
-  scrollHandler: (event: any) => void;
-}) {
+export default function ProjectDetailPage() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { id } = useLocalSearchParams();
+  const navigation = useNavigation();
+  const params = useLocalSearchParams();
   const { soleUserId } = useSoleUserContext();
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   // Local state for tab and role selection (not in context)
   const [currentTab, setCurrentTab] = useState('project-information');
   const [currentRole, setCurrentRole] = useState(0);
 
-  const projectId = id ? parseInt(id as string, 10) : 0;
+ 
+
+  // Handle both projectId (from route param) and id (fallback)
+  const projectIdParam = (params.projectId || params.id) as string | undefined;
+  const projectId = projectIdParam ? parseInt(projectIdParam, 10) : 0;
 
   const {
     projectData,
@@ -145,7 +146,7 @@ export default function ProjectDetail({
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-[#0a0a0a]">
+      <View className="flex-1 bg-black" style={{ zIndex: 1000 }}>
         <CollapsibleHeader
           title={project?.projectName || 'Project'}
           headerLeft={
@@ -162,7 +163,7 @@ export default function ProjectDetail({
         />
         <ScrollView
           className="flex-1"
-          onScroll={scrollHandler}
+          onScroll={onScroll}
           scrollEventThrottle={16}
           refreshControl={
             <RefreshControl

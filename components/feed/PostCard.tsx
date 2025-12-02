@@ -120,7 +120,6 @@ export function PostCard({ post, onLike, onAddComment, comments }: PostCardProps
             />
 
             <TouchableOpacity
-              // onPress={() => router.push(`/(protected)/(user)/post/postid${post.id}` as any)}
               onPress={() => router.push(`/(protected)/post/${post.id}` as any)}
               className="ml-4 flex-row items-center gap-2"
               activeOpacity={0.7}>
