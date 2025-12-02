@@ -15,6 +15,38 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Video, ResizeMode } from 'expo-av';
 import { useCreatePostContext, MediaItem } from '~/context/CreatePostContext';
 import { EditableImage } from '~/components/camera/EditableImage';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { Pressable } from 'react-native';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+const BouncyButton = ({ onPress, children, className, style }: any) => {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.95, { damping: 10, stiffness: 300 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 10, stiffness: 300 });
+  };
+
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      className={className}
+      style={[style, animatedStyle]}
+    >
+      {children}
+    </AnimatedPressable>
+  );
+};
 
 const { width, height } = Dimensions.get('window');
 
@@ -33,8 +65,8 @@ export default function PreviewScreen() {
     removeMedia,
   } = useCreatePostContext();
   const [currentIndex, setCurrentIndex] = useState(0);
-  // Default to natural aspect ratio (-1) so full image is shown
-  const [selectedAspectRatio, setSelectedAspectRatio] = useState<number>(-1);
+  // Default to 1:1 as requested
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState<number>(1);
 
   // Calculate center crop for a given aspect ratio
   const calculateCenterCrop = (media: MediaItem, targetRatio: number) => {
@@ -101,6 +133,22 @@ export default function PreviewScreen() {
     });
 
     setSelectedMedia(updated);
+  };
+
+  const toggleAspectRatio = () => {
+    const currentRatio = selectedAspectRatio === -1 ? 1 : selectedAspectRatio;
+    // Find current index in ASPECT_RATIOS
+    const currentIndex = ASPECT_RATIOS.findIndex(r => Math.abs(r.value - currentRatio) < 0.01);
+
+    // Calculate next index (cycle)
+    // If not found (e.g. -1), start at 0 (1:1)
+    // If at end, go back to 0
+    let nextIndex = 0;
+    if (currentIndex !== -1) {
+      nextIndex = (currentIndex + 1) % ASPECT_RATIOS.length;
+    }
+
+    handleAspectRatioChange(ASPECT_RATIOS[nextIndex].value);
   };
 
   const handleClose = () => {
@@ -244,49 +292,33 @@ export default function PreviewScreen() {
 
           {/* Controls */}
           <View className="px-4 py-4 border-b border-gray-800">
-            {/* Aspect Ratio Selector */}
-            <View className="mb-4">
-              <Text className="text-gray-400 text-sm mb-2">Aspect Ratio</Text>
-              <View className="flex-row gap-2">
-                {ASPECT_RATIOS.map((ratio) => {
-                  const Icon = ratio.icon;
-                  const isSelected = selectedAspectRatio === ratio.value;
+            <View className="flex-row items-center gap-3">
+              {/* Aspect Ratio Toggle Button */}
+              <TouchableOpacity
+                onPress={toggleAspectRatio}
+                className="flex-1 flex-row items-center justify-center bg-blue-800 rounded-lg px-4 py-3 border border-gray-700"
+              >
+                {(() => {
+                  // Find current label/icon
+                  const currentRatio = selectedAspectRatio === -1 ? 1 : selectedAspectRatio;
+                  const ratioObj = ASPECT_RATIOS.find(r => Math.abs(r.value - currentRatio) < 0.01) || ASPECT_RATIOS[0];
+                  const Icon = ratioObj.icon;
                   return (
-                    <TouchableOpacity
-                      key={ratio.key}
-                      onPress={() => handleAspectRatioChange(ratio.value)}
-                      className={`flex-1 flex-row items-center justify-center gap-2 rounded-lg px-3 py-2 border ${isSelected
-                        ? 'bg-blue-600 border-blue-600'
-                        : 'bg-gray-800 border-gray-700'
-                        }`}
-                    >
-                      <Icon
-                        size={18}
-                        color={isSelected ? '#ffffff' : '#9ca3af'}
-                      />
-                      <Text
-                        className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-gray-400'
-                          }`}
-                      >
-                        {ratio.label}
-                      </Text>
-                    </TouchableOpacity>
+                    <>
+                      <Icon size={18} color="#ffffff" />
+                      <Text className="text-white ml-2 font-medium">{ratioObj.label}</Text>
+                    </>
                   );
-                })}
-              </View>
-            </View>
+                })()}
+              </TouchableOpacity>
 
-            <View className="flex-row items-center justify-between">
-              {/* Delete Button - Centered since Crop is gone */}
-              <View className="flex-1 items-center">
-                <TouchableOpacity
-                  onPress={handleDelete}
-                  className="flex-row items-center bg-red-500/20 rounded-lg px-6 py-2"
-                >
-                  <Trash2 size={18} color="#ef4444" />
-                  <Text className="text-red-400 ml-2 font-medium">Remove</Text>
-                </TouchableOpacity>
-              </View>
+              {/* Delete Button - Icon Only */}
+              <TouchableOpacity
+                onPress={handleDelete}
+                className="flex-row items-center justify-center bg-red-500/20 rounded-lg px-4 py-3 aspect-square"
+              >
+                <Trash2 size={20} color="#ef4444" />
+              </TouchableOpacity>
             </View>
           </View>
 
