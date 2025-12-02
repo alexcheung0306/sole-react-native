@@ -99,7 +99,7 @@ export default React.memo(function CameraScreen() {
   const loadPhotos = async (retryCount = 0) => {
     try {
       setIsLoading(true);
-      
+
       // Re-check permissions before accessing media library
       // This helps with emulator permission issues
       let { status } = await MediaLibrary.getPermissionsAsync();
@@ -180,7 +180,7 @@ export default React.memo(function CameraScreen() {
         setIsLoading(false);
         return;
       }
-      
+
       // Handle MEDIA_LIBRARY permission errors
       if (errorMessage.includes('MEDIA_LIBRARY') || errorMessage.includes('permission') || errorMessage.includes('Missing MEDIA_LIBRARY')) {
         // Retry once if we haven't already
@@ -197,7 +197,7 @@ export default React.memo(function CameraScreen() {
             // If retry also fails, fall through to error handling
           }
         }
-        
+
         // If retry failed or we've already retried, show error
         console.error('Error loading photos:', error);
         Alert.alert(
@@ -385,7 +385,16 @@ export default React.memo(function CameraScreen() {
           onHeightChange={handleHeightChange}
           isDark={true}
           headerLeft={
-            <TouchableOpacity onPress={() => router.back()} className="p-2">
+            <TouchableOpacity
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/(protected)/(user)/home');
+                }
+              }}
+              className="p-2"
+            >
               <X size={24} color="#ffffff" />
             </TouchableOpacity>
           }
@@ -420,9 +429,9 @@ export default React.memo(function CameraScreen() {
             onScroll={onScroll}
             scrollEventThrottle={16}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ 
+            contentContainerStyle={{
               paddingTop: insets.top + 72,
-              paddingBottom: 20 
+              paddingBottom: 20
             }}
           />
         )}

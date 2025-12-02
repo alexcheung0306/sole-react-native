@@ -106,7 +106,11 @@ export default function PreviewScreen() {
   };
 
   const handleClose = () => {
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(protected)/(user)/home');
+    }
   };
 
   const handleDelete = () => {
