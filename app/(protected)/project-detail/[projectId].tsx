@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useLayoutEffect, useState, useMemo } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { ChevronLeft } from 'lucide-react-native';
@@ -57,6 +57,13 @@ export default function ProjectDetailPage() {
   } = useProjectDetailQueries({ projectId, soleUserId: soleUserId || '' });
 
   const [refreshing, setRefreshing] = useState(false);
+
+  // Hide header immediately to prevent flash - use useLayoutEffect for synchronous execution
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerShown: false,
+    });
+  }, [navigation]);
 
   // Calculate button disabled state - use useMemo to ensure it recalculates when dependencies change
   // MUST be called before any early returns to follow Rules of Hooks
@@ -119,24 +126,30 @@ export default function ProjectDetailPage() {
 
   if (isInitialLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#0a0a0a] px-6">
-        <ActivityIndicator size="large" color="#3b82f6" />
-        <Text className="mt-3 text-sm text-zinc-400">Fetching project workspace…</Text>
-      </View>
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View className="flex-1 items-center justify-center bg-black px-6">
+          <ActivityIndicator size="large" color="#3b82f6" />
+          <Text className="mt-3 text-sm text-zinc-400">Fetching project workspace…</Text>
+        </View>
+      </>
     );
   }
 
   if (projectError || !projectData) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#0a0a0a] px-6">
-        <Text className="text-lg font-semibold text-rose-400">We couldn't load this project.</Text>
-        <TouchableOpacity
-          className="mt-5 rounded-xl bg-blue-500 px-5 py-3"
-          activeOpacity={0.85}
-          onPress={() => router.back()}>
-          <Text className="text-sm font-semibold text-white">Return to projects</Text>
-        </TouchableOpacity>
-      </View>
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View className="flex-1 items-center justify-center bg-black px-6">
+          <Text className="text-lg font-semibold text-rose-400">We couldn't load this project.</Text>
+          <TouchableOpacity
+            className="mt-5 rounded-xl bg-blue-500 px-5 py-3"
+            activeOpacity={0.85}
+            onPress={() => router.back()}>
+            <Text className="text-sm font-semibold text-white">Return to projects</Text>
+          </TouchableOpacity>
+        </View>
+      </>
     );
   }
 
