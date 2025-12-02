@@ -65,8 +65,9 @@ export function ImageCropModal({
     // Ensure maxHeight is at least 200 to avoid negative values if insets are huge or screen is small
     const maxHeight = Math.max(200, SCREEN_HEIGHT - (insets.top + insets.bottom + 180));
 
-    if (aspectRatio && lockAspectRatio) {
+    if (aspectRatio) {
       // Calculate dimensions based on aspect ratio
+      // This ensures the initial crop area matches the image shape, preventing "zoom in" effect
       let width = maxWidth;
       let height = width / aspectRatio;
 
@@ -87,7 +88,7 @@ export function ImageCropModal({
       width,
       height,
     };
-  }, [insets.bottom, insets.top, aspectRatio, lockAspectRatio]);
+  }, [insets.bottom, insets.top, aspectRatio]);
 
   const minCropSize = Math.min(baseCropArea.width, baseCropArea.height) * 0.35;
   const minCropWidth = lockAspectRatio && aspectRatio
@@ -269,6 +270,9 @@ export function ImageCropModal({
     () =>
       Gesture.Pan()
         .onChange((event) => {
+          // Safety check for invalid values
+          if (isNaN(event.changeX) || isNaN(event.changeY) || isNaN(scale.value)) return;
+
           const scaledWidth = displayWidth * scale.value;
           const scaledHeight = displayHeight * scale.value;
           const maxTranslateX = Math.max((scaledWidth - cropWidth.value) / 2, 0);
@@ -277,8 +281,11 @@ export function ImageCropModal({
           const nextX = translateX.value + event.changeX;
           const nextY = translateY.value + event.changeY;
 
-          translateX.value = clamp(nextX, -maxTranslateX, maxTranslateX);
-          translateY.value = clamp(nextY, -maxTranslateY, maxTranslateY);
+          // Ensure we don't set NaN values
+          if (!isNaN(nextX) && !isNaN(nextY)) {
+            translateX.value = clamp(nextX, -maxTranslateX, maxTranslateX);
+            translateY.value = clamp(nextY, -maxTranslateY, maxTranslateY);
+          }
         })
         .enabled(!isProcessing),
     [cropHeight, cropWidth, displayHeight, displayWidth, isProcessing, scale, translateX, translateY]
@@ -288,16 +295,22 @@ export function ImageCropModal({
     () =>
       Gesture.Pinch()
         .onChange((event) => {
-          const nextScale = clamp(scale.value * event.scaleChange, minScale, maxScale);
-          scale.value = nextScale;
-          setZoomValue(nextScale);
+          if (isNaN(event.scaleChange) || isNaN(scale.value)) return;
 
-          const scaledWidth = displayWidth * nextScale;
-          const scaledHeight = displayHeight * nextScale;
-          const maxTranslateX = Math.max((scaledWidth - cropWidth.value) / 2, 0);
-          const maxTranslateY = Math.max((scaledHeight - cropHeight.value) / 2, 0);
-          translateX.value = clamp(translateX.value, -maxTranslateX, maxTranslateX);
-          translateY.value = clamp(translateY.value, -maxTranslateY, maxTranslateY);
+          const nextScale = clamp(scale.value * event.scaleChange, minScale, maxScale);
+
+          if (!isNaN(nextScale)) {
+            scale.value = nextScale;
+            setZoomValue(nextScale);
+
+            const scaledWidth = displayWidth * nextScale;
+            const scaledHeight = displayHeight * nextScale;
+            const maxTranslateX = Math.max((scaledWidth - cropWidth.value) / 2, 0);
+            const maxTranslateY = Math.max((scaledHeight - cropHeight.value) / 2, 0);
+
+            translateX.value = clamp(translateX.value, -maxTranslateX, maxTranslateX);
+            translateY.value = clamp(translateY.value, -maxTranslateY, maxTranslateY);
+          }
         })
         .enabled(!isProcessing),
     [cropHeight, cropWidth, displayHeight, displayWidth, maxScale, minScale, isProcessing, scale, translateX, translateY]
