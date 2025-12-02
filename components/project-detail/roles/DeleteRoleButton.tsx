@@ -24,12 +24,16 @@ export function DeleteRoleButton({
     mutationFn: async (roleId: number) => {
       return await deleteRoleById(roleId);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Invalidate project data queries
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-detail'] }); // Invalidates all project-detail queries
       queryClient.invalidateQueries({ queryKey: ['manageProjects'] });
+      // Refetch role-related queries immediately (this will update roleCount and jobNotReadyCount)
+      await queryClient.refetchQueries({ queryKey: ['project-roles', projectId] });
       queryClient.invalidateQueries({ queryKey: ['rolesWithSchedules', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['project-roles', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['project-detail', projectId] });
+      // Invalidate contract queries (may depend on roles)
+      queryClient.invalidateQueries({ queryKey: ['project-contracts', projectId] });
       refetchRoles();
       // Reset to first role after deletion
       setCurrentRole(0);

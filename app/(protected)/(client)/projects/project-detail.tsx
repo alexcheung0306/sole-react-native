@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useEffect, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { ChevronLeft } from 'lucide-react-native';
@@ -14,6 +14,7 @@ import { ProjectAnnouncementsList } from '~/components/project-detail/details/Pr
 import { CustomTabs } from '@/components/custom/custom-tabs';
 import { RoleForm } from '~/components/form-components/role-form/RoleForm';
 import { RolesBreadcrumb } from '~/components/project-detail/roles/RolesBreadcrumb';
+import { ManageCandidates } from '~/components/project-detail/roles/ManageCandidates';
 import { PublishProjectButton } from '~/components/project-detail/PublishProjectButton';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -49,11 +50,38 @@ export default function ProjectDetailPage({
     roleCount,
     jobNotReadyCount,
     countJobActivities,
+    refetchProject,
     refetchRoles,
     refetchContracts,
   } = useProjectDetailQueries({ projectId, soleUserId: soleUserId || '' });
 
-  console.log('projectData', projectData);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Calculate button disabled state - use useMemo to ensure it recalculates when dependencies change
+  // MUST be called before any early returns to follow Rules of Hooks
+  const isPublishButtonDisabled = useMemo(() => {
+    return roleCount > 0 && jobNotReadyCount === 0 ? false : true;
+  }, [roleCount, jobNotReadyCount]);
+
+  // Conditionally show tabs based on project status - MUST be called before any early returns
+  const tabs = useMemo(() => {
+    const project = projectData?.project || projectData;
+    const baseTabs = [
+      { id: 'project-information', label: 'Details' },
+      { id: 'project-roles', label: 'Roles', count: roleCount ?? 0 },
+    ];
+
+    // Only show Contracts tab if project is not Draft
+    if (project?.status !== 'Draft') {
+      baseTabs.push({
+        id: 'project-contracts',
+        label: 'Contracts',
+        count: jobContractsData?.content?.length ?? jobContractsData?.length ?? 0,
+      });
+    }
+
+    return baseTabs;
+  }, [projectData, roleCount, jobContractsData]);
 
   const isInitialLoading = projectLoading;
 
@@ -62,7 +90,31 @@ export default function ProjectDetailPage({
     if (rolesWithSchedules.length > 0 && currentRole >= rolesWithSchedules.length) {
       setCurrentRole(0);
     }
-  }, [rolesWithSchedules.length, currentRole, setCurrentRole]);
+  }, [rolesWithSchedules.length, currentRole]);
+
+  // Switch to project-information tab if user is on contracts tab when project is Draft
+  useEffect(() => {
+    const project = projectData?.project || projectData;
+    if (project?.status === 'Draft' && currentTab === 'project-contracts') {
+      setCurrentTab('project-information');
+    }
+  }, [projectData, currentTab]);
+
+  // Handle pull-to-refresh
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        refetchProject(),
+        refetchRoles(),
+        refetchContracts(),
+      ]);
+    } catch (error) {
+      console.error('Error refreshing project data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   if (isInitialLoading) {
     return (
@@ -76,7 +128,7 @@ export default function ProjectDetailPage({
   if (projectError || !projectData) {
     return (
       <View className="flex-1 items-center justify-center bg-[#0a0a0a] px-6">
-        <Text className="text-lg font-semibold text-rose-400">We couldn’t load this project.</Text>
+        <Text className="text-lg font-semibold text-rose-400">We couldn't load this project.</Text>
         <TouchableOpacity
           className="mt-5 rounded-xl bg-blue-500 px-5 py-3"
           activeOpacity={0.85}
@@ -89,16 +141,6 @@ export default function ProjectDetailPage({
 
   const project = projectData?.project || projectData;
   const statusTint = STATUS_COLORS[project?.status] || STATUS_COLORS.Draft;
-
-  const tabs = [
-    { id: 'project-information', label: 'Details' },
-    { id: 'project-roles', label: 'Roles', count: roleCount ?? 0 },
-    {
-      id: 'project-contracts',
-      label: 'Contracts',
-      count: jobContractsData?.content?.length ?? jobContractsData?.length ?? 0,
-    },
-  ];
 
   return (
     <>
@@ -122,6 +164,14 @@ export default function ProjectDetailPage({
           className="flex-1"
           onScroll={scrollHandler}
           scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#3b82f6"
+              colors={['#3b82f6']}
+            />
+          }
           contentContainerStyle={{
             paddingTop: insets.top + 72,
             paddingBottom: insets.bottom + 80,
@@ -207,6 +257,16 @@ export default function ProjectDetailPage({
                     refetchRoles={refetchRoles}
                   />
                 )}
+
+                {/* Manage Candidates - Only show for Published projects with roles */}
+                {project?.status === 'Published' && rolesWithSchedules.length > 0 && (
+                  <View className="mt-6 border-t border-white/10 pt-6 px-2">
+                    <ManageCandidates 
+                      projectData={project} 
+                      roleWithSchedules={rolesWithSchedules[currentRole]} 
+                    />
+                  </View>
+                )}
               </View>
             )}
 
@@ -227,11 +287,12 @@ export default function ProjectDetailPage({
             {/* Publish Project Button - Only show when project is Draft */}
             {project?.status === 'Draft' && (
               <PublishProjectButton
+                key={`publish-button-${roleCount}-${jobNotReadyCount}`}
                 projectData={project}
-                isDisable={roleCount > 0 && jobNotReadyCount === 0 ? false : true}
+                isDisable={isPublishButtonDisabled}
                 onSuccess={() => {
-                  // Optionally handle success callback
-                  router.replace('/(protected)/(client)/projects/manage-projects');
+                  // Navigate back to projects list after successful publish
+                  router.back();
                 }}
               />
             )}

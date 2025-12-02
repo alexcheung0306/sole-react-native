@@ -7,6 +7,7 @@ interface RoleFormBreadCrumbsProps {
   roleInformationErrors: boolean;
   requirementsErrors: boolean;
   hasErrors: boolean;
+  hasJobActivity?: boolean;
 }
 export function RoleFormBreadCrumbs({
   currentPage,
@@ -15,6 +16,7 @@ export function RoleFormBreadCrumbs({
   roleInformationErrors,
   requirementsErrors,
   hasErrors,
+  hasJobActivity = true,
 }: RoleFormBreadCrumbsProps) {
   return (
     <View className=" flex-row flex-wrap gap-2  ">
@@ -24,6 +26,10 @@ export function RoleFormBreadCrumbs({
           (page === 'requirements' && roleInformationErrors) ||
           (page === 'schedules' && (roleInformationErrors || requirementsErrors)) ||
           (page === 'confirm' && hasErrors);
+        
+        // Show red border for schedules if there's no job activity AND the schedules page is currently rendered
+        const isSchedulesPage = page === 'schedules';
+        const showRedBorder = isSchedulesPage && !hasJobActivity && currentPage === 'schedules';
 
         return (
           <TouchableOpacity
@@ -32,11 +38,15 @@ export function RoleFormBreadCrumbs({
             disabled={isDisabled}
             activeOpacity={1}
             className={`rounded-full border px-3 py-1.5 ${
-              isCurrent
-                ? 'border-white bg-white'
-                : isDisabled
-                  ? '   text-white'
-                  : 'border-white   text-white'
+              showRedBorder
+                ? isCurrent
+                  ? 'border-red-500 bg-white'
+                  : 'border-red-500'
+                : isCurrent
+                  ? 'border-white bg-white'
+                  : isDisabled
+                    ? '   text-white'
+                    : 'border-white   text-white'
             }`}>
             <Text
               className={`text-xs font-semibold ${

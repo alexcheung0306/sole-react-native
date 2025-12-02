@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
+import { parseDateTime, formatDisplayDateTime } from '@/lib/datetime';
 
 interface RoleConfirmProps {
   values: any;
@@ -10,8 +11,9 @@ export function RoleConfirm({ values }: RoleConfirmProps) {
   const calculateScheduleHours = (fromTime: string, toTime: string) => {
     if (!fromTime || !toTime) return 0;
     try {
-      const startTime = new Date(fromTime);
-      const endTime = new Date(toTime);
+      const startTime = parseDateTime(fromTime);
+      const endTime = parseDateTime(toTime);
+      if (!startTime || !endTime) return 0;
       const durationMs = endTime.getTime() - startTime.getTime();
       return durationMs / (1000 * 60 * 60); // Convert milliseconds to hours
     } catch {
@@ -56,15 +58,6 @@ export function RoleConfirm({ values }: RoleConfirmProps) {
     fitting: 'bg-green-500',
     job: 'bg-yellow-500',
     others: 'bg-purple-500',
-  };
-
-  const formatDateTime = (dateTime: string) => {
-    if (!dateTime) return 'No time specified';
-    try {
-      return new Date(dateTime).toLocaleString();
-    } catch {
-      return dateTime;
-    }
   };
 
   return (
@@ -168,7 +161,7 @@ export function RoleConfirm({ values }: RoleConfirmProps) {
                           <Text className="font-medium text-white">{schedule.location || 'No location'}</Text>
                           <Text className="text-sm text-white/60">
                             {schedule.fromTime && schedule.toTime
-                              ? `${formatDateTime(schedule.fromTime)} - ${formatDateTime(schedule.toTime)}`
+                              ? `${formatDisplayDateTime(schedule.fromTime, 'No time specified')} - ${formatDisplayDateTime(schedule.toTime, 'No time specified')}`
                               : 'No time specified'}
                           </Text>
                         </View>

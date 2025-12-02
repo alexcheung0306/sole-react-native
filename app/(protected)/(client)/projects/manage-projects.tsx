@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Stack } from 'expo-router';
-import { View, Text, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useManageProjectContext } from '@/context/ManageProjectContext';
 import ProjectInfoFormModal from '@/components/projects/ProjectInfoFormModal';
@@ -14,6 +14,7 @@ import ScreenTransition from '@/components/projects/ScreenTransition';
 export default function ManageProjectsPage({ scrollHandler }: { scrollHandler: (event: any) => void }) {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const {
     projects,
     projectResults,
@@ -30,6 +31,17 @@ export default function ManageProjectsPage({ scrollHandler }: { scrollHandler: (
     isSearching,
     refetchProjects,
   } = useManageProjectContext();
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetchProjects();
+    } catch (error) {
+      console.error('Error refreshing projects:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Scroll to top when page changes
   useEffect(() => {
@@ -56,6 +68,14 @@ export default function ManageProjectsPage({ scrollHandler }: { scrollHandler: (
             keyExtractor={(item) => (item?.project?.id ?? item?.id ?? Math.random()).toString()}
             numColumns={2}
             columnWrapperStyle={{ justifyContent: 'space-between' }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#3b82f6"
+                colors={['#3b82f6']}
+              />
+            }
             ListEmptyComponent={
               <FlatListEmpty
                 title="projects"
@@ -118,7 +138,7 @@ export default function ManageProjectsPage({ scrollHandler }: { scrollHandler: (
             scrollEventThrottle={16}
             contentContainerStyle={{
               paddingTop: insets.top + 72,
-              paddingBottom: 20,
+              paddingBottom: insets.bottom + 80,
               paddingHorizontal: 12,
             }}
             showsVerticalScrollIndicator={false}

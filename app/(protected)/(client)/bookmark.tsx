@@ -1,13 +1,27 @@
 import { Stack } from 'expo-router';
-import { View, ScrollView, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, ScrollView, Text, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScrollHeader } from '../../../hooks/useScrollHeader';
 import { CollapsibleHeader } from '../../../components/CollapsibleHeader';
 import { Bookmark } from 'lucide-react-native';
+import { useState } from 'react';
 
 export default function ClientBookmark() {
   const insets = useSafeAreaInsets();
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // Add your refresh logic here (e.g., refetch bookmarks)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } catch (error) {
+      console.error('Error refreshing bookmarks:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Dummy bookmarked items
   const bookmarkedItems = Array.from({ length: 10 }, (_, i) => ({
@@ -31,6 +45,14 @@ export default function ClientBookmark() {
           style={styles.scrollView}
           onScroll={onScroll}
           scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#3b82f6"
+              colors={['#3b82f6']}
+            />
+          }
           contentContainerStyle={{
             paddingTop: insets.top + 72,
             paddingBottom: 20,

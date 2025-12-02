@@ -122,7 +122,7 @@ export default function FilterSearch({
         <TouchableOpacity
           className="items-center justify-center rounded-xl border border-white/10 bg-white px-4 py-2"
           onPress={() => setShowDrawer(true)}>
-          <Filter color="#9ca3af" size={20} />
+          <Filter color="#9ca3af" size={12} />
         </TouchableOpacity>
 
         <CollapseDrawer
@@ -130,9 +130,6 @@ export default function FilterSearch({
           setShowDrawer={setShowDrawer}
           title="Search & Filter">
           <View className="p-5">
-
-
-
             {/* --------------------------------Search By-------------------------------- */}
             <Text className="mb-3 text-xs font-semibold text-gray-400">SEARCH BY</Text>
             <View className="mb-6 gap-3">
@@ -265,9 +262,9 @@ export default function FilterSearch({
 
         {/* Search Input */}
         <View className="flex-1 flex-row items-center rounded-xl border border-white/10 bg-black/30 px-3">
-          <Search color="#9ca3af" size={18} />
+          <Search color="#9ca3af" size={12} />
           <TextInput
-            className="ml-2 flex-1 text-base text-white"
+            className="ml-2 flex-1 text-xs text-white"
             value={inputValue}
             onChangeText={setInputValue}
             placeholder={`Search ${selectedSearchBy || ''}...`}
@@ -286,7 +283,7 @@ export default function FilterSearch({
         <TouchableOpacity
           className="items-center justify-center rounded-xl bg-blue-500 px-4 py-2"
           onPress={handleSearch}>
-          <Search color="#ffffff" size={20} />
+          <Search color="#ffffff" size={12} />
         </TouchableOpacity>
       </View>
 

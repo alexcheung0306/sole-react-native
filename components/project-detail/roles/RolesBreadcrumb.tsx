@@ -3,7 +3,6 @@ import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-nati
 import { AlertCircle } from 'lucide-react-native';
 import CollapseDrawer from '@/components/custom/collapse-drawer';
 import { DisplayRoleInformation } from './DisplayRoleInformation';
-import { ManageCandidates } from './ManageCandidates';
 
 type RolesBreadcrumbProps = {
   projectData: any;
@@ -53,6 +52,10 @@ export function RolesBreadcrumb({
           const role = roleWithSchedule?.role || {};
           const isActive = index === currentRole;
           const jobActivitiesCount = countJobActivities(roleWithSchedule);
+          // Count total activities (all types, not just job)
+          const totalActivitiesCount = Array.isArray(roleWithSchedule?.activities) 
+            ? roleWithSchedule.activities.length 
+            : 0;
 
           return (
             <TouchableOpacity
@@ -72,7 +75,7 @@ export function RolesBreadcrumb({
                 {jobActivitiesCount < 1 && <AlertCircle size={14} color="#ef4444" />}
               </View>
               <Text className={`mt-1 text-xs ${isActive ? 'text-white' : 'text-zinc-400'}`}>
-                {jobActivitiesCount} activities • {role.talentNumbers || 1} talent(s)
+                {totalActivitiesCount} activities • {role.talentNumbers || 1} talent(s)
               </Text>
             </TouchableOpacity>
           );
@@ -105,11 +108,6 @@ export function RolesBreadcrumb({
                 }}
                 onClose={() => setIsDrawerOpen(false)}
               />
-              {projectData?.status === 'Published' && selectedRole && (
-                <View className="mt-6 border-t border-white/10 pt-6">
-                  <ManageCandidates projectData={projectData} roleWithSchedules={selectedRole} />
-                </View>
-              )}
             </ScrollView>
           </View>
         </CollapseDrawer>

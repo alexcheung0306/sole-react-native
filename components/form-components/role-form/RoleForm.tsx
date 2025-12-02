@@ -41,6 +41,7 @@ export function RoleForm({
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [ethnic, setEthnic] = useState<Set<string>>(new Set());
   const closeDropdownRef = useRef<(() => void) | null>(null);
+  const closeModalRef = useRef<(() => void) | null>(null);
 
   // Handle both old format (fetchedValues directly) and new format (roleWithSchedules with nested role)
   const roleData = fetchedValues?.role ? fetchedValues.role : fetchedValues;
@@ -66,12 +67,35 @@ export function RoleForm({
         return await updateRoleAndSchedules(String(roleId), values, values);
       }
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Add a small delay to ensure database commit is complete
+      // This prevents race conditions where refetch happens before data is saved
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Call refetchRoles callback FIRST - this directly triggers the hook's refetch
+      // This ensures the component state updates immediately
+      try {
+        await refetchRoles();
+      } catch (error) {
+        // Silently handle refetch errors
+      }
+      
+      // Then invalidate queries to ensure all related data is fresh
+      // This will trigger refetches for any other components using these queries
+      await queryClient.invalidateQueries({ 
+        queryKey: ['project-roles', projectId],
+        refetchType: 'active'
+      });
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-detail'] });
       queryClient.invalidateQueries({ queryKey: ['manageProjects'] });
-      queryClient.invalidateQueries({ queryKey: ['project-roles', projectId] });
       queryClient.invalidateQueries({ queryKey: ['rolesWithSchedules', projectId] });
-      refetchRoles();
+      queryClient.invalidateQueries({ queryKey: ['project-contracts', projectId] });
+      
+      // Close modal after successful creation (POST) but not for updates (PUT)
+      if (method === 'POST' && closeModalRef.current) {
+        closeModalRef.current();
+      }
     },
   });
 
@@ -83,7 +107,7 @@ export function RoleForm({
       };
       await roleMutation.mutateAsync(parsedValues);
     } catch (e) {
-      console.log('Error Submitting Role Form', e);
+      // Error is handled by mutation's onError callback
     }
   };
 
@@ -188,7 +212,6 @@ export function RoleForm({
           setFillSchedulesLater(true);
           setFieldValue('activityScheduleLists', []);
         };
-        console.log('values', values);
 
         // Validation functions
         const validateRoleInformation = () => {
@@ -246,6 +269,10 @@ export function RoleForm({
           roleInformationErrors ||
           requirementsErrors ||
           activityScheduleErrors.some((error: string[] | null) => Boolean(error));
+
+        // Check if there's at least one job activity
+        const hasJobActivity = Array.isArray(values.activityScheduleLists) &&
+          values.activityScheduleLists.some((activity: any) => activity?.type === 'job');
 
         // Navigation helper functions
         const getPreviousPage = () => {
@@ -326,6 +353,7 @@ export function RoleForm({
                     roleInformationErrors={roleInformationErrors ? true : false}
                     requirementsErrors={requirementsErrors ? true : false}
                     hasErrors={hasErrors ? true : false}
+                    hasJobActivity={hasJobActivity}
                   />
                 </View>
               }
@@ -347,7 +375,11 @@ export function RoleForm({
               onReset={resetFormState}
               headerClassName="border-b border-white/10 px-4 pb-3 pt-12"
               contentClassName="flex-1">
-              {(close: () => void) => (
+              {(close: () => void) => {
+                // Store the close function so we can call it after successful role creation
+                closeModalRef.current = close;
+                
+                return (
                 <View className="flex-1">
                   <ScrollView
                     className="flex-1 px-4"
@@ -393,7 +425,8 @@ export function RoleForm({
                     onClose={close}
                   />
                 </View>
-              )}
+                );
+              }}
             </FormModal>
           </>
         );

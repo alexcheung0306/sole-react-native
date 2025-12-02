@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Stack, Link } from 'expo-router';
-import { StyleSheet, View, ScrollView, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, ScrollView, Text, TouchableOpacity, RefreshControl } from 'react-native';
 import { ScreenContent } from '../../../components/ScreenContent';
 import { Button, ButtonText } from '~/components/ui/button';
 import { useScrollHeader } from '../../../hooks/useScrollHeader';
@@ -11,6 +11,19 @@ import { HeaderButton } from '../../../components/HeaderButton';
 export default React.memo(function ClientDashboard() {
   const insets = useSafeAreaInsets();
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // Add your refresh logic here (e.g., refetch queries)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } catch (error) {
+      console.error('Error refreshing dashboard:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Create some dummy content to make it scrollable
   const dummyContent = Array.from({ length: 20 }, (_, i) => ({
@@ -38,6 +51,14 @@ export default React.memo(function ClientDashboard() {
           style={styles.scrollView}
           onScroll={onScroll}
           scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#3b82f6"
+              colors={['#3b82f6']}
+            />
+          }
           contentContainerStyle={{
             paddingTop: insets.top + 72, // Increased to account for larger header
             paddingBottom: 20,
