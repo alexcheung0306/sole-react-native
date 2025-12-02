@@ -412,7 +412,7 @@ export default function PreviewScreen() {
             ? getAspectRatioValue(selectedMedia[cropTargetIndex])
             : selectedAspectRatio
         }
-        lockAspectRatio={false}
+        lockAspectRatio={selectedAspectRatio !== -1}
       />
     </>
   );

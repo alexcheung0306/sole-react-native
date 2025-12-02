@@ -65,30 +65,13 @@ export function ImageCropModal({
     // Ensure maxHeight is at least 200 to avoid negative values if insets are huge or screen is small
     const maxHeight = Math.max(200, SCREEN_HEIGHT - (insets.top + insets.bottom + 180));
 
-    if (aspectRatio) {
-      // Calculate dimensions based on aspect ratio
-      // This ensures the initial crop area matches the image shape, preventing "zoom in" effect
-      let width = maxWidth;
-      let height = width / aspectRatio;
-
-      if (height > maxHeight) {
-        height = maxHeight;
-        width = height * aspectRatio;
-      }
-
-      return { width, height };
-    }
-
-    // Default square crop area
-    const tentativeHeight = maxWidth;
-    const height = Math.min(tentativeHeight, maxHeight);
-    const width = height;
-
+    // Always use the maximum available space for the canvas
+    // The crop frame itself will be sized within this area
     return {
-      width,
-      height,
+      width: maxWidth,
+      height: maxHeight,
     };
-  }, [insets.bottom, insets.top, aspectRatio]);
+  }, [insets.bottom, insets.top, SCREEN_WIDTH, SCREEN_HEIGHT]);
 
   const minCropSize = Math.min(baseCropArea.width, baseCropArea.height) * 0.35;
   const minCropWidth = lockAspectRatio && aspectRatio
@@ -144,8 +127,9 @@ export function ImageCropModal({
       const isNewMedia = prevMediaUriRef.current !== media?.uri;
 
       // Update crop frame based on aspect ratio (always recalculate)
+      // Update crop frame based on aspect ratio (always recalculate)
       if (aspectRatio) {
-        // Calculate dimensions based on aspect ratio
+        // Calculate dimensions based on aspect ratio to fit WITHIN baseCropArea
         let newWidth = baseCropArea.width;
         let newHeight = newWidth / aspectRatio;
 
@@ -157,8 +141,10 @@ export function ImageCropModal({
         cropWidth.value = newWidth;
         cropHeight.value = newHeight;
       } else {
-        cropWidth.value = baseCropArea.width;
-        cropHeight.value = baseCropArea.height;
+        // Default to square or fit baseCropArea if no ratio
+        const size = Math.min(baseCropArea.width, baseCropArea.height);
+        cropWidth.value = size;
+        cropHeight.value = size;
       }
 
       // Restore state from cropData if available and it matches the current media
@@ -354,7 +340,7 @@ export function ImageCropModal({
 
   const createEdgeGesture = (direction: 'top' | 'bottom' | 'left' | 'right') =>
     Gesture.Pan()
-      .enabled(!isProcessing)
+      .enabled(!isProcessing && !lockAspectRatio)
       .onChange((event) => {
         // Safety check for invalid event data
         if (isNaN(event.changeX) || isNaN(event.changeY)) return;
