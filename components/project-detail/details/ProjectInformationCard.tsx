@@ -75,7 +75,7 @@ export function ProjectInformationCard({ project, soleUserId }: ProjectInformati
           />
           <InfoRow label="Usage" value={project?.usage ?? '—'} multiline />
           <InfoRow label="Remarks" value={project?.remarks ?? '—'} multiline />
-          <View className="flex-row flex-wrap gap-3">
+          <View className="flex-row flex-wrap gap-3 py-2">
             {/* Private/Public Badge with enhanced styling */}
             <View
               className={`flex-row items-center gap-2 rounded-full border-2 px-3.5 py-2 ${
@@ -102,14 +102,30 @@ export function ProjectInformationCard({ project, soleUserId }: ProjectInformati
                 {project?.isPrivate ? 'Private' : 'Public'}
               </Text>
             </View>
-            <View className="rounded-full border border-white/15 bg-white/10 px-3 py-1 items-center justify-center">
-              <Text className="text-xs font-semibold text-white">
+            <View
+              className="flex-row items-center gap-2 rounded-full border-2 border-white/15 bg-white/10 px-3.5 py-2"
+              style={{
+                shadowColor: '#ffffff',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 3,
+              }}>
+              <Text className="text-xs font-bold uppercase tracking-wide text-white">
                 Status: {project?.status ?? '—'}
               </Text>
             </View>
             {project?.status === 'Published' && project?.applicationDeadline ? (
-              <View className="rounded-full border border-white/15 bg-white/10 px-3 py-1">
-                <Text className="text-xs font-semibold text-white">
+              <View
+                className="flex-row items-center gap-2 rounded-full border-2 border-white/15 bg-white/10 px-3.5 py-2"
+                style={{
+                  shadowColor: '#ffffff',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 3,
+                }}>
+                <Text className="text-xs font-bold uppercase tracking-wide text-white">
                   Deadline: {formatDateTime(project.applicationDeadline)}
                 </Text>
               </View>

@@ -31,7 +31,7 @@ export function RoleFormNavigationButtons({
         variant="outline"
         isDisabled={currentPage === 'roleInformation'}
         onPress={() => setCurrentPage(getPreviousPage())}
-        className="flex-1">
+        className="flex-1 rounded-2xl">
         <ButtonText>Previous</ButtonText>
       </Button>
       {currentPage === 'confirm' ? (
@@ -42,19 +42,20 @@ export function RoleFormNavigationButtons({
             await onSave();
             onClose();
           }}
-          className="flex-1">
+          className="flex-1 rounded-2xl">
           <ButtonText>{isSubmitting ? 'Saving...' : 'Save Role'}</ButtonText>
         </Button>
       ) : (
         <Button
-          action="primary"
+        action="secondary"
+
+          variant="outline"
           isDisabled={!isCurrentPageValid()}
           onPress={() => setCurrentPage(getNextPage())}
-          className="flex-1">
+          className="flex-1 rounded-2xl">
           <ButtonText>Next</ButtonText>
         </Button>
       )}
     </View>
   );
 }
-

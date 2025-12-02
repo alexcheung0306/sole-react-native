@@ -53,6 +53,10 @@ export function RolesBreadcrumb({
           const role = roleWithSchedule?.role || {};
           const isActive = index === currentRole;
           const jobActivitiesCount = countJobActivities(roleWithSchedule);
+          // Count total activities (all types, not just job)
+          const totalActivitiesCount = Array.isArray(roleWithSchedule?.activities) 
+            ? roleWithSchedule.activities.length 
+            : 0;
 
           return (
             <TouchableOpacity
@@ -72,7 +76,7 @@ export function RolesBreadcrumb({
                 {jobActivitiesCount < 1 && <AlertCircle size={14} color="#ef4444" />}
               </View>
               <Text className={`mt-1 text-xs ${isActive ? 'text-white' : 'text-zinc-400'}`}>
-                {jobActivitiesCount} activities • {role.talentNumbers || 1} talent(s)
+                {totalActivitiesCount} activities • {role.talentNumbers || 1} talent(s)
               </Text>
             </TouchableOpacity>
           );
