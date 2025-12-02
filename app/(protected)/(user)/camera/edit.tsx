@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Video, ResizeMode } from 'expo-av';
 import { useCreatePostContext, MediaItem } from '~/context/CreatePostContext';
 import { EditableImage } from '~/components/camera/EditableImage';
+import { AspectRatioWheel } from '~/components/camera/AspectRatioWheel';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { Pressable } from 'react-native';
 
@@ -49,13 +50,6 @@ const BouncyButton = ({ onPress, children, className, style }: any) => {
 };
 
 const { width, height } = Dimensions.get('window');
-
-// Aspect ratio options matching web version
-const ASPECT_RATIOS = [
-  { key: '1/1', value: 1 / 1, label: '1:1', icon: Square },
-  { key: '4/5', value: 4 / 5, label: '4:5', icon: RectangleVertical },
-  { key: '16/9', value: 16 / 9, label: '16:9', icon: RectangleHorizontal },
-] as const;
 
 export default function PreviewScreen() {
   const insets = useSafeAreaInsets();
@@ -133,22 +127,6 @@ export default function PreviewScreen() {
     });
 
     setSelectedMedia(updated);
-  };
-
-  const toggleAspectRatio = () => {
-    const currentRatio = selectedAspectRatio === -1 ? 1 : selectedAspectRatio;
-    // Find current index in ASPECT_RATIOS
-    const currentIndex = ASPECT_RATIOS.findIndex(r => Math.abs(r.value - currentRatio) < 0.01);
-
-    // Calculate next index (cycle)
-    // If not found (e.g. -1), start at 0 (1:1)
-    // If at end, go back to 0
-    let nextIndex = 0;
-    if (currentIndex !== -1) {
-      nextIndex = (currentIndex + 1) % ASPECT_RATIOS.length;
-    }
-
-    handleAspectRatioChange(ASPECT_RATIOS[nextIndex].value);
   };
 
   const handleClose = () => {
@@ -292,30 +270,19 @@ export default function PreviewScreen() {
 
           {/* Controls */}
           <View className="px-4 py-4 border-b border-gray-800">
-            <View className="flex-row items-center gap-3">
-              {/* Aspect Ratio Toggle Button */}
-              <TouchableOpacity
-                onPress={toggleAspectRatio}
-                className="flex-1 flex-row items-center justify-center bg-blue-800 rounded-lg px-4 py-3 border border-gray-700"
-              >
-                {(() => {
-                  // Find current label/icon
-                  const currentRatio = selectedAspectRatio === -1 ? 1 : selectedAspectRatio;
-                  const ratioObj = ASPECT_RATIOS.find(r => Math.abs(r.value - currentRatio) < 0.01) || ASPECT_RATIOS[0];
-                  const Icon = ratioObj.icon;
-                  return (
-                    <>
-                      <Icon size={18} color="#ffffff" />
-                      <Text className="text-white ml-2 font-medium">{ratioObj.label}</Text>
-                    </>
-                  );
-                })()}
-              </TouchableOpacity>
+            <View className="flex-row items-center justify-between gap-4">
+              {/* Aspect Ratio Wheel - Centered */}
+              <View className="flex-1 items-center justify-center">
+                <AspectRatioWheel
+                  selectedRatio={selectedAspectRatio}
+                  onRatioChange={handleAspectRatioChange}
+                />
+              </View>
 
               {/* Delete Button - Icon Only */}
               <TouchableOpacity
                 onPress={handleDelete}
-                className="flex-row items-center justify-center bg-red-500/20 rounded-lg px-4 py-3 aspect-square"
+                className="flex-row items-center justify-center bg-red-500/20 rounded-lg px-4 py-3 aspect-square h-[50px]"
               >
                 <Trash2 size={20} color="#ef4444" />
               </TouchableOpacity>
