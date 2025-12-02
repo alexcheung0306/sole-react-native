@@ -218,6 +218,7 @@ export default React.memo(function UserHome() {
           scrollEventThrottle={16}
           contentContainerStyle={{
             paddingTop: insets.top + 120, // Increased for header space
+            paddingBottom: insets.bottom + 80,
           }}
           onEndReached={() => {
             if (hasNextPage && !isFetchingNextPage) {

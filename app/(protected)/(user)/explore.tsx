@@ -469,7 +469,7 @@ export default React.memo(function Explore() {
             contentContainerStyle={{
               paddingHorizontal: 4,
               paddingTop: showSearch ? 0 : insets.top + 72,
-              paddingBottom: insets.bottom + 20,
+              paddingBottom: insets.bottom + 80,
             }}
             onEndReached={loadMore}
             onEndReachedThreshold={0.5}
