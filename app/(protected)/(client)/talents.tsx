@@ -1,10 +1,11 @@
 import { Stack } from 'expo-router';
-import { View, FlatList, Image, Dimensions, TouchableOpacity, Text } from 'react-native';
+import { View, FlatList, Image, Dimensions, TouchableOpacity, Text, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useScrollHeader } from '../../../hooks/useScrollHeader';
 import { CollapsibleHeader } from '../../../components/CollapsibleHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useState } from 'react';
 
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = width / 3;
@@ -13,6 +14,19 @@ export default function ClientTalents() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // Add your refresh logic here (e.g., refetch talents)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } catch (error) {
+      console.error('Error refreshing talents:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const images = Array.from({ length: 30 }, (_, i) => ({
     id: i.toString(),
@@ -63,6 +77,14 @@ export default function ClientTalents() {
           showsVerticalScrollIndicator={false}
           onScroll={onScroll}
           scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#3b82f6"
+              colors={['#3b82f6']}
+            />
+          }
           contentContainerStyle={{
             paddingTop: insets.top + 72, // Increased to account for larger header
           }}

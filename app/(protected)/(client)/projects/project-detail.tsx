@@ -56,6 +56,11 @@ export default function ProjectDetailPage({
 
   const [refreshing, setRefreshing] = useState(false);
 
+  // Calculate button disabled state - use useMemo to ensure it recalculates when dependencies change
+  // MUST be called before any early returns to follow Rules of Hooks
+  const isPublishButtonDisabled = useMemo(() => {
+    return roleCount > 0 && jobNotReadyCount === 0 ? false : true;
+  }, [roleCount, jobNotReadyCount]);
 
   const isInitialLoading = projectLoading;
 
@@ -64,15 +69,7 @@ export default function ProjectDetailPage({
     if (rolesWithSchedules.length > 0 && currentRole >= rolesWithSchedules.length) {
       setCurrentRole(0);
     }
-  }, [rolesWithSchedules.length, currentRole, setCurrentRole]);
-
-  // Log when rolesWithSchedules changes
-  useEffect(() => {
-    console.log('=== rolesWithSchedules Changed ===');
-    console.log('rolesWithSchedules.length:', rolesWithSchedules.length);
-    console.log('rolesWithSchedules:', JSON.stringify(rolesWithSchedules, null, 2));
-    console.log('=== End rolesWithSchedules Changed ===');
-  }, [rolesWithSchedules]);
+  }, [rolesWithSchedules.length, currentRole]);
 
   // Handle pull-to-refresh
   const onRefresh = async () => {
@@ -102,7 +99,7 @@ export default function ProjectDetailPage({
   if (projectError || !projectData) {
     return (
       <View className="flex-1 items-center justify-center bg-[#0a0a0a] px-6">
-        <Text className="text-lg font-semibold text-rose-400">We couldn’t load this project.</Text>
+        <Text className="text-lg font-semibold text-rose-400">We couldn't load this project.</Text>
         <TouchableOpacity
           className="mt-5 rounded-xl bg-blue-500 px-5 py-3"
           activeOpacity={0.85}
@@ -125,24 +122,6 @@ export default function ProjectDetailPage({
       count: jobContractsData?.content?.length ?? jobContractsData?.length ?? 0,
     },
   ];
-
-  // Calculate button disabled state - use useMemo to ensure it recalculates when dependencies change
-  const isPublishButtonDisabled = useMemo(() => {
-    const result = roleCount > 0 && jobNotReadyCount === 0 ? false : true;
-    console.log('=== ProjectDetailPage: Calculating button state ===');
-    console.log('roleCount:', roleCount);
-    console.log('jobNotReadyCount:', jobNotReadyCount);
-    console.log('rolesWithSchedules.length:', rolesWithSchedules.length);
-    console.log('Button disabled calculation:', {
-      condition: 'roleCount > 0 && jobNotReadyCount === 0',
-      roleCount,
-      jobNotReadyCount,
-      result: roleCount > 0 && jobNotReadyCount === 0,
-      isPublishButtonDisabled: result,
-    });
-    console.log('=== End Calculation ===');
-    return result;
-  }, [roleCount, jobNotReadyCount, rolesWithSchedules.length]);
 
   return (
     <>
@@ -283,8 +262,8 @@ export default function ProjectDetailPage({
                 projectData={project}
                 isDisable={isPublishButtonDisabled}
                 onSuccess={() => {
-                  // Optionally handle success callback
-                  router.replace('/(protected)/(client)/projects/manage-projects');
+                  // Navigate back to projects list after successful publish
+                  router.back();
                 }}
               />
             )}

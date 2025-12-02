@@ -30,11 +30,6 @@ export function PublishProjectButton({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerInitialDate, setPickerInitialDate] = useState<Date>(new Date());
 
-  // Log when isDisable prop changes
-  React.useEffect(() => {
-    console.log('=== PublishProjectButton: isDisable changed ===', isDisable);
-  }, [isDisable]);
-
   const projectId = projectData?.id || projectData?.project?.id;
 
   const publishMutation = useMutation({
@@ -50,7 +45,8 @@ export function PublishProjectButton({
       if (onSuccess) {
         onSuccess();
       } else {
-        router.replace('/(protected)/(client)/projects/manage-projects');
+        // Navigate back to the previous screen (projects list)
+        router.back();
       }
     },
     onError: (error) => {
@@ -200,14 +196,14 @@ export function PublishProjectButton({
                   action="secondary"
                   variant="outline"
                   onPress={handleClose}
-                  className="flex-1">
+                  className="flex-1 rounded-2xl">
                   <ButtonText>Cancel</ButtonText>
                 </Button>
                 <Button
                   action="primary"
                   onPress={handlePublish}
                   isDisabled={hasError || isLoading}
-                  className="flex-1">
+                  className="flex-1 rounded-2xl">
                   <ButtonText>{isLoading ? 'Publishing...' : 'Publish Project'}</ButtonText>
                 </Button>
               </View>

@@ -1,11 +1,18 @@
 import { useState } from 'react';
 import { View, Text, ImageBackground, TouchableOpacity } from 'react-native';
-import { EllipsisVertical, ShieldX, ShieldCheck } from 'lucide-react-native';
+import { EllipsisVertical } from 'lucide-react-native';
 
 import { ProjectInfoActionsDrawer } from '~/components/project-detail/details/ProjectInfoActionsDrawer';
 import ProjectInfoFormModal from '@/components/projects/ProjectInfoFormModal';
 import { formatDateTime } from '@/utils/time-converts';
 import { LinearGradient } from 'expo-linear-gradient';
+
+const STATUS_COLORS: Record<string, string> = {
+  Draft: '#6b7280',
+  Published: '#f59e0b',
+  InProgress: '#10b981',
+  Completed: '#3b82f6',
+};
 
 type ProjectInformationCardProps = {
   project: any;
@@ -75,57 +82,35 @@ export function ProjectInformationCard({ project, soleUserId }: ProjectInformati
           />
           <InfoRow label="Usage" value={project?.usage ?? '—'} multiline />
           <InfoRow label="Remarks" value={project?.remarks ?? '—'} multiline />
-          <View className="flex-row flex-wrap gap-3 py-2">
-            {/* Private/Public Badge with enhanced styling */}
+          <View className="flex-row flex-wrap items-center gap-3 py-2">
+            {/* Private/Public Badge */}
             <View
-              className={`flex-row items-center gap-2 rounded-full border-2 px-3.5 py-2 ${
-                project?.isPrivate
-                  ? 'border-rose-500/60 bg-rose-500/25'
-                  : 'border-emerald-500/60 bg-emerald-500/25'
-              }`}
+              className="rounded-full px-3 py-1"
               style={{
-                shadowColor: project?.isPrivate ? '#f43f5e' : '#10b981',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.3,
-                shadowRadius: 4,
-                elevation: 3,
+                backgroundColor: project?.isPrivate ? '#f43f5e33' : '#10b98133',
               }}>
-              {project?.isPrivate ? (
-                <ShieldX size={16} color="#f43f5e" />
-              ) : (
-                <ShieldCheck size={16} color="#10b981" />
-              )}
               <Text
-                className={`text-xs font-bold uppercase tracking-wide ${
-                  project?.isPrivate ? 'text-white' : 'text-white'
-                }`}>
+                className="text-xs font-semibold text-white"
+                style={{ color: project?.isPrivate ? '#f43f5e' : '#10b981' }}>
                 {project?.isPrivate ? 'Private' : 'Public'}
               </Text>
             </View>
+            {/* Status Badge */}
             <View
-              className="flex-row items-center gap-2 rounded-full border-2 border-white/15 bg-white/10 px-3.5 py-2"
+              className="rounded-full px-3 py-1"
               style={{
-                shadowColor: '#ffffff',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                elevation: 3,
+                backgroundColor: `${STATUS_COLORS[project?.status] || STATUS_COLORS.Draft}33`,
               }}>
-              <Text className="text-xs font-bold uppercase tracking-wide text-white">
-                Status: {project?.status ?? '—'}
+              <Text
+                className="text-xs font-semibold text-white"
+                style={{ color: STATUS_COLORS[project?.status] || STATUS_COLORS.Draft }}>
+                {project?.status ?? '—'}
               </Text>
             </View>
+            {/* Deadline Badge */}
             {project?.status === 'Published' && project?.applicationDeadline ? (
-              <View
-                className="flex-row items-center gap-2 rounded-full border-2 border-white/15 bg-white/10 px-3.5 py-2"
-                style={{
-                  shadowColor: '#ffffff',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 3,
-                }}>
-                <Text className="text-xs font-bold uppercase tracking-wide text-white">
+              <View className="rounded-full border border-blue-500/40 bg-blue-500/15 px-3 py-1">
+                <Text className="text-xs font-semibold text-white">
                   Deadline: {formatDateTime(project.applicationDeadline)}
                 </Text>
               </View>

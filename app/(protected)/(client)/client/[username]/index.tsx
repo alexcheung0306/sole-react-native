@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View, Dimensions, Alert, Modal } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View, Dimensions, Alert, Modal, RefreshControl } from 'react-native';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
@@ -42,6 +42,7 @@ export default function ClientProfileScreen() {
   const { username } = useLocalSearchParams<{ username: string }>();
   const { currentMode } = useNavigation();
   const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
 
   // Check if viewing own profile
   const isOwnProfile = user?.username === username;
@@ -281,6 +282,20 @@ export default function ClientProfileScreen() {
     router.back();
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        refetch(),
+        queryClient.invalidateQueries({ queryKey: ['profilePagePosts', username] }),
+      ]);
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   // Flatten posts from all pages
   const posts = userPostsData?.pages.flatMap((page) => page.data) ?? [];
   const totalPosts = userPostsData?.pages[0]?.total ?? 0;
@@ -316,6 +331,14 @@ export default function ClientProfileScreen() {
           className="flex-1 bg-black"
           onScroll={onScroll}
           scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#3b82f6"
+              colors={['#3b82f6']}
+            />
+          }
           contentContainerStyle={{
             paddingTop: insets.top + 72,
             paddingBottom: 20,
