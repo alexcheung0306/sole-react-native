@@ -57,9 +57,7 @@ export const useProjectDetailQueries = ({
   } = useQuery({
     queryKey: ['project-roles', projectId],
     queryFn: async () => {
-      console.log('=== useProjectDetailQueries: Fetching roles ===');
       const response = await getRolesByProjectId(projectId);
-      console.log('=== useProjectDetailQueries: Roles fetched ===', response?.length || 0);
       return response ?? [];
     },
     enabled: Boolean(projectId),
@@ -67,29 +65,6 @@ export const useProjectDetailQueries = ({
 
   const roleCount = Array.isArray(rolesWithSchedules) ? rolesWithSchedules.length : 0;
   const jobNotReadyCount = countWithoutJobActivities(rolesWithSchedules);
-
-  // Detailed logging for debugging
-  console.log('=== useProjectDetailQueries Debug ===');
-  console.log('rolesWithSchedules length:', rolesWithSchedules.length);
-  console.log('roleCount:', roleCount);
-  console.log('jobNotReadyCount:', jobNotReadyCount);
-  console.log('rolesWithSchedules data:', JSON.stringify(rolesWithSchedules, null, 2));
-  
-  // Log each role's readiness status
-  if (Array.isArray(rolesWithSchedules) && rolesWithSchedules.length > 0) {
-    rolesWithSchedules.forEach((roleWithSchedule, index) => {
-      const role = roleWithSchedule?.role;
-      const activities = roleWithSchedule?.activities || [];
-      const hasJobActivity = activities.some((activity: any) => activity?.type === 'job');
-      console.log(`Role ${index + 1} (ID: ${role?.id}):`, {
-        roleTitle: role?.roleTitle,
-        activitiesCount: activities.length,
-        hasJobActivity,
-        isReady: hasJobActivity,
-      });
-    });
-  }
-  console.log('=== End Debug ===');
 
   // project-contracts query is used to get the job contracts data
   const {

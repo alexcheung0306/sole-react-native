@@ -3,7 +3,6 @@ import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-nati
 import { AlertCircle } from 'lucide-react-native';
 import CollapseDrawer from '@/components/custom/collapse-drawer';
 import { DisplayRoleInformation } from './DisplayRoleInformation';
-import { ManageCandidates } from './ManageCandidates';
 
 type RolesBreadcrumbProps = {
   projectData: any;
@@ -109,11 +108,6 @@ export function RolesBreadcrumb({
                 }}
                 onClose={() => setIsDrawerOpen(false)}
               />
-              {projectData?.status === 'Published' && selectedRole && (
-                <View className="mt-6 border-t border-white/10 pt-6">
-                  <ManageCandidates projectData={projectData} roleWithSchedules={selectedRole} />
-                </View>
-              )}
             </ScrollView>
           </View>
         </CollapseDrawer>

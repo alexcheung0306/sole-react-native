@@ -27,9 +27,9 @@ export function RoleFormBreadCrumbs({
           (page === 'schedules' && (roleInformationErrors || requirementsErrors)) ||
           (page === 'confirm' && hasErrors);
         
-        // Show red border for schedules if there's no job activity
+        // Show red border for schedules if there's no job activity AND the schedules page is currently rendered
         const isSchedulesPage = page === 'schedules';
-        const showRedBorder = isSchedulesPage && !hasJobActivity;
+        const showRedBorder = isSchedulesPage && !hasJobActivity && currentPage === 'schedules';
 
         return (
           <TouchableOpacity

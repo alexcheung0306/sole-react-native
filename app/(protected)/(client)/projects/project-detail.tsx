@@ -14,6 +14,7 @@ import { ProjectAnnouncementsList } from '~/components/project-detail/details/Pr
 import { CustomTabs } from '@/components/custom/custom-tabs';
 import { RoleForm } from '~/components/form-components/role-form/RoleForm';
 import { RolesBreadcrumb } from '~/components/project-detail/roles/RolesBreadcrumb';
+import { ManageCandidates } from '~/components/project-detail/roles/ManageCandidates';
 import { PublishProjectButton } from '~/components/project-detail/PublishProjectButton';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -62,6 +63,26 @@ export default function ProjectDetailPage({
     return roleCount > 0 && jobNotReadyCount === 0 ? false : true;
   }, [roleCount, jobNotReadyCount]);
 
+  // Conditionally show tabs based on project status - MUST be called before any early returns
+  const tabs = useMemo(() => {
+    const project = projectData?.project || projectData;
+    const baseTabs = [
+      { id: 'project-information', label: 'Details' },
+      { id: 'project-roles', label: 'Roles', count: roleCount ?? 0 },
+    ];
+
+    // Only show Contracts tab if project is not Draft
+    if (project?.status !== 'Draft') {
+      baseTabs.push({
+        id: 'project-contracts',
+        label: 'Contracts',
+        count: jobContractsData?.content?.length ?? jobContractsData?.length ?? 0,
+      });
+    }
+
+    return baseTabs;
+  }, [projectData, roleCount, jobContractsData]);
+
   const isInitialLoading = projectLoading;
 
   // Ensure currentRole is within bounds when roles data changes
@@ -70,6 +91,14 @@ export default function ProjectDetailPage({
       setCurrentRole(0);
     }
   }, [rolesWithSchedules.length, currentRole]);
+
+  // Switch to project-information tab if user is on contracts tab when project is Draft
+  useEffect(() => {
+    const project = projectData?.project || projectData;
+    if (project?.status === 'Draft' && currentTab === 'project-contracts') {
+      setCurrentTab('project-information');
+    }
+  }, [projectData, currentTab]);
 
   // Handle pull-to-refresh
   const onRefresh = async () => {
@@ -112,16 +141,6 @@ export default function ProjectDetailPage({
 
   const project = projectData?.project || projectData;
   const statusTint = STATUS_COLORS[project?.status] || STATUS_COLORS.Draft;
-
-  const tabs = [
-    { id: 'project-information', label: 'Details' },
-    { id: 'project-roles', label: 'Roles', count: roleCount ?? 0 },
-    {
-      id: 'project-contracts',
-      label: 'Contracts',
-      count: jobContractsData?.content?.length ?? jobContractsData?.length ?? 0,
-    },
-  ];
 
   return (
     <>
@@ -237,6 +256,16 @@ export default function ProjectDetailPage({
                     projectId={projectId}
                     refetchRoles={refetchRoles}
                   />
+                )}
+
+                {/* Manage Candidates - Only show for Published projects with roles */}
+                {project?.status === 'Published' && rolesWithSchedules.length > 0 && (
+                  <View className="mt-6 border-t border-white/10 pt-6 px-2">
+                    <ManageCandidates 
+                      projectData={project} 
+                      roleWithSchedules={rolesWithSchedules[currentRole]} 
+                    />
+                  </View>
                 )}
               </View>
             )}
