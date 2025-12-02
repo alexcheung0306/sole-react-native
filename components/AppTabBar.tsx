@@ -114,37 +114,31 @@ export default function AppTabBar() {
   const handleUserHomePress = () => {
     if (activeTab !== 'home') {
       setActiveTab('home');
-      router.push('/(protected)/(user)/home');
     }
   };
 
   const handleUserExplorePress = () => {
     if (activeTab !== 'explore') {
       setActiveTab('explore');
-      router.push('/(protected)/(user)/explore');
     }
   };
 
   const handleUserCameraPress = () => {
     if (activeTab !== 'camera') {
       setActiveTab('camera');
-      router.push('/(protected)/(user)/camera');
     }
   };
 
   const handleUserJobPress = () => {
     if (activeTab !== 'job') {
       setActiveTab('job');
-      router.push('/(protected)/(user)/job');
     }
   };
 
   const handleUserProfilePress = () => {
     if (activeTab !== 'user') {
       setActiveTab('user');
-      if (user?.username) {
-        router.push(`/(protected)/(user)/user/${user.username}`);
-      }
+   
     }
   };
 
