@@ -96,13 +96,13 @@ export default React.memo(function CameraScreen() {
     }, [clearMedia])
   );
 
-  const loadPhotos = async () => {
+  const loadPhotos = async (retryCount = 0) => {
     try {
       setIsLoading(true);
       
       // Re-check permissions before accessing media library
       // This helps with emulator permission issues
-      const { status } = await MediaLibrary.getPermissionsAsync();
+      let { status } = await MediaLibrary.getPermissionsAsync();
       if (status !== 'granted') {
         try {
           const { status: newStatus } = await MediaLibrary.requestPermissionsAsync();
@@ -112,6 +112,7 @@ export default React.memo(function CameraScreen() {
             Alert.alert('Permission Required', 'Please grant photo library access to select media');
             return;
           }
+          status = newStatus;
         } catch (permissionError) {
           // Suppress AUDIO permission error on emulator (expected behavior)
           const errorMessage = (permissionError as Error).message || '';
@@ -126,10 +127,29 @@ export default React.memo(function CameraScreen() {
               setIsLoading(false);
               return;
             }
+            status = retryStatus.status;
           } else {
             throw permissionError;
           }
         }
+      }
+
+      // Double-check permission status right before API call
+      // Sometimes Android reports granted but API still fails
+      const finalCheck = await MediaLibrary.getPermissionsAsync();
+      if (finalCheck.status !== 'granted') {
+        // Permission was revoked or not properly granted
+        if (retryCount < 1) {
+          // Try requesting again once
+          const { status: retryStatus } = await MediaLibrary.requestPermissionsAsync();
+          if (retryStatus === 'granted') {
+            return loadPhotos(retryCount + 1);
+          }
+        }
+        setHasPermission(false);
+        setIsLoading(false);
+        Alert.alert('Permission Required', 'Please grant photo library access to select media');
+        return;
       }
 
       const media = await MediaLibrary.getAssetsAsync({
@@ -161,15 +181,33 @@ export default React.memo(function CameraScreen() {
         return;
       }
       
-      // Log other errors normally
-      console.error('Error loading photos:', error);
-      if (errorMessage.includes('MEDIA_LIBRARY') || errorMessage.includes('permission')) {
+      // Handle MEDIA_LIBRARY permission errors
+      if (errorMessage.includes('MEDIA_LIBRARY') || errorMessage.includes('permission') || errorMessage.includes('Missing MEDIA_LIBRARY')) {
+        // Retry once if we haven't already
+        if (retryCount < 1) {
+          // Re-request permissions and try again
+          try {
+            const { status: retryStatus } = await MediaLibrary.requestPermissionsAsync();
+            if (retryStatus === 'granted') {
+              // Wait a brief moment for permission to propagate
+              await new Promise(resolve => setTimeout(resolve, 100));
+              return loadPhotos(retryCount + 1);
+            }
+          } catch (retryError) {
+            // If retry also fails, fall through to error handling
+          }
+        }
+        
+        // If retry failed or we've already retried, show error
+        console.error('Error loading photos:', error);
         Alert.alert(
           'Permission Error',
-          'Media library permission is required. If using an emulator, try:\n1. Granting permissions in device settings\n2. Adding media files to the emulator\n3. Testing on a physical device'
+          'Media library permission is required. Please:\n1. Grant permissions in device settings\n2. Restart the app if permissions were just granted\n3. If using an emulator, try adding media files or testing on a physical device'
         );
         setHasPermission(false);
       } else {
+        // Log other errors normally
+        console.error('Error loading photos:', error);
         Alert.alert('Error', 'Failed to load media library');
       }
     } finally {

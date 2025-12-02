@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useEffect, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { ChevronLeft } from 'lucide-react-native';
@@ -49,11 +49,13 @@ export default function ProjectDetailPage({
     roleCount,
     jobNotReadyCount,
     countJobActivities,
+    refetchProject,
     refetchRoles,
     refetchContracts,
   } = useProjectDetailQueries({ projectId, soleUserId: soleUserId || '' });
 
-  console.log('projectData', projectData);
+  const [refreshing, setRefreshing] = useState(false);
+
 
   const isInitialLoading = projectLoading;
 
@@ -63,6 +65,30 @@ export default function ProjectDetailPage({
       setCurrentRole(0);
     }
   }, [rolesWithSchedules.length, currentRole, setCurrentRole]);
+
+  // Log when rolesWithSchedules changes
+  useEffect(() => {
+    console.log('=== rolesWithSchedules Changed ===');
+    console.log('rolesWithSchedules.length:', rolesWithSchedules.length);
+    console.log('rolesWithSchedules:', JSON.stringify(rolesWithSchedules, null, 2));
+    console.log('=== End rolesWithSchedules Changed ===');
+  }, [rolesWithSchedules]);
+
+  // Handle pull-to-refresh
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        refetchProject(),
+        refetchRoles(),
+        refetchContracts(),
+      ]);
+    } catch (error) {
+      console.error('Error refreshing project data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   if (isInitialLoading) {
     return (
@@ -100,6 +126,24 @@ export default function ProjectDetailPage({
     },
   ];
 
+  // Calculate button disabled state - use useMemo to ensure it recalculates when dependencies change
+  const isPublishButtonDisabled = useMemo(() => {
+    const result = roleCount > 0 && jobNotReadyCount === 0 ? false : true;
+    console.log('=== ProjectDetailPage: Calculating button state ===');
+    console.log('roleCount:', roleCount);
+    console.log('jobNotReadyCount:', jobNotReadyCount);
+    console.log('rolesWithSchedules.length:', rolesWithSchedules.length);
+    console.log('Button disabled calculation:', {
+      condition: 'roleCount > 0 && jobNotReadyCount === 0',
+      roleCount,
+      jobNotReadyCount,
+      result: roleCount > 0 && jobNotReadyCount === 0,
+      isPublishButtonDisabled: result,
+    });
+    console.log('=== End Calculation ===');
+    return result;
+  }, [roleCount, jobNotReadyCount, rolesWithSchedules.length]);
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -122,6 +166,14 @@ export default function ProjectDetailPage({
           className="flex-1"
           onScroll={scrollHandler}
           scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#3b82f6"
+              colors={['#3b82f6']}
+            />
+          }
           contentContainerStyle={{
             paddingTop: insets.top + 72,
             paddingBottom: insets.bottom + 80,
@@ -227,8 +279,9 @@ export default function ProjectDetailPage({
             {/* Publish Project Button - Only show when project is Draft */}
             {project?.status === 'Draft' && (
               <PublishProjectButton
+                key={`publish-button-${roleCount}-${jobNotReadyCount}`}
                 projectData={project}
-                isDisable={roleCount > 0 && jobNotReadyCount === 0 ? false : true}
+                isDisable={isPublishButtonDisabled}
                 onSuccess={() => {
                   // Optionally handle success callback
                   router.replace('/(protected)/(client)/projects/manage-projects');

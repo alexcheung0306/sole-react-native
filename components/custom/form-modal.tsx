@@ -83,16 +83,9 @@ export function FormModal({
   const isControlled = typeof controlledOpen === 'boolean';
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const isOpen = isControlled ? (controlledOpen as boolean) : internalOpen;
-  const overlayOpacity = React.useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
 
-  React.useEffect(() => {
-    Animated.timing(overlayOpacity, {
-      toValue: isOpen ? 1 : 0,
-      duration: 250,
-      useNativeDriver: false,
-    }).start();
-  }, [isOpen, overlayOpacity]);
+ 
 
   const handleOpen = () => {
     if (!isControlled) {
@@ -162,18 +155,19 @@ export function FormModal({
     <>
       {renderTrigger()}
 
-      <Modal visible={isOpen} animationType="fade" transparent onRequestClose={handleClose}>
+      <Modal transparent visible={isOpen} animationType="fade"  onRequestClose={handleClose}>
         <View style={styles.backdrop}>
-          {/* Backdrop layers - fill entire screen */}
-          <Animated.View style={[StyleSheet.absoluteFill, { opacity: overlayOpacity }]}>
-            <BlurView intensity={100} tint="dark" style={StyleSheet.absoluteFill} />
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
-          </Animated.View>
-
-          {/* Backdrop touch blocker */}
+          {/* Backdrop - only this area is pressable */}
           <TouchableOpacity
             activeOpacity={1}
-            style={StyleSheet.absoluteFill}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0,0,0,0.65)',
+            }}
             onPress={handleClose}
           />
 
@@ -183,10 +177,24 @@ export function FormModal({
             style={styles.modalContainer}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
             pointerEvents="box-none">
-            <View className="flex bg-black/35" style={styles.modalContent} pointerEvents="box-none">
+            <View className="flex" style={styles.modalContent} pointerEvents="box-none">
+              {/* Blur Background */}
+              <BlurView
+                intensity={100}
+                tint="dark"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                }}
+              />
+              {/* Semi-transparent overlay for better contrast */}
+              <View className="bg-black/12 absolute inset-0" />
               {/* Header */}
               <View
-                className={headerClassName || 'border-b border-white/10 px-4 pb-3'}
+                className={headerClassName || 'border-b border-white/35 px-4 pb-3'}
                 style={{
                   paddingTop: (insets.top || 0) + (headerClassName?.includes('pt-4') ? 48 : 0)
                 }}>
@@ -234,7 +242,7 @@ export function FormModal({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0, 0, 0, 0)',
   },
   modalContainer: {
     flex: 1,
@@ -245,6 +253,6 @@ const styles = StyleSheet.create({
     width: '100%',
     flex: 1,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.75)',
+    borderTopColor: 'rgba(255, 255, 255, 0.35)',
   },
 });

@@ -66,12 +66,39 @@ export function RoleForm({
         return await updateRoleAndSchedules(String(roleId), values, values);
       }
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      console.log('=== RoleForm Mutation Success ===');
+      console.log('method:', method);
+      console.log('projectId:', projectId);
+      
+      // Add a small delay to ensure database commit is complete
+      // This prevents race conditions where refetch happens before data is saved
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Call refetchRoles callback FIRST - this directly triggers the hook's refetch
+      // This ensures the component state updates immediately
+      console.log('Calling refetchRoles callback...');
+      try {
+        const refetchResult = await refetchRoles();
+        console.log('refetchRoles completed:', (refetchResult as any)?.data?.length || 0, 'roles');
+      } catch (error) {
+        console.log('refetchRoles error:', error);
+      }
+      
+      // Then invalidate queries to ensure all related data is fresh
+      // This will trigger refetches for any other components using these queries
+      console.log('Invalidating related queries...');
+      await queryClient.invalidateQueries({ 
+        queryKey: ['project-roles', projectId],
+        refetchType: 'active'
+      });
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-detail'] });
       queryClient.invalidateQueries({ queryKey: ['manageProjects'] });
-      queryClient.invalidateQueries({ queryKey: ['project-roles', projectId] });
       queryClient.invalidateQueries({ queryKey: ['rolesWithSchedules', projectId] });
-      refetchRoles();
+      queryClient.invalidateQueries({ queryKey: ['project-contracts', projectId] });
+      
+      console.log('=== End RoleForm Mutation Success ===');
     },
   });
 

@@ -122,7 +122,7 @@ export default function FilterSearch({
         <TouchableOpacity
           className="items-center justify-center rounded-xl border border-white/10 bg-white px-4 py-2"
           onPress={() => setShowDrawer(true)}>
-          <Filter color="#9ca3af" size={20} />
+          <Filter color="#9ca3af" size={12} />
         </TouchableOpacity>
 
         <CollapseDrawer

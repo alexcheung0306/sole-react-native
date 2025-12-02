@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import { getJobContractsWithProfileByProjectId } from '@/api/apiservice/jobContracts_api';
@@ -14,26 +13,16 @@ export const useProjectDetailQueries = ({
   projectId,
   soleUserId,
 }: UseProjectDetailQueriesProps) => {
-  const [roleCount, setRoleCount] = useState<number>(0);
-  const [jobNotReadyCount, setJobNotReadyCount] = useState<number>(0);
-
   const countWithoutJobActivities = (data: any[]) => {
     if (!Array.isArray(data) || data.length === 0) {
       return 0;
     }
 
-    const filtered = data.filter(
+    return data.filter(
       (entry) =>
-        Array.isArray(entry?.activities) &&
+        !Array.isArray(entry?.activities) ||
         !entry.activities.some((activity: any) => activity?.type === 'job')
-    );
-
-    if (filtered.length === 0) {
-      return 0;
-    }
-
-    const maxRoleId = Math.max(...data.map((entry) => entry?.role?.id || 0));
-    return filtered.filter((entry) => entry?.role?.id === maxRoleId).length;
+    ).length;
   };
 
   const countJobActivities = (roleWithSchedules: any) => {
@@ -46,6 +35,7 @@ export const useProjectDetailQueries = ({
     }, 0);
   };
 
+  // project-detail query is used to get the project data
   const {
     data: projectData,
     error: projectError,
@@ -58,6 +48,7 @@ export const useProjectDetailQueries = ({
     staleTime: 1000 * 60 * 5,
   });
 
+  // project-roles query is used to get the roles data
   const {
     data: rolesWithSchedules = [],
     error: rolesError,
@@ -66,14 +57,41 @@ export const useProjectDetailQueries = ({
   } = useQuery({
     queryKey: ['project-roles', projectId],
     queryFn: async () => {
+      console.log('=== useProjectDetailQueries: Fetching roles ===');
       const response = await getRolesByProjectId(projectId);
-      setRoleCount(Array.isArray(response) ? response.length : 0);
-      setJobNotReadyCount(Array.isArray(response) ? countWithoutJobActivities(response) : 0);
+      console.log('=== useProjectDetailQueries: Roles fetched ===', response?.length || 0);
       return response ?? [];
     },
     enabled: Boolean(projectId),
   });
 
+  const roleCount = Array.isArray(rolesWithSchedules) ? rolesWithSchedules.length : 0;
+  const jobNotReadyCount = countWithoutJobActivities(rolesWithSchedules);
+
+  // Detailed logging for debugging
+  console.log('=== useProjectDetailQueries Debug ===');
+  console.log('rolesWithSchedules length:', rolesWithSchedules.length);
+  console.log('roleCount:', roleCount);
+  console.log('jobNotReadyCount:', jobNotReadyCount);
+  console.log('rolesWithSchedules data:', JSON.stringify(rolesWithSchedules, null, 2));
+  
+  // Log each role's readiness status
+  if (Array.isArray(rolesWithSchedules) && rolesWithSchedules.length > 0) {
+    rolesWithSchedules.forEach((roleWithSchedule, index) => {
+      const role = roleWithSchedule?.role;
+      const activities = roleWithSchedule?.activities || [];
+      const hasJobActivity = activities.some((activity: any) => activity?.type === 'job');
+      console.log(`Role ${index + 1} (ID: ${role?.id}):`, {
+        roleTitle: role?.roleTitle,
+        activitiesCount: activities.length,
+        hasJobActivity,
+        isReady: hasJobActivity,
+      });
+    });
+  }
+  console.log('=== End Debug ===');
+
+  // project-contracts query is used to get the job contracts data
   const {
     data: jobContractsData = [],
     error: jobContractsError,

@@ -39,6 +39,11 @@ export function PublishProjectButton({
   const [applicationDeadline, setApplicationDeadline] = useState<string>('');
   const [dateError, setDateError] = useState<string>('');
 
+  // Log when isDisable prop changes
+  React.useEffect(() => {
+    console.log('=== PublishProjectButton: isDisable changed ===', isDisable);
+  }, [isDisable]);
+
   const projectId = projectData?.id || projectData?.project?.id;
 
   const publishMutation = useMutation({

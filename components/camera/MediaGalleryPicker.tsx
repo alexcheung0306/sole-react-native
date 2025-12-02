@@ -49,7 +49,7 @@ export function MediaGalleryPicker({
     loadMedia();
   }, []);
 
-  const loadMedia = async () => {
+  const loadMedia = async (retryCount = 0) => {
     try {
       // Check existing permissions first
       let { status } = await MediaLibrary.getPermissionsAsync();
@@ -83,6 +83,22 @@ export function MediaGalleryPicker({
         return;
       }
 
+      // Double-check permission status right before API call
+      // Sometimes Android reports granted but API still fails
+      const finalCheck = await MediaLibrary.getPermissionsAsync();
+      if (finalCheck.status !== 'granted') {
+        if (retryCount < 1) {
+          const { status: retryStatus } = await MediaLibrary.requestPermissionsAsync();
+          if (retryStatus === 'granted') {
+            return loadMedia(retryCount + 1);
+          }
+        }
+        setHasPermission(false);
+        setIsLoading(false);
+        Alert.alert('Permission Required', 'Please grant media library access to select photos and videos');
+        return;
+      }
+
       setHasPermission(true);
 
       const media = await MediaLibrary.getAssetsAsync({
@@ -108,15 +124,32 @@ export function MediaGalleryPicker({
         return;
       }
       
-      // Log other errors normally
-      console.error('Error loading media:', error);
-      if (errorMessage.includes('MEDIA_LIBRARY') || errorMessage.includes('permission')) {
+      // Handle MEDIA_LIBRARY permission errors
+      if (errorMessage.includes('MEDIA_LIBRARY') || errorMessage.includes('permission') || errorMessage.includes('Missing MEDIA_LIBRARY')) {
+        // Retry once if we haven't already
+        if (retryCount < 1) {
+          try {
+            const { status: retryStatus } = await MediaLibrary.requestPermissionsAsync();
+            if (retryStatus === 'granted') {
+              // Wait a brief moment for permission to propagate
+              await new Promise(resolve => setTimeout(resolve, 100));
+              return loadMedia(retryCount + 1);
+            }
+          } catch (retryError) {
+            // If retry also fails, fall through to error handling
+          }
+        }
+        
+        // If retry failed or we've already retried, show error
+        console.error('Error loading media:', error);
         Alert.alert(
           'Permission Error',
-          'Media library permission is required. If using an emulator, try:\n1. Granting permissions in device settings\n2. Adding media files to the emulator\n3. Testing on a physical device'
+          'Media library permission is required. Please:\n1. Grant permissions in device settings\n2. Restart the app if permissions were just granted\n3. If using an emulator, try adding media files or testing on a physical device'
         );
         setHasPermission(false);
       } else {
+        // Log other errors normally
+        console.error('Error loading media:', error);
         Alert.alert('Error', 'Failed to load media library');
       }
     }
@@ -244,7 +277,7 @@ export function MediaGalleryPicker({
           Please grant permission to access your photos and videos
         </Text>
         <TouchableOpacity
-          onPress={loadMedia}
+          onPress={() => loadMedia()}
           className="bg-blue-500 rounded-lg px-6 py-3 mt-6"
         >
           <Text className="text-white font-semibold">Grant Permission</Text>
