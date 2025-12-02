@@ -15,15 +15,41 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Video, ResizeMode } from 'expo-av';
 import { useCreatePostContext, MediaItem } from '~/context/CreatePostContext';
 import { EditableImage } from '~/components/camera/EditableImage';
+import { AspectRatioWheel } from '~/components/camera/AspectRatioWheel';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { Pressable } from 'react-native';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+const BouncyButton = ({ onPress, children, className, style }: any) => {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.95, { damping: 10, stiffness: 300 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 10, stiffness: 300 });
+  };
+
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      className={className}
+      style={[style, animatedStyle]}
+    >
+      {children}
+    </AnimatedPressable>
+  );
+};
 
 const { width, height } = Dimensions.get('window');
-
-// Aspect ratio options matching web version
-const ASPECT_RATIOS = [
-  { key: '1/1', value: 1 / 1, label: '1:1', icon: Square },
-  { key: '4/5', value: 4 / 5, label: '4:5', icon: RectangleVertical },
-  { key: '16/9', value: 16 / 9, label: '16:9', icon: RectangleHorizontal },
-] as const;
 
 export default function PreviewScreen() {
   const insets = useSafeAreaInsets();
@@ -33,8 +59,8 @@ export default function PreviewScreen() {
     removeMedia,
   } = useCreatePostContext();
   const [currentIndex, setCurrentIndex] = useState(0);
-  // Default to natural aspect ratio (-1) so full image is shown
-  const [selectedAspectRatio, setSelectedAspectRatio] = useState<number>(-1);
+  // Default to 1:1 as requested
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState<number>(1);
 
   // Calculate center crop for a given aspect ratio
   const calculateCenterCrop = (media: MediaItem, targetRatio: number) => {
@@ -172,33 +198,47 @@ export default function PreviewScreen() {
 
     const item = selectedMedia[currentIndex];
 
-    // Use the selected aspect ratio for the container
-    const aspectValue = getAspectRatioValue(item);
-    const mediaHeight = width / aspectValue;
+    // Fixed container aspect ratio (4:5)
+    const FIXED_RATIO = 4 / 5;
+    const fixedContainerHeight = width / FIXED_RATIO;
+
+    // Calculate dimensions for the EditableImage based on selected aspect ratio
+    // fitting inside the fixed container (contain)
+    const targetRatio = getAspectRatioValue(item);
+
+    let renderWidth = width;
+    let renderHeight = width / targetRatio;
+
+    if (renderHeight > fixedContainerHeight) {
+      renderHeight = fixedContainerHeight;
+      renderWidth = renderHeight * targetRatio;
+    }
 
     return (
       <View
-        style={{ width, height: mediaHeight }}
+        style={{ width, height: fixedContainerHeight }}
         className="bg-black items-center justify-center overflow-hidden relative"
       >
         {item.mediaType === 'video' ? (
           <Video
             source={{ uri: item.uri }}
-            style={{ width, height: mediaHeight }}
+            style={{ width: renderWidth, height: renderHeight }}
             resizeMode={ResizeMode.COVER}
             shouldPlay={false}
             useNativeControls
           />
         ) : (
-          <EditableImage
-            uri={item.originalUri ?? item.uri}
-            containerWidth={width}
-            containerHeight={mediaHeight}
-            naturalWidth={item.cropData?.naturalWidth ?? item.width ?? 1000}
-            naturalHeight={item.cropData?.naturalHeight ?? item.height ?? 1000}
-            cropData={item.cropData}
-            onUpdate={handleCropUpdate}
-          />
+          <View style={{ width: renderWidth, height: renderHeight, overflow: 'hidden' }}>
+            <EditableImage
+              uri={item.originalUri ?? item.uri}
+              containerWidth={renderWidth}
+              containerHeight={renderHeight}
+              naturalWidth={item.cropData?.naturalWidth ?? item.width ?? 1000}
+              naturalHeight={item.cropData?.naturalHeight ?? item.height ?? 1000}
+              cropData={item.cropData}
+              onUpdate={handleCropUpdate}
+            />
+          </View>
         )}
       </View>
     );
@@ -244,49 +284,22 @@ export default function PreviewScreen() {
 
           {/* Controls */}
           <View className="px-4 py-4 border-b border-gray-800">
-            {/* Aspect Ratio Selector */}
-            <View className="mb-4">
-              <Text className="text-gray-400 text-sm mb-2">Aspect Ratio</Text>
-              <View className="flex-row gap-2">
-                {ASPECT_RATIOS.map((ratio) => {
-                  const Icon = ratio.icon;
-                  const isSelected = selectedAspectRatio === ratio.value;
-                  return (
-                    <TouchableOpacity
-                      key={ratio.key}
-                      onPress={() => handleAspectRatioChange(ratio.value)}
-                      className={`flex-1 flex-row items-center justify-center gap-2 rounded-lg px-3 py-2 border ${isSelected
-                        ? 'bg-blue-600 border-blue-600'
-                        : 'bg-gray-800 border-gray-700'
-                        }`}
-                    >
-                      <Icon
-                        size={18}
-                        color={isSelected ? '#ffffff' : '#9ca3af'}
-                      />
-                      <Text
-                        className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-gray-400'
-                          }`}
-                      >
-                        {ratio.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+            <View className="flex-row items-center justify-between gap-4">
+              {/* Aspect Ratio Wheel - Centered */}
+              <View className="flex-1 items-center justify-center">
+                <AspectRatioWheel
+                  selectedRatio={selectedAspectRatio}
+                  onRatioChange={handleAspectRatioChange}
+                />
               </View>
-            </View>
 
-            <View className="flex-row items-center justify-between">
-              {/* Delete Button - Centered since Crop is gone */}
-              <View className="flex-1 items-center">
-                <TouchableOpacity
-                  onPress={handleDelete}
-                  className="flex-row items-center bg-red-500/20 rounded-lg px-6 py-2"
-                >
-                  <Trash2 size={18} color="#ef4444" />
-                  <Text className="text-red-400 ml-2 font-medium">Remove</Text>
-                </TouchableOpacity>
-              </View>
+              {/* Delete Button - Icon Only */}
+              <TouchableOpacity
+                onPress={handleDelete}
+                className="flex-row items-center justify-center bg-red-500/20 rounded-lg px-4 py-3 aspect-square h-[50px]"
+              >
+                <Trash2 size={20} color="#ef4444" />
+              </TouchableOpacity>
             </View>
           </View>
 
