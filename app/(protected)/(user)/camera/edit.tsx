@@ -14,7 +14,7 @@ import { X, Check, Trash2, Image as ImageIcon, Crop, Square, RectangleVertical, 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Video, ResizeMode } from 'expo-av';
 import { useCreatePostContext, MediaItem } from '~/context/CreatePostContext';
-import { ImageCropModal } from '~/components/camera/ImageCropModal';
+import { EditableImage } from '~/components/camera/EditableImage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -33,8 +33,6 @@ export default function PreviewScreen() {
     removeMedia,
   } = useCreatePostContext();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isCropModalVisible, setIsCropModalVisible] = useState(false);
-  const [cropTargetIndex, setCropTargetIndex] = useState<number | null>(null);
   // Default to natural aspect ratio (-1) so full image is shown
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<number>(-1);
 
@@ -138,100 +136,19 @@ export default function PreviewScreen() {
     );
   };
 
-  const openCropper = () => {
-    const target = selectedMedia[currentIndex];
-    if (!target) return;
-
-    if (target.mediaType !== 'photo') {
-      Alert.alert('Crop Unavailable', 'Cropping is currently supported for photos only.');
-      return;
-    }
-
-    setCropTargetIndex(currentIndex);
-    setIsCropModalVisible(true);
-  };
-
-  const closeCropper = () => {
-    setIsCropModalVisible(false);
-    setCropTargetIndex(null);
-  };
-
-  const handleCropApply = (payload: {
-    uri: string;
-    width: number;
-    height: number;
-    cropData: {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-      zoom: number;
-      naturalWidth?: number;
-      naturalHeight?: number;
-    };
-  }) => {
-    if (cropTargetIndex === null) return;
-
+  const handleCropUpdate = (cropData: any) => {
     const updated = selectedMedia.map((item, index) => {
-      if (index !== cropTargetIndex) return item;
-
-      const originalName = item.filename ?? `media_${item.id}`;
-      const baseName = originalName.includes('.')
-        ? originalName.substring(0, originalName.lastIndexOf('.'))
-        : originalName;
+      if (index !== currentIndex) return item;
 
       return {
         ...item,
-        // We are NOT updating the URI here to the cropped version yet, 
-        // because we want to be able to re-crop from the original.
-        // If the app logic requires the URI to be the cropped one for display, 
-        // we might need a separate 'displayUri' or just rely on the Image component 
-        // to handle the crop (which isn't standard in RN without a library).
-        // 
-        // HOWEVER, the existing code was updating URI. 
-        // To support non-destructive editing, we should keep the original URI 
-        // and maybe store the cropped URI separately if needed for performance,
-        // OR just rely on cropData if we had a component that could render it.
-        //
-        // Given the current architecture seems to rely on `ImageManipulator` creating a new file,
-        // we will stick to that for the 'result', BUT we must preserve the ORIGINAL uri 
-        // for re-cropping.
-        //
-        // Let's check if `item` has an `originalUri` field. If not, we should add it.
-        // For now, I will assume we can store `originalUri` in the context or it exists.
-        // If not, I'll use `uri` as the source of truth for the *current* version, 
-        // but this causes quality loss on re-crop.
-        //
-        // BETTER APPROACH: 
-        // The `ImageCropModal` receives `media`. If we pass the *original* media every time,
-        // we are good.
-        // But `selectedMedia` is updated with the *cropped* URI in the previous code.
-        //
-        // I will modify this to:
-        // 1. Update `cropData`.
-        // 2. Update `uri` to the new cropped image (so other components see the crop).
-        // 3. BUT ensure we keep `originalUri` if possible. 
-        //    If `MediaItem` doesn't have `originalUri`, I might need to add it or 
-        //    rely on the fact that `ImageCropModal` might need the original.
-        //
-        // WAIT: `ImageCropModal` uses `media.uri`. If we overwrite `media.uri` with the cropped version,
-        // the next time we open the cropper, we are cropping the *already cropped* image.
-        // This is destructive and prevents zooming out.
-        //
-        // FIX: I will check if `originalUri` exists. If not, I'll set it on the first crop.
-
-        // Ensure we keep the originalUri so we can always re-crop from the source
-        originalUri: item.originalUri ?? item.uri,
-        uri: payload.uri,
-        width: payload.width,
-        height: payload.height,
-        cropData: payload.cropData,
-        filename: `${baseName}_crop.jpg`,
+        cropData,
+        // We don't update URI here because we are just updating the crop metadata
+        // The final crop will be applied when saving/posting
       };
     });
 
     setSelectedMedia(updated);
-    closeCropper();
   };
 
   const navigateToCaption = () => {
@@ -262,7 +179,7 @@ export default function PreviewScreen() {
     return (
       <View
         style={{ width, height: mediaHeight }}
-        className="bg-black items-center justify-center overflow-hidden"
+        className="bg-black items-center justify-center overflow-hidden relative"
       >
         {item.mediaType === 'video' ? (
           <Video
@@ -273,10 +190,14 @@ export default function PreviewScreen() {
             useNativeControls
           />
         ) : (
-          <ExpoImage
-            source={{ uri: item.uri }}
-            style={{ width, height: mediaHeight }}
-            contentFit="cover"
+          <EditableImage
+            uri={item.originalUri ?? item.uri}
+            containerWidth={width}
+            containerHeight={mediaHeight}
+            naturalWidth={item.cropData?.naturalWidth ?? item.width ?? 1000}
+            naturalHeight={item.cropData?.naturalHeight ?? item.height ?? 1000}
+            cropData={item.cropData}
+            onUpdate={handleCropUpdate}
           />
         )}
       </View>
@@ -356,22 +277,16 @@ export default function PreviewScreen() {
             </View>
 
             <View className="flex-row items-center justify-between">
-              {/* Crop Button */}
-              <TouchableOpacity
-                onPress={openCropper}
-                className="flex-row items-center bg-gray-800 rounded-lg px-4 py-2"
-              >
-                <Crop size={18} color="#ffffff" />
-                <Text className="text-white ml-2 font-medium">Crop</Text>
-              </TouchableOpacity>
-
-              {/* Delete Button */}
-              <TouchableOpacity
-                onPress={handleDelete}
-                className="flex-row items-center bg-red-500/20 rounded-lg px-4 py-2"
-              >
-                <Trash2 size={18} color="#ef4444" />
-              </TouchableOpacity>
+              {/* Delete Button - Centered since Crop is gone */}
+              <View className="flex-1 items-center">
+                <TouchableOpacity
+                  onPress={handleDelete}
+                  className="flex-row items-center bg-red-500/20 rounded-lg px-6 py-2"
+                >
+                  <Trash2 size={18} color="#ef4444" />
+                  <Text className="text-red-400 ml-2 font-medium">Remove</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
 
@@ -391,29 +306,7 @@ export default function PreviewScreen() {
         </ScrollView>
       </View>
 
-      <ImageCropModal
-        visible={isCropModalVisible}
-        media={
-          cropTargetIndex !== null
-            ? {
-              ...selectedMedia[cropTargetIndex],
-              // CRITICAL: Always pass the ORIGINAL URI and DIMENSIONS to the cropper
-              // This ensures we are working with the full source image, not the cropped version.
-              uri: selectedMedia[cropTargetIndex].originalUri ?? selectedMedia[cropTargetIndex].uri,
-              width: selectedMedia[cropTargetIndex].cropData?.naturalWidth ?? selectedMedia[cropTargetIndex].width,
-              height: selectedMedia[cropTargetIndex].cropData?.naturalHeight ?? selectedMedia[cropTargetIndex].height,
-            }
-            : undefined
-        }
-        onClose={closeCropper}
-        onApply={handleCropApply}
-        aspectRatio={
-          selectedAspectRatio === -1 && cropTargetIndex !== null
-            ? getAspectRatioValue(selectedMedia[cropTargetIndex])
-            : selectedAspectRatio
-        }
-        lockAspectRatio={false}
-      />
+
     </>
   );
 }
