@@ -4,8 +4,6 @@ import { ManageProjectProvider } from '~/context/ManageProjectContext';
 import ManageProjectsPage from './manage-projects';
 import ManageContractsPage from './manage-contracts';
 import ProjectTabContainer from '@/components/projects/ProjectTabContainer';
-import ProjectDetailPage from './project-detail';
-import ContractDetailPage from './contract';
 import { CollapsibleHeader } from '~/components/CollapsibleHeader';
 import ProjectsNavTabs from '~/components/projects/ProjectsNavTabs';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
@@ -32,8 +30,6 @@ export default React.memo(function ProjectsIndex() {
           <ProjectTabContainer activeTab={activeTab}>
             <ManageProjectsPage scrollHandler={onScroll} />
             <ManageContractsPage scrollHandler={onScroll} />
-            <ProjectDetailPage scrollHandler={onScroll} />
-            <ContractDetailPage scrollHandler={onScroll} />
           </ProjectTabContainer>
 
         </ManageContractProvider>

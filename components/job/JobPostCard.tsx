@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { TouchableOpacity, View, Text, Image, ImageBackground, StyleSheet } from 'react-native';
 import { formatDateTime } from '~/utils/time-converts';
 
-export default function JobPostCard({ item }: { item: any }) {
+export default function JobListCard({ item }: { item: any }) {
   const project = item?.project || item;
 
   if (!project) {
@@ -25,7 +25,8 @@ export default function JobPostCard({ item }: { item: any }) {
 
   const handleJobPress = () => {
     router.push({
-      pathname: `/(protected)/job-detail/${project.id}`,
+      pathname: `/(protected)/job-detail/${project.id}` as any,
+      params: { id: project.id },
     });
   };
 

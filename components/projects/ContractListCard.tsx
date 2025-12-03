@@ -41,7 +41,7 @@ export default function ContractListCard({ item }: ContractListCardProps) {
 
   const handleContractPress = () => {
     router.push({
-      pathname: '/(protected)/(client)/projects/contract',
+      pathname: `/(protected)/contract-detail/${contract.id}` as any,
       params: { id: contract.id },
     });
   };

@@ -6,7 +6,7 @@ import { useManageProjectContext } from '@/context/ManageProjectContext';
 import ProjectInfoFormModal from '@/components/projects/ProjectInfoFormModal';
 import ProjectStatusTabs from '@/components/projects/ProjectStatusTabs';
 import PaginationControl from '~/components/projects/PaginationControl';
-import ProjectPostCard from '~/components/projects/ProjectPostCard';
+import ProjectListCard from '~/components/projects/ProjectListCard';
 import FilterSearch from '~/components/custom/filter-search';
 import FlatListEmpty from '~/components/custom/flatlist-empty';
 import ScreenTransition from '@/components/projects/ScreenTransition';
@@ -123,7 +123,7 @@ export default function ManageProjectsPage({ scrollHandler }: { scrollHandler: (
             }
             renderItem={({ item }) => (
               <View style={{ width: '48%' }}>
-                <ProjectPostCard item={item} />
+                <ProjectListCard item={item} />
               </View>
             )}
             ListFooterComponent={

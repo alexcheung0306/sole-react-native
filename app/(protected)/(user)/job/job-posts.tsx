@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import FilterSearch from '~/components/custom/filter-search';
 import FlatListEmpty from '~/components/custom/flatlist-empty';
 import PaginationControl from '~/components/projects/PaginationControl';
-import JobPostCard from '~/components/job/JobPostCard';
+import JobListCard from '~/components/job/JobPostCard';
 
 type JobPostsProps = {
   scrollHandler?: (event: any) => void;
@@ -107,7 +107,7 @@ export default function JobPosts({ scrollHandler }: JobPostsProps) {
           }
           renderItem={({ item }) => (
             <View style={{ width: '48%' }}>
-              <JobPostCard item={item} />
+              <JobListCard item={item} />
             </View>
           )}
           ListFooterComponent={
