@@ -23,8 +23,6 @@ export function ProjectInformationCard({ project, soleUserId }: ProjectInformati
   const hasImage = project?.projectImage && project.projectImage !== 'default_image_url';
   const [openActions, setOpenActions] = useState(false);
 
-console.log('project', project);
-
   return (
     <View className="gap-4">
       {/* ---------------------------------------Project Header and Image--------------------------------------- */}

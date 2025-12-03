@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
-import { AlertCircle } from 'lucide-react-native';
+import { AlertCircle, InfoIcon } from 'lucide-react-native';
 import CollapseDrawer from '@/components/custom/collapse-drawer';
 import { DisplayRoleInformation } from './DisplayRoleInformation';
 
@@ -53,31 +53,40 @@ export function RolesBreadcrumb({
           const isActive = index === currentRole;
           const jobActivitiesCount = countJobActivities(roleWithSchedule);
           // Count total activities (all types, not just job)
-          const totalActivitiesCount = Array.isArray(roleWithSchedule?.activities) 
-            ? roleWithSchedule.activities.length 
+          const totalActivitiesCount = Array.isArray(roleWithSchedule?.activities)
+            ? roleWithSchedule.activities.length
             : 0;
 
           return (
-            <TouchableOpacity
+            <View
               key={`role-${role.id}-${index}`}
-              className={`min-w-[160px] rounded-2xl border px-4 py-3 ${
+              className={`min-w-[160px] flex-row items-center rounded-2xl border overflow-hidden ${
                 isActive ? 'border-blue-500 bg-blue-500/15' : 'border-white/20 bg-zinc-800/60'
-              }`}
-              onPress={() => handleRolePress(index)}>
-              <View className="flex-row items-center justify-between gap-2">
-                <Text
-                  className={`flex-1 text-sm font-semibold ${
-                    isActive ? 'text-white' : 'text-white/80'
-                  }`}
-                  numberOfLines={1}>
-                  {role.roleTitle || 'Untitled role'}
+              }`}>
+              <TouchableOpacity 
+                className="flex-1 py-4 pl-2 pr-1" 
+                activeOpacity={1}
+                onPress={() => setCurrentRole(index)}>
+                <View className="flex-row items-center gap-2">
+                  <Text
+                    className={`flex-1 text-sm font-semibold ${
+                      isActive ? 'text-white' : 'text-white'
+                    }`}
+                    numberOfLines={1}>
+                    {role.roleTitle || 'Untitled role'}
+                  </Text>
+                  {jobActivitiesCount < 1 && <AlertCircle size={14} color="#ef4444" />}
+                </View>
+                <Text className={`mt-1 text-xs ${isActive ? 'text-white' : 'text-white'}`}>
+                  {totalActivitiesCount} activities • {role.talentNumbers || 1} talent(s)
                 </Text>
-                {jobActivitiesCount < 1 && <AlertCircle size={14} color="#ef4444" />}
-              </View>
-              <Text className={`mt-1 text-xs ${isActive ? 'text-white' : 'text-zinc-400'}`}>
-                {totalActivitiesCount} activities • {role.talentNumbers || 1} talent(s)
-              </Text>
-            </TouchableOpacity>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                className="px-2 py-4 flex-shrink-0" 
+                onPress={() => handleRolePress(index)}>
+                <InfoIcon size={16} color="#a1a1aa" />
+              </TouchableOpacity>
+            </View>
           );
         })}
       </ScrollView>

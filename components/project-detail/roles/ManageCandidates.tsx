@@ -269,7 +269,7 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
             currentPage={candidatePage}
             setCurrentPage={setCandidatePage}
             totalPages={candidateTotalPages}
-            isLoading={isLoadingCandidates || isFetchingCandidates}
+            isLoadingProjects={isLoadingCandidates || isFetchingCandidates}
           />
         </View>
       )}

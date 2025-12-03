@@ -68,8 +68,6 @@ export const SoleUserProvider = ({ children }: { children: React.ReactNode }) =>
     enabled: !!clerkId && clerkId != undefined,
   })
 
-  console.log('soleUser', soleUser);
-
   if (isError) {
     console.error("Error fetching user data:", error)
   }
@@ -94,7 +92,6 @@ export const SoleUserProvider = ({ children }: { children: React.ReactNode }) =>
 
   //client states
   const [manageProjectPagePjStatus, setManageProjectPagePjStatus] = useState("")
-  console.log("manageProjectPagePjStatusx", manageProjectPagePjStatus)
   const [
     manageProjectPageCurrentProjectPage,
     setManageProjectPageCurrentProjectPage,
