@@ -9,10 +9,10 @@ export default function TalentProfile({
   isOwnProfile,
   userProfileData,
 }: {
-  userProfileData: any;
   talentLevel: number;
   talentInfo: any;
   isOwnProfile: boolean;
+  userProfileData: any;
 }) {
   const [imageHeight, setImageHeight] = useState<number | undefined>(undefined);
   const comcardPng = userProfileData?.comcardWithPhotosResponse?.png;
@@ -83,9 +83,9 @@ export default function TalentProfile({
         )}
 
         {/* Personal Information */}
-        <View className="mb-6 px-4">
+        <View className="">
           <Text className="mb-4 text-xl font-bold text-white">Personal Information</Text>
-          <View className="rounded-lg bg-gray-800/50 p-4">
+          <View className="rounded-lg  p-4">
             <View className="mb-3 flex-row justify-between border-b border-gray-700 pb-3">
               <Text className="text-gray-300">Talent Name</Text>
               <Text className="font-medium text-white">{talentInfo?.talentName || 'N/A'}</Text>
@@ -110,9 +110,9 @@ export default function TalentProfile({
         </View>
 
         {/* Physical Measurements */}
-        <View className="mb-6 px-4">
+        <View className="">
           <Text className="mb-4 text-xl font-bold text-white">Physical Measurements</Text>
-          <View className="rounded-lg bg-gray-800/50 p-4">
+          <View className="rounded-lg p-4">
             <View className="mb-3 flex-row justify-between border-b border-gray-700 pb-3">
               <Text className="text-gray-300">Height</Text>
               <Text className="font-medium text-white">{talentInfo?.height || 'N/A'} cm</Text>
@@ -130,16 +130,16 @@ export default function TalentProfile({
               <Text className="font-medium text-white">{talentInfo?.hip || 'N/A'} cm</Text>
             </View>
             <View className="flex-row justify-between">
-              <Text className="text-gray-300">Shoes (EU)</Text>
-              <Text className="font-medium text-white">{talentInfo?.shoes || 'N/A'}</Text>
+              <Text className="text-gray-300">Shoes</Text>
+              <Text className="font-medium text-white">{talentInfo?.shoes || 'N/A'} EU</Text>
             </View>
           </View>
         </View>
 
         {/* Background Information */}
-        <View className="mb-6 px-4">
+        <View className=" ">
           <Text className="mb-4 text-xl font-bold text-white">Background</Text>
-          <View className="rounded-lg bg-gray-800/50 p-4">
+          <View className="rounded-lg  p-4">
             <View className="mb-3 flex-row justify-between border-b border-gray-700 pb-3">
               <Text className="text-gray-300">Ethnicity</Text>
               <Text className="font-medium text-white">{talentInfo?.ethnic || 'N/A'}</Text>
@@ -152,9 +152,9 @@ export default function TalentProfile({
         </View>
 
         {/* Professional Experience */}
-        <View className="mb-6 px-4">
+        <View className=" ">
           <Text className="mb-4 text-xl font-bold text-white">Professional Experience</Text>
-          <View className="rounded-lg bg-gray-800/50 p-4">
+            <View className="rounded-lg  p-4">
             <Text className="leading-6 text-white">
               {talentInfo?.experience || 'No experience listed'}
             </Text>
@@ -163,7 +163,7 @@ export default function TalentProfile({
 
         {/* Portfolio Snapshots */}
         {(talentInfo?.snapshotHalfBody || talentInfo?.snapshotFullBody) && (
-          <View className="mb-6 px-4">
+          <View className=" ">
             <Text className="mb-4 text-xl font-bold text-white">Portfolio Snapshots</Text>
             <View className="flex-row gap-3">
               {talentInfo?.snapshotHalfBody && (

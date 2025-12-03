@@ -268,7 +268,7 @@ export default function ProjectDetailPage() {
 
                 {/* Manage Candidates - Only show for Published projects with roles */}
                 {project?.status === 'Published' && rolesWithSchedules.length > 0 && (
-                  <View className="mt-6 border-t border-white/10  px-2">
+                  <View className="mt-6   px-2">
                     <ManageCandidates 
                       projectData={project} 
                       roleWithSchedules={rolesWithSchedules[currentRole]} 

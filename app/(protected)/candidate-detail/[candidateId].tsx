@@ -6,8 +6,13 @@ import { ChevronLeft } from 'lucide-react-native';
 import { useSoleUserContext } from '@/context/SoleUserContext';
 import { useQuery } from '@tanstack/react-query';
 import { searchApplicants } from '@/api/apiservice/applicant_api';
+import { getUserProfileByUsername } from '@/api/apiservice/soleUser_api';
+import { talentSearchJobContracts } from '@/api/apiservice/jobContracts_api';
 import { CustomTabs } from '@/components/custom/custom-tabs';
 import { getStatusColor } from '@/utils/get-status-color';
+import TalentProfile from '~/components/talent-profile/TalentProfile';
+import { ApplicationDetail } from '~/components/project-detail/roles/ApplicationDetail';
+import { ActionToCandidates } from '~/components/project-detail/roles/ActionToCandidates';
 
 export default function CandidateDetailPage() {
   const insets = useSafeAreaInsets();
@@ -50,13 +55,47 @@ export default function CandidateDetailPage() {
   const username = candidate?.username || userInfo?.username || 'unknown';
   const statusColor = getStatusColor(applicant?.applicationStatus || 'applied');
 
+  console.log('candidatesResponsexxxxxxxasd', candidate);
+
+  // Fetch full user profile data (like web version does)
+  const {
+    data: talentProfileData,
+    isLoading: isLoadingTalentProfile
+  } = useQuery({
+    queryKey: ['userProfile', username],
+    queryFn: async () => {
+      if (!username || username === 'unknown' || username.trim() === '') {
+        return null;
+      }
+      return getUserProfileByUsername(username);
+    },
+    enabled: !!username && username !== 'unknown' && username.trim() !== '',
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: false,
+  });
+
+  // Fetch contracts for this applicant (for Actions tab)
+  const searchUrl = `projectId=${projectId}&orderBy=createdAt&orderSeq=desc&pageNo=0&pageSize=99`;
+  const { 
+    data: contractsData, 
+    isLoading: isLoadingContracts 
+  } = useQuery({
+    queryKey: ['applicantContracts', applicant?.soleUserId, projectId],
+    queryFn: async () => {
+      if (!applicant?.soleUserId || !projectId) return [];
+      const result = await talentSearchJobContracts(applicant.soleUserId, searchUrl);
+      return result?.data || [];
+    },
+    enabled: !!applicant?.soleUserId && !!projectId && applicant?.applicationStatus === 'offered',
+  });
+
   const tabs = [
     { id: 'talent-profile', label: 'Talent Profile' },
     { id: 'application', label: 'Application Details' },
     { id: 'actions', label: 'Actions' },
   ];
 
-  if (isLoading) {
+  if (isLoading || isLoadingTalentProfile) {
     return (
       <View className="flex-1 items-center justify-center bg-zinc-900">
         <ActivityIndicator size="large" color="#3b82f6" />
@@ -100,18 +139,21 @@ export default function CandidateDetailPage() {
           <View className="flex-row items-center gap-4">
             <Image
               source={{
-                uri: candidate?.comcardFirstPic || userInfo?.profilePic || undefined,
+                uri: talentProfileData?.userInfo?.profilePic ||
+                  candidate?.comcardFirstPic ||
+                  userInfo?.profilePic ||
+                  undefined,
               }}
               className="w-20 h-20 rounded-full bg-zinc-700"
             />
             <View className="flex-1">
               <Text className="text-lg font-semibold text-white">
-                {userInfo?.name || 'Unnamed candidate'}
+                {talentProfileData?.userInfo?.name || userInfo?.name || 'Unnamed candidate'}
               </Text>
               <Text className="text-sm text-white/60">@{username}</Text>
               <View
                 className="mt-2 px-3 py-1.5 rounded-full border self-start"
-                style={{ 
+                style={{
                   backgroundColor: statusColor + '20',
                   borderColor: statusColor + '60',
                 }}>
@@ -135,79 +177,40 @@ export default function CandidateDetailPage() {
         {/* Tab Content */}
         <View className="px-4 pb-8">
           {currentTab === 'talent-profile' && (
-            <View className="mt-4 rounded-2xl border border-white/10 bg-zinc-800 p-4">
-              <Text className="text-base font-semibold text-white mb-2">Talent Profile</Text>
-              <Text className="text-sm text-white/60">
-                Profile information will be displayed here.
-              </Text>
+            <View className="">
+              {!talentProfileData || !talentProfileData.talentInfo ? (
+                <View className="py-8">
+                  <Text className="text-base font-semibold text-white mb-2 text-center">
+                    Profile Not Available
+                  </Text>
+                  <Text className="text-sm text-white/60 text-center">
+                    {username === 'unknown'
+                      ? "This user's profile information is not available."
+                      : "Unable to load profile data for this user."}
+                  </Text>
+                </View>
+              ) : (
+                <TalentProfile
+                  userProfileData={talentProfileData}
+                  talentLevel={parseInt(talentProfileData?.talentLevel || '0')}
+                  talentInfo={talentProfileData?.talentInfo}
+                  isOwnProfile={false} />
+              )}
             </View>
           )}
 
           {currentTab === 'application' && (
-            <View className="mt-4 rounded-2xl border border-white/10 bg-zinc-800 p-4">
-              <Text className="text-base font-semibold text-white mb-4">Application Details</Text>
-              
-              <View className="gap-3">
-                <View className="gap-1">
-                  <Text className="text-xs text-white/60 uppercase">Application Status</Text>
-                  <Text className="text-sm text-white">{applicant?.applicationStatus || 'N/A'}</Text>
-                </View>
-                
-                <View className="gap-1">
-                  <Text className="text-xs text-white/60 uppercase">Application Process</Text>
-                  <Text className="text-sm text-white">{applicant?.applicationProcess || 'N/A'}</Text>
-                </View>
-
-                <View className="gap-1">
-                  <Text className="text-xs text-white/60 uppercase">Quote Price</Text>
-                  <Text className="text-sm text-white">
-                    ${applicant?.quotePrice || applicant?.otQuotePrice || 'N/A'}
-                  </Text>
-                </View>
-
-                <View className="gap-1">
-                  <Text className="text-xs text-white/60 uppercase">Payment Basis</Text>
-                  <Text className="text-sm text-white">{applicant?.paymentBasis || 'N/A'}</Text>
-                </View>
-
-                <View className="gap-1">
-                  <Text className="text-xs text-white/60 uppercase">Skills</Text>
-                  <Text className="text-sm text-white">{applicant?.skills || 'N/A'}</Text>
-                </View>
-
-                <View className="gap-1">
-                  <Text className="text-xs text-white/60 uppercase">Answer</Text>
-                  <Text className="text-sm text-white">{applicant?.answer || 'N/A'}</Text>
-                </View>
-
-                <View className="gap-1">
-                  <Text className="text-xs text-white/60 uppercase">Applied Date</Text>
-                  <Text className="text-sm text-white">
-                    {applicant?.createdAt
-                      ? new Date(applicant.createdAt).toLocaleDateString()
-                      : 'N/A'}
-                  </Text>
-                </View>
-
-                <View className="gap-1">
-                  <Text className="text-xs text-white/60 uppercase">Last Updated</Text>
-                  <Text className="text-sm text-white">
-                    {applicant?.updatedAt
-                      ? new Date(applicant.updatedAt).toLocaleDateString()
-                      : 'N/A'}
-                  </Text>
-                </View>
-              </View>
-            </View>
+            <ApplicationDetail applicant={applicant} />
           )}
 
           {currentTab === 'actions' && (
-            <View className="mt-4 rounded-2xl border border-white/10 bg-zinc-800 p-4">
-              <Text className="text-base font-semibold text-white mb-2">Actions</Text>
-              <Text className="text-sm text-white/60">
-                Actions to manage this candidate will be displayed here.
-              </Text>
-            </View>
+            <ActionToCandidates
+              applicant={candidate}
+              projectData={{ id: projectId }}
+              roleId={roleId ? parseInt(roleId as string) : undefined}
+              contractsData={contractsData}
+              isLoadingContracts={isLoadingContracts}
+            />
           )}
         </View>
       </ScrollView>
