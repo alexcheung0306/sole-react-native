@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { getStatusColorObject } from '@/utils/get-status-color';
 
 type JobContractsTabProps = {
   contracts: any[];
@@ -32,7 +33,7 @@ export function JobContractsTab({ contracts, isLoading }: JobContractsTabProps) 
 
   const renderContract = ({ item }: { item: any }) => {
     const contract = item?.jobContract ?? item;
-    const statusColor = getStatusColor(contract?.contractStatus);
+    const statusColor = getStatusColorObject(contract?.contractStatus);
 
     return (
       <TouchableOpacity
@@ -76,24 +77,4 @@ export function JobContractsTab({ contracts, isLoading }: JobContractsTabProps) 
   );
 }
 
-function getStatusColor(status: string) {
-  const normalizedStatus = status?.toLowerCase();
-  switch (normalizedStatus) {
-    case 'active':
-    case 'activated':
-      return { bg: 'rgba(16, 185, 129, 0.2)', text: '#10b981' };
-    case 'completed':
-      return { bg: 'rgba(59, 130, 246, 0.2)', text: '#3b82f6' };
-    case 'pending':
-    case 'offered':
-      return { bg: 'rgba(250, 204, 21, 0.2)', text: '#facc15' };
-    case 'accepted':
-      return { bg: 'rgba(16, 185, 129, 0.2)', text: '#10b981' };
-    case 'rejected':
-    case 'cancelled':
-      return { bg: 'rgba(239, 68, 68, 0.2)', text: '#ef4444' };
-    default:
-      return { bg: 'rgba(107, 114, 128, 0.2)', text: '#9ca3af' };
-  }
-}
 

@@ -16,13 +16,7 @@ import { RoleForm } from '~/components/form-components/role-form/RoleForm';
 import { RolesBreadcrumb } from '~/components/project-detail/roles/RolesBreadcrumb';
 import { ManageCandidates } from '~/components/project-detail/roles/ManageCandidates';
 import { PublishProjectButton } from '~/components/project-detail/PublishProjectButton';
-
-const STATUS_COLORS: Record<string, string> = {
-  Draft: '#6b7280',
-  Published: '#f59e0b',
-  InProgress: '#10b981',
-  Completed: '#3b82f6',
-};
+import { getStatusColor } from '@/utils/get-status-color';
 
 export default function ProjectDetailPage() {
   const insets = useSafeAreaInsets();
@@ -154,7 +148,7 @@ export default function ProjectDetailPage() {
   }
 
   const project = projectData?.project || projectData;
-  const statusTint = STATUS_COLORS[project?.status] || STATUS_COLORS.Draft;
+  const statusTint = getStatusColor(project?.status || 'Draft');
 
   return (
     <>

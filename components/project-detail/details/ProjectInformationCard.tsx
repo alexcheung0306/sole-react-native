@@ -6,13 +6,7 @@ import { ProjectInfoActionsDrawer } from '~/components/project-detail/details/Pr
 import ProjectInfoFormModal from '@/components/projects/ProjectInfoFormModal';
 import { formatDateTime } from '@/utils/time-converts';
 import { LinearGradient } from 'expo-linear-gradient';
-
-const STATUS_COLORS: Record<string, string> = {
-  Draft: '#6b7280',
-  Published: '#f59e0b',
-  InProgress: '#10b981',
-  Completed: '#3b82f6',
-};
+import { getStatusColor } from '@/utils/get-status-color';
 
 type ProjectInformationCardProps = {
   project: any;
@@ -101,11 +95,11 @@ export function ProjectInformationCard({ project, soleUserId }: ProjectInformati
             <View
               className="rounded-full px-3 py-1"
               style={{
-                backgroundColor: `${STATUS_COLORS[project?.status] || STATUS_COLORS.Draft}33`,
+                backgroundColor: `${getStatusColor(project?.status || 'Draft')}33`,
               }}>
               <Text
                 className="text-xs font-semibold text-white"
-                style={{ color: STATUS_COLORS[project?.status] || STATUS_COLORS.Draft }}>
+                style={{ color: getStatusColor(project?.status || 'Draft') }}>
                 {project?.status ?? '—'}
               </Text>
             </View>

@@ -8,18 +8,10 @@ import {
   StyleSheet,
 } from 'react-native';
 import { formatDateTime } from '~/utils/time-converts';
+import { getStatusColor } from '@/utils/get-status-color';
 
 type ContractListCardProps = {
   item: any;
-};
-
-const statusColorMap: Record<string, string> = {
-  Pending: '#f59e0b',
-  Activated: '#10b981',
-  Completed: '#3b82f6',
-  Paid: '#8b5cf6',
-  Cancelled: '#ef4444',
-  'Payment Due': '#f97316',
 };
 
 export default function ContractListCard({ item }: ContractListCardProps) {
@@ -29,8 +21,7 @@ export default function ContractListCard({ item }: ContractListCardProps) {
     return null;
   }
 
-  const statusColor =
-    statusColorMap[contract.contractStatus as keyof typeof statusColorMap] || '#6b7280';
+  const statusColor = getStatusColor(contract.contractStatus);
 
   const projectImage =
     contract.projectImage ||

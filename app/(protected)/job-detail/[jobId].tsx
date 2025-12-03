@@ -15,13 +15,7 @@ import { ProjectInformationCard } from '~/components/project-detail/details/Proj
 import { CustomTabs } from '@/components/custom/custom-tabs';
 import { JobContractsTab } from '~/components/job-detail/contracts/JobContractsTab';
 import { JobRolesBreadcrumb } from '~/components/job-detail/roles/JobRolesBreadcrumb';
-
-const STATUS_COLORS: Record<string, string> = {
-  Draft: '#6b7280',
-  Published: '#f59e0b',
-  InProgress: '#10b981',
-  Completed: '#3b82f6',
-};
+import { getStatusColor } from '@/utils/get-status-color';
 
 export default function JobDetail() {
   const insets = useSafeAreaInsets();
@@ -131,7 +125,7 @@ export default function JobDetail() {
   }
 
   const project = projectData?.project || projectData;
-  const statusTint = STATUS_COLORS[project?.status] || STATUS_COLORS.Draft;
+  const statusTint = getStatusColor(project?.status || 'Draft');
   const roleCount = rolesWithSchedules.length;
   const contractsCount = contractsData?.length || 0;
 

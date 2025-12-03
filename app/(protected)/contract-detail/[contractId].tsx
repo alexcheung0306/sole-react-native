@@ -16,6 +16,7 @@ import { formatDateTime } from '@/utils/time-converts';
 import { ChevronLeft } from 'lucide-react-native';
 import { CollapsibleHeader } from '@/components/CollapsibleHeader';
 import { useState } from 'react';
+import { getStatusColor } from '@/utils/get-status-color';
 
 export default function ContractDetailPage() {
   const insets = useSafeAreaInsets();
@@ -41,16 +42,6 @@ export default function ContractDetailPage() {
     staleTime: 30 * 1000,
   });
 
-  const getStatusColor = (status: string) => {
-    const colorMap: { [key: string]: string } = {
-      Pending: '#f59e0b',
-      Activated: '#10b981',
-      Completed: '#3b82f6',
-      Paid: '#8b5cf6',
-      Cancelled: '#ef4444',
-    };
-    return colorMap[status] || '#6b7280';
-  };
 
   // Handle pull-to-refresh
   const onRefresh = async () => {

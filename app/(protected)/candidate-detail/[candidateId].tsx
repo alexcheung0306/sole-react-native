@@ -7,18 +7,7 @@ import { useSoleUserContext } from '@/context/SoleUserContext';
 import { useQuery } from '@tanstack/react-query';
 import { searchApplicants } from '@/api/apiservice/applicant_api';
 import { CustomTabs } from '@/components/custom/custom-tabs';
-
-// Status color mapping
-const getStatusColor = (status: string): string => {
-  const colorMap: Record<string, string> = {
-    applied: '#3b82f6',
-    shortlisted: '#facc15',
-    offered: '#f97316',
-    accepted: '#10b981',
-    rejected: '#ef4444',
-  };
-  return colorMap[status.toLowerCase()] || '#6b7280';
-};
+import { getStatusColor } from '@/utils/get-status-color';
 
 export default function CandidateDetailPage() {
   const insets = useSafeAreaInsets();
@@ -121,9 +110,12 @@ export default function CandidateDetailPage() {
               </Text>
               <Text className="text-sm text-white/60">@{username}</Text>
               <View
-                className="mt-2 px-3 py-1 rounded-full self-start"
-                style={{ backgroundColor: statusColor + '33' }}>
-                <Text className="text-xs font-semibold" style={{ color: statusColor }}>
+                className="mt-2 px-3 py-1.5 rounded-full border self-start"
+                style={{ 
+                  backgroundColor: statusColor + '20',
+                  borderColor: statusColor + '60',
+                }}>
+                <Text className="text-xs font-bold uppercase tracking-wide" style={{ color: statusColor }}>
                   {applicant?.applicationStatus || 'applied'}
                 </Text>
               </View>

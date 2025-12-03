@@ -8,6 +8,7 @@ import {
 } from '@/api/apiservice/applicant_api';
 import FilterSearch from '@/components/custom/filter-search';
 import PaginationControl from '@/components/projects/PaginationControl';
+import { getStatusColor } from '@/utils/get-status-color';
 
 type ManageCandidatesProps = {
   projectData: any;
@@ -29,22 +30,10 @@ const candidateSearchOptions = [
 
 const trailingProcesses = ['shortlisted', 'offered', 'accepted', 'rejected'];
 
-// Status color mapping
-const getStatusColor = (status: string): string => {
-  const colorMap: Record<string, string> = {
-    applied: '#3b82f6',
-    shortlisted: '#facc15',
-    offered: '#f97316',
-    accepted: '#10b981',
-    rejected: '#ef4444',
-  };
-  return colorMap[status.toLowerCase()] || '#6b7280';
-};
-
 export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandidatesProps) {
   const router = useRouter();
   const screenWidth = Dimensions.get('window').width;
-  const cardWidth = (screenWidth - 48 - 12) / 2; // screen width - padding (24*2) - gap (12) / 2 columns
+  const cardWidth = (screenWidth - 48 - 24) / 3; // screen width - padding (24*2) - gaps (12*2) / 3 columns
 
   if (!roleWithSchedules) {
     return (
@@ -198,9 +187,12 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
         style={{ width: cardWidth, aspectRatio: 3 / 4 }}>
         {/* Status Chip - Top Right */}
         <View
-          className="absolute top-2 right-2 z-20 px-2 py-1 rounded-full"
-          style={{ backgroundColor: statusColor + '33' }}>
-          <Text className="text-[10px] font-semibold" style={{ color: statusColor }}>
+          className="absolute top-2 right-2 z-20 px-2.5 py-1.5 rounded-full border"
+          style={{ 
+            backgroundColor: statusColor + '20',
+            borderColor: statusColor + '60',
+          }}>
+          <Text className="text-[10px] font-bold uppercase tracking-wide" style={{ color: statusColor }}>
             {applicant?.applicationStatus || 'applied'}
           </Text>
         </View>
@@ -221,21 +213,21 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
         </View>
 
         {/* Username Chip - Bottom Left */}
-        <View className="absolute bottom-2 left-2 z-20 px-2 py-1 rounded-full bg-zinc-900/80">
-          <Text className="text-[10px] font-medium text-white">@{username}</Text>
+        <View className="absolute bottom-2 left-2 z-20 px-2.5 py-1.5 rounded-full border border-white/20 bg-zinc-900/95 backdrop-blur-sm">
+          <Text className="text-[10px] font-semibold text-white">@{username}</Text>
         </View>
 
         {/* Profile Loading Indicator */}
         {!userInfo?.name && username !== 'Unknown User' && (
-          <View className="absolute top-2 left-2 z-20 px-2 py-1 rounded-full bg-yellow-500/80">
-            <Text className="text-[10px] font-medium text-white">Loading...</Text>
+          <View className="absolute top-2 left-2 z-20 px-2.5 py-1.5 rounded-full border border-yellow-500/40 bg-yellow-500/25 backdrop-blur-sm">
+            <Text className="text-[10px] font-semibold text-yellow-400">Loading...</Text>
           </View>
         )}
 
         {/* Profile Unavailable Indicator */}
         {username === 'Unknown User' && (
-          <View className="absolute top-2 left-2 z-20 px-2 py-1 rounded-full bg-zinc-600/80">
-            <Text className="text-[10px] font-medium text-white">Unavailable</Text>
+          <View className="absolute top-2 left-2 z-20 px-2.5 py-1.5 rounded-full border border-zinc-500/40 bg-zinc-600/30 backdrop-blur-sm">
+            <Text className="text-[10px] font-semibold text-zinc-300">Unavailable</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -304,7 +296,7 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
         data={filteredCandidates}
         keyExtractor={(item) => `candidate-${item?.jobApplicant?.id}`}
         scrollEnabled={false}
-        numColumns={2}
+        numColumns={3}
         columnWrapperStyle={{ gap: 12, justifyContent: 'space-between' }}
         contentContainerStyle={{ gap: 12, paddingTop: 8 }}
         ListEmptyComponent={() => (

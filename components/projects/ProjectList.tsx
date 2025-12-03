@@ -31,16 +31,6 @@ export default function ProjectList({
     });
   };
 
-  const getStatusColorValue = (status: string) => {
-    const colorMap: { [key: string]: string } = {
-      Draft: '#6b7280',
-      Published: '#f59e0b',
-      InProgress: '#10b981',
-      Completed: '#3b82f6',
-    };
-    return colorMap[status] || '#6b7280';
-  };
-
   const renderProject = ({ item }: { item: any }) => {
     // Handle both nested and flat project structures
     const project = item?.project || item;
@@ -50,7 +40,7 @@ export default function ProjectList({
       return null;
     }
     
-    const statusColor = getStatusColorValue(project.status || 'Draft');
+    const statusColor = getStatusColor(project.status || 'Draft');
 
     return (
       <TouchableOpacity

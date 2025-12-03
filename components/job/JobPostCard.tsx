@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TouchableOpacity, View, Text, Image, ImageBackground, StyleSheet } from 'react-native';
 import { formatDateTime } from '~/utils/time-converts';
+import { getStatusColor } from '@/utils/get-status-color';
 
 export default function JobListCard({ item }: { item: any }) {
   const project = item?.project || item;
@@ -11,18 +12,6 @@ export default function JobListCard({ item }: { item: any }) {
     return null;
   }
 
-  const getStatusColorValue = (status: string) => {
-    const colorMap: { [key: string]: string } = {
-      Draft: '#6b7280',
-      Published: '#f59e0b',
-      InProgress: '#10b981',
-      Completed: '#3b82f6',
-      Active: '#10b981',
-      Closed: '#ef4444',
-    };
-    return colorMap[status] || '#f59e0b';
-  };
-
   const handleJobPress = () => {
     router.push({
       pathname: `/(protected)/job-detail/${project.id}` as any,
@@ -30,7 +19,7 @@ export default function JobListCard({ item }: { item: any }) {
     });
   };
 
-  const statusColor = useMemo(() => getStatusColorValue(project.status || 'Published'), [project.status]);
+  const statusColor = useMemo(() => getStatusColor(project.status || 'Published'), [project.status]);
   const hasClientMeta = item?.userInfoName || item?.soleUserName || item?.userInfoProfilePic;
   const clientInitial = useMemo(() =>
     item?.userInfoName && typeof item.userInfoName === 'string'

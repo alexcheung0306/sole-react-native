@@ -2,17 +2,9 @@ import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TouchableOpacity, View, Text, ImageBackground, StyleSheet } from 'react-native';
 import { formatDateTime } from '~/utils/time-converts';
+import { getStatusColor } from '@/utils/get-status-color';
 
 export default function ProjectListCard({ item }: { item: any }) {
-  const getStatusColorValue = (status: string) => {
-    const colorMap: { [key: string]: string } = {
-      Draft: '#6b7280',
-      Published: '#f59e0b',
-      InProgress: '#10b981',
-      Completed: '#3b82f6',
-    };
-    return colorMap[status] || '#6b7280';
-  };
 
   const handleProjectPress = (projectId: number) => {
     router.push({
@@ -27,7 +19,7 @@ export default function ProjectListCard({ item }: { item: any }) {
     return null;
   }
 
-  const statusColor = getStatusColorValue(project.status || 'Draft');
+  const statusColor = getStatusColor(project.status || 'Draft');
   const projectImage = project.projectImage || null;
   const hasImage = !!projectImage && projectImage !== 'default_image_url';
 

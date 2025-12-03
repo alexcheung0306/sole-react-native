@@ -8,6 +8,7 @@ import FilterSearch from '~/components/custom/filter-search';
 import FlatListEmpty from '~/components/custom/flatlist-empty';
 import PaginationControl from '~/components/projects/PaginationControl';
 import { Calendar, Briefcase, FileText } from 'lucide-react-native';
+import { getStatusColorObject } from '@/utils/get-status-color';
 
 type AppliedRolesProps = {
   scrollHandler?: (event: any) => void;
@@ -47,24 +48,6 @@ export default function AppliedRoles({ scrollHandler }: AppliedRolesProps) {
     refetch();
   };
 
-  const getStatusColor = (status: string) => {
-    const normalizedStatus = status?.toLowerCase();
-    switch (normalizedStatus) {
-      case 'pending':
-      case 'applied':
-        return { bg: 'rgba(250, 204, 21, 0.2)', text: '#facc15' };
-      case 'under review':
-      case 'shortlisted':
-        return { bg: 'rgba(59, 130, 246, 0.2)', text: '#3b82f6' };
-      case 'interviewed':
-      case 'offered':
-        return { bg: 'rgba(16, 185, 129, 0.2)', text: '#10b981' };
-      case 'rejected':
-        return { bg: 'rgba(239, 68, 68, 0.2)', text: '#ef4444' };
-      default:
-        return { bg: 'rgba(107, 114, 128, 0.2)', text: '#9ca3af' };
-    }
-  };
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
@@ -79,7 +62,7 @@ export default function AppliedRoles({ scrollHandler }: AppliedRolesProps) {
   const applicationsData = appliedRoles;
 
   const renderAppliedRole = ({ item }: { item: any }) => {
-    const statusColor = getStatusColor(item.applicationProcess || item.applicationStatus);
+    const statusColor = getStatusColorObject(item.applicationProcess || item.applicationStatus);
     
     return (
       <TouchableOpacity

@@ -8,6 +8,7 @@ import FilterSearch from '~/components/custom/filter-search';
 import FlatListEmpty from '~/components/custom/flatlist-empty';
 import PaginationControl from '~/components/projects/PaginationControl';
 import { FileCheck, Calendar, Briefcase } from 'lucide-react-native';
+import { getStatusColorObject } from '@/utils/get-status-color';
 
 type MyContractsProps = {
   scrollHandler?: (event: any) => void;
@@ -47,27 +48,6 @@ export default function MyContracts({ scrollHandler }: MyContractsProps) {
     refetch();
   };
 
-  const getStatusColor = (status: string) => {
-    const normalizedStatus = status?.toLowerCase();
-    switch (normalizedStatus) {
-      case 'active':
-      case 'activated':
-        return { bg: 'rgba(16, 185, 129, 0.2)', text: '#10b981' };
-      case 'completed':
-        return { bg: 'rgba(59, 130, 246, 0.2)', text: '#3b82f6' };
-      case 'pending':
-      case 'offered':
-        return { bg: 'rgba(250, 204, 21, 0.2)', text: '#facc15' };
-      case 'accepted':
-        return { bg: 'rgba(16, 185, 129, 0.2)', text: '#10b981' };
-      case 'rejected':
-      case 'cancelled':
-        return { bg: 'rgba(239, 68, 68, 0.2)', text: '#ef4444' };
-      default:
-        return { bg: 'rgba(107, 114, 128, 0.2)', text: '#9ca3af' };
-    }
-  };
-
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -81,7 +61,7 @@ export default function MyContracts({ scrollHandler }: MyContractsProps) {
   const contractsList = contracts;
 
   const renderContract = ({ item }: { item: any }) => {
-    const statusColor = getStatusColor(item.contractStatus);
+    const statusColor = getStatusColorObject(item.contractStatus);
     const conditionsCount = item.conditions?.length || 0;
 
     return (
