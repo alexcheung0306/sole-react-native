@@ -1,5 +1,5 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft } from 'lucide-react-native';
 import { useSoleUserContext } from '~/context/SoleUserContext';
@@ -15,29 +15,30 @@ import { ProjectInformationCard } from '~/components/project-detail/details/Proj
 import { CustomTabs } from '@/components/custom/custom-tabs';
 import { JobContractsTab } from '~/components/job-detail/contracts/JobContractsTab';
 import { JobRolesBreadcrumb } from '~/components/job-detail/roles/JobRolesBreadcrumb';
-import { getStatusColor } from '@/utils/get-status-color';
 
-export default function JobDetail() {
+const STATUS_COLORS: Record<string, string> = {
+  Draft: '#6b7280',
+  Published: '#f59e0b',
+  InProgress: '#10b981',
+  Completed: '#3b82f6',
+};
+
+export default function JobDetail({ scrollHandler }: { scrollHandler: (event: any) => void }) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const navigation = useNavigation();
   const params = useLocalSearchParams();
   const { soleUserId } = useSoleUserContext();
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   
-  // Handle both jobId (from route param) and id (fallback)
-  const jobIdParam = (params.jobId || params.id) as string | undefined;
-  const projectId = jobIdParam ? parseInt(jobIdParam, 10) : 0;
+  const projectId = params.id ? parseInt(params.id as string, 10) : 0;
   const [currentTab, setCurrentTab] = useState('job-information');
   const [currentRole, setCurrentRole] = useState(0);
-  const [refreshing, setRefreshing] = useState(false);
 
   // Fetch project data
   const {
     data: projectData,
     isLoading: projectLoading,
     error: projectError,
-    refetch: refetchProject,
   } = useQuery({
     queryKey: ['jobDetail', projectId],
     queryFn: () => getProjectByID(projectId),
@@ -85,22 +86,6 @@ export default function JobDetail() {
     }
   }, [rolesWithSchedules.length, currentRole]);
 
-  // Handle pull-to-refresh
-  const onRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await Promise.all([
-        refetchProject(),
-        refetchRoles(),
-        refetchContracts(),
-      ]);
-    } catch (error) {
-      console.error('Error refreshing job data:', error);
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
   if (isInitialLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#0a0a0a] px-6">
@@ -125,7 +110,7 @@ export default function JobDetail() {
   }
 
   const project = projectData?.project || projectData;
-  const statusTint = getStatusColor(project?.status || 'Draft');
+  const statusTint = STATUS_COLORS[project?.status] || STATUS_COLORS.Draft;
   const roleCount = rolesWithSchedules.length;
   const contractsCount = contractsData?.length || 0;
 
@@ -138,7 +123,7 @@ export default function JobDetail() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-black" style={{ zIndex: 1000 }}>
+      <View className="flex-1 bg-[#0a0a0a]">
         <CollapsibleHeader
           title={project?.projectName || 'Job'}
           headerLeft={
@@ -155,19 +140,11 @@ export default function JobDetail() {
         />
         <ScrollView
           className="flex-1"
-          onScroll={onScroll}
+          onScroll={scrollHandler}
           scrollEventThrottle={16}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#3b82f6"
-              colors={['#3b82f6']}
-            />
-          }
           contentContainerStyle={{
             paddingTop: insets.top + 72,
-            paddingBottom: insets.bottom + 80,
+            paddingBottom: 28,
             paddingHorizontal: 0,
           }}>
           <View className="gap-6">

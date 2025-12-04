@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -128,6 +128,33 @@ export default function PreviewScreen() {
 
     setSelectedMedia(updated);
   };
+
+  // Initialize crop data for all photos when component mounts
+  useEffect(() => {
+    // Only initialize if photos don't have cropData yet
+    const needsInitialization = selectedMedia.some(
+      (item) => item.mediaType === 'photo' && !item.cropData
+    );
+
+    if (needsInitialization) {
+      const updated = selectedMedia.map((item) => {
+        if (item.mediaType !== 'photo' || item.cropData) return item;
+
+        const newCropData = calculateCenterCrop(item, selectedAspectRatio);
+        if (!newCropData) return item;
+
+        const originalUri = item.originalUri ?? item.uri;
+
+        return {
+          ...item,
+          cropData: newCropData,
+          originalUri: originalUri,
+        };
+      });
+
+      setSelectedMedia(updated);
+    }
+  }, []); // Only run on mount
 
   const handleClose = () => {
     if (router.canGoBack()) {

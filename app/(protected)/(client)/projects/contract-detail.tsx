@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
@@ -15,45 +14,37 @@ import { getJobContractsById } from '@/api/apiservice/jobContracts_api';
 import { formatDateTime } from '@/utils/time-converts';
 import { ChevronLeft } from 'lucide-react-native';
 import { CollapsibleHeader } from '@/components/CollapsibleHeader';
-import { useState } from 'react';
-import { getStatusColor } from '@/utils/get-status-color';
+import AlterContractStatusModal from '@/components/projects/AlterContractStatusModal';
 
-export default function ContractDetailPage() {
+export default function ContractDetailPage({ scrollHandler }: { scrollHandler: (event: any) => void } ) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const navigation = useNavigation();
-  const params = useLocalSearchParams();
+  const { id } = useLocalSearchParams();
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
-  
-  // Handle both contractId (from route param) and id (fallback)
-  const contractIdParam = (params.contractId || params.id) as string | undefined;
-  const contractId = contractIdParam ? parseInt(contractIdParam, 10) : 0;
-  const [refreshing, setRefreshing] = useState(false);
+  const contractId = parseInt(id as string);
 
   const {
     data: contractData,
     isLoading,
     error,
-    refetch,
   } = useQuery({
     queryKey: ['contract', contractId],
     queryFn: () => getJobContractsById(contractId),
-    enabled: !!contractId && !isNaN(contractId),
+    enabled: !!contractId,
     staleTime: 30 * 1000,
   });
 
-
-  // Handle pull-to-refresh
-  const onRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await refetch();
-    } catch (error) {
-      console.error('Error refreshing contract data:', error);
-    } finally {
-      setRefreshing(false);
-    }
+  const getStatusColor = (status: string) => {
+    const colorMap: { [key: string]: string } = {
+      Pending: '#f59e0b',
+      Activated: '#10b981',
+      Completed: '#3b82f6',
+      Paid: '#8b5cf6',
+      Cancelled: '#ef4444',
+    };
+    return colorMap[status] || '#6b7280';
   };
+
 
   if (isLoading) {
     return (
@@ -70,7 +61,9 @@ export default function ContractDetailPage() {
         <Text style={styles.errorText}>Error loading contract</Text>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() =>
+            router.replace('/(protected)/(client)/projects/manage-contracts')
+          }
         >
           <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
@@ -91,7 +84,7 @@ export default function ContractDetailPage() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-black" style={{ zIndex: 1000 }}>
+      <View style={styles.container}>
         <CollapsibleHeader
           title={contractData?.jobContract ? `Contract #${contractData.jobContract.id}` : 'Contract'}
           headerLeft={
@@ -109,19 +102,11 @@ export default function ContractDetailPage() {
         />
         <ScrollView
           style={styles.scrollView}
-          onScroll={onScroll}
+          onScroll={scrollHandler}
           scrollEventThrottle={16}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#3b82f6"
-              colors={['#3b82f6']}
-            />
-          }
           contentContainerStyle={{
             paddingTop: insets.top + 72,
-            paddingBottom: insets.bottom + 80,
+            paddingBottom: 20,
             paddingHorizontal: 24,
           }}
         >
@@ -201,6 +186,47 @@ export default function ContractDetailPage() {
               )}
             </View>
           )}
+
+          {/* Actions based on status */}
+          <View style={styles.actionsSection}>
+            {contract.contractStatus === 'Pending' &&
+              latestCondition?.conditionStatus === 'Accepted' && (
+                <>
+                  <TouchableOpacity
+                    style={styles.activateButton}
+                    onPress={() =>
+                      router.push({
+                        pathname:
+                          '/(protected)/(client)/projects/activate-contract',
+                        params: { id: contractId },
+                      })
+                    }
+                  >
+                    <Text style={styles.activateButtonText}>
+                      Activate Contract
+                    </Text>
+                  </TouchableOpacity>
+                  <AlterContractStatusModal
+                    contractId={contractId}
+                    options="cancelled"
+                  />
+                </>
+              )}
+
+            {contract.contractStatus === 'Activated' && (
+              <AlterContractStatusModal
+                contractId={contractId}
+                options="completed"
+              />
+            )}
+
+            {contract.contractStatus === 'Completed' && (
+              <AlterContractStatusModal
+                contractId={contractId}
+                options="paid"
+              />
+            )}
+          </View>
         </ScrollView>
       </View>
     </>
@@ -208,6 +234,10 @@ export default function ContractDetailPage() {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0a0a0a',
+  },
   scrollView: {
     flex: 1,
   },
@@ -280,6 +310,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#ffffff',
     lineHeight: 24,
+  },
+  actionsSection: {
+    marginTop: 8,
+  },
+  activateButton: {
+    backgroundColor: '#10b981',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  activateButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

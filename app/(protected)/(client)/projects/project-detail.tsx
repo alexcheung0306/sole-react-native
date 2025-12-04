@@ -1,6 +1,6 @@
-import { Stack, useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
-import React, { useEffect, useLayoutEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { ChevronLeft } from 'lucide-react-native';
@@ -16,24 +16,29 @@ import { RoleForm } from '~/components/form-components/role-form/RoleForm';
 import { RolesBreadcrumb } from '~/components/project-detail/roles/RolesBreadcrumb';
 import { ManageCandidates } from '~/components/project-detail/roles/ManageCandidates';
 import { PublishProjectButton } from '~/components/project-detail/PublishProjectButton';
-import { getStatusColor } from '@/utils/get-status-color';
 
-export default function ProjectDetailPage() {
+const STATUS_COLORS: Record<string, string> = {
+  Draft: '#6b7280',
+  Published: '#f59e0b',
+  InProgress: '#10b981',
+  Completed: '#3b82f6',
+};
+
+export default function ProjectDetail({
+  scrollHandler,
+}: {
+  scrollHandler: (event: any) => void;
+}) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const navigation = useNavigation();
-  const params = useLocalSearchParams();
+  const { id } = useLocalSearchParams();
   const { soleUserId } = useSoleUserContext();
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   // Local state for tab and role selection (not in context)
   const [currentTab, setCurrentTab] = useState('project-information');
   const [currentRole, setCurrentRole] = useState(0);
 
- 
-
-  // Handle both projectId (from route param) and id (fallback)
-  const projectIdParam = (params.projectId || params.id) as string | undefined;
-  const projectId = projectIdParam ? parseInt(projectIdParam, 10) : 0;
+  const projectId = id ? parseInt(id as string, 10) : 0;
 
   const {
     projectData,
@@ -51,13 +56,6 @@ export default function ProjectDetailPage() {
   } = useProjectDetailQueries({ projectId, soleUserId: soleUserId || '' });
 
   const [refreshing, setRefreshing] = useState(false);
-
-  // Hide header immediately to prevent flash - use useLayoutEffect for synchronous execution
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerShown: false,
-    });
-  }, [navigation]);
 
   // Calculate button disabled state - use useMemo to ensure it recalculates when dependencies change
   // MUST be called before any early returns to follow Rules of Hooks
@@ -120,40 +118,34 @@ export default function ProjectDetailPage() {
 
   if (isInitialLoading) {
     return (
-      <>
-        <Stack.Screen options={{ headerShown: false }} />
-        <View className="flex-1 items-center justify-center bg-black px-6">
-          <ActivityIndicator size="large" color="#3b82f6" />
-          <Text className="mt-3 text-sm text-zinc-400">Fetching project workspace…</Text>
-        </View>
-      </>
+      <View className="flex-1 items-center justify-center bg-[#0a0a0a] px-6">
+        <ActivityIndicator size="large" color="#3b82f6" />
+        <Text className="mt-3 text-sm text-zinc-400">Fetching project workspace…</Text>
+      </View>
     );
   }
 
   if (projectError || !projectData) {
     return (
-      <>
-        <Stack.Screen options={{ headerShown: false }} />
-        <View className="flex-1 items-center justify-center bg-black px-6">
-          <Text className="text-lg font-semibold text-rose-400">We couldn't load this project.</Text>
-          <TouchableOpacity
-            className="mt-5 rounded-xl bg-blue-500 px-5 py-3"
-            activeOpacity={0.85}
-            onPress={() => router.back()}>
-            <Text className="text-sm font-semibold text-white">Return to projects</Text>
-          </TouchableOpacity>
-        </View>
-      </>
+      <View className="flex-1 items-center justify-center bg-[#0a0a0a] px-6">
+        <Text className="text-lg font-semibold text-rose-400">We couldn't load this project.</Text>
+        <TouchableOpacity
+          className="mt-5 rounded-xl bg-blue-500 px-5 py-3"
+          activeOpacity={0.85}
+          onPress={() => router.back()}>
+          <Text className="text-sm font-semibold text-white">Return to projects</Text>
+        </TouchableOpacity>
+      </View>
     );
   }
 
   const project = projectData?.project || projectData;
-  const statusTint = getStatusColor(project?.status || 'Draft');
+  const statusTint = STATUS_COLORS[project?.status] || STATUS_COLORS.Draft;
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-black" style={{ zIndex: 1000 }}>
+      <View className="flex-1 bg-[#0a0a0a]">
         <CollapsibleHeader
           title={project?.projectName || 'Project'}
           headerLeft={
@@ -170,7 +162,7 @@ export default function ProjectDetailPage() {
         />
         <ScrollView
           className="flex-1"
-          onScroll={onScroll}
+          onScroll={scrollHandler}
           scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
@@ -268,7 +260,7 @@ export default function ProjectDetailPage() {
 
                 {/* Manage Candidates - Only show for Published projects with roles */}
                 {project?.status === 'Published' && rolesWithSchedules.length > 0 && (
-                  <View className="mt-6   px-2">
+                  <View className="mt-6 border-t border-white/10 pt-6 px-2">
                     <ManageCandidates 
                       projectData={project} 
                       roleWithSchedules={rolesWithSchedules[currentRole]} 

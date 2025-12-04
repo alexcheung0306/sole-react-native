@@ -8,7 +8,8 @@ export default function ProjectListCard({ item }: { item: any }) {
 
   const handleProjectPress = (projectId: number) => {
     router.push({
-      pathname: `/(protected)/project-detail/${projectId}` as any,
+      pathname: '/(protected)/(client)/projects/project-detail' as any,
+
       params: { id: projectId },
     });
   };

@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import FilterSearch from '~/components/custom/filter-search';
 import FlatListEmpty from '~/components/custom/flatlist-empty';
 import PaginationControl from '~/components/projects/PaginationControl';
-import JobListCard from '~/components/job/JobPostCard';
+import JobListCard from '~/components/job/JobListCard';
 
 type JobPostsProps = {
   scrollHandler?: (event: any) => void;

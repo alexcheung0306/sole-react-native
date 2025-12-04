@@ -14,7 +14,7 @@ export default function JobListCard({ item }: { item: any }) {
 
   const handleJobPress = () => {
     router.push({
-      pathname: `/(protected)/job-detail/${project.id}` as any,
+      pathname: `/(protected)/(user)/job/job-detail` as any,
       params: { id: project.id },
     });
   };

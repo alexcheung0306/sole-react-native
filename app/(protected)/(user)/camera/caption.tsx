@@ -179,29 +179,97 @@ export default function CaptionScreen() {
             try {
               // Use originalUri if available to ensure best quality and correct coordinates
               const sourceUri = media.originalUri ?? media.uri;
+              
+              // Get the natural dimensions from cropData or fallback to media dimensions
+              const naturalWidth = media.cropData.naturalWidth ?? media.width ?? 1080;
+              const naturalHeight = media.cropData.naturalHeight ?? media.height ?? 1080;
+              
+              // Validate that we have valid crop data
+              if (!media.cropData.width || !media.cropData.height || 
+                  media.cropData.width <= 0 || media.cropData.height <= 0) {
+                console.warn('Invalid crop data, skipping crop:', media.cropData);
+              } else {
+                // Round and clamp crop coordinates to ensure they're valid integers within bounds
+                const cropX = Math.max(0, Math.min(Math.round(media.cropData.x), naturalWidth - 1));
+                const cropY = Math.max(0, Math.min(Math.round(media.cropData.y), naturalHeight - 1));
+                const cropWidth = Math.max(1, Math.min(
+                  Math.round(media.cropData.width),
+                  naturalWidth - cropX
+                ));
+                const cropHeight = Math.max(1, Math.min(
+                  Math.round(media.cropData.height),
+                  naturalHeight - cropY
+                ));
 
-              const actions = [
-                {
-                  crop: {
-                    originX: media.cropData.x,
-                    originY: media.cropData.y,
-                    width: media.cropData.width,
-                    height: media.cropData.height,
-                  },
-                },
-              ];
+                // Ensure crop doesn't exceed image bounds
+                if (cropX + cropWidth > naturalWidth || cropY + cropHeight > naturalHeight) {
+                  console.warn('Crop exceeds image bounds, adjusting...', {
+                    cropX, cropY, cropWidth, cropHeight, naturalWidth, naturalHeight
+                  });
+                  // Adjust to fit within bounds
+                  const adjustedWidth = Math.min(cropWidth, naturalWidth - cropX);
+                  const adjustedHeight = Math.min(cropHeight, naturalHeight - cropY);
+                  
+                  if (adjustedWidth > 0 && adjustedHeight > 0) {
+                    const actions = [
+                      {
+                        crop: {
+                          originX: cropX,
+                          originY: cropY,
+                          width: adjustedWidth,
+                          height: adjustedHeight,
+                        },
+                      },
+                    ];
 
-              const result = await ImageManipulator.manipulateAsync(
-                sourceUri,
-                actions,
-                { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
-              );
+                    const result = await ImageManipulator.manipulateAsync(
+                      sourceUri,
+                      actions,
+                      { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+                    );
 
-              finalUri = result.uri;
-              finalWidth = result.width;
-              finalHeight = result.height;
+                    finalUri = result.uri;
+                    finalWidth = result.width;
+                    finalHeight = result.height;
+                    
+                    console.log('Crop applied successfully:', {
+                      cropX, cropY, adjustedWidth, adjustedHeight,
+                      finalWidth, finalHeight
+                    });
+                  } else {
+                    console.warn('Adjusted crop dimensions invalid, using original');
+                  }
+                } else {
+                  const actions = [
+                    {
+                      crop: {
+                        originX: cropX,
+                        originY: cropY,
+                        width: cropWidth,
+                        height: cropHeight,
+                      },
+                    },
+                  ];
+
+                  const result = await ImageManipulator.manipulateAsync(
+                    sourceUri,
+                    actions,
+                    { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+                  );
+
+                  finalUri = result.uri;
+                  finalWidth = result.width;
+                  finalHeight = result.height;
+                  
+                  console.log('Crop applied successfully:', {
+                    cropX, cropY, cropWidth, cropHeight,
+                    finalWidth, finalHeight
+                  });
+                }
+              }
             } catch (cropError) {
-              console.warn('Failed to apply crop before upload, using original', cropError);
+              console.error('Failed to apply crop before upload, using original', cropError);
+              // Fall through to use original image
             }
           }
 
