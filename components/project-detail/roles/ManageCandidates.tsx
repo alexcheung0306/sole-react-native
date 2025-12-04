@@ -1,14 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, ScrollView, FlatList, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { View, Text, ScrollView, FlatList, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
-import {
-  getApplicationProcessCounts,
-  searchApplicants,
-} from '@/api/apiservice/applicant_api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getApplicationProcessCounts, searchApplicants } from '@/api/apiservice/applicant_api';
 import FilterSearch from '@/components/custom/filter-search';
 import PaginationControl from '@/components/projects/PaginationControl';
-import { getStatusColor } from '@/utils/get-status-color';
+import { CandidateCard } from './CandidateCard';
+import { CandidateSwipeModal } from './CandidateSwipeModal';
 
 type ManageCandidatesProps = {
   projectData: any;
@@ -32,8 +30,13 @@ const trailingProcesses = ['shortlisted', 'offered', 'accepted', 'rejected'];
 
 export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandidatesProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const screenWidth = Dimensions.get('window').width;
   const cardWidth = (screenWidth - 48 - 24) / 3; // screen width - padding (24*2) - gaps (12*2) / 3 columns
+
+  // Modal state
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalInitialIndex, setModalInitialIndex] = useState(0);
 
   if (!roleWithSchedules) {
     return (
@@ -44,7 +47,7 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
   }
 
   const activities = roleWithSchedules?.activities || [];
-  
+
   // Local state for process selection (not from context)
   const [currentProcess, setCurrentProcess] = useState('applied');
 
@@ -133,7 +136,9 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
         process &&
         ['applied', 'shortlisted', 'offered', 'rejected', 'accepted'].includes(currentProcess)
       ) {
-        if (['applied', 'shortlisted', 'offered', 'rejected', 'accepted'].includes(currentProcess)) {
+        if (
+          ['applied', 'shortlisted', 'offered', 'rejected', 'accepted'].includes(currentProcess)
+        ) {
           return process === currentProcess || status === currentProcess;
         }
       }
@@ -161,77 +166,19 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
     setCandidateSearchTrigger((prev) => prev + 1);
   };
 
-  const renderCandidate = ({ item }: { item: any }) => {
-    const applicant = item?.jobApplicant ?? {};
-    const userInfo = item?.userInfo ?? {};
-    const username = item?.username || userInfo?.username || 'unknown';
-    const statusColor = getStatusColor(applicant?.applicationStatus || 'applied');
-    const imageUri = item?.comcardFirstPic || userInfo?.profilePic || null;
+  const handleCardPress = (index: number) => {
+    setModalInitialIndex(index);
+    setModalVisible(true);
+  };
 
-    const handlePress = () => {
-      router.push({
-        pathname: '/(protected)/(client)/projects/candidate-detail' as any,
-        params: {
-          candidateId: applicant?.id?.toString() || '',
-          roleId: roleWithSchedules?.role?.id?.toString() || '',
-          projectId: projectData?.id?.toString() || '',
-        },
-      });
-    };
+  const handleModalClose = () => {
+    setModalVisible(false);
+  };
 
-    return (
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={handlePress}
-        className="rounded-2xl border border-white/20 bg-zinc-800/85 overflow-hidden relative"
-        style={{ width: cardWidth, aspectRatio: 3 / 4 }}>
-        {/* Status Chip - Top Right */}
-        <View
-          className="absolute top-2 right-2 z-20 px-2.5 py-1.5 rounded-full border"
-          style={{ 
-            backgroundColor: statusColor + '20',
-            borderColor: statusColor + '60',
-          }}>
-          <Text className="text-[10px] font-bold uppercase tracking-wide" style={{ color: statusColor }}>
-            {applicant?.applicationStatus || 'applied'}
-          </Text>
-        </View>
-
-        {/* Profile Image */}
-        <View className="w-full h-48 bg-zinc-700">
-          {imageUri ? (
-            <Image
-              source={{ uri: imageUri }}
-              className="w-full h-full"
-              resizeMode="cover"
-            />
-          ) : (
-            <View className="w-full h-full items-center justify-center">
-              <Text className="text-white/40 text-xs">No Image</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Username Chip - Bottom Left */}
-        <View className="absolute bottom-2 left-2 z-20 px-2.5 py-1.5 rounded-full border border-white/20 bg-zinc-900/95 backdrop-blur-sm">
-          <Text className="text-[10px] font-semibold text-white">@{username}</Text>
-        </View>
-
-        {/* Profile Loading Indicator */}
-        {!userInfo?.name && username !== 'Unknown User' && (
-          <View className="absolute top-2 left-2 z-20 px-2.5 py-1.5 rounded-full border border-yellow-500/40 bg-yellow-500/25 backdrop-blur-sm">
-            <Text className="text-[10px] font-semibold text-yellow-400">Loading...</Text>
-          </View>
-        )}
-
-        {/* Profile Unavailable Indicator */}
-        {username === 'Unknown User' && (
-          <View className="absolute top-2 left-2 z-20 px-2.5 py-1.5 rounded-full border border-zinc-500/40 bg-zinc-600/30 backdrop-blur-sm">
-            <Text className="text-[10px] font-semibold text-zinc-300">Unavailable</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-    );
+  const handleCandidateUpdated = () => {
+    // Refresh candidate list
+    queryClient.invalidateQueries({ queryKey: ['role-candidates'] });
+    queryClient.invalidateQueries({ queryKey: ['role-process-counts'] });
   };
 
   return (
@@ -257,9 +204,7 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
             <TouchableOpacity
               key={`process-${process}`}
               className={`rounded-full border px-3.5 py-2 ${
-                isActive
-                  ? 'border-blue-500 bg-blue-500/20'
-                  : 'border-white/20 bg-zinc-700/70'
+                isActive ? 'border-blue-500 bg-blue-500/20' : 'border-white/20 bg-zinc-700/70'
               }`}
               onPress={() => {
                 setCurrentProcess(process);
@@ -300,14 +245,35 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
         columnWrapperStyle={{ gap: 12, justifyContent: 'space-between' }}
         contentContainerStyle={{ gap: 12, paddingTop: 8 }}
         ListEmptyComponent={() => (
-          <View className="items-center gap-2 py-8 w-full">
+          <View className="w-full items-center gap-2 py-8">
             <Text className="text-base font-semibold text-white">No candidates found</Text>
             <Text className="text-center text-sm text-white/60">
               Adjust your filters or select another process stage to view applicants.
             </Text>
           </View>
         )}
-        renderItem={({ item }) => renderCandidate({ item })}
+        renderItem={({ item, index }) => (
+          <CandidateCard
+            item={item}
+            cardWidth={cardWidth}
+            roleId={roleWithSchedules?.role?.id}
+            projectId={projectData?.id}
+            onPress={handleCardPress}
+            index={index}
+          />
+        )}
+      />
+
+      {/* Swipeable Modal */}
+      <CandidateSwipeModal
+        visible={modalVisible}
+        onClose={handleModalClose}
+        candidates={filteredCandidates}
+        initialIndex={modalInitialIndex}
+        roleId={roleWithSchedules?.role?.id}
+        projectId={projectData?.id}
+        currentProcess={currentProcess}
+        onCandidateUpdated={handleCandidateUpdated}
       />
 
       {/* Pagination */}
@@ -324,4 +290,3 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
     </View>
   );
 }
-
