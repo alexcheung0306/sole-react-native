@@ -88,15 +88,9 @@ export function CandidateSwipeModal({
   
   // Gradient opacity values (start at 0, appear on drag, max 1.0 when lit up)
   const rejectGradientOpacity = useSharedValue(0);
-  const shortlistGradientOpacity = useSharedValue(0);
-  const inviteGradientOpacity = useSharedValue(0);
   
-  // Dynamic action gradient opacities (support up to 5 right-side actions)
-  const rightAction1Opacity = useSharedValue(0);
-  const rightAction2Opacity = useSharedValue(0);
-  const rightAction3Opacity = useSharedValue(0);
-  const rightAction4Opacity = useSharedValue(0);
-  const rightAction5Opacity = useSharedValue(0);
+  // Consolidated action gradient opacities array (support up to 5 right-side actions)
+  const rightActionOpacities = useSharedValue([0, 0, 0, 0, 0]);
   
   // Store available actions count for worklet access (initialize to 0, will be updated)
   const availableActionsCount = useSharedValue(0);
@@ -149,8 +143,11 @@ export function CandidateSwipeModal({
   const validIndex = Math.min(currentIndex, candidates.length - 1);
   const actualIndex = validIndex >= 0 ? validIndex : 0;
 
-  // Get current candidate
+  // Get current and next candidate for Tinder-like stack
   const currentCandidate = candidates[actualIndex];
+  const hasNextCandidate = actualIndex + 1 < candidates.length;
+  const nextIndex = hasNextCandidate ? actualIndex + 1 : 0;
+  const nextCandidate = hasNextCandidate ? candidates[nextIndex] : null;
 
   const applicant = currentCandidate?.jobApplicant ?? {};
   const userInfo = currentCandidate?.userInfo ?? {};
@@ -193,17 +190,10 @@ export function CandidateSwipeModal({
     return [];
   }, [currentProcess, sessionActivities, applicant?.applicationStatus, applicant?.applicationProcess]);
 
-  // Helper to get action gradient opacity shared value by index
-  const getActionOpacityByIndex = (index: number) => {
-    switch (index) {
-      case 0: return rightAction1Opacity;
-      case 1: return rightAction2Opacity;
-      case 2: return rightAction3Opacity;
-      case 3: return rightAction4Opacity;
-      case 4: return rightAction5Opacity;
-      default: return rightAction1Opacity;
-    }
-  };
+  // Helper to get action opacity from array (for JS context)
+  const getActionOpacityByIndex = useCallback((index: number) => {
+    return rightActionOpacities.value[index] || 0;
+  }, []);
 
   // Helper to get action color by action type
   const getActionColor = (action: string): [string, string] => {
@@ -315,14 +305,8 @@ export function CandidateSwipeModal({
       inviteScale.value = 1;
       rejectScale.value = 1;
       rejectGradientOpacity.value = 0;
-      shortlistGradientOpacity.value = 0;
-      inviteGradientOpacity.value = 0;
-      // Reset dynamic right action opacities
-      rightAction1Opacity.value = 0;
-      rightAction2Opacity.value = 0;
-      rightAction3Opacity.value = 0;
-      rightAction4Opacity.value = 0;
-      rightAction5Opacity.value = 0;
+      // Reset dynamic right action opacities array
+      rightActionOpacities.value = [0, 0, 0, 0, 0];
       setShowActions(false);
       setShowRejectAction(false);
       setHighlightedAction(null);
@@ -344,14 +328,8 @@ export function CandidateSwipeModal({
       inviteScale.value = 1;
       rejectScale.value = 1;
       rejectGradientOpacity.value = 0;
-      shortlistGradientOpacity.value = 0;
-      inviteGradientOpacity.value = 0;
-      // Reset dynamic right action opacities
-      rightAction1Opacity.value = 0;
-      rightAction2Opacity.value = 0;
-      rightAction3Opacity.value = 0;
-      rightAction4Opacity.value = 0;
-      rightAction5Opacity.value = 0;
+      // Reset dynamic right action opacities array
+      rightActionOpacities.value = [0, 0, 0, 0, 0];
       setShowActions(false);
       setShowRejectAction(false);
       setHighlightedAction(null);
@@ -674,7 +652,7 @@ export function CandidateSwipeModal({
   // Content pan gesture - horizontal swipes for actions, only when scroll is at top
   const contentPanGesture = Gesture.Pan()
     .activeOffsetX([-15, 15]) // Activate on horizontal movement (15px threshold)
-    .failOffsetY([-50, 50]) // Fail if too much vertical movement (increase threshold for better scrolling)
+    .failOffsetY([-50, 50]) // Fail if too much vertical movement
     .minDistance(15) // Require 15px movement before activation
     .onBegin(() => {
       'worklet';
@@ -690,8 +668,8 @@ export function CandidateSwipeModal({
         return;
       }
       
-      // If vertical movement is significant, prioritize scrolling
-      if (Math.abs(event.translationY) > 20 && Math.abs(event.translationX) < 30) {
+      // Better threshold: if vertical movement is 1.5x horizontal, prioritize scrolling
+      if (Math.abs(event.translationY) > Math.abs(event.translationX) * 1.5) {
         return;
       }
       
@@ -737,39 +715,24 @@ export function CandidateSwipeModal({
         const actionHeight = SCREEN_HEIGHT / Math.max(actionCount, 1);
         const actionIndex = Math.min(Math.max(0, Math.floor(clampedY / actionHeight)), Math.min(actionCount - 1, 4));
         
-        // Light up all actions dimly first
-        if (actionCount >= 1) rightAction1Opacity.value = withTiming(dimOpacity);
-        if (actionCount >= 2) rightAction2Opacity.value = withTiming(dimOpacity);
-        if (actionCount >= 3) rightAction3Opacity.value = withTiming(dimOpacity);
-        if (actionCount >= 4) rightAction4Opacity.value = withTiming(dimOpacity);
-        if (actionCount >= 5) rightAction5Opacity.value = withTiming(dimOpacity);
+        // Update array-based opacities - light up all actions dimly first
+        const newOpacities = [...rightActionOpacities.value];
+        for (let i = 0; i < Math.min(actionCount, 5); i++) {
+          newOpacities[i] = dimOpacity;
+        }
         
         // Brightly highlight the action being dragged to (if drag is far enough)
-        if (dragProgress > 0.3 && actionIndex >= 0) {
-          // Reset the highlighted one first
-          if (actionIndex === 0) rightAction1Opacity.value = withTiming(baseOpacity);
-          else if (actionIndex === 1) rightAction2Opacity.value = withTiming(baseOpacity);
-          else if (actionIndex === 2) rightAction3Opacity.value = withTiming(baseOpacity);
-          else if (actionIndex === 3) rightAction4Opacity.value = withTiming(baseOpacity);
-          else if (actionIndex === 4) rightAction5Opacity.value = withTiming(baseOpacity);
-          
+        if (dragProgress > 0.3 && actionIndex >= 0 && actionIndex < actionCount) {
+          newOpacities[actionIndex] = baseOpacity;
           runOnJS(setHighlightedRightActionIndex)(actionIndex);
         } else {
           runOnJS(setHighlightedRightActionIndex)(null);
         }
         
-        // For backward compatibility, also update shortlist/invite opacities
-        if (actionCount >= 1) shortlistGradientOpacity.value = rightAction1Opacity.value;
-        if (actionCount >= 2) inviteGradientOpacity.value = rightAction2Opacity.value;
+        rightActionOpacities.value = newOpacities;
       } else {
         // Hide all right gradients if not dragging right
-        rightAction1Opacity.value = withTiming(0);
-        rightAction2Opacity.value = withTiming(0);
-        rightAction3Opacity.value = withTiming(0);
-        rightAction4Opacity.value = withTiming(0);
-        rightAction5Opacity.value = withTiming(0);
-        shortlistGradientOpacity.value = withTiming(0);
-        inviteGradientOpacity.value = withTiming(0);
+        rightActionOpacities.value = [0, 0, 0, 0, 0];
         runOnJS(setHighlightedRightActionIndex)(null);
       }
     })
@@ -780,8 +743,7 @@ export function CandidateSwipeModal({
         translateX.value = withTiming(0, { duration: 300 });
         // Hide gradients
         rejectGradientOpacity.value = withTiming(0);
-        shortlistGradientOpacity.value = withTiming(0);
-        inviteGradientOpacity.value = withTiming(0);
+        rightActionOpacities.value = [0, 0, 0, 0, 0];
         return;
       }
 
@@ -820,27 +782,18 @@ export function CandidateSwipeModal({
         const actionHeight = SCREEN_HEIGHT / Math.max(actionCount, 1);
         const actionIndex = Math.min(Math.max(0, Math.floor(clampedY / actionHeight)), Math.min(actionCount - 1, 4));
         
-        // Check if any action is highlighted enough
-        let isHighlighted = false;
-        if (actionIndex === 0 && rightAction1Opacity.value > highlightOpacityThreshold) isHighlighted = true;
-        else if (actionIndex === 1 && rightAction2Opacity.value > highlightOpacityThreshold) isHighlighted = true;
-        else if (actionIndex === 2 && rightAction3Opacity.value > highlightOpacityThreshold) isHighlighted = true;
-        else if (actionIndex === 3 && rightAction4Opacity.value > highlightOpacityThreshold) isHighlighted = true;
-        else if (actionIndex === 4 && rightAction5Opacity.value > highlightOpacityThreshold) isHighlighted = true;
+        // Check if any action is highlighted enough using array
+        const currentOpacities = rightActionOpacities.value;
+        const isHighlighted = actionIndex >= 0 && actionIndex < actionCount && 
+                              currentOpacities[actionIndex] > highlightOpacityThreshold;
         
-        if (isHighlighted && actionIndex >= 0) {
+        if (isHighlighted) {
           // Area is highlighted, trigger action
           executeSwipeRightAction(actionIndex);
         } else {
           // No area highlighted, smooth slide back
           translateX.value = withTiming(0, { duration: 300 });
-          rightAction1Opacity.value = withTiming(0);
-          rightAction2Opacity.value = withTiming(0);
-          rightAction3Opacity.value = withTiming(0);
-          rightAction4Opacity.value = withTiming(0);
-          rightAction5Opacity.value = withTiming(0);
-          shortlistGradientOpacity.value = withTiming(0);
-          inviteGradientOpacity.value = withTiming(0);
+          rightActionOpacities.value = [0, 0, 0, 0, 0];
           runOnJS(setHighlightedRightActionIndex)(null);
         }
         return;
@@ -850,13 +803,7 @@ export function CandidateSwipeModal({
       translateX.value = withTiming(0, { duration: 300 });
       translateY.value = withTiming(0, { duration: 300 });
       rejectGradientOpacity.value = withTiming(0);
-      rightAction1Opacity.value = withTiming(0);
-      rightAction2Opacity.value = withTiming(0);
-      rightAction3Opacity.value = withTiming(0);
-      rightAction4Opacity.value = withTiming(0);
-      rightAction5Opacity.value = withTiming(0);
-      shortlistGradientOpacity.value = withTiming(0);
-      inviteGradientOpacity.value = withTiming(0);
+      rightActionOpacities.value = [0, 0, 0, 0, 0];
       runOnJS(setHighlightedAction)(null);
       runOnJS(setHighlightedRightActionIndex)(null);
     });
@@ -885,6 +832,26 @@ export function CandidateSwipeModal({
         { rotate: `${rotate}deg` },
       ],
       opacity: opacity.value,
+      zIndex: 2,
+    };
+  });
+
+  // Next card animated style (behind current card)
+  const nextCardAnimatedStyle = useAnimatedStyle(() => {
+    // When current card is being swiped, animate next card forward
+    const maxTranslate = SCREEN_WIDTH - MODAL_MARGIN * 2;
+    const swipeProgress = Math.min(Math.abs(translateX.value) / maxTranslate, 1);
+    const scale = interpolate(swipeProgress, [0, 1], [0.95, 1], 'clamp');
+    const nextOpacity = interpolate(swipeProgress, [0, 1], [0.8, 1], 'clamp');
+    const nextTranslateY = interpolate(swipeProgress, [0, 1], [10, 0], 'clamp');
+    
+    return {
+      transform: [
+        { scale: scale },
+        { translateY: nextTranslateY },
+      ],
+      opacity: nextOpacity,
+      zIndex: 1,
     };
   });
 
@@ -895,18 +862,6 @@ export function CandidateSwipeModal({
     };
   });
 
-  const shortlistGradientAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: shortlistGradientOpacity.value,
-    };
-  });
-
-  const inviteGradientAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: inviteGradientOpacity.value,
-    };
-  });
-
   // Animated styles for text opacity - solid when area is reached
   const rejectTextAnimatedStyle = useAnimatedStyle(() => {
     return {
@@ -914,51 +869,71 @@ export function CandidateSwipeModal({
     };
   });
 
-  const shortlistTextAnimatedStyle = useAnimatedStyle(() => {
+  // Create animated styles for all action gradients (up to 5) - must be called at top level
+  const rightAction0GradientStyle = useAnimatedStyle(() => ({
+    opacity: rightActionOpacities.value[0] || 0,
+  }));
+  const rightAction1GradientStyle = useAnimatedStyle(() => ({
+    opacity: rightActionOpacities.value[1] || 0,
+  }));
+  const rightAction2GradientStyle = useAnimatedStyle(() => ({
+    opacity: rightActionOpacities.value[2] || 0,
+  }));
+  const rightAction3GradientStyle = useAnimatedStyle(() => ({
+    opacity: rightActionOpacities.value[3] || 0,
+  }));
+  const rightAction4GradientStyle = useAnimatedStyle(() => ({
+    opacity: rightActionOpacities.value[4] || 0,
+  }));
+
+  // Create animated styles for all action texts (up to 5) - must be called at top level
+  const rightAction0TextStyle = useAnimatedStyle(() => {
+    const opacity = rightActionOpacities.value[0] || 0;
     return {
-      opacity: shortlistGradientOpacity.value > 0.3 ? 1 : shortlistGradientOpacity.value * 2,
+      opacity: opacity > 0.3 ? 1 : opacity * 2,
     };
   });
-
-  const inviteTextAnimatedStyle = useAnimatedStyle(() => {
+  const rightAction1TextStyle = useAnimatedStyle(() => {
+    const opacity = rightActionOpacities.value[1] || 0;
     return {
-      opacity: inviteGradientOpacity.value > 0.3 ? 1 : inviteGradientOpacity.value * 2,
+      opacity: opacity > 0.3 ? 1 : opacity * 2,
     };
   });
-
-  // Animated styles for dynamic right action opacities
-  const rightAction1AnimatedStyle = useAnimatedStyle(() => ({
-    opacity: rightAction1Opacity.value,
-  }));
-  const rightAction2AnimatedStyle = useAnimatedStyle(() => ({
-    opacity: rightAction2Opacity.value,
-  }));
-  const rightAction3AnimatedStyle = useAnimatedStyle(() => ({
-    opacity: rightAction3Opacity.value,
-  }));
-  const rightAction4AnimatedStyle = useAnimatedStyle(() => ({
-    opacity: rightAction4Opacity.value,
-  }));
-  const rightAction5AnimatedStyle = useAnimatedStyle(() => ({
-    opacity: rightAction5Opacity.value,
-  }));
-
-  // Animated text styles for dynamic actions
-  const rightAction1TextStyle = useAnimatedStyle(() => ({
-    opacity: rightAction1Opacity.value > 0.3 ? 1 : rightAction1Opacity.value * 2,
-  }));
-  const rightAction2TextStyle = useAnimatedStyle(() => ({
-    opacity: rightAction2Opacity.value > 0.3 ? 1 : rightAction2Opacity.value * 2,
-  }));
-  const rightAction3TextStyle = useAnimatedStyle(() => ({
-    opacity: rightAction3Opacity.value > 0.3 ? 1 : rightAction3Opacity.value * 2,
-  }));
-  const rightAction4TextStyle = useAnimatedStyle(() => ({
-    opacity: rightAction4Opacity.value > 0.3 ? 1 : rightAction4Opacity.value * 2,
-  }));
-  const rightAction5TextStyle = useAnimatedStyle(() => ({
-    opacity: rightAction5Opacity.value > 0.3 ? 1 : rightAction5Opacity.value * 2,
-  }));
+  const rightAction2TextStyle = useAnimatedStyle(() => {
+    const opacity = rightActionOpacities.value[2] || 0;
+    return {
+      opacity: opacity > 0.3 ? 1 : opacity * 2,
+    };
+  });
+  const rightAction3TextStyle = useAnimatedStyle(() => {
+    const opacity = rightActionOpacities.value[3] || 0;
+    return {
+      opacity: opacity > 0.3 ? 1 : opacity * 2,
+    };
+  });
+  const rightAction4TextStyle = useAnimatedStyle(() => {
+    const opacity = rightActionOpacities.value[4] || 0;
+    return {
+      opacity: opacity > 0.3 ? 1 : opacity * 2,
+    };
+  });
+  
+  // Array of styles for easy access by index
+  const rightActionGradientStyles = [
+    rightAction0GradientStyle,
+    rightAction1GradientStyle,
+    rightAction2GradientStyle,
+    rightAction3GradientStyle,
+    rightAction4GradientStyle,
+  ];
+  
+  const rightActionTextStyles = [
+    rightAction0TextStyle,
+    rightAction1TextStyle,
+    rightAction2TextStyle,
+    rightAction3TextStyle,
+    rightAction4TextStyle,
+  ];
 
   const tabs = [
     { id: 'talent-profile', label: 'Talent Profile' },
@@ -991,20 +966,75 @@ export function CandidateSwipeModal({
             onPress={handleClose}
           />
 
-          {/* Centered Drawer Container */}
-          <Animated.View
-            style={[
-              {
-                height: MODAL_HEIGHT,
-                width: SCREEN_WIDTH - MODAL_MARGIN * 2,
-                borderRadius: 28,
-                borderWidth: 1,
-                borderColor: 'rgba(255, 255, 255, 0.35)',
-                overflow: 'hidden',
-                position: 'relative',
-              },
-              cardAnimatedStyle,
-            ]}>
+          {/* Card Stack Container */}
+          <View
+            style={{
+              height: MODAL_HEIGHT,
+              width: SCREEN_WIDTH - MODAL_MARGIN * 2,
+              position: 'relative',
+            }}>
+            {/* Next Card (Behind) - Only show if there's a next candidate */}
+            {nextCandidate && (
+              <Animated.View
+                style={[
+                  {
+                    position: 'absolute',
+                    height: MODAL_HEIGHT,
+                    width: SCREEN_WIDTH - MODAL_MARGIN * 2,
+                    borderRadius: 28,
+                    borderWidth: 1,
+                    borderColor: 'rgba(255, 255, 255, 0.25)',
+                    overflow: 'hidden',
+                  },
+                  nextCardAnimatedStyle,
+                ]}>
+                {/* Next Card Content - Simplified preview */}
+                <BlurView
+                  intensity={100}
+                  tint="dark"
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                  }}
+                />
+                <View className="bg-black/12 absolute inset-0" />
+                <View className="flex-1 justify-center items-center p-4">
+                  <Image
+                    source={{
+                      uri:
+                        nextCandidate?.comcardFirstPic ||
+                        nextCandidate?.userInfo?.profilePic ||
+                        undefined,
+                    }}
+                    className="w-24 h-24 rounded-full bg-zinc-700"
+                  />
+                  <Text className="text-white font-semibold mt-4 text-center">
+                    {nextCandidate?.userInfo?.name || 'Next Candidate'}
+                  </Text>
+                  <Text className="text-white/60 text-sm mt-1">
+                    @{nextCandidate?.username || nextCandidate?.userInfo?.username || 'unknown'}
+                  </Text>
+                </View>
+              </Animated.View>
+            )}
+
+            {/* Current Card (Front) */}
+            <Animated.View
+              style={[
+                {
+                  height: MODAL_HEIGHT,
+                  width: SCREEN_WIDTH - MODAL_MARGIN * 2,
+                  borderRadius: 28,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255, 255, 255, 0.35)',
+                  overflow: 'hidden',
+                  position: 'relative',
+                },
+                cardAnimatedStyle,
+              ]}>
             {/* Blur Background */}
             <BlurView
               intensity={100}
@@ -1143,6 +1173,7 @@ export function CandidateSwipeModal({
                 </Animated.ScrollView>
               </GestureDetector>
             </Animated.View>
+          </View>
 
         {/* Reject Action Area - Fixed gradient at left edge - Full screen height */}
         <Animated.View
@@ -1157,6 +1188,7 @@ export function CandidateSwipeModal({
               borderTopRightRadius: 20,
               borderBottomRightRadius: 20,
               overflow: 'hidden',
+              zIndex: 10, // Higher z-index to appear above cards
             },
             rejectGradientAnimatedStyle,
           ]}>
@@ -1181,28 +1213,8 @@ export function CandidateSwipeModal({
           const isFirst = index === 0;
           const isLast = index === actionCount - 1;
           
-          // Get the appropriate animated style for this action
-          const getAnimatedStyle = () => {
-            switch (index) {
-              case 0: return rightAction1AnimatedStyle;
-              case 1: return rightAction2AnimatedStyle;
-              case 2: return rightAction3AnimatedStyle;
-              case 3: return rightAction4AnimatedStyle;
-              case 4: return rightAction5AnimatedStyle;
-              default: return rightAction1AnimatedStyle;
-            }
-          };
-          
-          const getTextAnimatedStyle = () => {
-            switch (index) {
-              case 0: return rightAction1TextStyle;
-              case 1: return rightAction2TextStyle;
-              case 2: return rightAction3TextStyle;
-              case 3: return rightAction4TextStyle;
-              case 4: return rightAction5TextStyle;
-              default: return rightAction1TextStyle;
-            }
-          };
+          const gradientStyle = rightActionGradientStyles[index] || rightActionGradientStyles[0];
+          const textStyle = rightActionTextStyles[index] || rightActionTextStyles[0];
           
           return (
             <Animated.View
@@ -1218,8 +1230,9 @@ export function CandidateSwipeModal({
                   borderTopLeftRadius: isFirst ? 20 : 0,
                   borderBottomLeftRadius: isLast ? 20 : 0,
                   overflow: 'hidden',
+                  zIndex: 10, // Higher z-index to appear above cards
                 },
-                getAnimatedStyle(),
+                gradientStyle,
               ]}>
               <LinearGradient
                 colors={getActionColor(action)}
@@ -1228,7 +1241,7 @@ export function CandidateSwipeModal({
                 style={{ flex: 1, justifyContent: 'center', alignItems: 'flex-end', paddingRight: 16 }}>
                 <Animated.Text 
                   className="text-white font-bold text-lg uppercase tracking-wider"
-                  style={getTextAnimatedStyle()}>
+                  style={textStyle}>
                   {getActionLabel(action)}
                 </Animated.Text>
               </LinearGradient>
