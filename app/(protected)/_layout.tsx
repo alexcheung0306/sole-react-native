@@ -16,6 +16,10 @@ export default function ProtectedLayout() {
   // Only show it when in (user) or (client) routes, not in top-level routes like post, chat, modal
   const shouldShowTabBar = () => {
     const path = segments.join('/');
+    // Hide tab bar on camera edit and caption screens
+    if (path.includes('camera/edit') || path.includes('camera/caption')) {
+      return false;
+    }
     // Show tab bar only when in (user) or (client) routes
     return path.includes('(user)') || path.includes('(client)');
   };

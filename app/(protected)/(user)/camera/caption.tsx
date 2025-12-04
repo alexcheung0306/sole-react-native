@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
-import { X, MapPin, AtSign, Smile, User as UserIcon } from 'lucide-react-native';
+import { X, MapPin, AtSign, Smile, User as UserIcon, ChevronLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPost, CreatePostRequest, PostMedia } from '~/api/apiservice/post_api';
@@ -21,6 +21,7 @@ import { useUser } from '@clerk/clerk-expo';
 import { useCreatePostContext, MediaItem } from '~/context/CreatePostContext';
 import * as MediaLibrary from 'expo-media-library';
 import * as ImageManipulator from 'expo-image-manipulator';
+import { useAppTabContext } from '~/context/AppTabContext';
 
 const IMAGE_MIME_TYPES: Record<string, string> = {
   jpg: 'image/jpeg',
@@ -45,6 +46,7 @@ export default function CaptionScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useUser();
   const { soleUserId } = useSoleUserContext();
+  const {setActiveTab} = useAppTabContext();
   const queryClient = useQueryClient();
   const {
     selectedMedia,
@@ -71,7 +73,8 @@ export default function CaptionScreen() {
       queryClient.invalidateQueries({ queryKey: ['homePagePosts'] });
       queryClient.invalidateQueries({ queryKey: ['explorePagePosts'] });
       queryClient.invalidateQueries({ queryKey: ['clientProfilePosts'] });
-
+      router.push('/(protected)/(user)' as any);
+      setActiveTab('home');
       Alert.alert('Success', 'Your post has been shared!', [
         {
           text: 'OK',
@@ -79,7 +82,7 @@ export default function CaptionScreen() {
             // Reset post data
             resetPostData();
             // Navigate to home
-            router.replace('/(protected)/(user)/home' as any);
+           
           },
         },
       ]);
@@ -160,12 +163,10 @@ export default function CaptionScreen() {
       Alert.alert('No Media', 'Please select at least one photo or video');
       return;
     }
-
     if (!soleUserId) {
       Alert.alert('Error', 'User not found. Please sign in again.');
       return;
     }
-
     try {
       const postMedias: PostMedia[] = await Promise.all(
         selectedMedia.map(async (media, index) => {
@@ -246,13 +247,7 @@ export default function CaptionScreen() {
     }
   };
 
-  const commonEmojis = ['😊', '❤️', '🔥', '✨', '🎉', '👏', '💯', '🙌', '😍', '🎨', '📸', '🎬'];
 
-  const insertEmoji = (emoji: string) => {
-    if (caption.length + emoji.length <= MAX_CAPTION_LENGTH) {
-      setCaption(caption + emoji);
-    }
-  };
 
   return (
     <>
@@ -265,7 +260,7 @@ export default function CaptionScreen() {
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-800">
           <TouchableOpacity onPress={() => router.back()} className="p-2">
-            <X size={24} color="#ffffff" />
+            <ChevronLeft size={24} color="#ffffff" />
           </TouchableOpacity>
           <Text className="text-white font-semibold text-lg">New Post</Text>
           <TouchableOpacity
@@ -330,33 +325,7 @@ export default function CaptionScreen() {
             )}
           </View>
 
-          {/* Emoji Picker Toggle */}
-          <TouchableOpacity
-            onPress={() => setShowEmojiPicker(!showEmojiPicker)}
-            className="flex-row items-center px-4 py-3 border-b border-gray-800"
-          >
-            <Smile size={24} color="#ffffff" />
-            <Text className="text-white ml-3 flex-1">Add Emoji</Text>
-          </TouchableOpacity>
-
-          {/* Quick Emoji Row */}
-          {showEmojiPicker && (
-            <View className="px-4 py-3 border-b border-gray-800">
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View className="flex-row gap-2">
-                  {commonEmojis.map((emoji, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      onPress={() => insertEmoji(emoji)}
-                      className="bg-gray-800 rounded-full w-12 h-12 items-center justify-center"
-                    >
-                      <Text className="text-2xl">{emoji}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-          )}
+    
 
           {/* Add Location */}
           <TouchableOpacity
@@ -393,7 +362,7 @@ export default function CaptionScreen() {
         </ScrollView>
 
         {/* Share Button (Fixed Bottom) */}
-        <View className="px-4 py-3 border-t border-gray-800">
+        {/* <View className="px-4 py-3 border-t border-gray-800">
           <TouchableOpacity
             onPress={handleShare}
             disabled={createPostMutation.isPending || selectedMedia.length === 0}
@@ -411,7 +380,7 @@ export default function CaptionScreen() {
               <Text className="text-white font-semibold text-center">Share Post</Text>
             )}
           </TouchableOpacity>
-        </View>
+        </View> */}
       </KeyboardAvoidingView>
     </>
   );

@@ -51,11 +51,9 @@ export default React.memo(function CameraScreen() {
       if (status === 'granted') {
         loadPhotos();
       } else {
-        Alert.alert(
-          'Permission Required',
-          'Please grant photo library access to select media',
-          [{ text: 'OK' }]
-        );
+        Alert.alert('Permission Required', 'Please grant photo library access to select media', [
+          { text: 'OK' },
+        ]);
       }
     } catch (error) {
       // Suppress AUDIO permission error logging on emulator (expected behavior)
@@ -116,7 +114,10 @@ export default React.memo(function CameraScreen() {
         } catch (permissionError) {
           // Suppress AUDIO permission error on emulator (expected behavior)
           const errorMessage = (permissionError as Error).message || '';
-          if (errorMessage.includes('AUDIO permission') && errorMessage.includes('AndroidManifest')) {
+          if (
+            errorMessage.includes('AUDIO permission') &&
+            errorMessage.includes('AndroidManifest')
+          ) {
             if (__DEV__) {
               console.warn('AUDIO permission error suppressed (expected on emulator)');
             }
@@ -182,7 +183,11 @@ export default React.memo(function CameraScreen() {
       }
 
       // Handle MEDIA_LIBRARY permission errors
-      if (errorMessage.includes('MEDIA_LIBRARY') || errorMessage.includes('permission') || errorMessage.includes('Missing MEDIA_LIBRARY')) {
+      if (
+        errorMessage.includes('MEDIA_LIBRARY') ||
+        errorMessage.includes('permission') ||
+        errorMessage.includes('Missing MEDIA_LIBRARY')
+      ) {
         // Retry once if we haven't already
         if (retryCount < 1) {
           // Re-request permissions and try again
@@ -190,7 +195,7 @@ export default React.memo(function CameraScreen() {
             const { status: retryStatus } = await MediaLibrary.requestPermissionsAsync();
             if (retryStatus === 'granted') {
               // Wait a brief moment for permission to propagate
-              await new Promise(resolve => setTimeout(resolve, 100));
+              await new Promise((resolve) => setTimeout(resolve, 100));
               return loadPhotos(retryCount + 1);
             }
           } catch (retryError) {
@@ -292,12 +297,11 @@ export default React.memo(function CameraScreen() {
       return (
         <TouchableOpacity
           style={{ width: ITEM_SIZE, height: ITEM_SIZE }}
-          className="bg-gray-800 items-center justify-center border-r border-b border-gray-900"
+          className="items-center justify-center border-b border-r border-gray-900 bg-gray-800"
           onPress={openCamera}
-          activeOpacity={0.8}
-        >
+          activeOpacity={0.8}>
           <Camera size={40} color="#ffffff" />
-          <Text className="text-white text-xs mt-2 font-medium">Camera</Text>
+          <Text className="mt-2 text-xs font-medium text-white">Camera</Text>
         </TouchableOpacity>
       );
     }
@@ -308,10 +312,9 @@ export default React.memo(function CameraScreen() {
     return (
       <TouchableOpacity
         style={{ width: ITEM_SIZE, height: ITEM_SIZE }}
-        className="relative border-r border-b border-gray-900"
+        className="relative border-b border-r border-gray-900"
         onPress={() => toggleSelection(item)}
-        activeOpacity={0.9}
-      >
+        activeOpacity={0.9}>
         <ExpoImage
           source={{ uri: item.uri }}
           style={{ width: ITEM_SIZE, height: ITEM_SIZE }}
@@ -320,9 +323,9 @@ export default React.memo(function CameraScreen() {
 
         {/* Video indicator */}
         {item.mediaType === 'video' && (
-          <View className="absolute top-2 left-2 bg-black/70 rounded px-2 py-1 flex-row items-center">
+          <View className="absolute left-2 top-2 flex-row items-center rounded bg-black/70 px-2 py-1">
             <VideoIcon size={12} color="#ffffff" />
-            <Text className="text-white text-xs ml-1">
+            <Text className="ml-1 text-xs text-white">
               {item.duration ? `${Math.floor(item.duration)}s` : ''}
             </Text>
           </View>
@@ -330,17 +333,17 @@ export default React.memo(function CameraScreen() {
 
         {/* Selection overlay */}
         {isSelected && (
-          <View className="absolute inset-0 bg-blue-500/30 border-2 border-blue-500" />
+          <View className="absolute inset-0 border-2 border-blue-500 bg-blue-500/30" />
         )}
 
         {/* Selection number */}
-        <View className="absolute top-2 right-2">
+        <View className="absolute right-2 top-2">
           {isSelected && selectionNumber ? (
-            <View className="bg-blue-500 rounded-full w-6 h-6 items-center justify-center">
-              <Text className="text-white text-xs font-bold">{selectionNumber}</Text>
+            <View className="h-6 w-6 items-center justify-center rounded-full bg-blue-500">
+              <Text className="text-xs font-bold text-white">{selectionNumber}</Text>
             </View>
           ) : (
-            <View className="bg-white/80 rounded-full w-6 h-6 border-2 border-white" />
+            <View className="h-6 w-6 rounded-full border-2 border-white bg-white/80" />
           )}
         </View>
       </TouchableOpacity>
@@ -349,7 +352,7 @@ export default React.memo(function CameraScreen() {
 
   if (hasPermission === null) {
     return (
-      <View className="flex-1 bg-black items-center justify-center">
+      <View className="flex-1 items-center justify-center bg-black">
         <ActivityIndicator size="large" color="#3b82f6" />
       </View>
     );
@@ -357,19 +360,16 @@ export default React.memo(function CameraScreen() {
 
   if (hasPermission === false) {
     return (
-      <View className="flex-1 bg-black items-center justify-center px-6">
+      <View className="flex-1 items-center justify-center bg-black px-6">
         <ImageIcon size={64} color="#6b7280" />
-        <Text className="text-white text-lg mt-4 text-center">
-          Photo Library Access Required
-        </Text>
-        <Text className="text-gray-400 text-sm mt-2 text-center">
+        <Text className="mt-4 text-center text-lg text-white">Photo Library Access Required</Text>
+        <Text className="mt-2 text-center text-sm text-gray-400">
           Please enable photo library access in your device settings
         </Text>
         <TouchableOpacity
-          className="bg-blue-500 rounded-lg px-6 py-3 mt-6"
-          onPress={requestPermissions}
-        >
-          <Text className="text-white font-semibold">Grant Access</Text>
+          className="mt-6 rounded-lg bg-blue-500 px-6 py-3"
+          onPress={requestPermissions}>
+          <Text className="font-semibold text-white">Grant Access</Text>
         </TouchableOpacity>
       </View>
     );
@@ -381,17 +381,18 @@ export default React.memo(function CameraScreen() {
   // Determine which image to show in the preview
   // 1. The last selected item (most recently selected)
   // 2. Or the first photo in the library if nothing is selected
-  const previewItem = selectedMedia.length > 0
-    ? selectedMedia[selectedMedia.length - 1]
-    : photos.length > 0
-      ? photos[0]
-      : null;
+  const previewItem =
+    selectedMedia.length > 0
+      ? selectedMedia[selectedMedia.length - 1]
+      : photos.length > 0
+        ? photos[0]
+        : null;
 
   const renderPreview = () => {
     if (!previewItem) return null;
 
     return (
-      <View style={{ width, height: width }} className="bg-black relative">
+      <View style={{ width, height: width }} className="relative bg-black">
         <ExpoImage
           source={{ uri: previewItem.uri }}
           style={{ width, height: width }}
@@ -411,7 +412,9 @@ export default React.memo(function CameraScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-black">
         <CollapsibleHeader
-          title={selectedMedia.length > 0 ? `${selectedMedia.length}/${MAX_SELECTION}` : 'Select Media'}
+          title={
+            selectedMedia.length > 0 ? `${selectedMedia.length}/${MAX_SELECTION}` : 'Select Media'
+          }
           animatedStyle={animatedHeaderStyle}
           onHeightChange={handleHeightChange}
           isDark={true}
@@ -419,12 +422,11 @@ export default React.memo(function CameraScreen() {
             <TouchableOpacity
               onPress={navigateToPreview}
               disabled={selectedMedia.length === 0}
-              className="p-2"
-            >
+              className="p-2">
               <Text
-                className={`font-semibold ${selectedMedia.length > 0 ? 'text-blue-500' : 'text-gray-600'
-                  }`}
-              >
+                className={`font-semibold ${
+                  selectedMedia.length > 0 ? 'text-blue-500' : 'text-gray-600'
+                }`}>
                 Next
               </Text>
             </TouchableOpacity>
@@ -433,14 +435,15 @@ export default React.memo(function CameraScreen() {
 
         {/* Gallery Grid */}
         {isLoading ? (
-          <View className="flex-1 items-center justify-center" style={{ paddingTop: insets.top + 72 }}>
+          <View
+            className="flex-1 items-center justify-center"
+            style={{ paddingTop: insets.top + 72, paddingBottom: insets.bottom + 80 }}>
             <ActivityIndicator size="large" color="#3b82f6" />
-            <Text className="text-gray-400 mt-2">Loading media...</Text>
+            <Text className="mt-2 text-gray-400">Loading media...</Text>
           </View>
         ) : (
           <Animated.FlatList
             data={mediaItems}
-            renderItem={renderMediaItem}
             keyExtractor={(item) => item.id}
             numColumns={3}
             onScroll={onScroll}
@@ -448,25 +451,14 @@ export default React.memo(function CameraScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{
               paddingTop: insets.top + 72,
-              paddingBottom: 20
+              paddingBottom: insets.bottom + 72,
             }}
             ListHeaderComponent={renderPreview}
+            renderItem={renderMediaItem}
           />
         )}
 
         {/* Bottom Selection Info */}
-        {selectedMedia.length > 0 && (
-          <View className="absolute bottom-0 left-0 right-0 bg-black/90 border-t border-gray-800 p-4">
-            <TouchableOpacity
-              onPress={navigateToPreview}
-              className="bg-blue-500 rounded-lg py-3"
-            >
-              <Text className="text-white font-semibold text-center">
-                Continue with {selectedMedia.length} {selectedMedia.length === 1 ? 'item' : 'items'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </View>
     </>
   );
