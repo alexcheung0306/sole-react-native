@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback, memo } from 'react';
 import { View, Text, ScrollView, FlatList, TouchableOpacity, Dimensions, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
@@ -27,6 +27,135 @@ const candidateSearchOptions = [
 ];
 
 const trailingProcesses = ['shortlisted', 'offered', 'accepted', 'rejected'];
+
+// Memoized Process Pills component - only rerenders when process or counts change
+const ProcessPills = memo(({ 
+  processSegments, 
+  currentProcess, 
+  processCounts, 
+  onProcessChange 
+}: {
+  processSegments: string[];
+  currentProcess: string;
+  processCounts: any;
+  onProcessChange: (process: string) => void;
+}) => {
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ gap: 10, paddingVertical: 6 }}>
+      {processSegments.map((process) => {
+        const count = processCounts?.[process] ?? 0;
+        const isActive = currentProcess === process;
+        return (
+          <TouchableOpacity
+            key={`process-${process}`}
+            className={`rounded-full border px-3.5 py-2 ${
+              isActive ? 'border-blue-500 bg-blue-500/20' : 'border-white/20 bg-zinc-700/70'
+            }`}
+            onPress={() => onProcessChange(process)}>
+            <Text
+              className={`text-xs font-semibold capitalize ${
+                isActive ? 'text-blue-200' : 'text-white/80'
+              }`}>
+              {process} {count ? `(${count})` : ''}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
+  );
+});
+ProcessPills.displayName = 'ProcessPills';
+
+// Memoized Header component - only rerenders when role title changes
+const ManageCandidatesHeader = memo(({ 
+  roleTitle, 
+  onResetAll, 
+  isResetting 
+}: {
+  roleTitle: string;
+  onResetAll: () => void;
+  isResetting: boolean;
+}) => {
+  return (
+    <View className="gap-2">
+      <View className="flex-row items-center justify-between">
+        <View className="flex-1">
+          <Text className="text-lg font-bold text-white">
+            Manage Candidates for {roleTitle}
+          </Text>
+          <Text className="text-sm text-white/70">
+            Track applicants across custom processes and manage their progression.
+          </Text>
+        </View>
+        <TouchableOpacity
+          onPress={onResetAll}
+          disabled={isResetting}
+          className={`px-3 py-2 rounded-lg ${
+            isResetting
+              ? 'bg-zinc-600/50'
+              : 'bg-red-500/20 border border-red-500/50'
+          }`}>
+          {isResetting ? (
+            <ActivityIndicator size="small" color="#ffffff" />
+          ) : (
+            <Text className="text-xs font-semibold text-red-400">Reset All</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+});
+ManageCandidatesHeader.displayName = 'ManageCandidatesHeader';
+
+// Memoized Candidate List component - only rerenders when candidates or handlers change
+const CandidateList = memo(({ 
+  candidates, 
+  cardWidth, 
+  roleId, 
+  projectId, 
+  onCardPress 
+}: {
+  candidates: any[];
+  cardWidth: number;
+  roleId: string | number | undefined;
+  projectId: string | number | undefined;
+  onCardPress: (index: number) => void;
+}) => {
+  const renderItem = useCallback(({ item, index }: { item: any; index: number }) => (
+    <CandidateCard
+      item={item}
+      cardWidth={cardWidth}
+      roleId={roleId}
+      projectId={projectId}
+      onPress={onCardPress}
+      index={index}
+    />
+  ), [cardWidth, roleId, projectId, onCardPress]);
+
+  return (
+    <FlatList
+      data={candidates}
+      keyExtractor={(item) => `candidate-${item?.jobApplicant?.id}`}
+      scrollEnabled={false}
+      numColumns={3}
+      columnWrapperStyle={{ gap: 12, justifyContent: 'space-between' }}
+      contentContainerStyle={{ gap: 12, paddingTop: 8 }}
+      ListEmptyComponent={() => (
+        <View className="w-full items-center gap-2 py-8">
+          <Text className="text-base font-semibold text-white">No candidates found</Text>
+          <Text className="text-center text-sm text-white/60">
+            Adjust your filters or select another process stage to view applicants.
+          </Text>
+        </View>
+      )}
+      renderItem={renderItem}
+    />
+  );
+});
+CandidateList.displayName = 'CandidateList';
 
 export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandidatesProps) {
   const router = useRouter();
@@ -153,25 +282,32 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
 
   const candidateTotalPages = candidatesResponse?.totalPages ?? 1;
 
-  const handleCandidateSearch = () => {
+  const handleCandidateSearch = useCallback(() => {
     setCandidatePage(0);
     setCandidateSearchTrigger((prev) => prev + 1);
-  };
+  }, []);
 
-  const handleCardPress = (index: number) => {
+  const handleCardPress = useCallback((index: number) => {
     setModalInitialIndex(index);
     setModalVisible(true);
-  };
+  }, []);
 
-  const handleModalClose = () => {
+  const handleModalClose = useCallback(() => {
     setModalVisible(false);
-  };
+  }, []);
 
-  const handleCandidateUpdated = () => {
+  const handleCandidateUpdated = useCallback(() => {
     // Refresh candidate list
     // queryClient.invalidateQueries({ queryKey: ['role-candidates'] });
     // queryClient.invalidateQueries({ queryKey: ['role-process-counts'] });
-  };
+  }, []);
+
+  const handleProcessChange = useCallback((process: string) => {
+    setCurrentProcess(process);
+    setCandidatePage(0);
+    setSelectedStatuses([]);
+    handleCandidateSearch();
+  }, [handleCandidateSearch]);
 
   // Reset all candidates mutation
   const resetAllCandidatesMutation = useMutation({
@@ -261,63 +397,20 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
 
   return (
     <View className="gap-4 rounded-2xl border border-white/10 bg-zinc-800 p-5">
-      <View className="gap-2">
-        <View className="flex-row items-center justify-between">
-          <View className="flex-1">
-            <Text className="text-lg font-bold text-white">
-              Manage Candidates for {roleWithSchedules?.role?.roleTitle}
-            </Text>
-            <Text className="text-sm text-white/70">
-              Track applicants across custom processes and manage their progression.
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={handleResetAllCandidates}
-            disabled={resetAllCandidatesMutation.isPending}
-            className={`px-3 py-2 rounded-lg ${
-              resetAllCandidatesMutation.isPending
-                ? 'bg-zinc-600/50'
-                : 'bg-red-500/20 border border-red-500/50'
-            }`}>
-            {resetAllCandidatesMutation.isPending ? (
-              <ActivityIndicator size="small" color="#ffffff" />
-            ) : (
-              <Text className="text-xs font-semibold text-red-400">Reset All</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
+      {/* Header - Memoized, only rerenders when role title or reset state changes */}
+      <ManageCandidatesHeader
+        roleTitle={roleWithSchedules?.role?.roleTitle || ''}
+        onResetAll={handleResetAllCandidates}
+        isResetting={resetAllCandidatesMutation.isPending}
+      />
 
-      {/* Process Pills */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 10, paddingVertical: 6 }}>
-        {processSegments.map((process) => {
-          const count = processCounts?.[process] ?? 0;
-          const isActive = currentProcess === process;
-          return (
-            <TouchableOpacity
-              key={`process-${process}`}
-              className={`rounded-full border px-3.5 py-2 ${
-                isActive ? 'border-blue-500 bg-blue-500/20' : 'border-white/20 bg-zinc-700/70'
-              }`}
-              onPress={() => {
-                setCurrentProcess(process);
-                setCandidatePage(0);
-                setSelectedStatuses([]);
-                handleCandidateSearch();
-              }}>
-              <Text
-                className={`text-xs font-semibold capitalize ${
-                  isActive ? 'text-blue-200' : 'text-white/80'
-                }`}>
-                {process} {count ? `(${count})` : ''}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      {/* Process Pills - Memoized, only rerenders when process or counts change */}
+      <ProcessPills
+        processSegments={processSegments}
+        currentProcess={currentProcess}
+        processCounts={processCounts}
+        onProcessChange={handleProcessChange}
+      />
 
       {/* Filter Search */}
       <FilterSearch
@@ -332,32 +425,13 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
         statusOptions={candidateStatusOptions}
       />
 
-      {/* Candidates List - Grid Layout */}
-      <FlatList
-        data={filteredCandidates}
-        keyExtractor={(item) => `candidate-${item?.jobApplicant?.id}`}
-        scrollEnabled={false}
-        numColumns={3}
-        columnWrapperStyle={{ gap: 12, justifyContent: 'space-between' }}
-        contentContainerStyle={{ gap: 12, paddingTop: 8 }}
-        ListEmptyComponent={() => (
-          <View className="w-full items-center gap-2 py-8">
-            <Text className="text-base font-semibold text-white">No candidates found</Text>
-            <Text className="text-center text-sm text-white/60">
-              Adjust your filters or select another process stage to view applicants.
-            </Text>
-          </View>
-        )}
-        renderItem={({ item, index }) => (
-          <CandidateCard
-            item={item}
-            cardWidth={cardWidth}
-            roleId={roleWithSchedules?.role?.id}
-            projectId={projectData?.id}
-            onPress={handleCardPress}
-            index={index}
-          />
-        )}
+      {/* Candidates List - Memoized, only rerenders when candidates change */}
+      <CandidateList
+        candidates={filteredCandidates}
+        cardWidth={cardWidth}
+        roleId={roleWithSchedules?.role?.id}
+        projectId={projectData?.id}
+        onCardPress={handleCardPress}
       />
 
       {/* Swipeable Modal */}

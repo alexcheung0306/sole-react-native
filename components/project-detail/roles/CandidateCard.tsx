@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { getStatusColor } from '@/utils/get-status-color';
 
@@ -11,7 +11,7 @@ type CandidateCardProps = {
   index?: number;
 };
 
-export function CandidateCard({
+export const CandidateCard = memo(function CandidateCard({
   item,
   cardWidth,
   roleId,
@@ -84,5 +84,13 @@ export function CandidateCard({
       )}
     </TouchableOpacity>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison function - only rerender if these props change
+  return (
+    prevProps.item?.jobApplicant?.id === nextProps.item?.jobApplicant?.id &&
+    prevProps.cardWidth === nextProps.cardWidth &&
+    prevProps.index === nextProps.index &&
+    prevProps.item?.jobApplicant?.applicationStatus === nextProps.item?.jobApplicant?.applicationStatus
+  );
+});
 
