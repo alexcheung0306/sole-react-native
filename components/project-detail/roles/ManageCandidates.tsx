@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, ScrollView, FlatList, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, ScrollView, FlatList, TouchableOpacity, Dimensions, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getApplicationProcessCounts, searchApplicants } from '@/api/apiservice/applicant_api';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { getApplicationProcessCounts, searchApplicants, getRoleApplicantsByRoleId, updateApplicantProcessById } from '@/api/apiservice/applicant_api';
 import FilterSearch from '@/components/custom/filter-search';
 import PaginationControl from '@/components/projects/PaginationControl';
 import { CandidateCard } from './CandidateCard';
@@ -38,16 +38,6 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
   const [modalVisible, setModalVisible] = useState(false);
   const [modalInitialIndex, setModalInitialIndex] = useState(0);
 
-  if (!roleWithSchedules) {
-    return (
-      <View className="rounded-2xl border border-white/10 bg-zinc-800 p-5">
-        <Text className="text-center text-white">No role selected or role data not available.</Text>
-      </View>
-    );
-  }
-
-  const activities = roleWithSchedules?.activities || [];
-
   // Local state for process selection (not from context)
   const [currentProcess, setCurrentProcess] = useState('applied');
 
@@ -57,6 +47,8 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
   const [candidateSearchValue, setCandidateSearchValue] = useState('');
   const [candidatePage, setCandidatePage] = useState(0);
   const [candidateSearchTrigger, setCandidateSearchTrigger] = useState(0);
+
+  const activities = roleWithSchedules?.activities || [];
 
   const processSegments = useMemo(() => {
     const activityTitles = Array.isArray(activities)
@@ -181,15 +173,119 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
     // queryClient.invalidateQueries({ queryKey: ['role-process-counts'] });
   };
 
+  // Reset all candidates mutation
+  const resetAllCandidatesMutation = useMutation({
+    mutationFn: async () => {
+      if (!roleWithSchedules?.role?.id) return;
+      
+      // Fetch all candidates for the role
+      const allCandidates = await getRoleApplicantsByRoleId(roleWithSchedules.role.id);
+      
+      // Handle both array format and object format from API
+      const candidatesArray: any[] = Array.isArray(allCandidates) 
+        ? allCandidates 
+        : (allCandidates as any)?.data || (allCandidates as any)?.content || [];
+      
+      // Update each candidate to set applicationProcess and applicationStatus to "applied"
+      const updatePromises = candidatesArray.map((candidate: any) => {
+        // Handle different candidate data structures
+        const applicant = candidate?.jobApplicant || candidate;
+        const applicantId = applicant?.id || candidate?.id;
+        
+        if (!applicantId) {
+          console.warn('Skipping candidate with no ID:', candidate);
+          return Promise.resolve();
+        }
+        
+        // Include all required fields like the web version does
+        const updateValues: any = {
+          id: applicantId,
+          soleUserId: applicant?.soleUserId || null,
+          roleId: applicant?.roleId || roleWithSchedules?.role?.id || null,
+          projectId: applicant?.projectId || projectData?.id || null,
+          paymentBasis: applicant?.paymentBasis || null,
+          quotePrice: applicant?.quotePrice || null,
+          otQuotePrice: applicant?.otQuotePrice || null,
+          skills: applicant?.skills || null,
+          answer: applicant?.answer || null,
+          applicationStatus: 'applied',
+          applicationProcess: 'applied',
+        };
+        
+        return updateApplicantProcessById(updateValues, applicantId).catch((error) => {
+          console.error(`Failed to update candidate ${applicantId}:`, error);
+          // Continue with other candidates even if one fails
+          return Promise.resolve();
+        });
+      });
+      
+      await Promise.all(updatePromises);
+    },
+    onSuccess: () => {
+      // Invalidate queries to refresh the UI
+      queryClient.invalidateQueries({ queryKey: ['role-candidates'] });
+      queryClient.invalidateQueries({ queryKey: ['role-process-counts'] });
+      Alert.alert('Success', 'All candidates have been reset to "applied" process.', [{ text: 'OK' }]);
+    },
+    onError: (error) => {
+      console.error('Error resetting candidates:', error);
+      Alert.alert('Error', 'Failed to reset candidates. Please try again.', [{ text: 'OK' }]);
+    },
+  });
+
+  const handleResetAllCandidates = () => {
+    Alert.alert(
+      'Reset All Candidates',
+      'Are you sure you want to reset all candidates for this role to "applied" process? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset All',
+          style: 'destructive',
+          onPress: () => {
+            resetAllCandidatesMutation.mutate();
+          },
+        },
+      ]
+    );
+  };
+
+  // Early return check AFTER all hooks are declared
+  if (!roleWithSchedules) {
+    return (
+      <View className="rounded-2xl border border-white/10 bg-zinc-800 p-5">
+        <Text className="text-center text-white">No role selected or role data not available.</Text>
+      </View>
+    );
+  }
+
   return (
     <View className="gap-4 rounded-2xl border border-white/10 bg-zinc-800 p-5">
       <View className="gap-2">
-        <Text className="text-lg font-bold text-white">
-          Manage Candidates for {roleWithSchedules?.role?.roleTitle}
-        </Text>
-        <Text className="text-sm text-white/70">
-          Track applicants across custom processes and manage their progression.
-        </Text>
+        <View className="flex-row items-center justify-between">
+          <View className="flex-1">
+            <Text className="text-lg font-bold text-white">
+              Manage Candidates for {roleWithSchedules?.role?.roleTitle}
+            </Text>
+            <Text className="text-sm text-white/70">
+              Track applicants across custom processes and manage their progression.
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={handleResetAllCandidates}
+            disabled={resetAllCandidatesMutation.isPending}
+            className={`px-3 py-2 rounded-lg ${
+              resetAllCandidatesMutation.isPending
+                ? 'bg-zinc-600/50'
+                : 'bg-red-500/20 border border-red-500/50'
+            }`}>
+            {resetAllCandidatesMutation.isPending ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <Text className="text-xs font-semibold text-red-400">Reset All</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Process Pills */}

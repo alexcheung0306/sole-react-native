@@ -116,31 +116,41 @@ export function CandidateSwipeModal({
   const onCandidateUpdatedRef = useRef(onCandidateUpdated);
   const handleNextCandidateRef = useRef<(() => void) | null>(null);
   
+  // Refs to store projectId and roleId for mutation
+  const projectIdRef = useRef(projectId);
+  const roleIdRef = useRef(roleId);
+  
   // State to track which action is highlighted
   const [highlightedRightActionIndex, setHighlightedRightActionIndex] = useState<number | null>(null);
   const [selectedRightAction, setSelectedRightAction] = useState<string | null>(null);
 
-  // Ensure currentIndex is valid
+  // Ensure currentIndex is valid and update when modal opens with initialIndex
   useEffect(() => {
-    if (visible && candidates.length > 0) {
-      const validIndex = Math.min(currentIndex, candidates.length - 1);
-      if (validIndex !== currentIndex && validIndex >= 0) {
-        setCurrentIndex(validIndex);
+    if (visible) {
+      if (candidates.length > 0) {
+        // When modal opens, use initialIndex if valid, otherwise use 0
+        const validInitialIndex = Math.min(initialIndex, candidates.length - 1);
+        if (validInitialIndex >= 0 && validInitialIndex !== currentIndex) {
+          setCurrentIndex(validInitialIndex);
+        } else {
+          // Ensure current index is valid
+          const validIndex = Math.min(currentIndex, candidates.length - 1);
+          if (validIndex !== currentIndex && validIndex >= 0) {
+            setCurrentIndex(validIndex);
+          }
+        }
+      } else {
+        // No candidates, close modal
+        onClose();
       }
-    } else if (visible && candidates.length === 0) {
-      onClose();
     }
-  }, [visible, candidates.length, currentIndex, onClose]);
+  }, [visible, initialIndex, candidates.length, currentIndex, onClose]);
 
   const validIndex = Math.min(currentIndex, candidates.length - 1);
   const actualIndex = validIndex >= 0 ? validIndex : 0;
 
   // Get current candidate
   const currentCandidate = candidates[actualIndex];
-
-  if (!currentCandidate && visible) {
-    return null;
-  }
 
   const applicant = currentCandidate?.jobApplicant ?? {};
   const userInfo = currentCandidate?.userInfo ?? {};
@@ -155,6 +165,11 @@ export function CandidateSwipeModal({
 
   // Helper function to determine available actions based on currentProcess
   const getAvailableActions = useMemo(() => {
+    // No actions at shortlisted or offered
+    if (currentProcess === 'shortlisted' || currentProcess === 'offered') {
+      return [];
+    }
+    
     if (currentProcess === 'applied') {
       // At applied: show all sessions + shortlisted (shortlisted should always be at the end)
       // If no sessions, still show shortlisted
@@ -162,9 +177,6 @@ export function CandidateSwipeModal({
       // Always include shortlisted at the end
       actions.push('shortlisted');
       return actions;
-    } else if (currentProcess === 'shortlisted') {
-      // At shortlisted: show send an offer
-      return ['send-offer'];
     } else if (sessionActivities.includes(currentProcess)) {
       // At a session: show remaining sessions (after current) + shortlisted
       const currentIndex = sessionActivities.indexOf(currentProcess);
@@ -229,6 +241,12 @@ export function CandidateSwipeModal({
   useEffect(() => {
     currentProcessRef.current = currentProcess;
   }, [currentProcess]);
+  
+  // Update projectId and roleId refs when they change
+  useEffect(() => {
+    projectIdRef.current = projectId;
+    roleIdRef.current = roleId;
+  }, [projectId, roleId]);
 
   // Determine candidate's current position in process
   const candidateCurrentProcess = applicant?.applicationProcess || 'applied';
@@ -314,7 +332,7 @@ export function CandidateSwipeModal({
     }
   }, [currentIndex, visible, currentCandidate]);
 
-  // Reset when modal closes
+  // Reset when modal closes, set initialIndex when modal opens
   useEffect(() => {
     if (!visible) {
       translateX.value = 0;
@@ -339,9 +357,12 @@ export function CandidateSwipeModal({
       setHighlightedAction(null);
       setHighlightedRightActionIndex(null);
       setSelectedRightAction(null);
-      setCurrentIndex(initialIndex);
+    } else if (visible && candidates.length > 0) {
+      // When modal opens, set to initialIndex (the clicked card's index)
+      const validInitialIndex = Math.min(initialIndex, candidates.length - 1);
+      setCurrentIndex(validInitialIndex >= 0 ? validInitialIndex : 0);
     }
-  }, [visible, initialIndex]);
+  }, [visible, initialIndex, candidates.length]);
 
   // Fetch full user profile data
   const {
@@ -391,35 +412,34 @@ export function CandidateSwipeModal({
       process?: string;
     }) => {
       const applicationProcess = process || (status === 'rejected' ? 'rejected' : currentProcessRef.current);
-      return updateApplicantProcessById(
-        {
-          applicationStatus: status,
-          applicationProcess: applicationProcess,
-        },
-        applicantId
-      );
+      const applicantData = currentApplicantRef.current;
+      
+      // Include all required fields like the web version does - must preserve all existing fields
+      // The web version explicitly uses projectData.id for projectId
+      const updateValues: any = {
+        id: applicantData?.id || applicantId,
+        soleUserId: applicantData?.soleUserId || null,
+        roleId: applicantData?.roleId || (roleIdRef.current ? Number(roleIdRef.current) : null),
+        projectId: projectIdRef.current ? Number(projectIdRef.current) : (applicantData?.projectId || null),
+        paymentBasis: applicantData?.paymentBasis || null,
+        quotePrice: applicantData?.quotePrice || null,
+        otQuotePrice: applicantData?.otQuotePrice || null,
+        skills: applicantData?.skills || null,
+        answer: applicantData?.answer || null,
+        applicationStatus: status,
+        applicationProcess: applicationProcess,
+      };
+      
+      console.log('Updating applicant with values:', JSON.stringify(updateValues, null, 2));
+      
+      return updateApplicantProcessById(updateValues, applicantId);
     },
     onSuccess: (_, variables) => {
-      const { status } = variables;
-      
-      // Only show alert for non-reject actions (reject already shows alert)
-      if (status !== 'rejected') {
-        let actionMessage = '';
-        if (status === 'shortlisted') {
-          actionMessage = 'Candidate shortlisted';
-        } else if (status === 'offered') {
-          actionMessage = 'Offer sent to candidate';
-        } else {
-          actionMessage = variables.process ? `Candidate mapped to ${variables.process}` : 'Candidate updated';
-        }
-        Alert.alert('Action Executed', actionMessage, [{ text: 'OK' }]);
-      }
-      
       queryClientRef.current?.invalidateQueries({ queryKey: ['role-candidates'] });
       queryClientRef.current?.invalidateQueries({ queryKey: ['role-process-counts'] });
       onCandidateUpdatedRef.current?.();
       
-      // Check if there are more candidates after a short delay to allow query to update
+      // Directly go to next candidate after a short delay to allow query to update
       setTimeout(() => {
         handleNextCandidateRef.current?.();
       }, 200);
@@ -438,6 +458,8 @@ export function CandidateSwipeModal({
 
   const handleNextCandidate = () => {
     // After action, the candidate list may have changed due to filtering
+    // The current candidate may no longer be in the filtered list
+    
     // Check if there are any candidates left
     if (candidates.length === 0) {
       // No more candidates, close modal
@@ -445,28 +467,30 @@ export function CandidateSwipeModal({
       return;
     }
     
-    // Check if current index is valid
+    // Since the current candidate was moved/updated, it may no longer be in the filtered list
+    // Check if we need to adjust the index
+    let nextIndex = currentIndex;
+    
+    // If current index is out of bounds (candidate was removed), go to first
     if (currentIndex >= candidates.length) {
-      // Current index is out of bounds, check if there are any candidates
-      if (candidates.length > 0) {
-        // Go to last candidate
-        setCurrentIndex(candidates.length - 1);
-      } else {
-        // No more candidates, close modal
-        onClose();
+      nextIndex = 0;
+    } else {
+      // Try to move to next candidate
+      nextIndex = currentIndex + 1;
+      
+      // If we've reached the end, go to first candidate
+      if (nextIndex >= candidates.length) {
+        nextIndex = 0;
       }
-      return;
     }
     
-    // Check if this was the last candidate
-    if (currentIndex >= candidates.length - 1) {
-      // This was the last candidate, close modal
+    // If we have candidates, go to the calculated index (or first if all moved)
+    if (candidates.length > 0) {
+      setCurrentIndex(nextIndex);
+    } else {
+      // No candidates at all, close modal
       onClose();
-      return;
     }
-    
-    // Move to next candidate
-    setCurrentIndex(currentIndex + 1);
   };
   
   // Update handleNextCandidate ref after it's defined
@@ -584,60 +608,20 @@ export function CandidateSwipeModal({
       return;
     }
     
-    // Directly execute based on action type - use refs only
+    // Directly execute based on action type - no confirmation needed
     if (action === 'shortlisted') {
-      Alert.alert(
-        'Shortlist Candidate',
-        'Move this candidate to shortlisted?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Shortlist',
-            onPress: () => {
-              mutateFn({
-                applicantId: applicantData.id,
-                status: 'shortlisted',
-              });
-            },
-          },
-        ]
-      );
-    } else if (action === 'send-offer') {
-      Alert.alert(
-        'Send Offer',
-        'Send an offer to this candidate?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Send Offer',
-            onPress: () => {
-              mutateFn({
-                applicantId: applicantData.id,
-                status: 'offered',
-              });
-            },
-          },
-        ]
-      );
+      mutateFn({
+        applicantId: applicantData.id,
+        status: 'shortlisted',
+        process: 'shortlisted',
+      });
     } else {
-      // Session action
-      Alert.alert(
-        'Map to Session',
-        `Map this candidate to "${action}"?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Map',
-            onPress: () => {
-              mutateFn({
-                applicantId: applicantData.id,
-                status: 'applied',
-                process: action,
-              });
-            },
-          },
-        ]
-      );
+      // Session action - map to session with "invited" status
+      mutateFn({
+        applicantId: applicantData.id,
+        status: 'invited',
+        process: action,
+      });
     }
   }, []); // Empty deps since we only use refs
 
@@ -718,12 +702,20 @@ export function CandidateSwipeModal({
       const actionThreshold = 120; // Y position threshold for shortlist vs invite (wider)
 
       // Handle LEFT swipe (Reject) - show gradient when dragging left
+      // Disable reject when at offered status
       if (event.translationX < -30) {
-        // Calculate opacity based on drag distance (closer to edge = brighter)
-        const dragProgress = Math.min(Math.abs(event.translationX) / maxDragDistance, 1);
-        const targetOpacity = 0.4 + (dragProgress * 0.6); // From 0.4 to 1.0
-        rejectGradientOpacity.value = withTiming(targetOpacity);
-        runOnJS(setHighlightedAction)('reject');
+        // Check if we're at offered status - if so, don't show reject
+        const isOffered = currentProcessRef.current === 'offered';
+        if (!isOffered) {
+          // Calculate opacity based on drag distance (closer to edge = brighter)
+          const dragProgress = Math.min(Math.abs(event.translationX) / maxDragDistance, 1);
+          const targetOpacity = 0.4 + (dragProgress * 0.6); // From 0.4 to 1.0
+          rejectGradientOpacity.value = withTiming(targetOpacity);
+          runOnJS(setHighlightedAction)('reject');
+        } else {
+          // At offered status, hide reject gradient
+          rejectGradientOpacity.value = withTiming(0);
+        }
       } else {
         // Hide reject gradient if not dragging left
         rejectGradientOpacity.value = withTiming(0);
@@ -805,12 +797,14 @@ export function CandidateSwipeModal({
       const draggedToRightEdge = translationX > SWIPE_THRESHOLD || velocityX > 500;
 
       // Swipe LEFT - only trigger if reject area is highlighted
+      // Disable reject when at offered status
       if (draggedToLeftEdge) {
-        if (rejectGradientOpacity.value > highlightOpacityThreshold) {
-          // Area is highlighted, trigger action
+        const isOffered = currentProcessRef.current === 'offered';
+        if (!isOffered && rejectGradientOpacity.value > highlightOpacityThreshold) {
+          // Area is highlighted and not at offered status, trigger action
           executeSwipeLeftReject();
         } else {
-          // No area highlighted, smooth slide back
+          // No area highlighted or at offered status, smooth slide back
           translateX.value = withTiming(0, { duration: 300 });
           rejectGradientOpacity.value = withTiming(0);
           runOnJS(setHighlightedAction)(null);
