@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -51,6 +51,7 @@ type CandidateSwipeModalProps = {
   roleId: string | number | undefined;
   projectId: string | number | undefined;
   currentProcess: string;
+  roleWithSchedules: any;
   onCandidateUpdated: () => void;
 };
 
@@ -62,6 +63,7 @@ export function CandidateSwipeModal({
   roleId,
   projectId,
   currentProcess,
+  roleWithSchedules,
   onCandidateUpdated,
 }: CandidateSwipeModalProps) {
   const insets = useSafeAreaInsets();
@@ -88,6 +90,35 @@ export function CandidateSwipeModal({
   const rejectGradientOpacity = useSharedValue(0);
   const shortlistGradientOpacity = useSharedValue(0);
   const inviteGradientOpacity = useSharedValue(0);
+  
+  // Dynamic action gradient opacities (support up to 5 right-side actions)
+  const rightAction1Opacity = useSharedValue(0);
+  const rightAction2Opacity = useSharedValue(0);
+  const rightAction3Opacity = useSharedValue(0);
+  const rightAction4Opacity = useSharedValue(0);
+  const rightAction5Opacity = useSharedValue(0);
+  
+  // Store available actions count for worklet access (initialize to 0, will be updated)
+  const availableActionsCount = useSharedValue(0);
+  
+  // Ref to store available actions for JS context access
+  const availableActionsRef = useRef<string[]>([]);
+  
+  // Ref to store current applicant for JS context access
+  const currentApplicantRef = useRef<any>(null);
+  
+  // Ref to store current process for JS context access
+  const currentProcessRef = useRef<string>(currentProcess);
+  
+  // Ref to store mutation function and callbacks
+  const mutationMutateRef = useRef<((variables: any) => void) | null>(null);
+  const queryClientRef = useRef(queryClient);
+  const onCandidateUpdatedRef = useRef(onCandidateUpdated);
+  const handleNextCandidateRef = useRef<(() => void) | null>(null);
+  
+  // State to track which action is highlighted
+  const [highlightedRightActionIndex, setHighlightedRightActionIndex] = useState<number | null>(null);
+  const [selectedRightAction, setSelectedRightAction] = useState<string | null>(null);
 
   // Ensure currentIndex is valid
   useEffect(() => {
@@ -116,6 +147,144 @@ export function CandidateSwipeModal({
   const username = currentCandidate?.username || userInfo?.username || 'unknown';
   const statusColor = getStatusColor(applicant?.applicationStatus || 'applied');
 
+  // Extract activities (excluding job type)
+  const activities = roleWithSchedules?.activities || [];
+  const sessionActivities = Array.isArray(activities)
+    ? activities.filter((activity: any) => activity?.type !== 'job').map((activity: any) => activity?.title).filter(Boolean)
+    : [];
+
+  // Helper function to determine available actions based on currentProcess
+  const getAvailableActions = useMemo(() => {
+    if (currentProcess === 'applied') {
+      // At applied: show all sessions + shortlisted (shortlisted should always be at the end)
+      // If no sessions, still show shortlisted
+      const actions = sessionActivities.length > 0 ? [...sessionActivities] : [];
+      // Always include shortlisted at the end
+      actions.push('shortlisted');
+      return actions;
+    } else if (currentProcess === 'shortlisted') {
+      // At shortlisted: show send an offer
+      return ['send-offer'];
+    } else if (sessionActivities.includes(currentProcess)) {
+      // At a session: show remaining sessions (after current) + shortlisted
+      const currentIndex = sessionActivities.indexOf(currentProcess);
+      const remainingSessions = sessionActivities.slice(currentIndex + 1);
+      const actions = [...remainingSessions];
+      // Always include shortlisted at the end
+      actions.push('shortlisted');
+      return actions;
+    }
+    // Default: if nothing matches, at least show shortlisted if at applied status
+    if (applicant?.applicationStatus === 'applied' || applicant?.applicationProcess === 'applied') {
+      return ['shortlisted'];
+    }
+    return [];
+  }, [currentProcess, sessionActivities, applicant?.applicationStatus, applicant?.applicationProcess]);
+
+  // Helper to get action gradient opacity shared value by index
+  const getActionOpacityByIndex = (index: number) => {
+    switch (index) {
+      case 0: return rightAction1Opacity;
+      case 1: return rightAction2Opacity;
+      case 2: return rightAction3Opacity;
+      case 3: return rightAction4Opacity;
+      case 4: return rightAction5Opacity;
+      default: return rightAction1Opacity;
+    }
+  };
+
+  // Helper to get action color by action type
+  const getActionColor = (action: string): [string, string] => {
+    if (action === 'shortlisted') return ['rgba(34, 197, 94, 1)', 'rgba(34, 197, 94, 0)'];
+    if (action === 'send-offer') return ['rgba(59, 130, 246, 1)', 'rgba(59, 130, 246, 0)'];
+    // Session actions - use blue gradient
+    return ['rgba(59, 130, 246, 1)', 'rgba(59, 130, 246, 0)'];
+  };
+
+  // Helper to get action label
+  const getActionLabel = (action: string) => {
+    if (action === 'shortlisted') return 'Shortlist';
+    if (action === 'send-offer') return 'Send Offer';
+    return action; // Session name
+  };
+
+  // Update available actions count and ref when actions change
+  useEffect(() => {
+    availableActionsCount.value = getAvailableActions.length;
+    availableActionsRef.current = getAvailableActions;
+    // Debug: log available actions
+    if (visible) {
+      console.log('Available actions:', getAvailableActions, 'for currentProcess:', currentProcess);
+    }
+  }, [getAvailableActions, availableActionsCount, visible, currentProcess]);
+  
+  // Update current applicant ref when candidate changes
+  useEffect(() => {
+    if (currentCandidate) {
+      currentApplicantRef.current = currentCandidate?.jobApplicant;
+    }
+  }, [currentCandidate]);
+  
+  // Update current process ref when it changes
+  useEffect(() => {
+    currentProcessRef.current = currentProcess;
+  }, [currentProcess]);
+
+  // Determine candidate's current position in process
+  const candidateCurrentProcess = applicant?.applicationProcess || 'applied';
+  const candidateCurrentStatus = applicant?.applicationStatus || 'applied';
+  
+  // Get process pills with current position highlighted
+  const getProcessPillsWithCurrent = useMemo(() => {
+    const pills = [
+      { id: 'applied', label: 'Applied', isActive: candidateCurrentProcess === 'applied' && candidateCurrentStatus !== 'rejected' }
+    ];
+    
+    // Add sessions
+    sessionActivities.forEach((session: string) => {
+      pills.push({
+        id: session,
+        label: session,
+        isActive: candidateCurrentProcess === session && candidateCurrentStatus !== 'rejected'
+      });
+    });
+    
+    // Add shortlisted
+    pills.push({
+      id: 'shortlisted',
+      label: 'Shortlisted',
+      isActive: candidateCurrentStatus === 'shortlisted'
+    });
+    
+    // Add offered
+    pills.push({
+      id: 'offered',
+      label: 'Offered',
+      isActive: candidateCurrentStatus === 'offered'
+    });
+    
+    // Add rejected (if applicable)
+    if (candidateCurrentStatus === 'rejected') {
+      pills.push({
+        id: 'rejected',
+        label: 'Rejected',
+        isActive: true
+      });
+    }
+    
+    return pills;
+  }, [candidateCurrentProcess, candidateCurrentStatus, sessionActivities]);
+
+  // Helper function to build process pills array
+  const getProcessPills = useMemo(() => {
+    const pills = ['applied'];
+    if (sessionActivities.length > 0) {
+      pills.push(...sessionActivities);
+    }
+    pills.push('shortlisted', 'offered');
+    return pills;
+  }, [sessionActivities]);
+
   // Reset animation values when candidate changes
   useEffect(() => {
     if (visible && currentCandidate) {
@@ -130,9 +299,17 @@ export function CandidateSwipeModal({
       rejectGradientOpacity.value = 0;
       shortlistGradientOpacity.value = 0;
       inviteGradientOpacity.value = 0;
+      // Reset dynamic right action opacities
+      rightAction1Opacity.value = 0;
+      rightAction2Opacity.value = 0;
+      rightAction3Opacity.value = 0;
+      rightAction4Opacity.value = 0;
+      rightAction5Opacity.value = 0;
       setShowActions(false);
       setShowRejectAction(false);
       setHighlightedAction(null);
+      setHighlightedRightActionIndex(null);
+      setSelectedRightAction(null);
       setCurrentTab('talent-profile');
     }
   }, [currentIndex, visible, currentCandidate]);
@@ -151,9 +328,17 @@ export function CandidateSwipeModal({
       rejectGradientOpacity.value = 0;
       shortlistGradientOpacity.value = 0;
       inviteGradientOpacity.value = 0;
+      // Reset dynamic right action opacities
+      rightAction1Opacity.value = 0;
+      rightAction2Opacity.value = 0;
+      rightAction3Opacity.value = 0;
+      rightAction4Opacity.value = 0;
+      rightAction5Opacity.value = 0;
       setShowActions(false);
       setShowRejectAction(false);
       setHighlightedAction(null);
+      setHighlightedRightActionIndex(null);
+      setSelectedRightAction(null);
       setCurrentIndex(initialIndex);
     }
   }, [visible, initialIndex]);
@@ -196,86 +381,179 @@ export function CandidateSwipeModal({
 
   // Mutation for updating applicant status
   const updateApplicantMutation = useMutation({
-    mutationFn: async ({ applicantId, status }: { applicantId: number; status: string }) => {
+    mutationFn: async ({ 
+      applicantId, 
+      status, 
+      process 
+    }: { 
+      applicantId: number; 
+      status: string;
+      process?: string;
+    }) => {
+      const applicationProcess = process || (status === 'rejected' ? 'rejected' : currentProcessRef.current);
       return updateApplicantProcessById(
         {
           applicationStatus: status,
-          applicationProcess: status === 'rejected' ? 'rejected' : currentProcess,
+          applicationProcess: applicationProcess,
         },
         applicantId
       );
     },
     onSuccess: (_, variables) => {
       const { status } = variables;
-      let actionMessage = '';
       
-      if (status === 'rejected') {
-        actionMessage = 'Candidate rejected';
-      } else if (status === 'shortlisted') {
-        actionMessage = 'Candidate shortlisted';
-      } else {
-        actionMessage = 'Candidate invited';
+      // Only show alert for non-reject actions (reject already shows alert)
+      if (status !== 'rejected') {
+        let actionMessage = '';
+        if (status === 'shortlisted') {
+          actionMessage = 'Candidate shortlisted';
+        } else if (status === 'offered') {
+          actionMessage = 'Offer sent to candidate';
+        } else {
+          actionMessage = variables.process ? `Candidate mapped to ${variables.process}` : 'Candidate updated';
+        }
+        Alert.alert('Action Executed', actionMessage, [{ text: 'OK' }]);
       }
       
-      Alert.alert('Action Executed', actionMessage, [{ text: 'OK' }]);
+      queryClientRef.current?.invalidateQueries({ queryKey: ['role-candidates'] });
+      queryClientRef.current?.invalidateQueries({ queryKey: ['role-process-counts'] });
+      onCandidateUpdatedRef.current?.();
       
-      queryClient.invalidateQueries({ queryKey: ['role-candidates'] });
-      queryClient.invalidateQueries({ queryKey: ['role-process-counts'] });
-      onCandidateUpdated();
-      handleNextCandidate();
+      // Check if there are more candidates after a short delay to allow query to update
+      setTimeout(() => {
+        handleNextCandidateRef.current?.();
+      }, 200);
     },
     onError: (error) => {
       Alert.alert('Error', 'Failed to execute action. Please try again.', [{ text: 'OK' }]);
     },
   });
+  
+  // Store mutation function in ref for worklet access
+  useEffect(() => {
+    mutationMutateRef.current = updateApplicantMutation.mutate;
+    queryClientRef.current = queryClient;
+    onCandidateUpdatedRef.current = onCandidateUpdated;
+  }, [updateApplicantMutation.mutate, queryClient, onCandidateUpdated]);
 
   const handleNextCandidate = () => {
     // After action, the candidate list may have changed due to filtering
-    // Check if current index is the last one in the filtered list
+    // Check if there are any candidates left
+    if (candidates.length === 0) {
+      // No more candidates, close modal
+      onClose();
+      return;
+    }
+    
+    // Check if current index is valid
+    if (currentIndex >= candidates.length) {
+      // Current index is out of bounds, check if there are any candidates
+      if (candidates.length > 0) {
+        // Go to last candidate
+        setCurrentIndex(candidates.length - 1);
+      } else {
+        // No more candidates, close modal
+        onClose();
+      }
+      return;
+    }
+    
+    // Check if this was the last candidate
     if (currentIndex >= candidates.length - 1) {
-      // This was the last candidate in the current process, close modal
+      // This was the last candidate, close modal
       onClose();
       return;
     }
     
     // Move to next candidate
-    if (currentIndex < candidates.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    } else if (candidates.length > 0 && currentIndex >= candidates.length) {
-      // Current candidate was removed, go to last one
-      setCurrentIndex(candidates.length - 1);
-    } else if (candidates.length === 0) {
-      // No more candidates
-      onClose();
-    }
+    setCurrentIndex(currentIndex + 1);
   };
+  
+  // Update handleNextCandidate ref after it's defined
+  useEffect(() => {
+    handleNextCandidateRef.current = handleNextCandidate;
+  }, [handleNextCandidate, candidates.length, currentIndex]);
 
   const handleReject = () => {
-    if (applicant?.id) {
-      updateApplicantMutation.mutate({
-        applicantId: applicant.id,
-        status: 'rejected',
-      });
-    }
+    if (!applicant?.id) return;
+    
+    // Just show alert and execute - no confirmation needed
+    Alert.alert('Candidate Rejected', 'The candidate has been rejected.', [{ text: 'OK' }]);
+    
+    updateApplicantMutation.mutate({
+      applicantId: applicant.id,
+      status: 'rejected',
+    });
   };
 
   const handleShortlist = () => {
-    if (applicant?.id) {
-      updateApplicantMutation.mutate({
-        applicantId: applicant.id,
-        status: 'shortlisted',
-      });
-    }
+    if (!applicant?.id) return;
+    
+    Alert.alert(
+      'Shortlist Candidate',
+      'Move this candidate to shortlisted?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Shortlist',
+          onPress: () => {
+            updateApplicantMutation.mutate({
+              applicantId: applicant.id,
+              status: 'shortlisted',
+            });
+          },
+        },
+      ]
+    );
   };
 
+  const handleMapToSession = (sessionName: string) => {
+    if (!applicant?.id) return;
+    
+    Alert.alert(
+      'Map to Session',
+      `Map this candidate to "${sessionName}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Map',
+          onPress: () => {
+            updateApplicantMutation.mutate({
+              applicantId: applicant.id,
+              status: 'applied',
+              process: sessionName,
+            });
+          },
+        },
+      ]
+    );
+  };
+
+  const handleSendOffer = () => {
+    if (!applicant?.id) return;
+    
+    Alert.alert(
+      'Send Offer',
+      'Send an offer to this candidate?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send Offer',
+          onPress: () => {
+            updateApplicantMutation.mutate({
+              applicantId: applicant.id,
+              status: 'offered',
+            });
+          },
+        },
+      ]
+    );
+  };
+
+  // Legacy handleInvite - kept for backward compatibility, but should use handleMapToSession
   const handleInvite = () => {
-    if (applicant?.id) {
-      // Invite action - may need to check what this should do
-      updateApplicantMutation.mutate({
-        applicantId: applicant.id,
-        status: applicant?.applicationStatus || 'applied',
-      });
-    }
+    // This is deprecated - use handleMapToSession instead
+    handleShortlist();
   };
 
   const handleClose = () => {
@@ -295,33 +573,82 @@ export function CandidateSwipeModal({
     opacity.value = withTiming(0);
   };
 
-  const executeSwipeRightAction = (finalX: number, finalY: number) => {
+  // Execute action by index (called from worklet via runOnJS) - use refs only to avoid closure issues
+  const executeActionByIndex = useCallback((actionIndex: number) => {
+    const action = availableActionsRef.current[actionIndex];
+    const applicantData = currentApplicantRef.current;
+    const mutateFn = mutationMutateRef.current;
+    
+    if (!action || !applicantData?.id || !mutateFn) {
+      console.warn('Cannot execute action: missing data', { action, applicantData: !!applicantData, mutateFn: !!mutateFn });
+      return;
+    }
+    
+    // Directly execute based on action type - use refs only
+    if (action === 'shortlisted') {
+      Alert.alert(
+        'Shortlist Candidate',
+        'Move this candidate to shortlisted?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Shortlist',
+            onPress: () => {
+              mutateFn({
+                applicantId: applicantData.id,
+                status: 'shortlisted',
+              });
+            },
+          },
+        ]
+      );
+    } else if (action === 'send-offer') {
+      Alert.alert(
+        'Send Offer',
+        'Send an offer to this candidate?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Send Offer',
+            onPress: () => {
+              mutateFn({
+                applicantId: applicantData.id,
+                status: 'offered',
+              });
+            },
+          },
+        ]
+      );
+    } else {
+      // Session action
+      Alert.alert(
+        'Map to Session',
+        `Map this candidate to "${action}"?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Map',
+            onPress: () => {
+              mutateFn({
+                applicantId: applicantData.id,
+                status: 'applied',
+                process: action,
+              });
+            },
+          },
+        ]
+      );
+    }
+  }, []); // Empty deps since we only use refs
+
+  const executeSwipeRightAction = (actionIndex: number) => {
     'worklet';
-    if (finalX > ACTION_AREA_WIDTH) {
-      // Determine which action based on drag Y position
-      // Action areas are positioned at top (shortlist) and bottom (invite)
-      const screenCenter = SCREEN_HEIGHT / 2;
-      const actionThreshold = 100; // Distance from center to trigger action
+    if (actionIndex >= 0) {
       const maxTranslate = SCREEN_WIDTH - MODAL_MARGIN * 2;
-      
-      if (finalY < screenCenter - actionThreshold) {
-        // Top area - Shortlist
-        translateX.value = withSpring(maxTranslate, {}, () => {
-          runOnJS(handleShortlist)();
-        });
-        opacity.value = withTiming(0);
-      } else if (finalY > screenCenter + actionThreshold) {
-        // Bottom area - Invite
-        translateX.value = withSpring(maxTranslate, {}, () => {
-          runOnJS(handleInvite)();
-        });
-        opacity.value = withTiming(0);
-      } else {
-        // Middle - just show actions, snap back
-        translateX.value = withSpring(0);
-        translateY.value = withSpring(0);
-        runOnJS(setShowActions)(true);
-      }
+      translateX.value = withSpring(maxTranslate, {}, () => {
+        runOnJS(executeActionByIndex)(actionIndex);
+      });
+      opacity.value = withTiming(0);
     } else {
       translateX.value = withSpring(0);
       translateY.value = withSpring(0);
@@ -363,19 +690,24 @@ export function CandidateSwipeModal({
   // Content pan gesture - horizontal swipes for actions, only when scroll is at top
   const contentPanGesture = Gesture.Pan()
     .activeOffsetX([-15, 15]) // Activate on horizontal movement (15px threshold)
-    .failOffsetY([-30, 30]) // Fail if too much vertical movement (30px threshold)
+    .failOffsetY([-50, 50]) // Fail if too much vertical movement (increase threshold for better scrolling)
     .minDistance(15) // Require 15px movement before activation
     .onBegin(() => {
       'worklet';
       // Check if scrolled at the beginning of gesture - cancel if scrolled
-      if (scrollY.value > 5) {
+      if (scrollY.value > 10) {
         return;
       }
     })
     .onUpdate((event) => {
       'worklet';
-      // Only process if scroll is at top
-      if (scrollY.value > 5) {
+      // Only process if scroll is at top - allow small scroll threshold
+      if (scrollY.value > 10) {
+        return;
+      }
+      
+      // If vertical movement is significant, prioritize scrolling
+      if (Math.abs(event.translationY) > 20 && Math.abs(event.translationX) < 30) {
         return;
       }
       
@@ -400,39 +732,53 @@ export function CandidateSwipeModal({
         }
       }
 
-      // Handle RIGHT swipe (Shortlist/Invite) - show gradients when dragging right
+      // Handle RIGHT swipe (Dynamic actions) - show gradients when dragging right
       if (event.translationX > 30) {
         const dragProgress = Math.min(event.translationX / maxDragDistance, 1);
-        const targetOpacity = 0.4 + (dragProgress * 0.6); // From 0.4 to 1.0
+        const baseOpacity = 0.3 + (dragProgress * 0.7); // From 0.3 to 1.0
+        const dimOpacity = baseOpacity * 0.4;
         
-        // Calculate relative Y position from modal center
-        const relativeY = event.translationY + modalCenterY - (SCREEN_HEIGHT / 2);
+        // Calculate Y position on screen (0 to SCREEN_HEIGHT)
+        const screenY = (SCREEN_HEIGHT / 2) + event.translationY;
+        const clampedY = Math.max(0, Math.min(SCREEN_HEIGHT, screenY));
+        const actionCount = availableActionsCount.value;
+        const actionHeight = SCREEN_HEIGHT / Math.max(actionCount, 1);
+        const actionIndex = Math.min(Math.max(0, Math.floor(clampedY / actionHeight)), Math.min(actionCount - 1, 4));
         
-        if (relativeY < -actionThreshold) {
-          // Top area - Shortlist
-          shortlistGradientOpacity.value = withTiming(targetOpacity);
-          inviteGradientOpacity.value = withTiming(0);
-          runOnJS(setHighlightedAction)('shortlist');
-        } else if (relativeY > actionThreshold) {
-          // Bottom area - Invite
-          inviteGradientOpacity.value = withTiming(targetOpacity);
-          shortlistGradientOpacity.value = withTiming(0);
-          runOnJS(setHighlightedAction)('invite');
+        // Light up all actions dimly first
+        if (actionCount >= 1) rightAction1Opacity.value = withTiming(dimOpacity);
+        if (actionCount >= 2) rightAction2Opacity.value = withTiming(dimOpacity);
+        if (actionCount >= 3) rightAction3Opacity.value = withTiming(dimOpacity);
+        if (actionCount >= 4) rightAction4Opacity.value = withTiming(dimOpacity);
+        if (actionCount >= 5) rightAction5Opacity.value = withTiming(dimOpacity);
+        
+        // Brightly highlight the action being dragged to (if drag is far enough)
+        if (dragProgress > 0.3 && actionIndex >= 0) {
+          // Reset the highlighted one first
+          if (actionIndex === 0) rightAction1Opacity.value = withTiming(baseOpacity);
+          else if (actionIndex === 1) rightAction2Opacity.value = withTiming(baseOpacity);
+          else if (actionIndex === 2) rightAction3Opacity.value = withTiming(baseOpacity);
+          else if (actionIndex === 3) rightAction4Opacity.value = withTiming(baseOpacity);
+          else if (actionIndex === 4) rightAction5Opacity.value = withTiming(baseOpacity);
+          
+          runOnJS(setHighlightedRightActionIndex)(actionIndex);
         } else {
-          // Middle area - show both but dimmer
-          shortlistGradientOpacity.value = withTiming(targetOpacity * 0.5);
-          inviteGradientOpacity.value = withTiming(targetOpacity * 0.5);
-          if (highlightedAction !== 'reject') {
-            runOnJS(setHighlightedAction)(null);
-          }
+          runOnJS(setHighlightedRightActionIndex)(null);
         }
+        
+        // For backward compatibility, also update shortlist/invite opacities
+        if (actionCount >= 1) shortlistGradientOpacity.value = rightAction1Opacity.value;
+        if (actionCount >= 2) inviteGradientOpacity.value = rightAction2Opacity.value;
       } else {
-        // Hide right gradients if not dragging right
+        // Hide all right gradients if not dragging right
+        rightAction1Opacity.value = withTiming(0);
+        rightAction2Opacity.value = withTiming(0);
+        rightAction3Opacity.value = withTiming(0);
+        rightAction4Opacity.value = withTiming(0);
+        rightAction5Opacity.value = withTiming(0);
         shortlistGradientOpacity.value = withTiming(0);
         inviteGradientOpacity.value = withTiming(0);
-        if (highlightedAction !== 'reject') {
-          runOnJS(setHighlightedAction)(null);
-        }
+        runOnJS(setHighlightedRightActionIndex)(null);
       }
     })
     .onEnd((event) => {
@@ -472,21 +818,36 @@ export function CandidateSwipeModal({
         return;
       }
 
-      // Swipe RIGHT - only trigger if shortlist or invite area is highlighted
+      // Swipe RIGHT - trigger based on highlighted action index
       if (draggedToRightEdge) {
-        const relativeY = translationY + modalCenterY - (SCREEN_HEIGHT / 2);
-        const isShortlistHighlighted = relativeY < -actionThreshold && shortlistGradientOpacity.value > highlightOpacityThreshold;
-        const isInviteHighlighted = relativeY > actionThreshold && inviteGradientOpacity.value > highlightOpacityThreshold;
+        const actionCount = availableActionsCount.value;
+        const screenY = (SCREEN_HEIGHT / 2) + translationY;
+        const clampedY = Math.max(0, Math.min(SCREEN_HEIGHT, screenY));
+        const actionHeight = SCREEN_HEIGHT / Math.max(actionCount, 1);
+        const actionIndex = Math.min(Math.max(0, Math.floor(clampedY / actionHeight)), Math.min(actionCount - 1, 4));
         
-        if (isShortlistHighlighted || isInviteHighlighted) {
+        // Check if any action is highlighted enough
+        let isHighlighted = false;
+        if (actionIndex === 0 && rightAction1Opacity.value > highlightOpacityThreshold) isHighlighted = true;
+        else if (actionIndex === 1 && rightAction2Opacity.value > highlightOpacityThreshold) isHighlighted = true;
+        else if (actionIndex === 2 && rightAction3Opacity.value > highlightOpacityThreshold) isHighlighted = true;
+        else if (actionIndex === 3 && rightAction4Opacity.value > highlightOpacityThreshold) isHighlighted = true;
+        else if (actionIndex === 4 && rightAction5Opacity.value > highlightOpacityThreshold) isHighlighted = true;
+        
+        if (isHighlighted && actionIndex >= 0) {
           // Area is highlighted, trigger action
-          executeSwipeRightAction(translationX, translationY);
+          executeSwipeRightAction(actionIndex);
         } else {
           // No area highlighted, smooth slide back
           translateX.value = withTiming(0, { duration: 300 });
+          rightAction1Opacity.value = withTiming(0);
+          rightAction2Opacity.value = withTiming(0);
+          rightAction3Opacity.value = withTiming(0);
+          rightAction4Opacity.value = withTiming(0);
+          rightAction5Opacity.value = withTiming(0);
           shortlistGradientOpacity.value = withTiming(0);
           inviteGradientOpacity.value = withTiming(0);
-          runOnJS(setHighlightedAction)(null);
+          runOnJS(setHighlightedRightActionIndex)(null);
         }
         return;
       }
@@ -495,9 +856,15 @@ export function CandidateSwipeModal({
       translateX.value = withTiming(0, { duration: 300 });
       translateY.value = withTiming(0, { duration: 300 });
       rejectGradientOpacity.value = withTiming(0);
+      rightAction1Opacity.value = withTiming(0);
+      rightAction2Opacity.value = withTiming(0);
+      rightAction3Opacity.value = withTiming(0);
+      rightAction4Opacity.value = withTiming(0);
+      rightAction5Opacity.value = withTiming(0);
       shortlistGradientOpacity.value = withTiming(0);
       inviteGradientOpacity.value = withTiming(0);
       runOnJS(setHighlightedAction)(null);
+      runOnJS(setHighlightedRightActionIndex)(null);
     });
 
   // Scroll handler to track scroll position
@@ -564,6 +931,40 @@ export function CandidateSwipeModal({
       opacity: inviteGradientOpacity.value > 0.3 ? 1 : inviteGradientOpacity.value * 2,
     };
   });
+
+  // Animated styles for dynamic right action opacities
+  const rightAction1AnimatedStyle = useAnimatedStyle(() => ({
+    opacity: rightAction1Opacity.value,
+  }));
+  const rightAction2AnimatedStyle = useAnimatedStyle(() => ({
+    opacity: rightAction2Opacity.value,
+  }));
+  const rightAction3AnimatedStyle = useAnimatedStyle(() => ({
+    opacity: rightAction3Opacity.value,
+  }));
+  const rightAction4AnimatedStyle = useAnimatedStyle(() => ({
+    opacity: rightAction4Opacity.value,
+  }));
+  const rightAction5AnimatedStyle = useAnimatedStyle(() => ({
+    opacity: rightAction5Opacity.value,
+  }));
+
+  // Animated text styles for dynamic actions
+  const rightAction1TextStyle = useAnimatedStyle(() => ({
+    opacity: rightAction1Opacity.value > 0.3 ? 1 : rightAction1Opacity.value * 2,
+  }));
+  const rightAction2TextStyle = useAnimatedStyle(() => ({
+    opacity: rightAction2Opacity.value > 0.3 ? 1 : rightAction2Opacity.value * 2,
+  }));
+  const rightAction3TextStyle = useAnimatedStyle(() => ({
+    opacity: rightAction3Opacity.value > 0.3 ? 1 : rightAction3Opacity.value * 2,
+  }));
+  const rightAction4TextStyle = useAnimatedStyle(() => ({
+    opacity: rightAction4Opacity.value > 0.3 ? 1 : rightAction4Opacity.value * 2,
+  }));
+  const rightAction5TextStyle = useAnimatedStyle(() => ({
+    opacity: rightAction5Opacity.value > 0.3 ? 1 : rightAction5Opacity.value * 2,
+  }));
 
   const tabs = [
     { id: 'talent-profile', label: 'Talent Profile' },
@@ -749,15 +1150,15 @@ export function CandidateSwipeModal({
               </GestureDetector>
             </Animated.View>
 
-        {/* Reject Action Area - Fixed gradient at left edge */}
+        {/* Reject Action Area - Fixed gradient at left edge - Full screen height */}
         <Animated.View
           style={[
             {
               position: 'absolute',
               left: 0,
-              top: (SCREEN_HEIGHT - MODAL_HEIGHT) / 2,
+              top: 0,
               width: ACTION_AREA_WIDTH,
-              height: MODAL_HEIGHT,
+              height: SCREEN_HEIGHT,
               pointerEvents: 'none',
               borderTopRightRadius: 20,
               borderBottomRightRadius: 20,
@@ -778,63 +1179,68 @@ export function CandidateSwipeModal({
           </LinearGradient>
         </Animated.View>
 
-        {/* Shortlist Action Area - Fixed gradient at right edge (top half) */}
-        <Animated.View
-          style={[
-            {
-              position: 'absolute',
-              right: 0,
-              top: (SCREEN_HEIGHT - MODAL_HEIGHT) / 2,
-              width: ACTION_AREA_WIDTH,
-              height: MODAL_HEIGHT / 2,
-              pointerEvents: 'none',
-              borderTopLeftRadius: 20,
-              borderBottomLeftRadius: 20,
-              overflow: 'hidden',
-            },
-            shortlistGradientAnimatedStyle,
-          ]}>
-          <LinearGradient
-            colors={['rgba(34, 197, 94, 1)', 'rgba(34, 197, 94, 0)']}
-            start={{ x: 1, y: 0 }}
-            end={{ x: 0, y: 0 }}
-            style={{ flex: 1, justifyContent: 'center', alignItems: 'flex-end', paddingRight: 16 }}>
-            <Animated.Text 
-              className="text-white font-bold text-lg uppercase tracking-wider"
-              style={shortlistTextAnimatedStyle}>
-              Shortlist
-            </Animated.Text>
-          </LinearGradient>
-        </Animated.View>
-
-        {/* Invite Action Area - Fixed gradient at right edge (bottom half) */}
-        <Animated.View
-          style={[
-            {
-              position: 'absolute',
-              right: 0,
-              top: (SCREEN_HEIGHT - MODAL_HEIGHT) / 2 + MODAL_HEIGHT / 2,
-              width: ACTION_AREA_WIDTH,
-              height: MODAL_HEIGHT / 2,
-              pointerEvents: 'none',
-              borderTopLeftRadius: 20,
-              borderBottomLeftRadius: 20,
-              overflow: 'hidden',
-            },
-            inviteGradientAnimatedStyle,
-          ]}>
-          <LinearGradient
-            colors={['rgba(59, 130, 246, 1)', 'rgba(59, 130, 246, 0)']}
-            start={{ x: 1, y: 0 }}
-            end={{ x: 0, y: 0 }}
-            style={{ flex: 1, justifyContent: 'center', alignItems: 'flex-end', paddingRight: 16 }}>
-            <Animated.Text 
-              className="text-white font-bold text-lg uppercase tracking-wider"
-              style={inviteTextAnimatedStyle}>
-              Invite
-            </Animated.Text>
-          </LinearGradient>
-        </Animated.View>
+        {/* Dynamic Right Action Areas - Full screen height - Show all actions */}
+        {getAvailableActions.slice(0, 5).map((action, index) => {
+          const actionCount = getAvailableActions.length;
+          const actionHeight = SCREEN_HEIGHT / actionCount;
+          const top = index * actionHeight;
+          const isFirst = index === 0;
+          const isLast = index === actionCount - 1;
+          
+          // Get the appropriate animated style for this action
+          const getAnimatedStyle = () => {
+            switch (index) {
+              case 0: return rightAction1AnimatedStyle;
+              case 1: return rightAction2AnimatedStyle;
+              case 2: return rightAction3AnimatedStyle;
+              case 3: return rightAction4AnimatedStyle;
+              case 4: return rightAction5AnimatedStyle;
+              default: return rightAction1AnimatedStyle;
+            }
+          };
+          
+          const getTextAnimatedStyle = () => {
+            switch (index) {
+              case 0: return rightAction1TextStyle;
+              case 1: return rightAction2TextStyle;
+              case 2: return rightAction3TextStyle;
+              case 3: return rightAction4TextStyle;
+              case 4: return rightAction5TextStyle;
+              default: return rightAction1TextStyle;
+            }
+          };
+          
+          return (
+            <Animated.View
+              key={`right-action-${index}`}
+              style={[
+                {
+                  position: 'absolute',
+                  right: 0,
+                  top: top,
+                  width: ACTION_AREA_WIDTH,
+                  height: actionHeight,
+                  pointerEvents: 'none',
+                  borderTopLeftRadius: isFirst ? 20 : 0,
+                  borderBottomLeftRadius: isLast ? 20 : 0,
+                  overflow: 'hidden',
+                },
+                getAnimatedStyle(),
+              ]}>
+              <LinearGradient
+                colors={getActionColor(action)}
+                start={{ x: 1, y: 0 }}
+                end={{ x: 0, y: 0 }}
+                style={{ flex: 1, justifyContent: 'center', alignItems: 'flex-end', paddingRight: 16 }}>
+                <Animated.Text 
+                  className="text-white font-bold text-lg uppercase tracking-wider"
+                  style={getTextAnimatedStyle()}>
+                  {getActionLabel(action)}
+                </Animated.Text>
+              </LinearGradient>
+            </Animated.View>
+          );
+        })}
 
         {/* Loading Overlay */}
         {updateApplicantMutation.isPending && (

@@ -177,8 +177,8 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
 
   const handleCandidateUpdated = () => {
     // Refresh candidate list
-    queryClient.invalidateQueries({ queryKey: ['role-candidates'] });
-    queryClient.invalidateQueries({ queryKey: ['role-process-counts'] });
+    // queryClient.invalidateQueries({ queryKey: ['role-candidates'] });
+    // queryClient.invalidateQueries({ queryKey: ['role-process-counts'] });
   };
 
   return (
@@ -273,6 +273,7 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
         roleId={roleWithSchedules?.role?.id}
         projectId={projectData?.id}
         currentProcess={currentProcess}
+        roleWithSchedules={roleWithSchedules}
         onCandidateUpdated={handleCandidateUpdated}
       />
 
