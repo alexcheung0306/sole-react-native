@@ -138,7 +138,6 @@ export default function AppTabBar() {
   const handleUserProfilePress = () => {
     if (activeTab !== 'user') {
       setActiveTab('user');
-   
     }
   };
 

@@ -20,6 +20,10 @@ export default function ProtectedLayout() {
     if (path.includes('camera/edit') || path.includes('camera/caption')) {
       return false;
     }
+    // Hide tab bar on detail screens
+    if (path.includes('projects/project-detail') || path.includes('job/job-detail') || path.includes('projects/contract-detail') || path.includes('projects/candidate-detail')) {
+      return false;
+    }
     // Show tab bar only when in (user) or (client) routes
     return path.includes('(user)') || path.includes('(client)');
   };

@@ -170,7 +170,7 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
 
     const handlePress = () => {
       router.push({
-        pathname: '/(protected)/candidate-detail/[candidateId]',
+        pathname: '/(protected)/(client)/projects/candidate-detail' as any,
         params: {
           candidateId: applicant?.id?.toString() || '',
           roleId: roleWithSchedules?.role?.id?.toString() || '',
