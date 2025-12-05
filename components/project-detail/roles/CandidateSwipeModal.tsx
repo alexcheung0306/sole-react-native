@@ -70,8 +70,6 @@ export function CandidateSwipeModal({
   const queryClient = useQueryClient();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [currentTab, setCurrentTab] = useState('talent-profile');
-  const [showActions, setShowActions] = useState(false);
-  const [showRejectAction, setShowRejectAction] = useState(false);
   const [highlightedAction, setHighlightedAction] = useState<'shortlist' | 'invite' | 'reject' | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -114,10 +112,7 @@ export function CandidateSwipeModal({
   const projectIdRef = useRef(projectId);
   const roleIdRef = useRef(roleId);
   
-  // State to track which action is highlighted
-  const [highlightedRightActionIndex, setHighlightedRightActionIndex] = useState<number | null>(null);
-  const [selectedRightAction, setSelectedRightAction] = useState<string | null>(null);
-
+ 
   // Ensure currentIndex is valid and update when modal opens with initialIndex
   useEffect(() => {
     if (visible) {
@@ -153,6 +148,12 @@ export function CandidateSwipeModal({
   const userInfo = currentCandidate?.userInfo ?? {};
   const username = currentCandidate?.username || userInfo?.username || 'unknown';
   const statusColor = getStatusColor(applicant?.applicationStatus || 'applied');
+
+  // Next candidate data
+  const nextApplicant = nextCandidate?.jobApplicant ?? {};
+  const nextUserInfo = nextCandidate?.userInfo ?? {};
+  const nextUsername = nextCandidate?.username || nextUserInfo?.username || 'unknown';
+  const nextStatusColor = getStatusColor(nextApplicant?.applicationStatus || 'applied');
 
   // Extract activities (excluding job type)
   const activities = roleWithSchedules?.activities || [];
@@ -190,10 +191,6 @@ export function CandidateSwipeModal({
     return [];
   }, [currentProcess, sessionActivities, applicant?.applicationStatus, applicant?.applicationProcess]);
 
-  // Helper to get action opacity from array (for JS context)
-  const getActionOpacityByIndex = useCallback((index: number) => {
-    return rightActionOpacities.value[index] || 0;
-  }, []);
 
   // Helper to get action color by action type
   const getActionColor = (action: string): [string, string] => {
@@ -238,60 +235,6 @@ export function CandidateSwipeModal({
     roleIdRef.current = roleId;
   }, [projectId, roleId]);
 
-  // Determine candidate's current position in process
-  const candidateCurrentProcess = applicant?.applicationProcess || 'applied';
-  const candidateCurrentStatus = applicant?.applicationStatus || 'applied';
-  
-  // Get process pills with current position highlighted
-  const getProcessPillsWithCurrent = useMemo(() => {
-    const pills = [
-      { id: 'applied', label: 'Applied', isActive: candidateCurrentProcess === 'applied' && candidateCurrentStatus !== 'rejected' }
-    ];
-    
-    // Add sessions
-    sessionActivities.forEach((session: string) => {
-      pills.push({
-        id: session,
-        label: session,
-        isActive: candidateCurrentProcess === session && candidateCurrentStatus !== 'rejected'
-      });
-    });
-    
-    // Add shortlisted
-    pills.push({
-      id: 'shortlisted',
-      label: 'Shortlisted',
-      isActive: candidateCurrentStatus === 'shortlisted'
-    });
-    
-    // Add offered
-    pills.push({
-      id: 'offered',
-      label: 'Offered',
-      isActive: candidateCurrentStatus === 'offered'
-    });
-    
-    // Add rejected (if applicable)
-    if (candidateCurrentStatus === 'rejected') {
-      pills.push({
-        id: 'rejected',
-        label: 'Rejected',
-        isActive: true
-      });
-    }
-    
-    return pills;
-  }, [candidateCurrentProcess, candidateCurrentStatus, sessionActivities]);
-
-  // Helper function to build process pills array
-  const getProcessPills = useMemo(() => {
-    const pills = ['applied'];
-    if (sessionActivities.length > 0) {
-      pills.push(...sessionActivities);
-    }
-    pills.push('shortlisted', 'offered');
-    return pills;
-  }, [sessionActivities]);
 
   // Reset animation values when candidate changes
   useEffect(() => {
@@ -307,11 +250,7 @@ export function CandidateSwipeModal({
       rejectGradientOpacity.value = 0;
       // Reset dynamic right action opacities array
       rightActionOpacities.value = [0, 0, 0, 0, 0];
-      setShowActions(false);
-      setShowRejectAction(false);
       setHighlightedAction(null);
-      setHighlightedRightActionIndex(null);
-      setSelectedRightAction(null);
       setCurrentTab('talent-profile');
     }
   }, [currentIndex, visible, currentCandidate]);
@@ -330,11 +269,7 @@ export function CandidateSwipeModal({
       rejectGradientOpacity.value = 0;
       // Reset dynamic right action opacities array
       rightActionOpacities.value = [0, 0, 0, 0, 0];
-      setShowActions(false);
-      setShowRejectAction(false);
-      setHighlightedAction(null);
-      setHighlightedRightActionIndex(null);
-      setSelectedRightAction(null);
+      setHighlightedAction(null);   
     } else if (visible && candidates.length > 0) {
       // When modal opens, set to initialIndex (the clicked card's index)
       const validInitialIndex = Math.min(initialIndex, candidates.length - 1);
@@ -376,6 +311,42 @@ export function CandidateSwipeModal({
       !!applicant?.soleUserId &&
       !!projectId &&
       applicant?.applicationStatus === 'offered',
+  });
+
+  // Fetch full user profile data for next candidate
+  const {
+    data: nextTalentProfileData,
+    isLoading: isLoadingNextTalentProfile,
+  } = useQuery({
+    queryKey: ['userProfile', nextUsername],
+    queryFn: async () => {
+      if (!nextUsername || nextUsername === 'unknown' || nextUsername.trim() === '') {
+        return null;
+      }
+      return getUserProfileByUsername(nextUsername);
+    },
+    enabled: visible && !!nextCandidate && !!nextUsername && nextUsername !== 'unknown' && nextUsername.trim() !== '',
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+
+  // Fetch contracts for next applicant
+  const {
+    data: nextContractsData,
+    isLoading: isLoadingNextContracts,
+  } = useQuery({
+    queryKey: ['applicantContracts', nextApplicant?.soleUserId, projectId],
+    queryFn: async () => {
+      if (!nextApplicant?.soleUserId || !projectId) return [];
+      const result = await talentSearchJobContracts(nextApplicant.soleUserId, searchUrl);
+      return result?.data || [];
+    },
+    enabled:
+      visible &&
+      !!nextCandidate &&
+      !!nextApplicant?.soleUserId &&
+      !!projectId &&
+      nextApplicant?.applicationStatus === 'offered',
   });
 
   // Mutation for updating applicant status
@@ -488,76 +459,6 @@ export function CandidateSwipeModal({
     });
   };
 
-  const handleShortlist = () => {
-    if (!applicant?.id) return;
-    
-    Alert.alert(
-      'Shortlist Candidate',
-      'Move this candidate to shortlisted?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Shortlist',
-          onPress: () => {
-            updateApplicantMutation.mutate({
-              applicantId: applicant.id,
-              status: 'shortlisted',
-            });
-          },
-        },
-      ]
-    );
-  };
-
-  const handleMapToSession = (sessionName: string) => {
-    if (!applicant?.id) return;
-    
-    Alert.alert(
-      'Map to Session',
-      `Map this candidate to "${sessionName}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Map',
-          onPress: () => {
-            updateApplicantMutation.mutate({
-              applicantId: applicant.id,
-              status: 'applied',
-              process: sessionName,
-            });
-          },
-        },
-      ]
-    );
-  };
-
-  const handleSendOffer = () => {
-    if (!applicant?.id) return;
-    
-    Alert.alert(
-      'Send Offer',
-      'Send an offer to this candidate?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Send Offer',
-          onPress: () => {
-            updateApplicantMutation.mutate({
-              applicantId: applicant.id,
-              status: 'offered',
-            });
-          },
-        },
-      ]
-    );
-  };
-
-  // Legacy handleInvite - kept for backward compatibility, but should use handleMapToSession
-  const handleInvite = () => {
-    // This is deprecated - use handleMapToSession instead
-    handleShortlist();
-  };
-
   const handleClose = () => {
     translateX.value = withTiming(0);
     translateY.value = withTiming(0);
@@ -614,7 +515,6 @@ export function CandidateSwipeModal({
     } else {
       translateX.value = withSpring(0);
       translateY.value = withSpring(0);
-      runOnJS(setShowActions)(false);
     }
   };
 
@@ -724,16 +624,12 @@ export function CandidateSwipeModal({
         // Brightly highlight the action being dragged to (if drag is far enough)
         if (dragProgress > 0.3 && actionIndex >= 0 && actionIndex < actionCount) {
           newOpacities[actionIndex] = baseOpacity;
-          runOnJS(setHighlightedRightActionIndex)(actionIndex);
-        } else {
-          runOnJS(setHighlightedRightActionIndex)(null);
-        }
+        } 
         
         rightActionOpacities.value = newOpacities;
       } else {
         // Hide all right gradients if not dragging right
         rightActionOpacities.value = [0, 0, 0, 0, 0];
-        runOnJS(setHighlightedRightActionIndex)(null);
       }
     })
     .onEnd((event) => {
@@ -794,7 +690,6 @@ export function CandidateSwipeModal({
           // No area highlighted, smooth slide back
           translateX.value = withTiming(0, { duration: 300 });
           rightActionOpacities.value = [0, 0, 0, 0, 0];
-          runOnJS(setHighlightedRightActionIndex)(null);
         }
         return;
       }
@@ -805,7 +700,6 @@ export function CandidateSwipeModal({
       rejectGradientOpacity.value = withTiming(0);
       rightActionOpacities.value = [0, 0, 0, 0, 0];
       runOnJS(setHighlightedAction)(null);
-      runOnJS(setHighlightedRightActionIndex)(null);
     });
 
   // Scroll handler to track scroll position
@@ -988,7 +882,7 @@ export function CandidateSwipeModal({
                   },
                   nextCardAnimatedStyle,
                 ]}>
-                {/* Next Card Content - Simplified preview */}
+                {/* Blur Background */}
                 <BlurView
                   intensity={100}
                   tint="dark"
@@ -1000,24 +894,107 @@ export function CandidateSwipeModal({
                     bottom: 0,
                   }}
                 />
+                {/* Semi-transparent overlay */}
                 <View className="bg-black/12 absolute inset-0" />
-                <View className="flex-1 justify-center items-center p-4">
-                  <Image
-                    source={{
-                      uri:
-                        nextCandidate?.comcardFirstPic ||
-                        nextCandidate?.userInfo?.profilePic ||
-                        undefined,
-                    }}
-                    className="w-24 h-24 rounded-full bg-zinc-700"
-                  />
-                  <Text className="text-white font-semibold mt-4 text-center">
-                    {nextCandidate?.userInfo?.name || 'Next Candidate'}
-                  </Text>
-                  <Text className="text-white/60 text-sm mt-1">
-                    @{nextCandidate?.username || nextCandidate?.userInfo?.username || 'unknown'}
-                  </Text>
+
+                {/* Handle Bar and Header */}
+                <View>
+                  {/* Handle Bar */}
+                  <View className="items-center pt-4 pb-2">
+                    <View
+                      style={{
+                        width: 40,
+                        height: 5,
+                        borderRadius: 3,
+                        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                      }}
+                    />
+                  </View>
+
+                  {/* Header */}
+                  <View className="flex-row items-center justify-between px-4 py-3 border-b border-white/10">
+                    <View className="p-2 -ml-2" />
+                    <Text className="text-lg font-semibold text-white flex-1 text-center">
+                      {nextIndex + 1} / {candidates.length}
+                    </Text>
+                    <View className="p-2 -mr-2" />
+                  </View>
                 </View>
+
+                {/* Content */}
+                <ScrollView
+                  className="flex-1"
+                  showsVerticalScrollIndicator={false}
+                  bounces={false}
+                  scrollEnabled={true}>
+                  {/* Candidate Header Card */}
+                  <View className="mx-4 mt-4 rounded-2xl border border-white/10 bg-zinc-800 p-4">
+                    <View className="flex-row items-center gap-4">
+                      <Image
+                        source={{
+                          uri:
+                            nextTalentProfileData?.userInfo?.profilePic ||
+                            nextCandidate?.comcardFirstPic ||
+                            nextUserInfo?.profilePic ||
+                            undefined,
+                        }}
+                        className="w-20 h-20 rounded-full bg-zinc-700"
+                      />
+                      <View className="flex-1">
+                        <Text className="text-lg font-semibold text-white">
+                          {nextTalentProfileData?.userInfo?.name || nextUserInfo?.name || 'Unnamed candidate'}
+                        </Text>
+                        <Text className="text-sm text-white/60">@{nextUsername}</Text>
+                        <View
+                          className="mt-2 px-3 py-1.5 rounded-full border self-start"
+                          style={{
+                            backgroundColor: nextStatusColor + '20',
+                            borderColor: nextStatusColor + '60',
+                          }}>
+                          <Text
+                            className="text-xs font-bold uppercase tracking-wide"
+                            style={{ color: nextStatusColor }}>
+                            {nextApplicant?.applicationStatus || 'applied'}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Tabs */}
+                  <View className="mt-4 px-4">
+                    <CustomTabs tabs={tabs} value="talent-profile" onValueChange={() => {}} />
+                  </View>
+
+                  {/* Tab Content */}
+                  <View className="px-4 pb-8">
+                    <View className="">
+                      {isLoadingNextTalentProfile ? (
+                        <View className="py-8">
+                          <ActivityIndicator size="large" color="#3b82f6" />
+                        </View>
+                      ) : !nextTalentProfileData || !nextTalentProfileData.talentInfo ? (
+                        <View className="py-8">
+                          <Text className="text-base font-semibold text-white mb-2 text-center">
+                            Profile Not Available
+                          </Text>
+                          <Text className="text-sm text-white/60 text-center">
+                            {nextUsername === 'unknown'
+                              ? "This user's profile information is not available."
+                              : 'Unable to load profile data for this user.'}
+                          </Text>
+                        </View>
+                      ) : (
+                        <TalentProfile
+                          userProfileData={nextTalentProfileData}
+                          talentLevel={parseInt(nextTalentProfileData?.talentLevel || '0')}
+                          talentInfo={nextTalentProfileData?.talentInfo}
+                          isOwnProfile={false}
+                        />
+                      )}
+                    </View>
+                  </View>
+                </ScrollView>
               </Animated.View>
             )}
 
