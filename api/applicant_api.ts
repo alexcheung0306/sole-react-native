@@ -71,7 +71,6 @@ export const createApplicant = async (values: any) => {
 
     const result = await response.json()
     if (response.ok) {
-      console.log("Applicant submitted successfully")
       return result // Optionally return the created project or any relevant info
     }
   } catch (error) {
@@ -80,7 +79,6 @@ export const createApplicant = async (values: any) => {
 }
 
 export const updateApplicantProcessById = async (values: any, id: number) => {
-  console.log("updateApplicantProcess", values)
   try {
     const response = await fetch(`${API_BASE_URL}/job-applicants/${id}`, {
       method: "PUT",
@@ -91,7 +89,6 @@ export const updateApplicantProcessById = async (values: any, id: number) => {
     })
     const result = await response.json()
     if (response.ok) {
-      console.log("Applicant submitted successfully")
       return result // Optionally return the created project or any relevant info
     }
   } catch (error) {

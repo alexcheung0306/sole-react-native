@@ -70,8 +70,18 @@ export function CandidateSwipeModal({
   const queryClient = useQueryClient();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [currentTab, setCurrentTab] = useState('talent-profile');
-  const [highlightedAction, setHighlightedAction] = useState<'shortlist' | 'invite' | 'reject' | null>(null);
+  const [highlightedAction, setHighlightedAction] = useState<
+    'shortlist' | 'invite' | 'reject' | null
+  >(null);
   const [isScrolled, setIsScrolled] = useState(false);
+
+  // Dual-card state management
+  const [onTop, setOnTop] = useState<'A' | 'B'>('A');
+  const [cardAIndex, setCardAIndex] = useState(initialIndex);
+  const [cardBIndex, setCardBIndex] = useState(() => {
+    const next = initialIndex + 1;
+    return next < candidates.length ? next : -1;
+  });
 
   // Animation values
   const translateX = useSharedValue(0);
@@ -83,82 +93,92 @@ export function CandidateSwipeModal({
   const inviteScale = useSharedValue(1);
   const rejectScale = useSharedValue(1);
   const scrollY = useSharedValue(0);
-  
+
+  // Dual-card scale animations
+  const cardAScale = useSharedValue(onTop === 'A' ? 1 : 0.95);
+  const cardBScale = useSharedValue(onTop === 'B' ? 1 : 0.95);
+
   // Gradient opacity values (start at 0, appear on drag, max 1.0 when lit up)
   const rejectGradientOpacity = useSharedValue(0);
-  
+
   // Consolidated action gradient opacities array (support up to 5 right-side actions)
   const rightActionOpacities = useSharedValue([0, 0, 0, 0, 0]);
-  
+
   // Store available actions count for worklet access (initialize to 0, will be updated)
   const availableActionsCount = useSharedValue(0);
-  
+
   // Ref to store available actions for JS context access
   const availableActionsRef = useRef<string[]>([]);
-  
+
   // Ref to store current applicant for JS context access
   const currentApplicantRef = useRef<any>(null);
-  
+
   // Ref to store current process for JS context access
   const currentProcessRef = useRef<string>(currentProcess);
-  
+
   // Ref to store mutation function and callbacks
   const mutationMutateRef = useRef<((variables: any) => void) | null>(null);
   const queryClientRef = useRef(queryClient);
   const onCandidateUpdatedRef = useRef(onCandidateUpdated);
   const handleNextCandidateRef = useRef<(() => void) | null>(null);
-  
+
   // Refs to store projectId and roleId for mutation
   const projectIdRef = useRef(projectId);
   const roleIdRef = useRef(roleId);
   
- 
-  // Ensure currentIndex is valid and update when modal opens with initialIndex
+  // Ref to store onTop for worklet access
+  const onTopRef = useRef<'A' | 'B'>(onTop);
+
+  // Initialize dual-card indices when modal opens
   useEffect(() => {
-    if (visible) {
-      if (candidates.length > 0) {
-        // When modal opens, use initialIndex if valid, otherwise use 0
-        const validInitialIndex = Math.min(initialIndex, candidates.length - 1);
-        if (validInitialIndex >= 0 && validInitialIndex !== currentIndex) {
-          setCurrentIndex(validInitialIndex);
-        } else {
-          // Ensure current index is valid
-          const validIndex = Math.min(currentIndex, candidates.length - 1);
-          if (validIndex !== currentIndex && validIndex >= 0) {
-            setCurrentIndex(validIndex);
-          }
-        }
-      } else {
-        // No candidates, close modal
-        onClose();
-      }
+    if (visible && candidates.length > 0) {
+      const validInitialIndex = Math.min(initialIndex, candidates.length - 1);
+      const validIndex = validInitialIndex >= 0 ? validInitialIndex : 0;
+      setCurrentIndex(validIndex);
+      setCardAIndex(validIndex);
+      const nextIndex = validIndex + 1;
+      setCardBIndex(nextIndex < candidates.length ? nextIndex : -1);
+      setOnTop('A');
+    } else if (!visible) {
+      // Reset on close
+      setOnTop('A');
     }
-  }, [visible, initialIndex, candidates.length, currentIndex, onClose]);
+  }, [visible, initialIndex, candidates.length]);
 
-  const validIndex = Math.min(currentIndex, candidates.length - 1);
-  const actualIndex = validIndex >= 0 ? validIndex : 0;
+  // Get candidates based on which card is on top
+  // When A is on top: Card A = cardAIndex, Card B = cardBIndex
+  // When B is on top: Card B = cardBIndex, Card A = cardAIndex
+  const cardACandidate =
+    cardAIndex >= 0 && cardAIndex < candidates.length ? candidates[cardAIndex] : null;
+  const cardBCandidate =
+    cardBIndex >= 0 && cardBIndex < candidates.length ? candidates[cardBIndex] : null;
 
-  // Get current and next candidate for Tinder-like stack
-  const currentCandidate = candidates[actualIndex];
-  const hasNextCandidate = actualIndex + 1 < candidates.length;
-  const nextIndex = hasNextCandidate ? actualIndex + 1 : 0;
-  const nextCandidate = hasNextCandidate ? candidates[nextIndex] : null;
+  // Determine which candidate is current based on onTop
+  const currentCandidate = onTop === 'A' ? cardACandidate : cardBCandidate;
+  const nextCandidate = onTop === 'A' ? cardBCandidate : cardACandidate;
 
+  // Current candidate data (the one on top)
   const applicant = currentCandidate?.jobApplicant ?? {};
   const userInfo = currentCandidate?.userInfo ?? {};
   const username = currentCandidate?.username || userInfo?.username || 'unknown';
   const statusColor = getStatusColor(applicant?.applicationStatus || 'applied');
 
-  // Next candidate data
+  // Next candidate data (the one behind)
   const nextApplicant = nextCandidate?.jobApplicant ?? {};
   const nextUserInfo = nextCandidate?.userInfo ?? {};
   const nextUsername = nextCandidate?.username || nextUserInfo?.username || 'unknown';
   const nextStatusColor = getStatusColor(nextApplicant?.applicationStatus || 'applied');
 
+  // Get actual index for display
+  const actualIndex = onTop === 'A' ? cardAIndex : cardBIndex;
+
   // Extract activities (excluding job type)
   const activities = roleWithSchedules?.activities || [];
   const sessionActivities = Array.isArray(activities)
-    ? activities.filter((activity: any) => activity?.type !== 'job').map((activity: any) => activity?.title).filter(Boolean)
+    ? activities
+        .filter((activity: any) => activity?.type !== 'job')
+        .map((activity: any) => activity?.title)
+        .filter(Boolean)
     : [];
 
   // Helper function to determine available actions based on currentProcess
@@ -167,7 +187,7 @@ export function CandidateSwipeModal({
     if (currentProcess === 'shortlisted' || currentProcess === 'offered') {
       return [];
     }
-    
+
     if (currentProcess === 'applied') {
       // At applied: show all sessions + shortlisted (shortlisted should always be at the end)
       // If no sessions, still show shortlisted
@@ -189,8 +209,12 @@ export function CandidateSwipeModal({
       return ['shortlisted'];
     }
     return [];
-  }, [currentProcess, sessionActivities, applicant?.applicationStatus, applicant?.applicationProcess]);
-
+  }, [
+    currentProcess,
+    sessionActivities,
+    applicant?.applicationStatus,
+    applicant?.applicationProcess,
+  ]);
 
   // Helper to get action color by action type
   const getActionColor = (action: string): [string, string] => {
@@ -211,30 +235,25 @@ export function CandidateSwipeModal({
   useEffect(() => {
     availableActionsCount.value = getAvailableActions.length;
     availableActionsRef.current = getAvailableActions;
-    // Debug: log available actions
-    if (visible) {
-      console.log('Available actions:', getAvailableActions, 'for currentProcess:', currentProcess);
-    }
   }, [getAvailableActions, availableActionsCount, visible, currentProcess]);
-  
+
   // Update current applicant ref when candidate changes
   useEffect(() => {
     if (currentCandidate) {
       currentApplicantRef.current = currentCandidate?.jobApplicant;
     }
   }, [currentCandidate]);
-  
+
   // Update current process ref when it changes
   useEffect(() => {
     currentProcessRef.current = currentProcess;
   }, [currentProcess]);
-  
+
   // Update projectId and roleId refs when they change
   useEffect(() => {
     projectIdRef.current = projectId;
     roleIdRef.current = roleId;
   }, [projectId, roleId]);
-
 
   // Reset animation values when candidate changes
   useEffect(() => {
@@ -269,107 +288,153 @@ export function CandidateSwipeModal({
       rejectGradientOpacity.value = 0;
       // Reset dynamic right action opacities array
       rightActionOpacities.value = [0, 0, 0, 0, 0];
-      setHighlightedAction(null);   
+      setHighlightedAction(null);
+      // Reset card scales
+      cardAScale.value = 1;
+      cardBScale.value = 0.95;
     } else if (visible && candidates.length > 0) {
       // When modal opens, set to initialIndex (the clicked card's index)
       const validInitialIndex = Math.min(initialIndex, candidates.length - 1);
       setCurrentIndex(validInitialIndex >= 0 ? validInitialIndex : 0);
+      // Initialize scales
+      cardAScale.value = 1;
+      cardBScale.value = 0.95;
     }
   }, [visible, initialIndex, candidates.length]);
 
-  // Fetch full user profile data
-  const {
-    data: talentProfileData,
-    isLoading: isLoadingTalentProfile,
-  } = useQuery({
-    queryKey: ['userProfile', username],
+  // Update onTop ref when it changes
+  useEffect(() => {
+    onTopRef.current = onTop;
+  }, [onTop]);
+
+  // Handle scale transitions and reset animations when onTop changes
+  useEffect(() => {
+    if (onTop === 'A') {
+      // Card A is now on top - reset animations and set scale to 1.0 instantly (no transition)
+      translateX.value = 0;
+      translateY.value = 0;
+      opacity.value = 1;
+      cardAScale.value = 1; // Instant, no animation
+      // Card B goes behind - reset to 0.95 (will scale up during drag)
+      cardBScale.value = 0.95;
+    } else {
+      // Card B is now on top - reset animations and set scale to 1.0 instantly (no transition)
+      translateX.value = 0;
+      translateY.value = 0;
+      opacity.value = 1;
+      cardBScale.value = 1; // Instant, no animation
+      // Card A goes behind - reset to 0.95 (will scale up during drag)
+      cardAScale.value = 0.95;
+    }
+  }, [onTop, cardAScale, cardBScale, translateX, translateY, opacity]);
+
+  // Get candidate data for Card A and Card B
+  const cardAApplicant = cardACandidate?.jobApplicant ?? {};
+  const cardAUserInfo = cardACandidate?.userInfo ?? {};
+  const cardAUsername = cardACandidate?.username || cardAUserInfo?.username || 'unknown';
+
+  const cardBApplicant = cardBCandidate?.jobApplicant ?? {};
+  const cardBUserInfo = cardBCandidate?.userInfo ?? {};
+  const cardBUsername = cardBCandidate?.username || cardBUserInfo?.username || 'unknown';
+
+  // Fetch full user profile data for Card A
+  const { data: cardATalentProfileData, isLoading: isLoadingCardATalentProfile } = useQuery({
+    queryKey: ['userProfile', cardAUsername],
     queryFn: async () => {
-      if (!username || username === 'unknown' || username.trim() === '') {
+      if (!cardAUsername || cardAUsername === 'unknown' || cardAUsername.trim() === '') {
         return null;
       }
-      return getUserProfileByUsername(username);
+      return getUserProfileByUsername(cardAUsername);
     },
-    enabled: visible && !!username && username !== 'unknown' && username.trim() !== '',
+    enabled:
+      visible && !!cardAUsername && cardAUsername !== 'unknown' && cardAUsername.trim() !== '',
     staleTime: 5 * 60 * 1000,
     retry: false,
   });
 
-  // Fetch contracts for this applicant
+  // Fetch contracts for Card A applicant
   const searchUrl = `projectId=${projectId}&orderBy=createdAt&orderSeq=desc&pageNo=0&pageSize=99`;
-  const {
-    data: contractsData,
-    isLoading: isLoadingContracts,
-  } = useQuery({
-    queryKey: ['applicantContracts', applicant?.soleUserId, projectId],
+  const { data: cardAContractsData, isLoading: isLoadingCardAContracts } = useQuery({
+    queryKey: ['applicantContracts', cardAApplicant?.soleUserId, projectId],
     queryFn: async () => {
-      if (!applicant?.soleUserId || !projectId) return [];
-      const result = await talentSearchJobContracts(applicant.soleUserId, searchUrl);
+      if (!cardAApplicant?.soleUserId || !projectId) return [];
+      const result = await talentSearchJobContracts(cardAApplicant.soleUserId, searchUrl);
       return result?.data || [];
     },
     enabled:
       visible &&
-      !!applicant?.soleUserId &&
+      !!cardAApplicant?.soleUserId &&
       !!projectId &&
-      applicant?.applicationStatus === 'offered',
+      cardAApplicant?.applicationStatus === 'offered',
   });
 
-  // Fetch full user profile data for next candidate
-  const {
-    data: nextTalentProfileData,
-    isLoading: isLoadingNextTalentProfile,
-  } = useQuery({
-    queryKey: ['userProfile', nextUsername],
+  // Fetch full user profile data for Card B
+  const { data: cardBTalentProfileData, isLoading: isLoadingCardBTalentProfile } = useQuery({
+    queryKey: ['userProfile', cardBUsername],
     queryFn: async () => {
-      if (!nextUsername || nextUsername === 'unknown' || nextUsername.trim() === '') {
+      if (!cardBUsername || cardBUsername === 'unknown' || cardBUsername.trim() === '') {
         return null;
       }
-      return getUserProfileByUsername(nextUsername);
+      return getUserProfileByUsername(cardBUsername);
     },
-    enabled: visible && !!nextCandidate && !!nextUsername && nextUsername !== 'unknown' && nextUsername.trim() !== '',
+    enabled:
+      visible && !!cardBUsername && cardBUsername !== 'unknown' && cardBUsername.trim() !== '',
     staleTime: 5 * 60 * 1000,
     retry: false,
   });
 
-  // Fetch contracts for next applicant
-  const {
-    data: nextContractsData,
-    isLoading: isLoadingNextContracts,
-  } = useQuery({
-    queryKey: ['applicantContracts', nextApplicant?.soleUserId, projectId],
+  // Fetch contracts for Card B applicant
+  const { data: cardBContractsData, isLoading: isLoadingCardBContracts } = useQuery({
+    queryKey: ['applicantContracts', cardBApplicant?.soleUserId, projectId],
     queryFn: async () => {
-      if (!nextApplicant?.soleUserId || !projectId) return [];
-      const result = await talentSearchJobContracts(nextApplicant.soleUserId, searchUrl);
+      if (!cardBApplicant?.soleUserId || !projectId) return [];
+      const result = await talentSearchJobContracts(cardBApplicant.soleUserId, searchUrl);
       return result?.data || [];
     },
     enabled:
       visible &&
-      !!nextCandidate &&
-      !!nextApplicant?.soleUserId &&
+      !!cardBApplicant?.soleUserId &&
       !!projectId &&
-      nextApplicant?.applicationStatus === 'offered',
+      cardBApplicant?.applicationStatus === 'offered',
   });
+
+  // Use data based on which card is on top (for backward compatibility with existing code)
+  const talentProfileData = onTop === 'A' ? cardATalentProfileData : cardBTalentProfileData;
+  const isLoadingTalentProfile =
+    onTop === 'A' ? isLoadingCardATalentProfile : isLoadingCardBTalentProfile;
+  const contractsData = onTop === 'A' ? cardAContractsData : cardBContractsData;
+  const isLoadingContracts = onTop === 'A' ? isLoadingCardAContracts : isLoadingCardBContracts;
+
+  const nextTalentProfileData = onTop === 'A' ? cardBTalentProfileData : cardATalentProfileData;
+  const isLoadingNextTalentProfile =
+    onTop === 'A' ? isLoadingCardBTalentProfile : isLoadingCardATalentProfile;
+  const nextContractsData = onTop === 'A' ? cardBContractsData : cardAContractsData;
+  const isLoadingNextContracts = onTop === 'A' ? isLoadingCardBContracts : isLoadingCardAContracts;
 
   // Mutation for updating applicant status
   const updateApplicantMutation = useMutation({
-    mutationFn: async ({ 
-      applicantId, 
-      status, 
-      process 
-    }: { 
-      applicantId: number; 
+    mutationFn: async ({
+      applicantId,
+      status,
+      process,
+    }: {
+      applicantId: number;
       status: string;
       process?: string;
     }) => {
-      const applicationProcess = process || (status === 'rejected' ? 'rejected' : currentProcessRef.current);
+      const applicationProcess =
+        process || (status === 'rejected' ? 'rejected' : currentProcessRef.current);
       const applicantData = currentApplicantRef.current;
-      
+
       // Include all required fields like the web version does - must preserve all existing fields
       // The web version explicitly uses projectData.id for projectId
       const updateValues: any = {
         id: applicantData?.id || applicantId,
         soleUserId: applicantData?.soleUserId || null,
         roleId: applicantData?.roleId || (roleIdRef.current ? Number(roleIdRef.current) : null),
-        projectId: projectIdRef.current ? Number(projectIdRef.current) : (applicantData?.projectId || null),
+        projectId: projectIdRef.current
+          ? Number(projectIdRef.current)
+          : applicantData?.projectId || null,
         paymentBasis: applicantData?.paymentBasis || null,
         quotePrice: applicantData?.quotePrice || null,
         otQuotePrice: applicantData?.otQuotePrice || null,
@@ -378,26 +443,30 @@ export function CandidateSwipeModal({
         applicationStatus: status,
         applicationProcess: applicationProcess,
       };
-      
-      console.log('Updating applicant with values:', JSON.stringify(updateValues, null, 2));
-      
+
       return updateApplicantProcessById(updateValues, applicantId);
     },
     onSuccess: (_, variables) => {
       queryClientRef.current?.invalidateQueries({ queryKey: ['role-candidates'] });
       queryClientRef.current?.invalidateQueries({ queryKey: ['role-process-counts'] });
       onCandidateUpdatedRef.current?.();
-      
-      // Directly go to next candidate after a short delay to allow query to update
+
+      // Reset animations for the swiped card (instant, no animation)
+      translateX.value = 0;
+      translateY.value = 0;
+      opacity.value = 1;
+
+      // Trigger card swap after a delay to allow query to update
+      // Use a longer delay to ensure the candidate list has been updated
       setTimeout(() => {
-        handleNextCandidateRef.current?.();
-      }, 200);
+        handleCardSwipeCompleteRef.current?.();
+      }, 300);
     },
     onError: (error) => {
       Alert.alert('Error', 'Failed to execute action. Please try again.', [{ text: 'OK' }]);
     },
   });
-  
+
   // Store mutation function in ref for worklet access
   useEffect(() => {
     mutationMutateRef.current = updateApplicantMutation.mutate;
@@ -405,54 +474,84 @@ export function CandidateSwipeModal({
     onCandidateUpdatedRef.current = onCandidateUpdated;
   }, [updateApplicantMutation.mutate, queryClient, onCandidateUpdated]);
 
-  const handleNextCandidate = () => {
-    // After action, the candidate list may have changed due to filtering
-    // The current candidate may no longer be in the filtered list
-    
-    // Check if there are any candidates left
+  // Handle card swipe completion - switch cards and update indices
+  const handleCardSwipeComplete = useCallback(() => {
+    // Check if we have any candidates left
     if (candidates.length === 0) {
+      onClose();
+      return;
+    }
+
+    // Get the current top card's index
+    const currentTopIndex = onTop === 'A' ? cardAIndex : cardBIndex;
+
+    // Find the next valid candidate index
+    // Start from the next index after the current top card
+    let nextIndex = currentTopIndex + 1;
+
+    // If we've gone past the end, or if the current candidate is no longer in the list,
+    // find the first valid candidate
+    if (
+      nextIndex >= candidates.length ||
+      currentTopIndex < 0 ||
+      currentTopIndex >= candidates.length
+    ) {
+      // The current candidate was removed or list changed, start from beginning
+      nextIndex = 0;
+    }
+
+    // Validate the next index
+    if (nextIndex >= candidates.length) {
       // No more candidates, close modal
       onClose();
       return;
     }
-    
-    // Since the current candidate was moved/updated, it may no longer be in the filtered list
-    // Check if we need to adjust the index
-    let nextIndex = currentIndex;
-    
-    // If current index is out of bounds (candidate was removed), go to first
-    if (currentIndex >= candidates.length) {
-      nextIndex = 0;
+
+    // Switch which card is on top
+    const newOnTop = onTop === 'A' ? 'B' : 'A';
+    setOnTop(newOnTop);
+
+    // Update the new top card's index to the next valid candidate
+    if (newOnTop === 'A') {
+      setCardAIndex(nextIndex);
+      setCurrentIndex(nextIndex);
+      // Update Card B to the next candidate after Card A
+      const cardBNextIndex = nextIndex + 1;
+      if (cardBNextIndex < candidates.length) {
+        setCardBIndex(cardBNextIndex);
+      } else {
+        setCardBIndex(-1);
+      }
     } else {
-      // Try to move to next candidate
-      nextIndex = currentIndex + 1;
-      
-      // If we've reached the end, go to first candidate
-      if (nextIndex >= candidates.length) {
-        nextIndex = 0;
+      setCardBIndex(nextIndex);
+      setCurrentIndex(nextIndex);
+      // Update Card A to the next candidate after Card B
+      const cardANextIndex = nextIndex + 1;
+      if (cardANextIndex < candidates.length) {
+        setCardAIndex(cardANextIndex);
+      } else {
+        setCardAIndex(-1);
       }
     }
-    
-    // If we have candidates, go to the calculated index (or first if all moved)
-    if (candidates.length > 0) {
-      setCurrentIndex(nextIndex);
-    } else {
-      // No candidates at all, close modal
-      onClose();
-    }
+  }, [onTop, cardAIndex, cardBIndex, candidates.length, onClose]);
+
+  const handleNextCandidate = () => {
+    // Trigger card swipe completion instead of directly updating index
+    handleCardSwipeComplete();
   };
-  
-  // Update handleNextCandidate ref after it's defined
+
+  // Update handleCardSwipeComplete ref for mutation access
+  const handleCardSwipeCompleteRef = useRef(handleCardSwipeComplete);
   useEffect(() => {
-    handleNextCandidateRef.current = handleNextCandidate;
-  }, [handleNextCandidate, candidates.length, currentIndex]);
+    handleCardSwipeCompleteRef.current = handleCardSwipeComplete;
+  }, [handleCardSwipeComplete]);
 
   const handleReject = () => {
     if (!applicant?.id) return;
-    
+
     // Just show alert and execute - no confirmation needed
     Alert.alert('Candidate Rejected', 'The candidate has been rejected.', [{ text: 'OK' }]);
-    
+
     updateApplicantMutation.mutate({
       applicantId: applicant.id,
       status: 'rejected',
@@ -481,12 +580,16 @@ export function CandidateSwipeModal({
     const action = availableActionsRef.current[actionIndex];
     const applicantData = currentApplicantRef.current;
     const mutateFn = mutationMutateRef.current;
-    
+
     if (!action || !applicantData?.id || !mutateFn) {
-      console.warn('Cannot execute action: missing data', { action, applicantData: !!applicantData, mutateFn: !!mutateFn });
+      console.warn('Cannot execute action: missing data', {
+        action,
+        applicantData: !!applicantData,
+        mutateFn: !!mutateFn,
+      });
       return;
     }
-    
+
     // Directly execute based on action type - no confirmation needed
     if (action === 'shortlisted') {
       mutateFn({
@@ -526,8 +629,9 @@ export function CandidateSwipeModal({
     opacity.value = withTiming(0);
   };
 
-  // Header pan gesture - only vertical (down) drag for closing
+  // Header pan gesture - only vertical (down) drag for closing - enabled when any card is on top
   const headerPanGesture = Gesture.Pan()
+    .enabled(true) // Always enabled, but only affects the card that's on top via animated styles
     .activeOffsetY([0, 1]) // Only activate on downward movement
     .failOffsetX([-50, 50]) // Fail if horizontal movement exceeds 50px
     .minDistance(10) // Require 10px movement before activation
@@ -539,7 +643,7 @@ export function CandidateSwipeModal({
     .onEnd((event) => {
       'worklet';
       const { translationY, velocityY } = event;
-      
+
       // Swipe down to close
       if (translationY > SWIPE_THRESHOLD || velocityY > 500) {
         executeSwipeDown();
@@ -551,6 +655,7 @@ export function CandidateSwipeModal({
 
   // Content pan gesture - horizontal swipes for actions, only when scroll is at top
   const contentPanGesture = Gesture.Pan()
+    .enabled(true) // Always enabled, but only affects the card that's on top via animated styles
     .activeOffsetX([-15, 15]) // Activate on horizontal movement (15px threshold)
     .failOffsetY([-50, 50]) // Fail if too much vertical movement
     .minDistance(15) // Require 15px movement before activation
@@ -567,17 +672,43 @@ export function CandidateSwipeModal({
       if (scrollY.value > 10) {
         return;
       }
-      
+
       // Better threshold: if vertical movement is 1.5x horizontal, prioritize scrolling
       if (Math.abs(event.translationY) > Math.abs(event.translationX) * 1.5) {
         return;
       }
-      
+
       translateX.value = event.translationX;
-      
+
       const maxDragDistance = SCREEN_WIDTH - MODAL_MARGIN * 2;
       const modalCenterY = (SCREEN_HEIGHT - MODAL_HEIGHT) / 2 + MODAL_HEIGHT / 2;
       const actionThreshold = 120; // Y position threshold for shortlist vs invite (wider)
+      
+      // Calculate drag progress for back card scaling (0 to 1)
+      // Scale the back card as front card approaches action/reject areas
+      let dragProgressForScale = 0;
+      const isDraggingLeft = event.translationX < -30;
+      const isDraggingRight = event.translationX > 30;
+      
+      if (isDraggingLeft || isDraggingRight) {
+        // Calculate progress based on how close to the threshold
+        const absTranslationX = Math.abs(event.translationX);
+        dragProgressForScale = Math.min(absTranslationX / SWIPE_THRESHOLD, 1); // Scale from 0 to 1 as we approach threshold
+      }
+      
+      // Animate back card scale based on drag progress
+      // Scale from 0.95 to 1.0 as front card gets closer to action/reject areas
+      const targetBackScale = 0.95 + (dragProgressForScale * 0.05); // From 0.95 to 1.0
+      
+      // Use ref to access onTop in worklet
+      const currentOnTop = onTopRef.current;
+      if (currentOnTop === 'A') {
+        // Card A is front, Card B is behind - scale Card B
+        cardBScale.value = withTiming(targetBackScale, { duration: 100 });
+      } else {
+        // Card B is front, Card A is behind - scale Card A
+        cardAScale.value = withTiming(targetBackScale, { duration: 100 });
+      }
 
       // Handle LEFT swipe (Reject) - show gradient when dragging left
       // Disable reject when at offered status
@@ -587,7 +718,7 @@ export function CandidateSwipeModal({
         if (!isOffered) {
           // Calculate opacity based on drag distance (closer to edge = brighter)
           const dragProgress = Math.min(Math.abs(event.translationX) / maxDragDistance, 1);
-          const targetOpacity = 0.4 + (dragProgress * 0.6); // From 0.4 to 1.0
+          const targetOpacity = 0.4 + dragProgress * 0.6; // From 0.4 to 1.0
           rejectGradientOpacity.value = withTiming(targetOpacity);
           runOnJS(setHighlightedAction)('reject');
         } else {
@@ -605,27 +736,30 @@ export function CandidateSwipeModal({
       // Handle RIGHT swipe (Dynamic actions) - show gradients when dragging right
       if (event.translationX > 30) {
         const dragProgress = Math.min(event.translationX / maxDragDistance, 1);
-        const baseOpacity = 0.3 + (dragProgress * 0.7); // From 0.3 to 1.0
+        const baseOpacity = 0.3 + dragProgress * 0.7; // From 0.3 to 1.0
         const dimOpacity = baseOpacity * 0.4;
-        
+
         // Calculate Y position on screen (0 to SCREEN_HEIGHT)
-        const screenY = (SCREEN_HEIGHT / 2) + event.translationY;
+        const screenY = SCREEN_HEIGHT / 2 + event.translationY;
         const clampedY = Math.max(0, Math.min(SCREEN_HEIGHT, screenY));
         const actionCount = availableActionsCount.value;
         const actionHeight = SCREEN_HEIGHT / Math.max(actionCount, 1);
-        const actionIndex = Math.min(Math.max(0, Math.floor(clampedY / actionHeight)), Math.min(actionCount - 1, 4));
-        
+        const actionIndex = Math.min(
+          Math.max(0, Math.floor(clampedY / actionHeight)),
+          Math.min(actionCount - 1, 4)
+        );
+
         // Update array-based opacities - light up all actions dimly first
         const newOpacities = [...rightActionOpacities.value];
         for (let i = 0; i < Math.min(actionCount, 5); i++) {
           newOpacities[i] = dimOpacity;
         }
-        
+
         // Brightly highlight the action being dragged to (if drag is far enough)
         if (dragProgress > 0.3 && actionIndex >= 0 && actionIndex < actionCount) {
           newOpacities[actionIndex] = baseOpacity;
-        } 
-        
+        }
+
         rightActionOpacities.value = newOpacities;
       } else {
         // Hide all right gradients if not dragging right
@@ -640,6 +774,13 @@ export function CandidateSwipeModal({
         // Hide gradients
         rejectGradientOpacity.value = withTiming(0);
         rightActionOpacities.value = [0, 0, 0, 0, 0];
+        // Reset back card scale
+        const currentOnTop = onTopRef.current;
+        if (currentOnTop === 'A') {
+          cardBScale.value = withTiming(0.95, { duration: 200 });
+        } else {
+          cardAScale.value = withTiming(0.95, { duration: 200 });
+        }
         return;
       }
 
@@ -660,12 +801,19 @@ export function CandidateSwipeModal({
         const isOffered = currentProcessRef.current === 'offered';
         if (!isOffered && rejectGradientOpacity.value > highlightOpacityThreshold) {
           // Area is highlighted and not at offered status, trigger action
+          // Back card scale will be handled in the mutation onSuccess
           executeSwipeLeftReject();
         } else {
           // No area highlighted or at offered status, smooth slide back
           translateX.value = withTiming(0, { duration: 300 });
           rejectGradientOpacity.value = withTiming(0);
           runOnJS(setHighlightedAction)(null);
+          // Reset back card scale
+          if (onTop === 'A') {
+            cardBScale.value = withTiming(0.95, { duration: 200 });
+          } else {
+            cardAScale.value = withTiming(0.95, { duration: 200 });
+          }
         }
         return;
       }
@@ -673,23 +821,35 @@ export function CandidateSwipeModal({
       // Swipe RIGHT - trigger based on highlighted action index
       if (draggedToRightEdge) {
         const actionCount = availableActionsCount.value;
-        const screenY = (SCREEN_HEIGHT / 2) + translationY;
+        const screenY = SCREEN_HEIGHT / 2 + translationY;
         const clampedY = Math.max(0, Math.min(SCREEN_HEIGHT, screenY));
         const actionHeight = SCREEN_HEIGHT / Math.max(actionCount, 1);
-        const actionIndex = Math.min(Math.max(0, Math.floor(clampedY / actionHeight)), Math.min(actionCount - 1, 4));
-        
+        const actionIndex = Math.min(
+          Math.max(0, Math.floor(clampedY / actionHeight)),
+          Math.min(actionCount - 1, 4)
+        );
+
         // Check if any action is highlighted enough using array
         const currentOpacities = rightActionOpacities.value;
-        const isHighlighted = actionIndex >= 0 && actionIndex < actionCount && 
-                              currentOpacities[actionIndex] > highlightOpacityThreshold;
-        
+        const isHighlighted =
+          actionIndex >= 0 &&
+          actionIndex < actionCount &&
+          currentOpacities[actionIndex] > highlightOpacityThreshold;
+
         if (isHighlighted) {
           // Area is highlighted, trigger action
+          // Back card scale will be handled in the mutation onSuccess
           executeSwipeRightAction(actionIndex);
         } else {
           // No area highlighted, smooth slide back
           translateX.value = withTiming(0, { duration: 300 });
           rightActionOpacities.value = [0, 0, 0, 0, 0];
+          // Reset back card scale
+          if (onTop === 'A') {
+            cardBScale.value = withTiming(0.95, { duration: 200 });
+          } else {
+            cardAScale.value = withTiming(0.95, { duration: 200 });
+          }
         }
         return;
       }
@@ -700,6 +860,12 @@ export function CandidateSwipeModal({
       rejectGradientOpacity.value = withTiming(0);
       rightActionOpacities.value = [0, 0, 0, 0, 0];
       runOnJS(setHighlightedAction)(null);
+      // Reset back card scale
+      if (onTop === 'A') {
+        cardBScale.value = withTiming(0.95, { duration: 200 });
+      } else {
+        cardAScale.value = withTiming(0.95, { duration: 200 });
+      }
     });
 
   // Scroll handler to track scroll position
@@ -715,37 +881,39 @@ export function CandidateSwipeModal({
     },
   });
 
-  // Animated styles
-  const cardAnimatedStyle = useAnimatedStyle(() => {
+  // Animated styles for Card A
+  const cardAAnimatedStyle = useAnimatedStyle(() => {
     const maxTranslate = SCREEN_WIDTH - MODAL_MARGIN * 2;
-    const rotate = interpolate(translateX.value, [-maxTranslate, 0, maxTranslate], [-15, 0, 15]);
+    const rotate =
+      onTop === 'A'
+        ? interpolate(translateX.value, [-maxTranslate, 0, maxTranslate], [-15, 0, 15])
+        : 0;
     return {
       transform: [
-        { translateX: translateX.value },
-        { translateY: translateY.value },
+        { translateX: onTop === 'A' ? translateX.value : 0 },
+        { translateY: onTop === 'A' ? translateY.value : 0 },
         { rotate: `${rotate}deg` },
+        { scale: cardAScale.value },
       ],
-      opacity: opacity.value,
-      zIndex: 2,
+      opacity: onTop === 'A' ? opacity.value : 1,
     };
   });
 
-  // Next card animated style (behind current card)
-  const nextCardAnimatedStyle = useAnimatedStyle(() => {
-    // When current card is being swiped, animate next card forward
+  // Animated styles for Card B
+  const cardBAnimatedStyle = useAnimatedStyle(() => {
     const maxTranslate = SCREEN_WIDTH - MODAL_MARGIN * 2;
-    const swipeProgress = Math.min(Math.abs(translateX.value) / maxTranslate, 1);
-    const scale = interpolate(swipeProgress, [0, 1], [0.95, 1], 'clamp');
-    const nextOpacity = interpolate(swipeProgress, [0, 1], [0.8, 1], 'clamp');
-    const nextTranslateY = interpolate(swipeProgress, [0, 1], [10, 0], 'clamp');
-    
+    const rotate =
+      onTop === 'B'
+        ? interpolate(translateX.value, [-maxTranslate, 0, maxTranslate], [-15, 0, 15])
+        : 0;
     return {
       transform: [
-        { scale: scale },
-        { translateY: nextTranslateY },
+        { translateX: onTop === 'B' ? translateX.value : 0 },
+        { translateY: onTop === 'B' ? translateY.value : 0 },
+        { rotate: `${rotate}deg` },
+        { scale: cardBScale.value },
       ],
-      opacity: nextOpacity,
-      zIndex: 1,
+      opacity: onTop === 'B' ? opacity.value : 1,
     };
   });
 
@@ -811,7 +979,7 @@ export function CandidateSwipeModal({
       opacity: opacity > 0.3 ? 1 : opacity * 2,
     };
   });
-  
+
   // Array of styles for easy access by index
   const rightActionGradientStyles = [
     rightAction0GradientStyle,
@@ -820,7 +988,7 @@ export function CandidateSwipeModal({
     rightAction3GradientStyle,
     rightAction4GradientStyle,
   ];
-  
+
   const rightActionTextStyles = [
     rightAction0TextStyle,
     rightAction1TextStyle,
@@ -835,16 +1003,37 @@ export function CandidateSwipeModal({
     { id: 'actions', label: 'Actions' },
   ];
 
+  // Validate and fix indices when candidates list changes
+  useEffect(() => {
+    if (!visible || candidates.length === 0) return;
+
+    // Validate Card A index
+    if (cardAIndex < 0 || cardAIndex >= candidates.length) {
+      setCardAIndex(0);
+      setCurrentIndex(0);
+      setOnTop('A');
+    }
+
+    // Validate Card B index
+    if (cardBIndex >= candidates.length) {
+      setCardBIndex(cardBIndex < candidates.length ? cardBIndex : -1);
+    }
+
+    // If Card A is invalid but we have candidates, reset to first
+    if (cardAIndex < 0 && candidates.length > 0) {
+      setCardAIndex(0);
+      setCardBIndex(1 < candidates.length ? 1 : -1);
+      setCurrentIndex(0);
+      setOnTop('A');
+    }
+  }, [candidates.length, visible, cardAIndex, cardBIndex]);
+
   if (!visible || !currentCandidate) {
     return null;
   }
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="none"
-      onRequestClose={handleClose}>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={handleClose}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View className="flex-1 justify-center" style={{ paddingHorizontal: MODAL_MARGIN }}>
           {/* Backdrop */}
@@ -867,8 +1056,9 @@ export function CandidateSwipeModal({
               width: SCREEN_WIDTH - MODAL_MARGIN * 2,
               position: 'relative',
             }}>
-            {/* Next Card (Behind) - Only show if there's a next candidate */}
-            {nextCandidate && (
+            {/* Render cards in order: behind card first, front card last (like exp.tsx) */}
+            {/* Card B (Behind when onTop === 'A', Front when onTop === 'B') */}
+            {cardBCandidate && (
               <Animated.View
                 style={[
                   {
@@ -877,10 +1067,11 @@ export function CandidateSwipeModal({
                     width: SCREEN_WIDTH - MODAL_MARGIN * 2,
                     borderRadius: 28,
                     borderWidth: 1,
-                    borderColor: 'rgba(255, 255, 255, 0.25)',
+                    borderColor: onTop === 'B' ? 'rgb(21, 0, 255)' : 'rgb(255, 0, 0)',
                     overflow: 'hidden',
+                    zIndex: onTop === 'B' ? 2 : 1, // Set z-index directly like exp.tsx
                   },
-                  nextCardAnimatedStyle,
+                  cardBAnimatedStyle,
                 ]}>
                 {/* Blur Background */}
                 <BlurView
@@ -900,7 +1091,7 @@ export function CandidateSwipeModal({
                 {/* Handle Bar and Header */}
                 <View>
                   {/* Handle Bar */}
-                  <View className="items-center pt-4 pb-2">
+                  <View className="items-center pb-2 pt-4">
                     <View
                       style={{
                         width: 40,
@@ -912,12 +1103,12 @@ export function CandidateSwipeModal({
                   </View>
 
                   {/* Header */}
-                  <View className="flex-row items-center justify-between px-4 py-3 border-b border-white/10">
-                    <View className="p-2 -ml-2" />
-                    <Text className="text-lg font-semibold text-white flex-1 text-center">
-                      {nextIndex + 1} / {candidates.length}
+                  <View className="flex-row items-center justify-between border-b border-white/10 px-4 py-3">
+                    <View className="-ml-2 p-2" />
+                    <Text className="flex-1 text-center text-lg font-semibold text-white">
+                      {cardBIndex >= 0 ? cardBIndex + 1 : 0} / {candidates.length}
                     </Text>
-                    <View className="p-2 -mr-2" />
+                    <View className="-mr-2 p-2" />
                   </View>
                 </View>
 
@@ -933,28 +1124,34 @@ export function CandidateSwipeModal({
                       <Image
                         source={{
                           uri:
-                            nextTalentProfileData?.userInfo?.profilePic ||
-                            nextCandidate?.comcardFirstPic ||
-                            nextUserInfo?.profilePic ||
+                            cardBTalentProfileData?.userInfo?.profilePic ||
+                            cardBCandidate?.comcardFirstPic ||
+                            cardBUserInfo?.profilePic ||
                             undefined,
                         }}
-                        className="w-20 h-20 rounded-full bg-zinc-700"
+                        className="h-20 w-20 rounded-full bg-zinc-700"
                       />
                       <View className="flex-1">
                         <Text className="text-lg font-semibold text-white">
-                          {nextTalentProfileData?.userInfo?.name || nextUserInfo?.name || 'Unnamed candidate'}
+                          {cardBTalentProfileData?.userInfo?.name ||
+                            cardBUserInfo?.name ||
+                            'Unnamed candidate'}
                         </Text>
-                        <Text className="text-sm text-white/60">@{nextUsername}</Text>
+                        <Text className="text-sm text-white/60">@{cardBUsername}</Text>
                         <View
-                          className="mt-2 px-3 py-1.5 rounded-full border self-start"
+                          className="mt-2 self-start rounded-full border px-3 py-1.5"
                           style={{
-                            backgroundColor: nextStatusColor + '20',
-                            borderColor: nextStatusColor + '60',
+                            backgroundColor:
+                              getStatusColor(cardBApplicant?.applicationStatus || 'applied') + '20',
+                            borderColor:
+                              getStatusColor(cardBApplicant?.applicationStatus || 'applied') + '60',
                           }}>
                           <Text
                             className="text-xs font-bold uppercase tracking-wide"
-                            style={{ color: nextStatusColor }}>
-                            {nextApplicant?.applicationStatus || 'applied'}
+                            style={{
+                              color: getStatusColor(cardBApplicant?.applicationStatus || 'applied'),
+                            }}>
+                            {cardBApplicant?.applicationStatus || 'applied'}
                           </Text>
                         </View>
                       </View>
@@ -969,26 +1166,26 @@ export function CandidateSwipeModal({
                   {/* Tab Content */}
                   <View className="px-4 pb-8">
                     <View className="">
-                      {isLoadingNextTalentProfile ? (
+                      {isLoadingCardBTalentProfile ? (
                         <View className="py-8">
                           <ActivityIndicator size="large" color="#3b82f6" />
                         </View>
-                      ) : !nextTalentProfileData || !nextTalentProfileData.talentInfo ? (
+                      ) : !cardBTalentProfileData || !cardBTalentProfileData.talentInfo ? (
                         <View className="py-8">
-                          <Text className="text-base font-semibold text-white mb-2 text-center">
+                          <Text className="mb-2 text-center text-base font-semibold text-white">
                             Profile Not Available
                           </Text>
-                          <Text className="text-sm text-white/60 text-center">
-                            {nextUsername === 'unknown'
+                          <Text className="text-center text-sm text-white/60">
+                            {cardBUsername === 'unknown'
                               ? "This user's profile information is not available."
                               : 'Unable to load profile data for this user.'}
                           </Text>
                         </View>
                       ) : (
                         <TalentProfile
-                          userProfileData={nextTalentProfileData}
-                          talentLevel={parseInt(nextTalentProfileData?.talentLevel || '0')}
-                          talentInfo={nextTalentProfileData?.talentInfo}
+                          userProfileData={cardBTalentProfileData}
+                          talentLevel={parseInt(cardBTalentProfileData?.talentLevel || '0')}
+                          talentInfo={cardBTalentProfileData?.talentInfo}
                           isOwnProfile={false}
                         />
                       )}
@@ -998,257 +1195,364 @@ export function CandidateSwipeModal({
               </Animated.View>
             )}
 
-            {/* Current Card (Front) */}
-            <Animated.View
-              style={[
-                {
-                  height: MODAL_HEIGHT,
-                  width: SCREEN_WIDTH - MODAL_MARGIN * 2,
-                  borderRadius: 28,
-                  borderWidth: 1,
-                  borderColor: 'rgba(255, 255, 255, 0.35)',
-                  overflow: 'hidden',
-                  position: 'relative',
-                },
-                cardAnimatedStyle,
-              ]}>
-            {/* Blur Background */}
-            <BlurView
-              intensity={100}
-              tint="dark"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-              }}
-            />
-            {/* Semi-transparent overlay */}
-            <View className="bg-black/12 absolute inset-0" />
+            {/* Card A (Front when onTop === 'A', Behind when onTop === 'B') */}
+            {cardACandidate && (
+              <Animated.View
+                style={[
+                  {
+                    position: 'absolute',
+                    height: MODAL_HEIGHT,
+                    width: SCREEN_WIDTH - MODAL_MARGIN * 2,
+                    borderRadius: 28,
+                    borderWidth: 1,
+                    borderColor: onTop === 'A' ? 'rgb(21, 0, 255)' : 'rgb(255, 0, 0)',
+                    overflow: 'hidden',
+                    zIndex: onTop === 'A' ? 2 : 1, // Set z-index directly like exp.tsx
+                  },
+                  cardAAnimatedStyle,
+                ]}>
+                {/* Blur Background */}
+                <BlurView
+                  intensity={100}
+                  tint="dark"
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                  }}
+                />
+                {/* Semi-transparent overlay */}
+                <View className="bg-black/12 absolute inset-0" />
 
-            {/* Handle Bar and Header - with header gesture */}
-            <GestureDetector gesture={headerPanGesture}>
-              <View>
-                {/* Handle Bar */}
-                <View className="items-center pt-4 pb-2">
-                  <View
-                    style={{
-                      width: 40,
-                      height: 5,
-                      borderRadius: 3,
-                      backgroundColor: 'rgba(255, 255, 255, 0.4)',
-                    }}
-                  />
-                </View>
-
-                {/* Header */}
-                <View className="flex-row items-center justify-between px-4 py-3 border-b border-white/10">
-                  <TouchableOpacity onPress={handleClose} className="p-2 -ml-2">
-                    <ChevronLeft size={24} color="#ffffff" />
-                  </TouchableOpacity>
-                  <Text className="text-lg font-semibold text-white flex-1 text-center">
-                    {actualIndex + 1} / {candidates.length}
-                  </Text>
-                  <TouchableOpacity onPress={handleClose} className="p-2 -mr-2">
-                    <X size={24} color="#ffffff" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </GestureDetector>
-
-              {/* Content - with content gesture for horizontal swipes */}
-              <GestureDetector gesture={contentPanGesture}>
-                <Animated.ScrollView
-                  className="flex-1"
-                  showsVerticalScrollIndicator={false}
-                  bounces={false}
-                  scrollEnabled={true}
-                  onScroll={scrollHandler}
-                  scrollEventThrottle={16}>
-                  {/* Candidate Header Card */}
-                  <View className="mx-4 mt-4 rounded-2xl border border-white/10 bg-zinc-800 p-4">
-                    <View className="flex-row items-center gap-4">
-                      <Image
-                        source={{
-                          uri:
-                            talentProfileData?.userInfo?.profilePic ||
-                            currentCandidate?.comcardFirstPic ||
-                            userInfo?.profilePic ||
-                            undefined,
+                {/* Handle Bar and Header - with header gesture (only interactive when Card A is on top) */}
+                <GestureDetector
+                  gesture={onTop === 'A' ? headerPanGesture : Gesture.Pan().enabled(false)}>
+                  <View>
+                    {/* Handle Bar */}
+                    <View className="items-center pb-2 pt-4">
+                      <View
+                        style={{
+                          width: 40,
+                          height: 5,
+                          borderRadius: 3,
+                          backgroundColor: 'rgba(255, 255, 255, 0.4)',
                         }}
-                        className="w-20 h-20 rounded-full bg-zinc-700"
                       />
-                      <View className="flex-1">
-                        <Text className="text-lg font-semibold text-white">
-                          {talentProfileData?.userInfo?.name || userInfo?.name || 'Unnamed candidate'}
-                        </Text>
-                        <Text className="text-sm text-white/60">@{username}</Text>
-                        <View
-                          className="mt-2 px-3 py-1.5 rounded-full border self-start"
-                          style={{
-                            backgroundColor: statusColor + '20',
-                            borderColor: statusColor + '60',
-                          }}>
-                          <Text
-                            className="text-xs font-bold uppercase tracking-wide"
-                            style={{ color: statusColor }}>
-                            {applicant?.applicationStatus || 'applied'}
+                    </View>
+
+                    {/* Header */}
+                    <View className="flex-row items-center justify-between border-b border-white/10 px-4 py-3">
+                      {onTop === 'A' ? (
+                        <>
+                          <TouchableOpacity onPress={handleClose} className="-ml-2 p-2">
+                            <ChevronLeft size={24} color="#ffffff" />
+                          </TouchableOpacity>
+                          <Text className="flex-1 text-center text-lg font-semibold text-white">
+                            {cardAIndex >= 0 ? cardAIndex + 1 : 0} / {candidates.length}
                           </Text>
-                        </View>
-                      </View>
+                          <TouchableOpacity onPress={handleClose} className="-mr-2 p-2">
+                            <X size={24} color="#ffffff" />
+                          </TouchableOpacity>
+                        </>
+                      ) : (
+                        <>
+                          <View className="-ml-2 p-2" />
+                          <Text className="flex-1 text-center text-lg font-semibold text-white">
+                            {cardAIndex >= 0 ? cardAIndex + 1 : 0} / {candidates.length}
+                          </Text>
+                          <View className="-mr-2 p-2" />
+                        </>
+                      )}
                     </View>
                   </View>
+                </GestureDetector>
 
-                  {/* Tabs */}
-                  <View className="mt-4 px-4">
-                    <CustomTabs tabs={tabs} value={currentTab} onValueChange={setCurrentTab} />
-                  </View>
+                {/* Content - with content gesture for horizontal swipes (only interactive when Card A is on top) */}
+                {onTop === 'A' ? (
+                  <GestureDetector gesture={contentPanGesture}>
+                    <Animated.ScrollView
+                      className="flex-1"
+                      showsVerticalScrollIndicator={false}
+                      bounces={false}
+                      scrollEnabled={true}
+                      onScroll={onTop === 'A' ? scrollHandler : undefined}
+                      scrollEventThrottle={16}>
+                      {/* Candidate Header Card */}
+                      <View className="mx-4 mt-4 rounded-2xl border border-white/10 bg-zinc-800 p-4">
+                        <View className="flex-row items-center gap-4">
+                          <Image
+                            source={{
+                              uri:
+                                cardATalentProfileData?.userInfo?.profilePic ||
+                                cardACandidate?.comcardFirstPic ||
+                                cardAUserInfo?.profilePic ||
+                                undefined,
+                            }}
+                            className="h-20 w-20 rounded-full bg-zinc-700"
+                          />
+                          <View className="flex-1">
+                            <Text className="text-lg font-semibold text-white">
+                              {cardATalentProfileData?.userInfo?.name ||
+                                cardAUserInfo?.name ||
+                                'Unnamed candidate'}
+                            </Text>
+                            <Text className="text-sm text-white/60">@{cardAUsername}</Text>
+                            <View
+                              className="mt-2 self-start rounded-full border px-3 py-1.5"
+                              style={{
+                                backgroundColor:
+                                  getStatusColor(cardAApplicant?.applicationStatus || 'applied') +
+                                  '20',
+                                borderColor:
+                                  getStatusColor(cardAApplicant?.applicationStatus || 'applied') +
+                                  '60',
+                              }}>
+                              <Text
+                                className="text-xs font-bold uppercase tracking-wide"
+                                style={{
+                                  color: getStatusColor(
+                                    cardAApplicant?.applicationStatus || 'applied'
+                                  ),
+                                }}>
+                                {cardAApplicant?.applicationStatus || 'applied'}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      </View>
 
-                  {/* Tab Content */}
-                  <View className="px-4 pb-8">
-                    {currentTab === 'talent-profile' && (
-                      <View className="">
-                        {isLoadingTalentProfile ? (
-                          <View className="py-8">
-                            <ActivityIndicator size="large" color="#3b82f6" />
+                      {/* Tabs */}
+                      <View className="mt-4 px-4">
+                        <CustomTabs tabs={tabs} value={currentTab} onValueChange={setCurrentTab} />
+                      </View>
+
+                      {/* Tab Content */}
+                      <View className="px-4 pb-8">
+                        {currentTab === 'talent-profile' && (
+                          <View className="">
+                            {isLoadingCardATalentProfile ? (
+                              <View className="py-8">
+                                <ActivityIndicator size="large" color="#3b82f6" />
+                              </View>
+                            ) : !cardATalentProfileData || !cardATalentProfileData.talentInfo ? (
+                              <View className="py-8">
+                                <Text className="mb-2 text-center text-base font-semibold text-white">
+                                  Profile Not Available
+                                </Text>
+                                <Text className="text-center text-sm text-white/60">
+                                  {cardAUsername === 'unknown'
+                                    ? "This user's profile information is not available."
+                                    : 'Unable to load profile data for this user.'}
+                                </Text>
+                              </View>
+                            ) : (
+                              <TalentProfile
+                                userProfileData={cardATalentProfileData}
+                                talentLevel={parseInt(cardATalentProfileData?.talentLevel || '0')}
+                                talentInfo={cardATalentProfileData?.talentInfo}
+                                isOwnProfile={false}
+                              />
+                            )}
                           </View>
-                        ) : !talentProfileData || !talentProfileData.talentInfo ? (
-                          <View className="py-8">
-                            <Text className="text-base font-semibold text-white mb-2 text-center">
-                              Profile Not Available
-                            </Text>
-                            <Text className="text-sm text-white/60 text-center">
-                              {username === 'unknown'
-                                ? "This user's profile information is not available."
-                                : 'Unable to load profile data for this user.'}
-                            </Text>
-                          </View>
-                        ) : (
-                          <TalentProfile
-                            userProfileData={talentProfileData}
-                            talentLevel={parseInt(talentProfileData?.talentLevel || '0')}
-                            talentInfo={talentProfileData?.talentInfo}
-                            isOwnProfile={false}
+                        )}
+
+                        {currentTab === 'application' && (
+                          <ApplicationDetail applicant={cardAApplicant} />
+                        )}
+
+                        {currentTab === 'actions' && (
+                          <ActionToCandidates
+                            applicant={cardACandidate}
+                            projectData={{ id: projectId }}
+                            roleId={roleId ? parseInt(roleId as string) : undefined}
+                            contractsData={cardAContractsData}
+                            isLoadingContracts={isLoadingCardAContracts}
                           />
                         )}
                       </View>
-                    )}
-
-                    {currentTab === 'application' && <ApplicationDetail applicant={applicant} />}
-
-                    {currentTab === 'actions' && (
-                      <ActionToCandidates
-                        applicant={currentCandidate}
-                        projectData={{ id: projectId }}
-                        roleId={roleId ? parseInt(roleId as string) : undefined}
-                        contractsData={contractsData}
-                        isLoadingContracts={isLoadingContracts}
-                      />
-                    )}
-                  </View>
-                </Animated.ScrollView>
-              </GestureDetector>
-            </Animated.View>
+                    </Animated.ScrollView>
+                  </GestureDetector>
+                ) : (
+                  <ScrollView
+                    className="flex-1"
+                    showsVerticalScrollIndicator={false}
+                    bounces={false}
+                    scrollEnabled={true}>
+                    {/* Same content but non-interactive */}
+                    <View className="mx-4 mt-4 rounded-2xl border border-white/10 bg-zinc-800 p-4">
+                      <View className="flex-row items-center gap-4">
+                        <Image
+                          source={{
+                            uri:
+                              cardATalentProfileData?.userInfo?.profilePic ||
+                              cardACandidate?.comcardFirstPic ||
+                              cardAUserInfo?.profilePic ||
+                              undefined,
+                          }}
+                          className="h-20 w-20 rounded-full bg-zinc-700"
+                        />
+                        <View className="flex-1">
+                          <Text className="text-lg font-semibold text-white">
+                            {cardATalentProfileData?.userInfo?.name ||
+                              cardAUserInfo?.name ||
+                              'Unnamed candidate'}
+                          </Text>
+                          <Text className="text-sm text-white/60">@{cardAUsername}</Text>
+                          <View
+                            className="mt-2 self-start rounded-full border px-3 py-1.5"
+                            style={{
+                              backgroundColor:
+                                getStatusColor(cardAApplicant?.applicationStatus || 'applied') +
+                                '20',
+                              borderColor:
+                                getStatusColor(cardAApplicant?.applicationStatus || 'applied') +
+                                '60',
+                            }}>
+                            <Text
+                              className="text-xs font-bold uppercase tracking-wide"
+                              style={{
+                                color: getStatusColor(
+                                  cardAApplicant?.applicationStatus || 'applied'
+                                ),
+                              }}>
+                              {cardAApplicant?.applicationStatus || 'applied'}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                    <View className="mt-4 px-4">
+                      <CustomTabs tabs={tabs} value="talent-profile" onValueChange={() => {}} />
+                    </View>
+                    <View className="px-4 pb-8">
+                      {isLoadingCardATalentProfile ? (
+                        <View className="py-8">
+                          <ActivityIndicator size="large" color="#3b82f6" />
+                        </View>
+                      ) : !cardATalentProfileData || !cardATalentProfileData.talentInfo ? (
+                        <View className="py-8">
+                          <Text className="mb-2 text-center text-base font-semibold text-white">
+                            Profile Not Available
+                          </Text>
+                          <Text className="text-center text-sm text-white/60">
+                            {cardAUsername === 'unknown'
+                              ? "This user's profile information is not available."
+                              : 'Unable to load profile data for this user.'}
+                          </Text>
+                        </View>
+                      ) : (
+                        <TalentProfile
+                          userProfileData={cardATalentProfileData}
+                          talentLevel={parseInt(cardATalentProfileData?.talentLevel || '0')}
+                          talentInfo={cardATalentProfileData?.talentInfo}
+                          isOwnProfile={false}
+                        />
+                      )}
+                    </View>
+                  </ScrollView>
+                )}
+              </Animated.View>
+            )}
           </View>
 
-        {/* Reject Action Area - Fixed gradient at left edge - Full screen height */}
-        <Animated.View
-          style={[
-            {
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              width: ACTION_AREA_WIDTH,
-              height: SCREEN_HEIGHT,
-              pointerEvents: 'none',
-              borderTopRightRadius: 20,
-              borderBottomRightRadius: 20,
-              overflow: 'hidden',
-              zIndex: 10, // Higher z-index to appear above cards
-            },
-            rejectGradientAnimatedStyle,
-          ]}>
-          <LinearGradient
-            colors={['rgba(239, 68, 68, 1)', 'rgba(239, 68, 68, 0)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={{ flex: 1, justifyContent: 'center', alignItems: 'flex-start', paddingLeft: 16 }}>
-            <Animated.Text 
-              className="text-white font-bold text-lg uppercase tracking-wider"
-              style={rejectTextAnimatedStyle}>
-              Reject
-            </Animated.Text>
-          </LinearGradient>
-        </Animated.View>
+          {/* Reject Action Area - Fixed gradient at left edge - Full screen height */}
+          <Animated.View
+            style={[
+              {
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                width: ACTION_AREA_WIDTH,
+                height: SCREEN_HEIGHT,
+                pointerEvents: 'none',
+                borderTopRightRadius: 20,
+                borderBottomRightRadius: 20,
+                overflow: 'hidden',
+                zIndex: 10, // Higher z-index to appear above cards
+              },
+              rejectGradientAnimatedStyle,
+            ]}>
+            <LinearGradient
+              colors={['rgba(239, 68, 68, 1)', 'rgba(239, 68, 68, 0)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'flex-start',
+                paddingLeft: 16,
+              }}>
+              <Animated.Text
+                className="text-lg font-bold uppercase tracking-wider text-white"
+                style={rejectTextAnimatedStyle}>
+                Reject
+              </Animated.Text>
+            </LinearGradient>
+          </Animated.View>
 
-        {/* Dynamic Right Action Areas - Full screen height - Show all actions */}
-        {getAvailableActions.slice(0, 5).map((action, index) => {
-          const actionCount = getAvailableActions.length;
-          const actionHeight = SCREEN_HEIGHT / actionCount;
-          const top = index * actionHeight;
-          const isFirst = index === 0;
-          const isLast = index === actionCount - 1;
-          
-          const gradientStyle = rightActionGradientStyles[index] || rightActionGradientStyles[0];
-          const textStyle = rightActionTextStyles[index] || rightActionTextStyles[0];
-          
-          return (
-            <Animated.View
-              key={`right-action-${index}`}
-              style={[
-                {
-                  position: 'absolute',
-                  right: 0,
-                  top: top,
-                  width: ACTION_AREA_WIDTH,
-                  height: actionHeight,
-                  pointerEvents: 'none',
-                  borderTopLeftRadius: isFirst ? 20 : 0,
-                  borderBottomLeftRadius: isLast ? 20 : 0,
-                  overflow: 'hidden',
-                  zIndex: 10, // Higher z-index to appear above cards
-                },
-                gradientStyle,
-              ]}>
-              <LinearGradient
-                colors={getActionColor(action)}
-                start={{ x: 1, y: 0 }}
-                end={{ x: 0, y: 0 }}
-                style={{ flex: 1, justifyContent: 'center', alignItems: 'flex-end', paddingRight: 16 }}>
-                <Animated.Text 
-                  className="text-white font-bold text-lg uppercase tracking-wider"
-                  style={textStyle}>
-                  {getActionLabel(action)}
-                </Animated.Text>
-              </LinearGradient>
-            </Animated.View>
-          );
-        })}
+          {/* Dynamic Right Action Areas - Full screen height - Show all actions */}
+          {getAvailableActions.slice(0, 5).map((action, index) => {
+            const actionCount = getAvailableActions.length;
+            const actionHeight = SCREEN_HEIGHT / actionCount;
+            const top = index * actionHeight;
+            const isFirst = index === 0;
+            const isLast = index === actionCount - 1;
 
-        {/* Loading Overlay */}
-        {updateApplicantMutation.isPending && (
+            const gradientStyle = rightActionGradientStyles[index] || rightActionGradientStyles[0];
+            const textStyle = rightActionTextStyles[index] || rightActionTextStyles[0];
+
+            return (
+              <Animated.View
+                key={`right-action-${index}`}
+                style={[
+                  {
+                    position: 'absolute',
+                    right: 0,
+                    top: top,
+                    width: ACTION_AREA_WIDTH,
+                    height: actionHeight,
+                    pointerEvents: 'none',
+                    borderTopLeftRadius: isFirst ? 20 : 0,
+                    borderBottomLeftRadius: isLast ? 20 : 0,
+                    overflow: 'hidden',
+                    zIndex: 10, // Higher z-index to appear above cards
+                  },
+                  gradientStyle,
+                ]}>
+                <LinearGradient
+                  colors={getActionColor(action)}
+                  start={{ x: 1, y: 0 }}
+                  end={{ x: 0, y: 0 }}
+                  style={{
+                    flex: 1,
+                    justifyContent: 'center',
+                    alignItems: 'flex-end',
+                    paddingRight: 16,
+                  }}>
+                  <Animated.Text
+                    className="text-lg font-bold uppercase tracking-wider text-white"
+                    style={textStyle}>
+                    {getActionLabel(action)}
+                  </Animated.Text>
+                </LinearGradient>
+              </Animated.View>
+            );
+          })}
+
+        
+
+          {/* Swipe Indicators */}
           <View
-            className="absolute inset-0 bg-black/50 items-center justify-center"
-            style={{ justifyContent: 'center' }}>
-            <View className="bg-zinc-800 rounded-2xl p-6 items-center">
-              <ActivityIndicator size="large" color="#3b82f6" />
-              <Text className="text-white mt-4">Processing...</Text>
-            </View>
+            className="absolute bottom-8 left-0 right-0 items-center gap-2"
+            style={{ paddingHorizontal: MODAL_MARGIN }}>
+            <Text className="text-xs text-white/60">Swipe right for actions</Text>
+            <Text className="text-xs text-white/60">Swipe left to reject</Text>
+            <Text className="text-xs text-white/60">Swipe down to close</Text>
           </View>
-        )}
-
-        {/* Swipe Indicators */}
-        <View
-          className="absolute bottom-8 left-0 right-0 items-center gap-2"
-          style={{ paddingHorizontal: MODAL_MARGIN }}>
-          <Text className="text-white/60 text-xs">Swipe right for actions</Text>
-          <Text className="text-white/60 text-xs">Swipe left to reject</Text>
-          <Text className="text-white/60 text-xs">Swipe down to close</Text>
         </View>
-      </View>
       </GestureHandlerRootView>
     </Modal>
   );
 }
-

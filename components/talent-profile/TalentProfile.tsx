@@ -36,7 +36,6 @@ export default function TalentProfile({
     }
   }, [comcardPng, screenWidth]);
 
-  console.log('talentProfile', userProfileData);
   // Handle null talentInfo
   if (!talentInfo) {
     return (

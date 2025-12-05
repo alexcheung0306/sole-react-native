@@ -34,7 +34,6 @@ export function ActionToCandidates({
   // Handle contract navigation
   const handleContractPress = (contractId: number) => {
     // TODO: Navigate to contract detail page when route is created
-    console.log('Navigate to contract:', contractId);
   };
 
   // If status is "shortlisted" - show offer options
@@ -73,12 +72,6 @@ export function ActionToCandidates({
             className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 rounded-xl flex-row items-center justify-center gap-2 shadow-lg"
             onPress={() => {
               // TODO: Navigate to create contract page when route is created
-              console.log('Create contract for:', {
-                projectId: projectData?.id,
-                roleId: roleId,
-                talentId: soleUserId,
-                applicantId: applicant?.jobApplicant?.id,
-              });
             }}>
             <Plus size={20} color="#ffffff" />
             <Text className="text-white font-bold text-base">Create Contract</Text>
@@ -221,7 +214,6 @@ export function ActionToCandidates({
             className="bg-green-500 px-4 py-3 rounded-lg"
             onPress={() => {
               // TODO: Implement shortlist action
-              console.log('Shortlist candidate:', applicant?.jobApplicant?.id);
             }}>
             <Text className="text-white font-semibold text-center">
               Shortlist Candidate
@@ -232,7 +224,6 @@ export function ActionToCandidates({
             className="bg-blue-500 px-4 py-3 rounded-lg"
             onPress={() => {
               // TODO: Implement invite action
-              console.log('Invite candidate:', applicant?.jobApplicant?.id);
             }}>
             <Text className="text-white font-semibold text-center">
               Invite to Activity
@@ -243,7 +234,6 @@ export function ActionToCandidates({
             className="bg-red-500 px-4 py-3 rounded-lg"
             onPress={() => {
               // TODO: Implement reject action
-              console.log('Reject candidate:', applicant?.jobApplicant?.id);
             }}>
             <Text className="text-white font-semibold text-center">
               Reject Candidate
