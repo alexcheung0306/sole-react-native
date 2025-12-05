@@ -307,26 +307,17 @@ export function CandidateSwipeModal({
     onTopRef.current = onTop;
   }, [onTop]);
 
-  // Handle scale transitions and reset animations when onTop changes
+  // Set card scales when onTop changes (animations are reset in handleCardSwipeComplete)
   useEffect(() => {
+    // Set card scales based on which card is on top
     if (onTop === 'A') {
-      // Card A is now on top - reset animations and set scale to 1.0 instantly (no transition)
-      translateX.value = 0;
-      translateY.value = 0;
-      opacity.value = 1;
-      cardAScale.value = 1; // Instant, no animation
-      // Card B goes behind - reset to 0.95 (will scale up during drag)
+      cardAScale.value = 1;
       cardBScale.value = 0.95;
     } else {
-      // Card B is now on top - reset animations and set scale to 1.0 instantly (no transition)
-      translateX.value = 0;
-      translateY.value = 0;
-      opacity.value = 1;
-      cardBScale.value = 1; // Instant, no animation
-      // Card A goes behind - reset to 0.95 (will scale up during drag)
+      cardBScale.value = 1;
       cardAScale.value = 0.95;
     }
-  }, [onTop, cardAScale, cardBScale, translateX, translateY, opacity]);
+  }, [onTop, cardAScale, cardBScale]);
 
   // Get candidate data for Card A and Card B
   const cardAApplicant = cardACandidate?.jobApplicant ?? {};
@@ -452,9 +443,9 @@ export function CandidateSwipeModal({
       onCandidateUpdatedRef.current?.();
 
       // Reset animations for the swiped card (instant, no animation)
-      translateX.value = 0;
-      translateY.value = 0;
-      opacity.value = 1;
+      // translateX.value = 0;
+      // translateY.value = 0;
+      // opacity.value = 1;
 
       // Trigger card swap after a delay to allow query to update
       // Use a longer delay to ensure the candidate list has been updated
@@ -507,6 +498,14 @@ export function CandidateSwipeModal({
       return;
     }
 
+    // Reset animations BEFORE swapping to prevent flickering
+    // The back card will use translateX = 0, so resetting here ensures smooth transition
+    translateX.value = 0;
+    translateY.value = 0;
+    opacity.value = 1;
+    rejectGradientOpacity.value = 0;
+    rightActionOpacities.value = [0, 0, 0, 0, 0];
+
     // Switch which card is on top
     const newOnTop = onTop === 'A' ? 'B' : 'A';
     setOnTop(newOnTop);
@@ -533,7 +532,7 @@ export function CandidateSwipeModal({
         setCardAIndex(-1);
       }
     }
-  }, [onTop, cardAIndex, cardBIndex, candidates.length, onClose]);
+  }, [onTop, cardAIndex, cardBIndex, candidates.length, onClose, translateX, translateY, opacity, rejectGradientOpacity, rightActionOpacities]);
 
   const handleNextCandidate = () => {
     // Trigger card swipe completion instead of directly updating index
@@ -672,7 +671,6 @@ export function CandidateSwipeModal({
       if (scrollY.value > 10) {
         return;
       }
-
       // Better threshold: if vertical movement is 1.5x horizontal, prioritize scrolling
       if (Math.abs(event.translationY) > Math.abs(event.translationX) * 1.5) {
         return;
@@ -884,14 +882,17 @@ export function CandidateSwipeModal({
   // Animated styles for Card A
   const cardAAnimatedStyle = useAnimatedStyle(() => {
     const maxTranslate = SCREEN_WIDTH - MODAL_MARGIN * 2;
+    // For back card, always use 0 for translateX/Y to prevent flickering
+    const currentTranslateX = onTop === 'A' ? translateX.value : 0;
+    const currentTranslateY = onTop === 'A' ? translateY.value : 0;
     const rotate =
       onTop === 'A'
         ? interpolate(translateX.value, [-maxTranslate, 0, maxTranslate], [-15, 0, 15])
         : 0;
     return {
       transform: [
-        { translateX: onTop === 'A' ? translateX.value : 0 },
-        { translateY: onTop === 'A' ? translateY.value : 0 },
+        { translateX: currentTranslateX },
+        { translateY: currentTranslateY },
         { rotate: `${rotate}deg` },
         { scale: cardAScale.value },
       ],
@@ -902,14 +903,17 @@ export function CandidateSwipeModal({
   // Animated styles for Card B
   const cardBAnimatedStyle = useAnimatedStyle(() => {
     const maxTranslate = SCREEN_WIDTH - MODAL_MARGIN * 2;
+    // For back card, always use 0 for translateX/Y to prevent flickering
+    const currentTranslateX = onTop === 'B' ? translateX.value : 0;
+    const currentTranslateY = onTop === 'B' ? translateY.value : 0;
     const rotate =
       onTop === 'B'
         ? interpolate(translateX.value, [-maxTranslate, 0, maxTranslate], [-15, 0, 15])
         : 0;
     return {
       transform: [
-        { translateX: onTop === 'B' ? translateX.value : 0 },
-        { translateY: onTop === 'B' ? translateY.value : 0 },
+        { translateX: currentTranslateX },
+        { translateY: currentTranslateY },
         { rotate: `${rotate}deg` },
         { scale: cardBScale.value },
       ],
