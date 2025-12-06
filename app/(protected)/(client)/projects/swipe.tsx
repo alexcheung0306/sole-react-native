@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { Dimensions, Text, View, ActivityIndicator, TouchableOpacity, Alert, ScrollView, Image } from "react-native";
+import { Dimensions, Text, View, ActivityIndicator, TouchableOpacity, Alert } from "react-native";
 import { useSoleUserContext } from "~/context/SoleUserContext";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { searchApplicants, updateApplicantProcessById } from "@/api/apiservice/applicant_api";
@@ -12,26 +12,18 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from "expo-blur";
 import { ChevronLeft, X } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { CustomTabs } from "@/components/custom/custom-tabs";
 import { getStatusColor } from "@/utils/get-status-color";
-import TalentProfile from "~/components/talent-profile/TalentProfile";
-import { ApplicationDetail } from "~/components/project-detail/roles/ApplicationDetail";
-import { ActionToCandidates } from "~/components/project-detail/roles/ActionToCandidates";
 import { getUserProfileByUsername } from "@/api/apiservice/soleUser_api";
 import SwipeCard from "~/components/project-detail/roles/SwipeCard";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const SWIPE_THRESHOLD = 100;
-const ACTION_AREA_WIDTH = 180;
 
 export default function RoleCandidatesSwipeScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
-  const { soleUserId } = useSoleUserContext();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentTab, setCurrentTab] = useState('talent-profile');
   const [highlightedAction, setHighlightedAction] = useState<'shortlist' | 'invite' | 'reject' | null>(null);
@@ -39,6 +31,7 @@ export default function RoleCandidatesSwipeScreen() {
   // Store a stable copy of candidates when we first load them
   // This prevents the array from changing during swipe session
   const [stableCandidates, setStableCandidates] = useState<any[]>([]);
+  const stableCandidatesInitializedRef = useRef(false);
 
   const { projectId, roleId, process } = useLocalSearchParams<{
     projectId?: string;
@@ -74,16 +67,26 @@ export default function RoleCandidatesSwipeScreen() {
     return candidatesResponse?.data ?? candidatesResponse?.content ?? candidatesResponse ?? [];
   }, [candidatesResponse]);
 
+  // Reset stable candidates and index when route params change (new navigation)
+  useEffect(() => {
+    setStableCandidates([]);
+    setCurrentIndex(0);
+    stableCandidatesInitializedRef.current = false;
+  }, [roleId, process]);
+
   // Store a stable copy of candidates when we first load them
   // This prevents the array from changing during swipe session when queries are invalidated
   useEffect(() => {
-    if (candidates.length > 0 && stableCandidates.length === 0) {
-      // Only set stable candidates on initial load
-      setStableCandidates(candidates);
+    // Only set stable candidates once when candidates first load (after reset or initial load)
+    if (candidates.length > 0 && !stableCandidatesInitializedRef.current) {
+      setStableCandidates([...candidates]); // Create a copy to ensure it's stable
+      stableCandidatesInitializedRef.current = true;
     }
-  }, [candidates, stableCandidates.length]);
+  }, [candidates.length]); // Only depend on candidates.length
 
   // Use stable candidates for the swipe session
+  // Fall back to candidates if stableCandidates is not set yet (during initial load)
+  // This ensures we always show all candidates when first navigating to the screen
   const swipeCandidates = stableCandidates.length > 0 ? stableCandidates : candidates;
 
   // Fetch role data
@@ -308,10 +311,8 @@ export default function RoleCandidatesSwipeScreen() {
       // Update the shared value
       currentIndexShared.value = nextIndex;
       
-      // Reset the guard after a short delay to allow the next swipe
-      setTimeout(() => {
-        isMovingToNextRef.current = false;
-      }, 300);
+      // Reset the guard immediately to allow the next swipe
+      isMovingToNextRef.current = false;
       
       return nextIndex;
     });
@@ -491,7 +492,7 @@ export default function RoleCandidatesSwipeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Action Gradients - Screen Level */}
+        {/* Action Gradients - Screen Level - Full Screen with Highest Z-Index */}
         {/* Reject Gradient (Left) */}
         {currentCandidate && currentProcess !== 'offered' && (
           <Animated.View
@@ -499,10 +500,12 @@ export default function RoleCandidatesSwipeScreen() {
               {
                 position: 'absolute',
                 left: 0,
-                top: insets.top + 60,
+                top: 0,
+                right: 0,
                 bottom: 0,
                 width: SCREEN_WIDTH,
-                zIndex: 5,
+                height: SCREEN_HEIGHT,
+                zIndex: 9999,
                 pointerEvents: 'none',
               },
               rejectGradientAnimatedStyle,
@@ -527,13 +530,12 @@ export default function RoleCandidatesSwipeScreen() {
           </Animated.View>
         )}
 
-        {/* Action Gradients (Right) */}
+        {/* Action Gradients (Right) - Full Screen */}
         {currentCandidate && getAvailableActions.map((action, index) => {
           if (index >= 5) return null;
           const [startColor, endColor] = getActionColor(action);
-          const availableHeight = SCREEN_HEIGHT - insets.top - 60;
-          const actionHeight = availableHeight / Math.max(getAvailableActions.length, 1);
-          const actionTop = insets.top + 60 + (actionHeight * index);
+          const actionHeight = SCREEN_HEIGHT / Math.max(getAvailableActions.length, 1);
+          const actionTop = actionHeight * index;
 
           return (
             <Animated.View
@@ -541,11 +543,12 @@ export default function RoleCandidatesSwipeScreen() {
               style={[
                 {
                   position: 'absolute',
+                  left: 0,
                   right: 0,
                   top: actionTop,
                   height: actionHeight,
                   width: SCREEN_WIDTH,
-                  zIndex: 5,
+                  zIndex: 9999,
                   pointerEvents: 'none',
                 },
                 index === 0 ? rightAction0GradientStyle :

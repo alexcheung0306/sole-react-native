@@ -175,14 +175,17 @@ export default function SwipeCard({
       if (draggedToLeftEdge) {
         if (!isOffered && rejectGradientOpacity.value > highlightOpacityThreshold) {
           runOnJS(onSwipeReject)();
-          translateX.value = withSpring(-SCREEN_WIDTH, { damping: 15, stiffness: 150 }, () => {
+          translateX.value = withSpring(-SCREEN_WIDTH, { damping: 20, stiffness: 200 }, () => {
             'worklet';
             runOnJS(onSwipeComplete)();
           });
-          opacity.value = withTiming(0, { duration: 200 });
+          opacity.value = withTiming(0, { duration: 150 });
+          // Immediately hide gradients
+          rejectGradientOpacity.value = 0;
+          rightActionOpacities.value = [0, 0, 0, 0, 0];
         } else {
-          translateX.value = withTiming(0, { duration: 300 });
-          rejectGradientOpacity.value = withTiming(0);
+          translateX.value = withTiming(0, { duration: 200 });
+          rejectGradientOpacity.value = withTiming(0, { duration: 150 });
           runOnJS(onHighlightAction)(null);
         }
         return;
@@ -207,23 +210,26 @@ export default function SwipeCard({
 
         if (isHighlighted) {
           runOnJS(onSwipeAction)(actionIndex);
-          translateX.value = withSpring(SCREEN_WIDTH, { damping: 15, stiffness: 150 }, () => {
+          translateX.value = withSpring(SCREEN_WIDTH, { damping: 20, stiffness: 200 }, () => {
             'worklet';
             runOnJS(onSwipeComplete)();
           });
-          opacity.value = withTiming(0, { duration: 200 });
-        } else {
-          translateX.value = withTiming(0, { duration: 300 });
+          opacity.value = withTiming(0, { duration: 150 });
+          // Immediately hide gradients
+          rejectGradientOpacity.value = 0;
           rightActionOpacities.value = [0, 0, 0, 0, 0];
+        } else {
+          translateX.value = withTiming(0, { duration: 200 });
+          rightActionOpacities.value = withTiming([0, 0, 0, 0, 0], { duration: 150 });
         }
         return;
       }
 
       // Not dragged to edge - slide back
-      translateX.value = withTiming(0, { duration: 300 });
-      translateY.value = withTiming(0, { duration: 300 });
-      rejectGradientOpacity.value = withTiming(0);
-      rightActionOpacities.value = [0, 0, 0, 0, 0];
+      translateX.value = withTiming(0, { duration: 200 });
+      translateY.value = withTiming(0, { duration: 200 });
+      rejectGradientOpacity.value = withTiming(0, { duration: 150 });
+      rightActionOpacities.value = withTiming([0, 0, 0, 0, 0], { duration: 150 });
       runOnJS(onHighlightAction)(null);
     });
 
