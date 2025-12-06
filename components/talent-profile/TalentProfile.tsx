@@ -1,5 +1,5 @@
 import { Image as ExpoImage } from 'expo-image';
-import { View, ScrollView, Text, Image, Dimensions } from 'react-native';
+import { View, ScrollView, Text, Image } from 'react-native';
 import { TalentInfoForm } from './TalentInfo-form';
 import { useState, useEffect } from 'react';
 
@@ -14,27 +14,25 @@ export default function TalentProfile({
   isOwnProfile: boolean;
   userProfileData: any;
 }) {
-  const [imageHeight, setImageHeight] = useState<number | undefined>(undefined);
+  const [imageAspectRatio, setImageAspectRatio] = useState<number | undefined>(undefined);
   const comcardPng = userProfileData?.comcardWithPhotosResponse?.png;
-  const screenWidth = Dimensions.get('window').width;
 
   useEffect(() => {
     if (comcardPng) {
       Image.getSize(
         comcardPng,
         (width, height) => {
-          // Calculate height based on full screen width
-          const calculatedHeight = (height / width) * screenWidth;
-          setImageHeight(calculatedHeight);
+          // Store aspect ratio; we'll render at container width
+          setImageAspectRatio(width && height ? width / height : undefined);
         },
         (error) => {
           console.error('Error loading image dimensions:', error);
-          // Fallback to a default aspect ratio if dimensions can't be loaded
-          setImageHeight(screenWidth * 1.33); // Default to 3:4 aspect ratio
+          // Fallback to a default 3:4 aspect ratio
+          setImageAspectRatio(3 / 4);
         }
       );
     }
-  }, [comcardPng, screenWidth]);
+  }, [comcardPng]);
 
   // Handle null talentInfo
   if (!talentInfo) {
@@ -65,12 +63,12 @@ export default function TalentProfile({
 
         {/* Comcard Image */}
         {userProfileData?.comcardWithPhotosResponse?.png && (
-          <View className="mb-6" style={{ width: screenWidth }}>
+          <View className="mb-6" style={{ width: '100%' }}>
             <ExpoImage
               source={{ uri: userProfileData.comcardWithPhotosResponse.png }}
               style={{
-                width: screenWidth,
-                height: imageHeight || screenWidth * 1.33,
+                width: '100%',
+                aspectRatio: imageAspectRatio || 3 / 4,
                 minHeight: 200,
                 borderRadius: 0,
               }}
