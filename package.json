@@ -7,7 +7,7 @@
     "ios": "expo run:ios",
     "start": "expo start",
     "dev": "expo start --dev-client",
-    "clear": "expo start --clear",
+    "clear": "node scripts/update-ip.js && expo start --clear",
     "prebuild": "expo prebuild",
     "lint": "eslint \"**/*.{js,jsx,ts,tsx}\" && prettier -c \"**/*.{js,jsx,ts,tsx,json}\"",
     "format": "eslint \"**/*.{js,jsx,ts,tsx}\" --fix && prettier \"**/*.{js,jsx,ts,tsx,json}\" --write",
