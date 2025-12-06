@@ -6,7 +6,6 @@ import { getApplicationProcessCounts, searchApplicants, getRoleApplicantsByRoleI
 import FilterSearch from '@/components/custom/filter-search';
 import PaginationControl from '@/components/projects/PaginationControl';
 import { CandidateCard } from './CandidateCard';
-import { CandidateSwipeModal } from './CandidateSwipeModal';
 import { ExpTinder } from './exptinder';
 
 type ManageCandidatesProps = {
@@ -164,10 +163,6 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
   const screenWidth = Dimensions.get('window').width;
   const cardWidth = (screenWidth - 48 - 24) / 3; // screen width - padding (24*2) - gaps (12*2) / 3 columns
 
-  // Modal state
-  const [modalVisible, setModalVisible] = useState(false);
-  const [modalInitialIndex, setModalInitialIndex] = useState(0);
-
   // Local state for process selection (not from context)
   const [currentProcess, setCurrentProcess] = useState('applied');
 
@@ -288,20 +283,31 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
     setCandidateSearchTrigger((prev) => prev + 1);
   }, []);
 
-  const handleCardPress = useCallback((index: number) => {
-    setModalInitialIndex(index);
-    setModalVisible(true);
-  }, []);
+  const handleCardPress = useCallback(
+    (index: number) => {
+      if (!roleWithSchedules?.role?.id || !projectData?.id) return;
 
-  const handleModalClose = useCallback(() => {
-    setModalVisible(false);
-  }, []);
+      // Invalidate query to ensure fresh data when navigating to swipe screen
+      const params = new URLSearchParams();
+      params.append('roleId', String(roleWithSchedules.role.id));
+      params.append('applicationProcess', currentProcess);
+      params.append('pageNumber', '1');
+      params.append('pageSize', '100');
+      // queryClient.invalidateQueries({ 
+      //   queryKey: ['role-candidates', roleWithSchedules.role.id, params.toString()] 
+      // });
 
-  const handleCandidateUpdated = useCallback(() => {
-    // Refresh candidate list
-    // queryClient.invalidateQueries({ queryKey: ['role-candidates'] });
-    // queryClient.invalidateQueries({ queryKey: ['role-process-counts'] });
-  }, []);
+      router.push({
+        pathname: '/(protected)/(client)/projects/swipe',
+        params: {
+          projectId: String(projectData.id),
+          roleId: String(roleWithSchedules.role.id),
+          process: currentProcess,
+        },
+      });
+    },
+    [router, queryClient, projectData?.id, roleWithSchedules?.role?.id, currentProcess],
+  );
 
   const handleProcessChange = useCallback((process: string) => {
     setCurrentProcess(process);
@@ -435,18 +441,18 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
         onCardPress={handleCardPress}
       />
 
-      {/* Swipeable Modal */}
-      <CandidateSwipeModal
-        visible={modalVisible}
-        onClose={handleModalClose}
+      {/* Legacy swipe modal kept for reference (no longer used now that we navigate to swipe screen) */}
+      {/* <CandidateSwipeModal
+        visible={false}
+        onClose={() => {}}
         candidates={filteredCandidates}
-        initialIndex={modalInitialIndex}
+        initialIndex={0}
         roleId={roleWithSchedules?.role?.id}
         projectId={projectData?.id}
         currentProcess={currentProcess}
         roleWithSchedules={roleWithSchedules}
-        onCandidateUpdated={handleCandidateUpdated}
-      />
+        onCandidateUpdated={() => {}}
+      /> */}
 
       {/* <ExpTinder
         visible={modalVisible}
