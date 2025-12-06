@@ -26,6 +26,7 @@ export default function RoleCandidatesSwipeScreen() {
   const insets = useSafeAreaInsets();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentTab, setCurrentTab] = useState('talent-profile');
+  const [exitingIndex, setExitingIndex] = useState<number | null>(null); // keeps the swiped-away card mounted for animation
   const [highlightedAction, setHighlightedAction] = useState<'shortlist' | 'invite' | 'reject' | null>(null);
   
   // Store a stable copy of candidates when we first load them
@@ -236,6 +237,13 @@ export default function RoleCandidatesSwipeScreen() {
     }
   }, [currentIndex, currentCandidate]);
 
+  // Clear exiting index if we overshoot or navigate past the last card
+  useEffect(() => {
+    if (currentIndex >= swipeCandidates.length) {
+      setExitingIndex(null);
+    }
+  }, [currentIndex, swipeCandidates.length]);
+
   // Mutation for updating applicant status
   const updateApplicantMutation = useMutation({
     mutationFn: async ({
@@ -358,7 +366,11 @@ export default function RoleCandidatesSwipeScreen() {
     const distanceFromTop = index - currentIndex;
     
     if (distanceFromTop < 0) {
-      // Cards above (swiped away) - should not be visible
+      // Allow the most recently swiped card to stay visible for its exit animation
+      if (exitingIndex !== null && index === exitingIndex) {
+        return { scale: 1, zIndex: swipeCandidates.length + 12, opacity: 1 };
+      }
+      // Cards further above - hide
       return { scale: 0, zIndex: 0, opacity: 0 };
     } else if (distanceFromTop === 0) {
       // Top card
@@ -372,7 +384,7 @@ export default function RoleCandidatesSwipeScreen() {
       const zIndex = swipeCandidates.length + 9 - distanceFromTop;
       return { scale, zIndex, opacity: 1 };
     }
-  }, [currentIndex, swipeCandidates.length]);
+  }, [currentIndex, swipeCandidates.length, exitingIndex]);
 
   const rejectGradientAnimatedStyle = useAnimatedStyle(() => ({
     opacity: rejectGradientOpacity.value,
@@ -580,15 +592,17 @@ export default function RoleCandidatesSwipeScreen() {
 
         {/* Card Stack Container */}
         <View className="flex-1" style={{ paddingHorizontal: 20 }}>
-          {/* Render all cards in stack */}
-          {swipeCandidates.map((candidate: any, index: number) => {
-            // Only render cards that are at or after currentIndex
-            if (index < currentIndex) {
-              return null;
-            }
-            
+          {swipeCandidates
+            // keep the exiting card plus the next two to reduce churn
+            .slice(
+              exitingIndex !== null && exitingIndex === currentIndex - 1 ? exitingIndex : currentIndex,
+              currentIndex + 3
+            )
+            .map((candidate: any, renderOffset: number) => {
+            const index = (exitingIndex !== null && exitingIndex === currentIndex - 1 ? exitingIndex : currentIndex) + renderOffset;
             const isTopCard = index === currentIndex;
             const isSecondCard = index === currentIndex + 1;
+            const isExiting = exitingIndex === index;
             const stackedStyle = getStackedCardStyle(index);
 
             // Use appropriate data based on card position
@@ -613,6 +627,12 @@ export default function RoleCandidatesSwipeScreen() {
                 availableActions={getAvailableActions}
                 currentProcess={currentProcess}
                 onSwipeComplete={handleCardSwipeComplete}
+                onSwipeStartExit={() => setExitingIndex(currentIndex)}
+                onExitAnimationEnd={(finishedIndex) => {
+                  if (exitingIndex === finishedIndex) {
+                    setExitingIndex(null);
+                  }
+                }}
                 onSwipeAction={executeSwipeRightAction}
                 onSwipeReject={executeSwipeLeftReject}
                 onHighlightAction={setHighlightedAction}
@@ -621,6 +641,7 @@ export default function RoleCandidatesSwipeScreen() {
                 availableActionsCount={availableActionsCount}
                 currentIndexShared={currentIndexShared}
                 currentProcessShared={currentProcessShared}
+                isExiting={isExiting}
               />
             );
           })}

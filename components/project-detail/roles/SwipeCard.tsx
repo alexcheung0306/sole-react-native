@@ -26,6 +26,7 @@ interface SwipeCardProps {
   index: number;
   isTopCard: boolean;
   isSecondCard: boolean;
+  isExiting?: boolean;
   stackedStyle: { scale: number; zIndex: number; opacity: number };
   talentProfileData: any;
   isLoadingProfile: boolean;
@@ -37,6 +38,8 @@ interface SwipeCardProps {
   availableActions: string[];
   currentProcess: string;
   onSwipeComplete: () => void;
+  onSwipeStartExit?: () => void;
+  onExitAnimationEnd?: (index: number) => void;
   onSwipeAction: (actionIndex: number) => void;
   onSwipeReject: () => void;
   onHighlightAction: (action: 'shortlist' | 'invite' | 'reject' | null) => void;
@@ -52,6 +55,7 @@ export default function SwipeCard({
   index,
   isTopCard,
   isSecondCard,
+  isExiting = false,
   stackedStyle,
   talentProfileData,
   isLoadingProfile,
@@ -63,6 +67,8 @@ export default function SwipeCard({
   availableActions,
   currentProcess,
   onSwipeComplete,
+  onSwipeStartExit,
+  onExitAnimationEnd,
   onSwipeAction,
   onSwipeReject,
   onHighlightAction,
@@ -88,7 +94,7 @@ export default function SwipeCard({
 
   // Animated style for this card
   const cardAnimatedStyle = useAnimatedStyle(() => {
-    if (!isTopCard) {
+    if (!isTopCard && !isExiting) {
       return {};
     }
     const maxTranslate = SCREEN_WIDTH - 40;
@@ -175,9 +181,16 @@ export default function SwipeCard({
       if (draggedToLeftEdge) {
         if (!isOffered && rejectGradientOpacity.value > highlightOpacityThreshold) {
           runOnJS(onSwipeReject)();
+          if (onSwipeStartExit) {
+            runOnJS(onSwipeStartExit)();
+          }
+          // Advance to next card immediately while this one animates out
+          runOnJS(onSwipeComplete)();
           translateX.value = withSpring(-SCREEN_WIDTH, { damping: 20, stiffness: 200 }, () => {
             'worklet';
-            runOnJS(onSwipeComplete)();
+            if (onExitAnimationEnd) {
+              runOnJS(onExitAnimationEnd)(index);
+            }
           });
           opacity.value = withTiming(0, { duration: 150 });
           // Immediately hide gradients
@@ -210,9 +223,16 @@ export default function SwipeCard({
 
         if (isHighlighted) {
           runOnJS(onSwipeAction)(actionIndex);
+          if (onSwipeStartExit) {
+            runOnJS(onSwipeStartExit)();
+          }
+          // Advance to next card immediately while this one animates out
+          runOnJS(onSwipeComplete)();
           translateX.value = withSpring(SCREEN_WIDTH, { damping: 20, stiffness: 200 }, () => {
             'worklet';
-            runOnJS(onSwipeComplete)();
+            if (onExitAnimationEnd) {
+              runOnJS(onExitAnimationEnd)(index);
+            }
           });
           opacity.value = withTiming(0, { duration: 150 });
           // Immediately hide gradients
@@ -260,8 +280,9 @@ export default function SwipeCard({
           transform: [{ scale: stackedStyle.scale }],
           opacity: stackedStyle.opacity,
         },
-        isTopCard ? cardAnimatedStyle : {},
-      ]}>
+        isTopCard || isExiting ? cardAnimatedStyle : {},
+      ]}
+      pointerEvents={isExiting ? 'none' : 'auto'}>
       <BlurView intensity={100} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
       <View className="bg-black/12 absolute inset-0" />
 
