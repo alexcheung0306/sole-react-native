@@ -10,6 +10,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { ChevronLeft, X } from "lucide-react-native";
@@ -387,47 +388,12 @@ export default function RoleCandidatesSwipeScreen() {
   }, [currentIndex, swipeCandidates.length, exitingIndex]);
 
   const rejectGradientAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: rejectGradientOpacity.value,
+    opacity: withTiming(rejectGradientOpacity.value, { duration: 140 }),
   }));
 
   const rejectTextAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: rejectGradientOpacity.value > 0.3 ? 1 : rejectGradientOpacity.value * 2,
+    opacity: withTiming(rejectGradientOpacity.value > 0.3 ? 1 : rejectGradientOpacity.value * 2, { duration: 140 }),
   }));
-
-  // Right action gradient styles (up to 5)
-  const rightAction0GradientStyle = useAnimatedStyle(() => ({
-    opacity: rightActionOpacities.value[0] || 0,
-  }));
-  const rightAction1GradientStyle = useAnimatedStyle(() => ({
-    opacity: rightActionOpacities.value[1] || 0,
-  }));
-  const rightAction2GradientStyle = useAnimatedStyle(() => ({
-    opacity: rightActionOpacities.value[2] || 0,
-  }));
-  const rightAction3GradientStyle = useAnimatedStyle(() => ({
-    opacity: rightActionOpacities.value[3] || 0,
-  }));
-  const rightAction4GradientStyle = useAnimatedStyle(() => ({
-    opacity: rightActionOpacities.value[4] || 0,
-  }));
-
-  const rightActionTextStyles = [
-    useAnimatedStyle(() => ({
-      opacity: (rightActionOpacities.value[0] || 0) > 0.3 ? 1 : (rightActionOpacities.value[0] || 0) * 2,
-    })),
-    useAnimatedStyle(() => ({
-      opacity: (rightActionOpacities.value[1] || 0) > 0.3 ? 1 : (rightActionOpacities.value[1] || 0) * 2,
-    })),
-    useAnimatedStyle(() => ({
-      opacity: (rightActionOpacities.value[2] || 0) > 0.3 ? 1 : (rightActionOpacities.value[2] || 0) * 2,
-    })),
-    useAnimatedStyle(() => ({
-      opacity: (rightActionOpacities.value[3] || 0) > 0.3 ? 1 : (rightActionOpacities.value[3] || 0) * 2,
-    })),
-    useAnimatedStyle(() => ({
-      opacity: (rightActionOpacities.value[4] || 0) > 0.3 ? 1 : (rightActionOpacities.value[4] || 0) * 2,
-    })),
-  ];
 
   const tabs = [
     { id: 'talent-profile', label: 'Talent Profile' },
@@ -444,6 +410,59 @@ export default function RoleCandidatesSwipeScreen() {
     if (action === 'shortlisted') return 'Shortlist';
     return action;
   };
+
+  const ActionRow = useCallback(({ action, index, actionCount }: { action: string; index: number; actionCount: number }) => {
+    const gradientAnimatedStyle = useAnimatedStyle(() => ({
+      opacity: withTiming(rightActionOpacities.value[index] || 0, { duration: 140 }),
+    }));
+
+    const textAnimatedStyle = useAnimatedStyle(() => {
+      const val = rightActionOpacities.value[index] || 0;
+      return {
+        opacity: val > 0.3 ? 1 : val * 2,
+      };
+    });
+
+    const [startColor, endColor] = getActionColor(action);
+    const actionHeight = SCREEN_HEIGHT / Math.max(actionCount, 1);
+    const actionTop = actionHeight * index;
+
+    return (
+      <Animated.View
+        key={action}
+        style={[
+          {
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: actionTop,
+            height: actionHeight,
+            width: SCREEN_WIDTH,
+            zIndex: 9999,
+            pointerEvents: 'none',
+          },
+          gradientAnimatedStyle,
+        ]}>
+        <LinearGradient
+          colors={[startColor, endColor]}
+          start={{ x: 1, y: 0.5 }}
+          end={{ x: 0.7, y: 0.5 }}
+          style={{ flex: 1, justifyContent: 'center', alignItems: 'flex-end', paddingRight: 40 }}>
+          <Animated.Text
+            style={[
+              {
+                fontSize: 24,
+                fontWeight: 'bold',
+                color: '#fff',
+              },
+              textAnimatedStyle,
+            ]}>
+            {getActionLabel(action).toUpperCase()}
+          </Animated.Text>
+        </LinearGradient>
+      </Animated.View>
+    );
+  }, [getActionColor, getActionLabel, rightActionOpacities]);
 
   // Check if currentIndex is out of bounds
   // Adjust it to stay within bounds
@@ -543,52 +562,14 @@ export default function RoleCandidatesSwipeScreen() {
         )}
 
         {/* Action Gradients (Right) - Full Screen */}
-        {currentCandidate && getAvailableActions.map((action, index) => {
-          if (index >= 5) return null;
-          const [startColor, endColor] = getActionColor(action);
-          const actionHeight = SCREEN_HEIGHT / Math.max(getAvailableActions.length, 1);
-          const actionTop = actionHeight * index;
-
-          return (
-            <Animated.View
-              key={action}
-              style={[
-                {
-                  position: 'absolute',
-                  left: 0,
-                  right: 0,
-                  top: actionTop,
-                  height: actionHeight,
-                  width: SCREEN_WIDTH,
-                  zIndex: 9999,
-                  pointerEvents: 'none',
-                },
-                index === 0 ? rightAction0GradientStyle :
-                index === 1 ? rightAction1GradientStyle :
-                index === 2 ? rightAction2GradientStyle :
-                index === 3 ? rightAction3GradientStyle :
-                rightAction4GradientStyle,
-              ]}>
-              <LinearGradient
-                colors={[startColor, endColor]}
-                start={{ x: 1, y: 0.5 }}
-                end={{ x: 0.7, y: 0.5 }}
-                style={{ flex: 1, justifyContent: 'center', alignItems: 'flex-end', paddingRight: 40 }}>
-                <Animated.Text
-                  style={[
-                    {
-                      fontSize: 24,
-                      fontWeight: 'bold',
-                      color: '#fff',
-                    },
-                    rightActionTextStyles[index],
-                  ]}>
-                  {getActionLabel(action).toUpperCase()}
-                </Animated.Text>
-              </LinearGradient>
-            </Animated.View>
-          );
-        })}
+        {currentCandidate && getAvailableActions.map((action, index) => (
+          <ActionRow
+            key={action}
+            action={action}
+            index={index}
+            actionCount={getAvailableActions.length}
+          />
+        ))}
 
         {/* Card Stack Container */}
         <View className="flex-1" style={{ paddingHorizontal: 20 }}>

@@ -129,7 +129,9 @@ export default function SwipeCard({
       translateY.value = event.translationY;
 
       const draggedToLeftEdge = event.translationX < -SWIPE_THRESHOLD;
+      const draggedRightAny = event.translationX > 0;
       const draggedToRightEdge = event.translationX > SWIPE_THRESHOLD;
+      const inRightActionArea = event.absoluteX >= SCREEN_WIDTH - ACTION_AREA_WIDTH;
       const isOffered = currentProcessShared.value === 'offered';
 
       // Left side - Reject
@@ -145,9 +147,9 @@ export default function SwipeCard({
       }
 
       // Right side - Actions
-      if (draggedToRightEdge) {
+      if (draggedRightAny) {
         const actionCount = availableActionsCount.value;
-        const screenY = SCREEN_HEIGHT / 2 + event.translationY;
+        const screenY = event.absoluteY;
         const clampedY = Math.max(0, Math.min(SCREEN_HEIGHT, screenY));
         const actionHeight = SCREEN_HEIGHT / Math.max(actionCount, 1);
         const actionIndex = Math.min(
@@ -155,10 +157,20 @@ export default function SwipeCard({
           Math.min(actionCount - 1, 4)
         );
 
-        const progress = Math.min(event.translationX / ACTION_AREA_WIDTH, 1);
+        // On drag start: light all moderately bright
+        const base = 0.6;
         const opacities = [0, 0, 0, 0, 0];
-        if (actionIndex >= 0 && actionIndex < actionCount) {
-          opacities[actionIndex] = progress;
+        for (let i = 0; i < Math.min(actionCount, 5); i += 1) {
+          opacities[i] = base;
+        }
+
+        // When inside the action strip with enough drag, only highlight the hovered action
+        if (draggedToRightEdge && inRightActionArea && actionIndex >= 0 && actionIndex < actionCount) {
+          for (let i = 0; i < Math.min(actionCount, 5); i += 1) {
+            opacities[i] = 0; // unlight others
+          }
+          const progress = Math.min(event.translationX / ACTION_AREA_WIDTH, 1);
+          opacities[actionIndex] = Math.max(progress, base);
         }
         rightActionOpacities.value = opacities;
       } else {
@@ -173,7 +185,9 @@ export default function SwipeCard({
       }
 
       const draggedToLeftEdge = event.translationX < -SWIPE_THRESHOLD;
+      const draggedRightAny = event.translationX > 0;
       const draggedToRightEdge = event.translationX > SWIPE_THRESHOLD;
+      const inRightActionArea = event.absoluteX >= SCREEN_WIDTH - ACTION_AREA_WIDTH;
       const isOffered = currentProcessShared.value === 'offered';
       const highlightOpacityThreshold = 0.5;
 
@@ -205,9 +219,9 @@ export default function SwipeCard({
       }
 
       // Swipe RIGHT - Actions
-      if (draggedToRightEdge) {
+      if (draggedRightAny && inRightActionArea) {
         const actionCount = availableActionsCount.value;
-        const screenY = SCREEN_HEIGHT / 2 + event.translationY;
+        const screenY = event.absoluteY;
         const clampedY = Math.max(0, Math.min(SCREEN_HEIGHT, screenY));
         const actionHeight = SCREEN_HEIGHT / Math.max(actionCount, 1);
         const actionIndex = Math.min(
@@ -215,11 +229,10 @@ export default function SwipeCard({
           Math.min(actionCount - 1, 4)
         );
 
-        const currentOpacities = rightActionOpacities.value;
         const isHighlighted =
+          draggedToRightEdge &&
           actionIndex >= 0 &&
-          actionIndex < actionCount &&
-          currentOpacities[actionIndex] > highlightOpacityThreshold;
+          actionIndex < actionCount;
 
         if (isHighlighted) {
           runOnJS(onSwipeAction)(actionIndex);

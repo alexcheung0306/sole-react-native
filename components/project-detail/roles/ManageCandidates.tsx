@@ -6,7 +6,6 @@ import { getApplicationProcessCounts, searchApplicants, getRoleApplicantsByRoleI
 import FilterSearch from '@/components/custom/filter-search';
 import PaginationControl from '@/components/projects/PaginationControl';
 import { CandidateCard } from './CandidateCard';
-import { ExpTinder } from './exptinder';
 
 type ManageCandidatesProps = {
   projectData: any;
@@ -441,30 +440,9 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
         onCardPress={handleCardPress}
       />
 
-      {/* Legacy swipe modal kept for reference (no longer used now that we navigate to swipe screen) */}
-      {/* <CandidateSwipeModal
-        visible={false}
-        onClose={() => {}}
-        candidates={filteredCandidates}
-        initialIndex={0}
-        roleId={roleWithSchedules?.role?.id}
-        projectId={projectData?.id}
-        currentProcess={currentProcess}
-        roleWithSchedules={roleWithSchedules}
-        onCandidateUpdated={() => {}}
-      /> */}
+      
 
-      {/* <ExpTinder
-        visible={modalVisible}
-        onClose={handleModalClose}
-        candidates={filteredCandidates}
-        initialIndex={modalInitialIndex}
-        roleId={roleWithSchedules?.role?.id}
-        projectId={projectData?.id}
-        currentProcess={currentProcess}
-        roleWithSchedules={roleWithSchedules}
-        onCandidateUpdated={handleCandidateUpdated}
-      /> */}
+       
 
       {/* Pagination */}
       {candidateTotalPages > 1 && (
