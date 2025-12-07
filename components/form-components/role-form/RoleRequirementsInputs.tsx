@@ -1,6 +1,6 @@
 import { InputField } from '@/components/form-components/InputField';
 import { RadioGroupSingleOption } from '@/components/form-components/RadioGroupSingleOption';
-import { RangeInput } from '@/components/form-components/RangeInput';
+import { RangeWheelPickerInput } from '@/components/form-components/RangeWheelPickerInput';
 import { CategoriesCard } from '@/components/form-components/CategoriesCard';
 import { EthnicsCard } from '@/components/form-components/EthnicsCard';
 import { validateGender } from '@/lib/validations/talentInfo-validations';
@@ -44,7 +44,8 @@ export function RoleRequirementsInputs({
       />
 
       {/* Age Range */}
-      <RangeInput
+      {/* Age Range */}
+      <RangeWheelPickerInput
         title="Required age range for this role"
         values={values}
         setFieldValue={setFieldValue}
@@ -61,7 +62,8 @@ export function RoleRequirementsInputs({
       />
 
       {/* Height Range */}
-      <RangeInput
+      {/* Height Range */}
+      <RangeWheelPickerInput
         title="Required height range for this role"
         values={values}
         setFieldValue={setFieldValue}
