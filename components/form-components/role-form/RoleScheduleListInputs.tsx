@@ -1,4 +1,4 @@
-import  { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -30,6 +30,7 @@ import { getFieldError } from '@/lib/validations/form-field-validations';
 import { activityTypes } from '@/components/form-components/options-to-use';
 import { SingleSelectCard } from '@/components/form-components/SingleSelectCard';
 import { ActivityTypeSelector } from '~/components/form-components/role-form/ActivityTypeSelector';
+import { LocationMapPickerInput } from '@/components/form-components/LocationMapPickerInput';
 import DatePicker from 'react-native-date-picker';
 import { parseDateTime, formatDateTime, formatDisplayDateTime } from '@/lib/datetime';
 
@@ -73,10 +74,10 @@ export function RoleScheduleListInputs({
   setActivityTypeSelectCallback,
 }: RoleScheduleListInputsProps) {
   const [localTouched, setLocalTouched] = useState<Record<string, boolean>>({});
-  
+
   // Accordion state - track which single activity is expanded (closed by default)
   const [expandedActivity, setExpandedActivity] = useState<number | null>(null);
-  
+
   // Toggle accordion for a specific activity (only one can be open at a time)
   const toggleActivity = (activityIndex: number) => {
     setExpandedActivity((prev) => {
@@ -255,7 +256,7 @@ export function RoleScheduleListInputs({
 
     // Create new date instance to avoid reference issues
     let dateInstance = new Date(parsedDate);
-    
+
     // Ensure date is valid
     if (isNaN(dateInstance.getTime())) {
       dateInstance = new Date(Date.now());
@@ -416,8 +417,8 @@ export function RoleScheduleListInputs({
           </View>
         ) : (
           <>
-            <ScrollView 
-              className="flex-1" 
+            <ScrollView
+              className="flex-1"
               showsVerticalScrollIndicator={false}>
               {getActivities().map((activity: any, activityIndex: number) => {
                 const titleFieldname = `activityScheduleLists.${activityIndex}.title`;
@@ -430,18 +431,18 @@ export function RoleScheduleListInputs({
 
                 const scheduleHasErrors = activity.schedules
                   ? activity.schedules.map((schedule: ScheduleObject, scheduleIndex: number) => {
-                      const locationFieldname = `activityScheduleLists.${activityIndex}.schedules.${scheduleIndex}.location`;
-                      const isLocationTouched = isFieldTouched(locationFieldname);
-                      const isTimeTouched =
-                        isFieldTouched(
-                          `activityScheduleLists.${activityIndex}.schedules.${scheduleIndex}.fromTime`
-                        ) ||
-                        isFieldTouched(
-                          `activityScheduleLists.${activityIndex}.schedules.${scheduleIndex}.toTime`
-                        );
-                      const isScheduleTouched = isLocationTouched || isTimeTouched;
-                      return isScheduleTouched ? validateScheduleList(schedule) : null;
-                    })
+                    const locationFieldname = `activityScheduleLists.${activityIndex}.schedules.${scheduleIndex}.location`;
+                    const isLocationTouched = isFieldTouched(locationFieldname);
+                    const isTimeTouched =
+                      isFieldTouched(
+                        `activityScheduleLists.${activityIndex}.schedules.${scheduleIndex}.fromTime`
+                      ) ||
+                      isFieldTouched(
+                        `activityScheduleLists.${activityIndex}.schedules.${scheduleIndex}.toTime`
+                      );
+                    const isScheduleTouched = isLocationTouched || isTimeTouched;
+                    return isScheduleTouched ? validateScheduleList(schedule) : null;
+                  })
                   : [];
 
                 const hasErrors =
@@ -451,18 +452,16 @@ export function RoleScheduleListInputs({
                 const isExpanded = expandedActivity === activityIndex;
 
                 return (
-                  <View 
+                  <View
                     key={`activity-${activityIndex}`}
-                    className={`mb-4 rounded-lg border ${
-                      hasErrors ? 'border-red-500 bg-red-500/10' : 'border-white/10 bg-zinc-800/50'
-                    }`}>
+                    className={`mb-4 rounded-lg border ${hasErrors ? 'border-red-500 bg-red-500/10' : 'border-white/10 bg-zinc-800/50'
+                      }`}>
                     {/* Accordion Header */}
                     <TouchableOpacity
                       activeOpacity={0.7}
                       onPress={() => toggleActivity(activityIndex)}
-                      className={`flex-row items-center justify-between rounded-lg px-4 py-3 ${
-                        hasErrors ? 'border-red-500 bg-red-500/10' : 'border-white/10 bg-zinc-800/50'
-                      }`}
+                      className={`flex-row items-center justify-between rounded-lg px-4 py-3 ${hasErrors ? 'border-red-500 bg-red-500/10' : 'border-white/10 bg-zinc-800/50'
+                        }`}
                       style={{ backgroundColor: hasErrors ? 'rgba(239, 68, 68, 0.1)' : 'rgba(39, 39, 42, 0.5)' }}>
                       <View className="flex-row items-center gap-2 flex-1">
                         {isExpanded ? (
@@ -483,7 +482,7 @@ export function RoleScheduleListInputs({
                         <Text className="text-white flex-1">{activity.title || 'Untitled'}</Text>
                       </View>
                       {getActivities().length > 1 && (
-                        <TouchableOpacity 
+                        <TouchableOpacity
                           onPress={() => removeActivity(activityIndex)}
                           className="ml-2">
                           <Trash2 size={20} color="#ef4444" />
@@ -495,218 +494,212 @@ export function RoleScheduleListInputs({
                     {isExpanded && (
                       <View className="p-4">
 
-                    {/* Activity Title */}
-                    <View className="mb-3">
-                      <Text className="mb-2 text-sm text-white">Activity Title *</Text>
-                      <Input className="rounded-2xl border-white/20 bg-zinc-700">
-                        <InputField
-                          value={activity.title || ''}
-                          onChangeText={(text: string) => {
-                            const updated = [...getActivities()];
-                            updated[activityIndex].title = text;
-                            setFieldValue('activityScheduleLists', updated);
-                          }}
-                          onBlur={() => handleFieldBlur(titleFieldname)}
-                          placeholder="Enter activity title"
-                          placeholderTextColor="#6b7280"
-                          className="text-white"
-                          editable={true}
-                        />
-                      </Input>
-                      {isTitleTouched && validateActivityTitle(activity.title) ? (
-                        <Text className="mt-1 text-xs text-red-400">
-                          {validateActivityTitle(activity.title)}
-                        </Text>
-                      ) : null}
-                    </View>
+                        {/* Activity Title */}
+                        <View className="mb-3">
+                          <Text className="mb-2 text-sm text-white">Activity Title *</Text>
+                          <Input className="rounded-2xl border-white/20 bg-zinc-700">
+                            <InputField
+                              value={activity.title || ''}
+                              onChangeText={(text: string) => {
+                                const updated = [...getActivities()];
+                                updated[activityIndex].title = text;
+                                setFieldValue('activityScheduleLists', updated);
+                              }}
+                              onBlur={() => handleFieldBlur(titleFieldname)}
+                              placeholder="Enter activity title"
+                              placeholderTextColor="#6b7280"
+                              className="text-white"
+                              editable={true}
+                            />
+                          </Input>
+                          {isTitleTouched && validateActivityTitle(activity.title) ? (
+                            <Text className="mt-1 text-xs text-red-400">
+                              {validateActivityTitle(activity.title)}
+                            </Text>
+                          ) : null}
+                        </View>
 
-                    {/* Activity Type */}
-                    <View className="mb-3">
-                      <SingleSelectCard
-                        label="Activity Type"
-                        selectedItem={
-                          activity.type
-                            ? activityTypes.find((t) => t.key === activity.type)?.label ||
+                        {/* Activity Type */}
+                        <View className="mb-3">
+                          <SingleSelectCard
+                            label="Activity Type"
+                            selectedItem={
                               activity.type
-                            : null
-                        }
-                        onItemChange={(label) => {
-                          const currentActivities = [...getActivities()];
-                          if (currentActivities[activityIndex]) {
-                            const typeKey =
-                              activityTypes.find((t) => t.label === label)?.key || label;
-                            currentActivities[activityIndex].type = typeKey;
-                            setFieldValue('activityScheduleLists', currentActivities);
-                            handleFieldBlur(`activityScheduleLists.${activityIndex}.type`);
-                          }
-                        }}
-                        fieldName={`activityScheduleLists.${activityIndex}.type`}
-                        setFieldValue={(field, value) => {
-                          // This won't be called directly, but kept for compatibility
-                        }}
-                        selectorComponent={ActivityTypeSelector}
-                        placeholder="Select activity type"
-                        selectorProps={{
-                          availableTypes: getAvailableActivityTypes(activityIndex),
-                          onSaveKey: (typeKey: string | null) => {
-                            const currentActivities = [...getActivities()];
-                            if (currentActivities[activityIndex]) {
-                              currentActivities[activityIndex].type = typeKey || '';
-                              setFieldValue('activityScheduleLists', currentActivities);
-                              handleFieldBlur(`activityScheduleLists.${activityIndex}.type`);
+                                ? activityTypes.find((t) => t.key === activity.type)?.label ||
+                                activity.type
+                                : null
                             }
-                          },
-                        }}
-                      />
-                      {isTypeTouched && validateActivityType(activity.type) ? (
-                        <Text className="mt-1 text-xs text-red-400">
-                          {validateActivityType(activity.type)}
-                        </Text>
-                      ) : null}
-                    </View>
-
-                    {/* Schedules */}
-                    <View className="mb-3">
-                      <Text className="mb-2 text-sm text-white">Schedules *</Text>
-                      {activity.schedules?.map(
-                        (schedule: ScheduleObject, scheduleIndex: number) => {
-                          const locationFieldname = `activityScheduleLists.${activityIndex}.schedules.${scheduleIndex}.location`;
-                          const fromTimeFieldname = `activityScheduleLists.${activityIndex}.schedules.${scheduleIndex}.fromTime`;
-                          const toTimeFieldname = `activityScheduleLists.${activityIndex}.schedules.${scheduleIndex}.toTime`;
-                          const isLocationTouched = isFieldTouched(locationFieldname);
-                          const scheduleError = isLocationTouched
-                            ? validateScheduleList(schedule)
-                            : null;
-
-                          return (
-                            <View
-                              key={schedule.id || scheduleIndex}
-                              className="mb-3 rounded-2xl border border-white/10 bg-zinc-700/50 p-3">
-                              <View className="mb-2 flex-row items-center justify-between">
-                                <Text className="text-xs text-white/80">
-                                  Schedule {scheduleIndex + 1}
-                                </Text>
-                                {activity.schedules.length > 1 && (
-                                  <TouchableOpacity
-                                    onPress={() => removeSchedule(activityIndex, scheduleIndex)}>
-                                    <Trash2 size={16} color="#ef4444" />
-                                  </TouchableOpacity>
-                                )}
-                              </View>
-
-                              {/* Location */}
-                              <View className="mb-3">
-                                <Text className="mb-1 text-xs text-white/80">Location *</Text>
-                                <Input className="rounded-2xl border-white/20 bg-zinc-600">
-                                  <InputField
-                                    value={schedule.location || ''}
-                                    onChangeText={(text: string) => {
-                                      const updated = [...getActivities()];
-                                      updated[activityIndex].schedules[scheduleIndex].location =
-                                        text;
-                                      setFieldValue('activityScheduleLists', updated);
-                                    }}
-                                    onBlur={() => handleFieldBlur(locationFieldname)}
-                                    placeholder="Enter location"
-                                    placeholderTextColor="#6b7280"
-                                    className="text-white"
-                                    editable={true}
-                                  />
-                                </Input>
-                                {scheduleError ? (
-                                  <Text className="mt-1 text-xs text-red-400 ">{scheduleError}</Text>
-                                ) : null}
-                              </View>
-
-                              {/* From Time */}
-                              <View className="mb-3">
-                                <Text className="mb-1 text-xs text-white/80">Start Time *</Text>
-                                <TouchableOpacity
-                                  activeOpacity={0.7}
-                                  onPress={() =>
-                                    openDateTimePicker(activityIndex, scheduleIndex, 'fromTime')
-                                  }
-                                  className="flex-row items-center justify-between rounded-2xl border border-white/20 bg-zinc-600 p-3">
-                                  <View className="flex-row items-center gap-2">
-                                    <Calendar size={16} color="#ffffff" />
-                                    <Text className="text-white">
-                                      {formatDisplayDateTime(schedule.fromTime || '')}
-                                    </Text>
-                                  </View>
-                                  <Clock size={16} color="#ffffff" />
-                                </TouchableOpacity>
-                                {validateTimeSlot(schedule) ? (
-                                  <Text className="mt-1 text-xs text-red-400">
-                                    {validateTimeSlot(schedule)}
-                                  </Text>
-                                ) : null}
-                              </View>
-
-                              {/* To Time */}
-                              <View className="mb-3">
-                                <Text className="mb-1 text-xs text-white/80">End Time *</Text>
-                                <TouchableOpacity
-                                  activeOpacity={0.7}
-                                  onPress={() =>
-                                    openDateTimePicker(activityIndex, scheduleIndex, 'toTime')
-                                  }
-                                  className="flex-row items-center justify-between rounded-2xl border border-white/20 bg-zinc-600 p-3">
-                                  <View className="flex-row items-center gap-2">
-                                    <Calendar size={16} color="#ffffff" />
-                                    <Text className="text-white">
-                                      {formatDisplayDateTime(schedule.toTime || '')}
-                                    </Text>
-                                  </View>
-                                  <Clock size={16} color="#ffffff" />
-                                </TouchableOpacity>
-                                {validateTimeSlot(schedule) ? (
-                                  <Text className="mt-1 text-xs text-red-400">
-                                    {validateTimeSlot(schedule)}
-                                  </Text>
-                                ) : null}
-                              </View>
-                            </View>
-                          );
-                        }
-                      )}
-
-                      <Button
-                        action="secondary"
-                        variant="outline"
-                        size="sm"
-                        onPress={() => addSchedule(activityIndex)}
-                        className="w-full rounded-2xl">
-                        <ButtonIcon as={Plus} size={16} />
-                        <ButtonText>Add Time Slot</ButtonText>
-                      </Button>
-                    </View>
-
-                    {/* Remarks */}
-                    {!isFinal && (
-                      <View className="mb-3">
-                        <Text className="mb-2 text-sm text-white">Remarks</Text>
-                        <Textarea
-                          variant="default"
-                          size="md"
-                          className="rounded-2xl border-white/20 bg-zinc-700">
-                          <TextareaInput
-                            value={activity.remarks || ''}
-                            onChangeText={(text: string) => {
-                              const updated = [...getActivities()];
-                              updated[activityIndex].remarks = text;
-                              setFieldValue('activityScheduleLists', updated);
+                            onItemChange={(label) => {
+                              const currentActivities = [...getActivities()];
+                              if (currentActivities[activityIndex]) {
+                                const typeKey =
+                                  activityTypes.find((t) => t.label === label)?.key || label;
+                                currentActivities[activityIndex].type = typeKey;
+                                setFieldValue('activityScheduleLists', currentActivities);
+                                handleFieldBlur(`activityScheduleLists.${activityIndex}.type`);
+                              }
                             }}
-                            placeholder="Add any additional notes or instructions..."
-                            placeholderTextColor="#6b7280"
-                            multiline
-                            numberOfLines={3}
-                            editable={true}
-                            className="text-white"
-                            style={{ textAlignVertical: 'top', color: '#ffffff' }}
+                            fieldName={`activityScheduleLists.${activityIndex}.type`}
+                            setFieldValue={(field, value) => {
+                              // This won't be called directly, but kept for compatibility
+                            }}
+                            selectorComponent={ActivityTypeSelector}
+                            placeholder="Select activity type"
+                            selectorProps={{
+                              availableTypes: getAvailableActivityTypes(activityIndex),
+                              onSaveKey: (typeKey: string | null) => {
+                                const currentActivities = [...getActivities()];
+                                if (currentActivities[activityIndex]) {
+                                  currentActivities[activityIndex].type = typeKey || '';
+                                  setFieldValue('activityScheduleLists', currentActivities);
+                                  handleFieldBlur(`activityScheduleLists.${activityIndex}.type`);
+                                }
+                              },
+                            }}
                           />
-                        </Textarea>
-                      </View>
-                    )}
+                          {isTypeTouched && validateActivityType(activity.type) ? (
+                            <Text className="mt-1 text-xs text-red-400">
+                              {validateActivityType(activity.type)}
+                            </Text>
+                          ) : null}
+                        </View>
+
+                        {/* Schedules */}
+                        <View className="mb-3">
+                          <Text className="mb-2 text-sm text-white">Schedules *</Text>
+                          {activity.schedules?.map(
+                            (schedule: ScheduleObject, scheduleIndex: number) => {
+                              const locationFieldname = `activityScheduleLists.${activityIndex}.schedules.${scheduleIndex}.location`;
+                              const fromTimeFieldname = `activityScheduleLists.${activityIndex}.schedules.${scheduleIndex}.fromTime`;
+                              const toTimeFieldname = `activityScheduleLists.${activityIndex}.schedules.${scheduleIndex}.toTime`;
+                              const isLocationTouched = isFieldTouched(locationFieldname);
+                              const scheduleError = isLocationTouched
+                                ? validateScheduleList(schedule)
+                                : null;
+
+                              return (
+                                <View
+                                  key={schedule.id || scheduleIndex}
+                                  className="mb-3 rounded-2xl border border-white/10 bg-zinc-700/50 p-3">
+                                  <View className="mb-2 flex-row items-center justify-between">
+                                    <Text className="text-xs text-white/80">
+                                      Schedule {scheduleIndex + 1}
+                                    </Text>
+                                    {activity.schedules.length > 1 && (
+                                      <TouchableOpacity
+                                        onPress={() => removeSchedule(activityIndex, scheduleIndex)}>
+                                        <Trash2 size={16} color="#ef4444" />
+                                      </TouchableOpacity>
+                                    )}
+                                  </View>
+
+                                  {/* Location */}
+                                  <View className="mb-3">
+                                    <Text className="mb-1 text-xs text-white/80">Location *</Text>
+                                    <LocationMapPickerInput
+                                      value={schedule.location || ''}
+                                      onChangeText={(text: string) => {
+                                        const updated = [...getActivities()];
+                                        updated[activityIndex].schedules[scheduleIndex].location = text;
+                                        setFieldValue('activityScheduleLists', updated);
+                                      }}
+                                      onBlur={() => handleFieldBlur(locationFieldname)}
+                                      placeholder="Enter or select location"
+                                    />
+                                    {scheduleError ? (
+                                      <Text className="mt-1 text-xs text-red-400 ">{scheduleError}</Text>
+                                    ) : null}
+                                  </View>
+
+                                  {/* From Time */}
+                                  <View className="mb-3">
+                                    <Text className="mb-1 text-xs text-white/80">Start Time *</Text>
+                                    <TouchableOpacity
+                                      activeOpacity={0.7}
+                                      onPress={() =>
+                                        openDateTimePicker(activityIndex, scheduleIndex, 'fromTime')
+                                      }
+                                      className="flex-row items-center justify-between rounded-2xl border border-white/20 bg-zinc-600 p-3">
+                                      <View className="flex-row items-center gap-2">
+                                        <Calendar size={16} color="#ffffff" />
+                                        <Text className="text-white">
+                                          {formatDisplayDateTime(schedule.fromTime || '')}
+                                        </Text>
+                                      </View>
+                                      <Clock size={16} color="#ffffff" />
+                                    </TouchableOpacity>
+                                    {validateTimeSlot(schedule) ? (
+                                      <Text className="mt-1 text-xs text-red-400">
+                                        {validateTimeSlot(schedule)}
+                                      </Text>
+                                    ) : null}
+                                  </View>
+
+                                  {/* To Time */}
+                                  <View className="mb-3">
+                                    <Text className="mb-1 text-xs text-white/80">End Time *</Text>
+                                    <TouchableOpacity
+                                      activeOpacity={0.7}
+                                      onPress={() =>
+                                        openDateTimePicker(activityIndex, scheduleIndex, 'toTime')
+                                      }
+                                      className="flex-row items-center justify-between rounded-2xl border border-white/20 bg-zinc-600 p-3">
+                                      <View className="flex-row items-center gap-2">
+                                        <Calendar size={16} color="#ffffff" />
+                                        <Text className="text-white">
+                                          {formatDisplayDateTime(schedule.toTime || '')}
+                                        </Text>
+                                      </View>
+                                      <Clock size={16} color="#ffffff" />
+                                    </TouchableOpacity>
+                                    {validateTimeSlot(schedule) ? (
+                                      <Text className="mt-1 text-xs text-red-400">
+                                        {validateTimeSlot(schedule)}
+                                      </Text>
+                                    ) : null}
+                                  </View>
+                                </View>
+                              );
+                            }
+                          )}
+
+                          <Button
+                            action="secondary"
+                            variant="outline"
+                            size="sm"
+                            onPress={() => addSchedule(activityIndex)}
+                            className="w-full rounded-2xl">
+                            <ButtonIcon as={Plus} size={16} />
+                            <ButtonText>Add Time Slot</ButtonText>
+                          </Button>
+                        </View>
+
+                        {/* Remarks */}
+                        {!isFinal && (
+                          <View className="mb-3">
+                            <Text className="mb-2 text-sm text-white">Remarks</Text>
+                            <Textarea
+                              variant="default"
+                              size="md"
+                              className="rounded-2xl border-white/20 bg-zinc-700">
+                              <TextareaInput
+                                value={activity.remarks || ''}
+                                onChangeText={(text: string) => {
+                                  const updated = [...getActivities()];
+                                  updated[activityIndex].remarks = text;
+                                  setFieldValue('activityScheduleLists', updated);
+                                }}
+                                placeholder="Add any additional notes or instructions..."
+                                placeholderTextColor="#6b7280"
+                                multiline
+                                numberOfLines={3}
+                                editable={true}
+                                className="text-white"
+                                style={{ textAlignVertical: 'top', color: '#ffffff' }}
+                              />
+                            </Textarea>
+                          </View>
+                        )}
                       </View>
                     )}
                   </View>
