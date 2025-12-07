@@ -1,9 +1,13 @@
 import React, { useMemo } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { useMutation } from '@tanstack/react-query';
+import { deleteApplicantById } from '@/api/apiservice/applicant_api';
+import { formatDateTimeLocale, parseDateTime } from '@/lib/datetime';
 
 type JobApplicationDetailProps = {
   application: any;
   roleWithSchedules: any;
+  onDeleted?: () => void;
 };
 
 const DetailRow = ({ label, value }: { label: string; value?: string | number | null }) => {
@@ -16,7 +20,7 @@ const DetailRow = ({ label, value }: { label: string; value?: string | number | 
   );
 };
 
-export function JobApplicationDetail({ application, roleWithSchedules }: JobApplicationDetailProps) {
+export function JobApplicationDetail({ application, roleWithSchedules, onDeleted }: JobApplicationDetailProps) {
   const process = useMemo(() => {
     const activities = roleWithSchedules?.activities ?? [];
     return activities.find((activity: any) => activity?.title === application?.applicationProcess);
@@ -24,22 +28,37 @@ export function JobApplicationDetail({ application, roleWithSchedules }: JobAppl
 
   const formattedAppliedAt = useMemo(() => {
     if (!application?.appliedAt) return null;
-    const date = new Date(application.appliedAt);
-    if (Number.isNaN(date.getTime())) return null;
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
+    const parsed = parseDateTime(application.appliedAt);
+    if (!parsed) return null;
+    return formatDateTimeLocale(application.appliedAt);
   }, [application?.appliedAt]);
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      if (!application?.id) return;
+      await deleteApplicantById(application.id);
+    },
+    onSuccess: () => {
+      onDeleted?.();
+    },
+  });
 
   return (
     <View className="gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
       <View className="flex-row items-center justify-between">
         <Text className="text-base font-semibold text-white">Application details</Text>
-        <View className="flex-row gap-2">
+        <View className="flex-row items-center gap-2">
+          {application?.id ? (
+            <TouchableOpacity
+              className="rounded-full border border-rose-400/40 bg-rose-500/15 px-3 py-1"
+              activeOpacity={0.85}
+              onPress={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}>
+              <Text className="text-xs font-semibold text-rose-200">
+                {deleteMutation.isPending ? 'Deleting…' : 'Dev Delete'}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
           <View className="rounded-full border border-emerald-400/40 bg-emerald-500/25 px-3 py-1">
             <Text className="text-xs font-semibold text-white">
               {application?.applicationProcess || 'Applied'}
@@ -75,11 +94,15 @@ export function JobApplicationDetail({ application, roleWithSchedules }: JobAppl
             {process?.title || 'Session'} schedule
           </Text>
           {process.schedules.map((schedule: any, index: number) => {
-            const fromTime = schedule?.fromTime ? new Date(schedule.fromTime) : null;
-            const toTime = schedule?.toTime ? new Date(schedule.toTime) : null;
+            const fromFormatted = schedule?.fromTime
+              ? formatDateTimeLocale(schedule.fromTime, 'TBC')
+              : 'TBC';
+            const toFormatted = schedule?.toTime
+              ? formatDateTimeLocale(schedule.toTime, 'TBC')
+              : 'TBC';
             const formattedRange =
-              fromTime && toTime
-                ? `${fromTime.toLocaleString()} - ${toTime.toLocaleString()}`
+              fromFormatted !== 'TBC' && toFormatted !== 'TBC'
+                ? `${fromFormatted} - ${toFormatted}`
                 : 'TBC';
             return (
               <View

@@ -27,17 +27,6 @@ export function JobRoleDrawerContent({
         projectData={projectData}
         application={application}
       />
-
-      {application ? (
-        <JobApplicationDetail application={application} roleWithSchedules={roleWithSchedules} />
-      ) : (
-        <JobApplyFormModal
-          projectData={projectData}
-          roleWithSchedules={roleWithSchedules}
-          soleUserId={soleUserId}
-          onSubmitted={onApplicationSubmitted}
-        />
-      )}
     </View>
   );
 }

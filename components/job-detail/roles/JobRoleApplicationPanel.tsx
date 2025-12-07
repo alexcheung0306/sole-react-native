@@ -37,6 +37,7 @@ export function JobRoleApplicationPanel({
         <JobApplicationDetail
           application={application}
           roleWithSchedules={roleWithSchedules}
+          onDeleted={onApplicationUpdated}
         />
       ) : (
         <JobApplyFormModal
