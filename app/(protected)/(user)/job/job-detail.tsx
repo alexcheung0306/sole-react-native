@@ -15,6 +15,7 @@ import { ProjectInformationCard } from '~/components/project-detail/details/Proj
 import { CustomTabs } from '@/components/custom/custom-tabs';
 import { JobContractsTab } from '~/components/job-detail/contracts/JobContractsTab';
 import { JobRolesBreadcrumb } from '~/components/job-detail/roles/JobRolesBreadcrumb';
+import { JobRoleApplicationPanel } from '~/components/job-detail/roles/JobRoleApplicationPanel';
 
 const STATUS_COLORS: Record<string, string> = {
   Draft: '#6b7280',
@@ -232,13 +233,31 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
                     </Text>
                   </View>
                 ) : (
-                  <JobRolesBreadcrumb
-                    projectData={project}
-                    rolesWithSchedules={rolesWithSchedules}
-                    currentRole={currentRole}
-                    setCurrentRole={setCurrentRole}
-                    applicationsData={applicationsData}
-                  />
+                  <>
+                    <JobRolesBreadcrumb
+                      projectData={project}
+                      rolesWithSchedules={rolesWithSchedules}
+                      currentRole={currentRole}
+                      setCurrentRole={setCurrentRole}
+                      applicationsData={applicationsData}
+                      soleUserId={soleUserId}
+                      onApplicationUpdated={refetchApplications}
+                    />
+
+                    {rolesWithSchedules[currentRole] && (
+                      <View className="px-2">
+                        <JobRoleApplicationPanel
+                          projectData={project}
+                          roleWithSchedules={rolesWithSchedules[currentRole]}
+                          application={applicationsData?.find(
+                            (app: any) => app.roleId === rolesWithSchedules[currentRole]?.role?.id
+                          )}
+                          soleUserId={soleUserId}
+                          onApplicationUpdated={refetchApplications}
+                        />
+                      </View>
+                    )}
+                  </>
                 )}
               </View>
             )}

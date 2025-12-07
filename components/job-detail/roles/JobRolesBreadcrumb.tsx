@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Briefcase, InfoIcon } from 'lucide-react-native';
-import { DisplayJobRoleInformation } from './DisplayJobRoleInformation';
 import CollapseDrawer from '~/components/custom/collapse-drawer';
+import { JobRoleDrawerContent } from './JobRoleDrawerContent';
 
 type JobRolesBreadcrumbProps = {
   projectData: any;
@@ -10,6 +10,8 @@ type JobRolesBreadcrumbProps = {
   currentRole: number;
   setCurrentRole: (index: number) => void;
   applicationsData?: any[];
+  soleUserId?: string | null;
+  onApplicationUpdated?: () => void;
 };
 
 export function JobRolesBreadcrumb({
@@ -18,6 +20,8 @@ export function JobRolesBreadcrumb({
   currentRole,
   setCurrentRole,
   applicationsData,
+  soleUserId,
+  onApplicationUpdated,
 }: JobRolesBreadcrumbProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
@@ -41,6 +45,9 @@ export function JobRolesBreadcrumb({
 
   // Always use currentRole for the drawer content
   const selectedRole = rolesWithSchedules[currentRole] || null;
+  const selectedApplication = applicationsData?.find(
+    (app: any) => app.roleId === selectedRole?.role?.id
+  );
 
   return (
     <View className="ml-2 gap-4">
@@ -101,11 +108,12 @@ export function JobRolesBreadcrumb({
             <ScrollView
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: 24 }}>
-              <DisplayJobRoleInformation
-                role={selectedRole?.role}
-                roleWithSchedules={selectedRole}
+              <JobRoleDrawerContent
                 projectData={projectData}
-                application={applicationsData?.find((app: any) => app.roleId === selectedRole?.role?.id)}
+                roleWithSchedules={selectedRole}
+                application={selectedApplication}
+                soleUserId={soleUserId}
+                onApplicationSubmitted={onApplicationUpdated}
               />
             </ScrollView>
           </View>

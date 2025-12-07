@@ -166,15 +166,28 @@ export function LocationMapPickerInput({
       setLoadingLocation(true);
       try {
         if (hasPermission) {
-          const location = await Location.getCurrentPositionAsync({});
-          setRegion({
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
-            latitudeDelta: 0.005,
-            longitudeDelta: 0.005,
-          });
+          const servicesEnabled = await Location.hasServicesEnabledAsync();
+          if (servicesEnabled) {
+            const location = await Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.Lowest,
+            });
+            setRegion({
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+              latitudeDelta: 0.005,
+              longitudeDelta: 0.005,
+            });
+          } else {
+            // Services off: fallback
+            setRegion({
+              latitude: 22.28552,
+              longitude: 114.15769,
+              latitudeDelta: 0.05,
+              longitudeDelta: 0.05,
+            });
+          }
         } else {
-          // Fallback: Hong Kong Central
+          // Permission not granted: fallback
           setRegion({
             latitude: 22.28552,
             longitude: 114.15769,
@@ -183,7 +196,7 @@ export function LocationMapPickerInput({
           });
         }
       } catch (error) {
-        console.error("Error getting location:", error);
+        // Swallow noisy emulator/location errors; still fall back to default
         setRegion({
           latitude: 22.28552,
           longitude: 114.15769,

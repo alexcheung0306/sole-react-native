@@ -23,3 +23,4 @@ export const SoleLogo: React.FC<SoleLogoProps> = ({
 };
 
 
+
