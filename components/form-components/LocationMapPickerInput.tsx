@@ -158,6 +158,8 @@ export function LocationMapPickerInput({
   };
 
   const handleOpenMap = async () => {
+    setSuggestions([]);
+    setShowDropdown(false);
     setModalVisible(true);
     // If we already have a region (from suggestion or previous open), use it.
     if (!region) {
@@ -225,6 +227,8 @@ export function LocationMapPickerInput({
 
         setQuery(formattedAddress);
         onChangeText(formattedAddress);
+        setSuggestions([]);
+        setShowDropdown(false);
         setModalVisible(false);
       } else {
         Alert.alert("Address not found", "Could not find an address for this location.");
