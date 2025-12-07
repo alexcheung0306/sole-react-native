@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Dimensions, Text, View, ActivityIndicator, TouchableOpacity, Alert } from "react-native";
 import { useSoleUserContext } from "~/context/SoleUserContext";
@@ -59,9 +59,9 @@ export default function RoleCandidatesSwipeScreen() {
     queryKey: ['swipe-role-candidates', roleId, candidateQueryString],
     queryFn: () => searchApplicants(candidateQueryString),
     enabled: Boolean(roleId && process),
-    staleTime: 1000 * 60 * 5,
-    refetchOnMount: true,
-    refetchOnWindowFocus: false,
+    staleTime: 0, // always stale so re-open refetches
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   const candidates = useMemo(() => {
@@ -75,6 +75,17 @@ export default function RoleCandidatesSwipeScreen() {
     setCurrentIndex(0);
     stableCandidatesInitializedRef.current = false;
   }, [roleId, process]);
+
+  // On focus, ensure we refetch and reset local swipe state
+  useFocusEffect(
+    useCallback(() => {
+      setStableCandidates([]);
+      setCurrentIndex(0);
+      stableCandidatesInitializedRef.current = false;
+      queryClient.invalidateQueries({ queryKey: ['swipe-role-candidates'] });
+      return undefined;
+    }, [queryClient])
+  );
 
   // Store a stable copy of candidates when we first load them
   // This prevents the array from changing during swipe session when queries are invalidated

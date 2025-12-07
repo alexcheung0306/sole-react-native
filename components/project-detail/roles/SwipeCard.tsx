@@ -11,6 +11,7 @@ import Animated, {
   SharedValue,
 } from "react-native-reanimated";
 import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 import { CustomTabs } from "@/components/custom/custom-tabs";
 import { getStatusColor } from "@/utils/get-status-color";
 import TalentProfile from "~/components/talent-profile/TalentProfile";
@@ -111,6 +112,9 @@ export default function SwipeCard({
 
   // Pan gesture handler for this card
   const panGesture = Gesture.Pan()
+    // Activate only on meaningful horizontal movement so vertical scrolls pass through
+    .activeOffsetX([-20, 20])
+    .failOffsetY([-12, 12])
     .onBegin(() => {
       'worklet';
       // Only allow gesture if this card is the top card
@@ -264,12 +268,44 @@ export default function SwipeCard({
       rejectGradientOpacity.value = withTiming(0, { duration: 150 });
       rightActionOpacities.value = withTiming([0, 0, 0, 0, 0], { duration: 150 });
       runOnJS(onHighlightAction)(null);
+    })
+    // Safety: if the gesture is cancelled/failed, ensure the card recenters on Y
+    .onFinalize(() => {
+      'worklet';
+      if (currentIndexShared.value !== index) {
+        return;
+      }
+      const hasSwipedAway = Math.abs(translateX.value) >= SWIPE_THRESHOLD;
+      if (hasSwipedAway) {
+        return;
+      }
+      translateX.value = withTiming(0, { duration: 180 });
+      translateY.value = withTiming(0, { duration: 180 });
+      rejectGradientOpacity.value = withTiming(0, { duration: 120 });
+      rightActionOpacities.value = withTiming([0, 0, 0, 0, 0], { duration: 120 });
+      runOnJS(onHighlightAction)(null);
     });
 
   const candidateApplicant = candidate?.jobApplicant ?? {};
   const candidateUserInfo = candidate?.userInfo ?? {};
   const candidateUsername = candidate?.username || candidateUserInfo?.username || 'unknown';
   const candidateStatusColor = getStatusColor(candidateApplicant?.applicationStatus || 'applied');
+
+  // Keep last good profile data for this candidate to avoid momentary flicker when queries refetch
+  const [lastGoodProfile, setLastGoodProfile] = useState<any>(talentProfileData);
+
+  useEffect(() => {
+    // Reset cache when candidate changes
+    setLastGoodProfile(talentProfileData);
+  }, [candidateUsername]);
+
+  useEffect(() => {
+    if (talentProfileData?.talentInfo) {
+      setLastGoodProfile(talentProfileData);
+    }
+  }, [talentProfileData]);
+
+  const profileToRender = lastGoodProfile ?? talentProfileData;
 
   // Don't render if scale is 0 (swiped away)
   if (stackedStyle.scale === 0 || stackedStyle.opacity === 0) {
@@ -286,9 +322,6 @@ export default function SwipeCard({
           right: 20,
           bottom: 20,
           borderRadius: 28,
-          borderWidth: 1,
-          borderColor: isTopCard ? candidateStatusColor : 'rgba(255, 255, 255, 0.2)',
-          overflow: 'hidden',
           zIndex: stackedStyle.zIndex,
           transform: [{ scale: stackedStyle.scale }],
           opacity: stackedStyle.opacity,
@@ -296,88 +329,101 @@ export default function SwipeCard({
         isTopCard || isExiting ? cardAnimatedStyle : {},
       ]}
       pointerEvents={isExiting ? 'none' : 'auto'}>
-      <BlurView intensity={100} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-      <View className="bg-black/12 absolute inset-0" />
+      <LinearGradient
+        colors={['rgba(255,255,255,0.9)', 'rgba(200,200,200,0.65)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ flex: 1, borderRadius: 28, padding: 1 }}>
+        <View style={{ flex: 1, borderRadius: 27, overflow: 'hidden' }}>
+          <BlurView intensity={100} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+          <View className="bg-black absolute inset-0" />
 
-      <GestureDetector gesture={panGesture}>
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-          {/* Candidate Header Card */}
-          <View className="mx-4 mt-4 rounded-2xl border border-white/10 bg-zinc-800 p-4">
-            <View className="flex-row items-center gap-4">
-              <Image
-                source={{
-                  uri: talentProfileData?.userInfo?.profilePic || candidate?.comcardFirstPic || undefined,
-                }}
-                className="h-20 w-20 rounded-full bg-zinc-700"
-              />
-              <View className="flex-1">
-                <Text className="text-lg font-semibold text-white">
-                  {talentProfileData?.userInfo?.name || candidateUserInfo?.name || 'Unnamed candidate'}
-                </Text>
-                <Text className="text-sm text-white/60">@{candidateUsername}</Text>
-                <View
-                  className="mt-2 self-start rounded-full border px-3 py-1.5"
-                  style={{
-                    backgroundColor: candidateStatusColor + '20',
-                    borderColor: candidateStatusColor + '60',
-                  }}>
-                  <Text className="text-xs font-bold uppercase tracking-wide" style={{ color: candidateStatusColor }}>
-                    {candidateApplicant?.applicationStatus || 'applied'}
-                  </Text>
+          <GestureDetector gesture={panGesture}>
+            <ScrollView
+              className="flex-1"
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+              scrollEventThrottle={16}>
+              {/* Candidate Header Card */}
+              <View className="mx-4 mt-4 rounded-2xl border border-white/10 bg-zinc-800 p-4">
+                <View className="flex-row items-center gap-4">
+                  <Image
+                    source={{
+                      uri: talentProfileData?.userInfo?.profilePic || candidate?.comcardFirstPic || undefined,
+                    }}
+                    className="h-20 w-20 rounded-full bg-zinc-700"
+                  />
+                  <View className="flex-1">
+                    <Text className="text-lg font-semibold text-white">
+                      {talentProfileData?.userInfo?.name || candidateUserInfo?.name || 'Unnamed candidate'}
+                    </Text>
+                    <Text className="text-sm text-white/60">@{candidateUsername}</Text>
+                    <View
+                      className="mt-2 self-start rounded-full border px-3 py-1.5"
+                      style={{
+                        backgroundColor: candidateStatusColor + '20',
+                        borderColor: candidateStatusColor + '60',
+                      }}>
+                      <Text className="text-xs font-bold uppercase tracking-wide" style={{ color: candidateStatusColor }}>
+                        {candidateApplicant?.applicationStatus || 'applied'}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
               </View>
-            </View>
-          </View>
 
-          {/* Tabs */}
-          <View className="mt-4 px-4">
-            <CustomTabs tabs={tabs} value={currentTab} onValueChange={onTabChange} />
-          </View>
+              {/* Tabs */}
+              <View className="mt-4 px-4">
+                <CustomTabs tabs={tabs} value={currentTab} onValueChange={onTabChange} />
+              </View>
 
-          {/* Tab Content */}
-          <View className="px-4 pb-8">
+              {/* Tab Content */}
+              <View className="px-4 pb-8">
             {currentTab === 'talent-profile' && (
-              <View>
-                {isLoadingProfile ? (
-                  <View className="py-8">
-                    <ActivityIndicator size="large" color="#3b82f6" />
+                  <View>
+                {isLoadingProfile || profileToRender === undefined ? (
+                      <View className="py-8">
+                        <ActivityIndicator size="large" color="#3b82f6" />
+                      </View>
+                ) : !profileToRender || !profileToRender.talentInfo ? (
+                      <View className="py-8">
+                        <Text className="mb-2 text-center text-base font-semibold text-white">Profile Not Available</Text>
+                        <Text className="text-center text-sm text-white/60">
+                          {candidateUsername === 'unknown'
+                            ? "This user's profile information is not available."
+                            : 'Unable to load profile data for this user.'}
+                        </Text>
+                      </View>
+                    ) : (
+                      <TalentProfile
+                    userProfileData={profileToRender}
+                    talentLevel={parseInt(profileToRender?.talentLevel || '0')}
+                    talentInfo={profileToRender?.talentInfo}
+                        isOwnProfile={false}
+                        scrollEnabled={false}
+                      />
+                    )}
                   </View>
-                ) : !talentProfileData || !talentProfileData.talentInfo ? (
-                  <View className="py-8">
-                    <Text className="mb-2 text-center text-base font-semibold text-white">Profile Not Available</Text>
-                    <Text className="text-center text-sm text-white/60">
-                      {candidateUsername === 'unknown'
-                        ? "This user's profile information is not available."
-                        : 'Unable to load profile data for this user.'}
-                    </Text>
-                  </View>
-                ) : (
-                  <TalentProfile
-                    userProfileData={talentProfileData}
-                    talentLevel={parseInt(talentProfileData?.talentLevel || '0')}
-                    talentInfo={talentProfileData?.talentInfo}
-                    isOwnProfile={false}
+                )}
+
+                {currentTab === 'application' && (
+                  <ApplicationDetail
+                    applicant={candidateApplicant}
+                  />
+                )}
+
+                {currentTab === 'actions' && (
+                  <ActionToCandidates
+                    applicant={candidate}
+                    projectData={{ id: projectId }}
+                    roleId={roleId}
                   />
                 )}
               </View>
-            )}
-
-            {currentTab === 'application' && (
-              <ApplicationDetail
-                applicant={candidateApplicant}
-              />
-            )}
-
-            {currentTab === 'actions' && (
-              <ActionToCandidates
-                applicant={candidate}
-                projectData={{ id: projectId }}
-                roleId={roleId}
-              />
-            )}
-          </View>
-        </ScrollView>
-      </GestureDetector>
+            </ScrollView>
+          </GestureDetector>
+        </View>
+      </LinearGradient>
     </Animated.View>
   );
 }

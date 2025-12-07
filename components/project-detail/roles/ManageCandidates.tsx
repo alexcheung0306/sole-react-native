@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, memo } from 'react';
+import React, { useMemo, useState, useCallback, memo, useEffect } from 'react';
 import { View, Text, ScrollView, FlatList, TouchableOpacity, Dimensions, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
@@ -14,6 +14,7 @@ type ManageCandidatesProps = {
 
 const candidateStatusOptions = [
   { id: 'applied', label: 'Applied', color: '#3b82f6' },
+  { id: 'invited', label: 'Invited', color: '#60a5fa' },
   { id: 'shortlisted', label: 'Shortlisted', color: '#facc15' },
   { id: 'offered', label: 'Offered', color: '#f97316' },
   { id: 'accepted', label: 'Accepted', color: '#10b981' },
@@ -209,6 +210,39 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
     candidateSearchBy,
     selectedStatuses,
   ]);
+
+  // Limit available status filters based on current process (PS -> allowed AS)
+  const allowedStatusOptions = useMemo(() => {
+    if (currentProcess === 'applied') {
+      return candidateStatusOptions.filter((s) => s.id === 'applied');
+    }
+    if (currentProcess === 'shortlisted') {
+      return candidateStatusOptions.filter((s) => s.id === 'shortlisted');
+    }
+    if (currentProcess === 'offered') {
+      return candidateStatusOptions.filter((s) => s.id === 'offered');
+    }
+
+    const activityTitles = processSegments.filter(
+      (segment) => !['applied', ...trailingProcesses].includes(segment)
+    );
+    const isMappedSession = activityTitles.includes(currentProcess);
+
+    if (isMappedSession) {
+      return candidateStatusOptions.filter((s) =>
+        ['invited', 'accepted', 'rejected'].includes(s.id)
+      );
+    }
+
+    // Fallback: no status filtering options
+    return [];
+  }, [currentProcess, processSegments]);
+
+  // Ensure selected statuses stay within the allowed set for the current process
+  useEffect(() => {
+    const allowedIds = new Set(allowedStatusOptions.map((s) => s.id));
+    setSelectedStatuses((prev) => prev.filter((id) => allowedIds.has(id)));
+  }, [allowedStatusOptions]);
 
   const { data: processCounts } = useQuery({
     queryKey: ['role-process-counts', roleWithSchedules?.role?.id],
@@ -428,7 +462,7 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
         setSelectedStatuses={setSelectedStatuses}
         onSearch={handleCandidateSearch}
         searchOptions={candidateSearchOptions}
-        statusOptions={candidateStatusOptions}
+        statusOptions={allowedStatusOptions}
       />
 
       {/* Candidates List - Memoized, only rerenders when candidates change */}
