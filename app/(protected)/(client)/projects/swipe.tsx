@@ -13,11 +13,12 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
-import { ChevronLeft, X } from "lucide-react-native";
+import { ChevronLeft, X, Filter } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getStatusColor } from "@/utils/get-status-color";
 import { getUserProfileByUsername } from "@/api/apiservice/soleUser_api";
 import SwipeCard from "~/components/project-detail/roles/SwipeCard";
+import CollapseDrawer from "@/components/custom/collapse-drawer";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -29,16 +30,30 @@ export default function RoleCandidatesSwipeScreen() {
   const [currentTab, setCurrentTab] = useState('talent-profile');
   const [exitingIndex, setExitingIndex] = useState<number | null>(null); // keeps the swiped-away card mounted for animation
   const [highlightedAction, setHighlightedAction] = useState<'shortlist' | 'invite' | 'reject' | null>(null);
-  
+  const [showStatusDrawer, setShowStatusDrawer] = useState(false);
+  const [statusFilterSelection, setStatusFilterSelection] = useState<string[]>([]);
+  const [exhausted, setExhausted] = useState(false);
+  const toggleStatusFilter = useCallback((id: string) => {
+    setStatusFilterSelection((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+    );
+  }, []);
+  const clearStatusFilter = useCallback(() => {
+    setStatusFilterSelection([]);
+    setShowStatusDrawer(false);
+  }, []);
+
   // Store a stable copy of candidates when we first load them
   // This prevents the array from changing during swipe session
   const [stableCandidates, setStableCandidates] = useState<any[]>([]);
   const stableCandidatesInitializedRef = useRef(false);
 
-  const { projectId, roleId, process } = useLocalSearchParams<{
+  const { projectId, roleId, process, initialIndex, initialApplicantId } = useLocalSearchParams<{
     projectId?: string;
     roleId?: string;
     process?: string;
+    initialIndex?: string;
+    initialApplicantId?: string;
   }>();
 
   // Fetch candidates
@@ -69,6 +84,38 @@ export default function RoleCandidatesSwipeScreen() {
     return candidatesResponse?.data ?? candidatesResponse?.content ?? candidatesResponse ?? [];
   }, [candidatesResponse]);
 
+  const initialIndexParam = useMemo(() => {
+    const parsed = initialIndex ? Number(initialIndex) : NaN;
+    return Number.isFinite(parsed) ? parsed : null;
+  }, [initialIndex]);
+
+  const initialApplicantIdParam = useMemo(() => {
+    const parsed = initialApplicantId ? Number(initialApplicantId) : NaN;
+    return Number.isFinite(parsed) ? parsed : null;
+  }, [initialApplicantId]);
+
+  const applyInitialOrder = useCallback((list: any[]) => {
+    if (!Array.isArray(list) || list.length === 0) return [];
+
+    let targetIndex = -1;
+    if (initialApplicantIdParam !== null) {
+      targetIndex = list.findIndex((c: any) => {
+        const applicantId = c?.jobApplicant?.id || c?.id;
+        return applicantId === initialApplicantIdParam;
+      });
+    }
+
+    if (targetIndex < 0 && initialIndexParam !== null) {
+      targetIndex = Math.min(Math.max(initialIndexParam, 0), list.length - 1);
+    }
+
+    if (targetIndex > 0) {
+      return [...list.slice(targetIndex), ...list.slice(0, targetIndex)];
+    }
+
+    return list;
+  }, [initialApplicantIdParam, initialIndexParam]);
+
   // Reset stable candidates and index when route params change (new navigation)
   useEffect(() => {
     setStableCandidates([]);
@@ -92,15 +139,24 @@ export default function RoleCandidatesSwipeScreen() {
   useEffect(() => {
     // Only set stable candidates once when candidates first load (after reset or initial load)
     if (candidates.length > 0 && !stableCandidatesInitializedRef.current) {
-      setStableCandidates([...candidates]); // Create a copy to ensure it's stable
+      const reordered = applyInitialOrder([...candidates]);
+      setStableCandidates(reordered); // Create a copy to ensure it's stable
       stableCandidatesInitializedRef.current = true;
     }
-  }, [candidates.length]); // Only depend on candidates.length
+  }, [candidates, applyInitialOrder]); // depend on candidates array and reorder fn
 
   // Use stable candidates for the swipe session
   // Fall back to candidates if stableCandidates is not set yet (during initial load)
   // This ensures we always show all candidates when first navigating to the screen
-  const swipeCandidates = stableCandidates.length > 0 ? stableCandidates : candidates;
+  const orderedCandidates = stableCandidates.length > 0 ? stableCandidates : applyInitialOrder(candidates);
+
+  const swipeCandidates = useMemo(() => {
+    if (!statusFilterSelection.length) return orderedCandidates;
+    return orderedCandidates.filter((c: any) => {
+      const status = c?.jobApplicant?.applicationStatus || 'applied';
+      return statusFilterSelection.includes(status);
+    });
+  }, [orderedCandidates, statusFilterSelection]);
 
   // Fetch role data
   const { data: rolesWithSchedules = [] } = useQuery({
@@ -123,7 +179,7 @@ export default function RoleCandidatesSwipeScreen() {
 
   const currentProcess = process || 'applied';
 
-  // Current candidate (the one on top)
+  // Current candidate (the one on top) from filtered list
   const currentCandidate = currentIndex >= 0 && currentIndex < swipeCandidates.length ? swipeCandidates[currentIndex] : null;
 
   // Current candidate data
@@ -140,6 +196,41 @@ export default function RoleCandidatesSwipeScreen() {
         .map((activity: any) => activity?.title)
         .filter(Boolean)
     : [];
+
+  // Allowed status filters based on current process (mirror ManageCandidates)
+  const statusFilterOptions = useMemo(() => {
+    if (currentProcess === 'applied') {
+      return [{ id: 'applied', label: 'Applied' }];
+    }
+    if (currentProcess === 'shortlisted') {
+      return [{ id: 'shortlisted', label: 'Shortlisted' }];
+    }
+    if (currentProcess === 'offered') {
+      return [{ id: 'offered', label: 'Offered' }];
+    }
+    const isMappedSession = sessionActivities.includes(currentProcess);
+    if (isMappedSession) {
+      return [
+        { id: 'invited', label: 'Invited' },
+        { id: 'accepted', label: 'Accepted' },
+        { id: 'rejected', label: 'Rejected' },
+      ];
+    }
+    return [];
+  }, [currentProcess, sessionActivities]);
+
+  // Ensure selected statuses are valid for current process
+  useEffect(() => {
+    const allowedIds = new Set(statusFilterOptions.map((o) => o.id));
+    setStatusFilterSelection((prev) => {
+      const next = prev.filter((id) => allowedIds.has(id));
+      // Avoid triggering state updates if nothing changed
+      if (next.length === prev.length && next.every((id, idx) => id === prev[idx])) {
+        return prev;
+      }
+      return next;
+    });
+  }, [statusFilterOptions]);
 
   // Get available actions
   const getAvailableActions = useMemo(() => {
@@ -193,10 +284,27 @@ export default function RoleCandidatesSwipeScreen() {
   const rejectGradientOpacity = useSharedValue(0);
   const rightActionOpacities = useSharedValue([0, 0, 0, 0, 0]);
   const availableActionsCount = useSharedValue(0);
-  
+
   // Shared values for worklet-safe access
   const currentIndexShared = useSharedValue(currentIndex);
   const currentProcessShared = useSharedValue(currentProcess);
+
+  // When status filters change, start from the first visible candidate
+  useEffect(() => {
+    if (swipeCandidates.length > 0) {
+      setCurrentIndex(0);
+      currentIndexShared.value = 0;
+      setExitingIndex(null);
+      setExhausted(false);
+    }
+  }, [statusFilterSelection, swipeCandidates.length, currentIndexShared]);
+
+  // Reset exhausted flag when new candidates arrive
+  useEffect(() => {
+    if (swipeCandidates.length > 0) {
+      setExhausted(false);
+    }
+  }, [swipeCandidates.length]);
 
   // Refs
   const availableActionsRef = useRef<string[]>([]);
@@ -311,29 +419,27 @@ export default function RoleCandidatesSwipeScreen() {
     if (isMovingToNextRef.current) {
       return;
     }
-    
+
     isMovingToNextRef.current = true;
-    
+
     // Use a function to get the latest state
     setCurrentIndex((prevIndex) => {
       const nextIndex = prevIndex + 1;
-      
+
       // Use stable candidates - they don't change during swipe session
       if (nextIndex >= swipeCandidates.length) {
-        // No more candidates, go back
-        setTimeout(() => {
-          isMovingToNextRef.current = false;
-          router.back();
-        }, 100);
-        return prevIndex; // Don't update index, we're going back
+        // No more candidates - stop advancing and show exhausted state
+        setExhausted(true);
+        isMovingToNextRef.current = false;
+        return swipeCandidates.length; // point past last to trigger empty view
       }
 
       // Update the shared value
       currentIndexShared.value = nextIndex;
-      
+
       // Reset the guard immediately to allow the next swipe
       isMovingToNextRef.current = false;
-      
+
       return nextIndex;
     });
   }, [swipeCandidates.length, router, currentIndexShared]);
@@ -376,7 +482,7 @@ export default function RoleCandidatesSwipeScreen() {
   // Animated style for cards below (stacked effect)
   const getStackedCardStyle = useCallback((index: number) => {
     const distanceFromTop = index - currentIndex;
-    
+
     if (distanceFromTop < 0) {
       // Allow the most recently swiped card to stay visible for its exit animation
       if (exitingIndex !== null && index === exitingIndex) {
@@ -496,30 +602,14 @@ export default function RoleCandidatesSwipeScreen() {
     );
   }
 
-  if (swipeCandidates.length === 0) {
-    return (
-      <View className="flex-1 items-center justify-center bg-black">
-        <Text className="text-white">No candidates found</Text>
-        <TouchableOpacity onPress={() => router.back()} className="mt-4 rounded-lg bg-blue-500 px-4 py-2">
-          <Text className="text-white">Go Back</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  if (!currentCandidate) {
-    return (
-      <View className="flex-1 items-center justify-center bg-black">
-        <Text className="text-white">No candidates found</Text>
-        <TouchableOpacity onPress={() => router.back()} className="mt-4 rounded-lg bg-blue-500 px-4 py-2">
-          <Text className="text-white">Go Back</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  const displayIndex = swipeCandidates.length
+    ? Math.min(currentIndex, swipeCandidates.length - 1)
+    : 0;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+
+
       <View className="flex-1 bg-black" style={{ paddingTop: insets.top }}>
         {/* Header */}
         <View className="flex-row items-center justify-between border-b border-white/10 px-4 py-3">
@@ -527,117 +617,170 @@ export default function RoleCandidatesSwipeScreen() {
             <ChevronLeft size={24} color="#fff" />
           </TouchableOpacity>
           <Text className="flex-1 text-center text-lg font-semibold text-white">
-            {currentIndex + 1} / {swipeCandidates.length}
+            {swipeCandidates.length ? displayIndex + 1 : 0} / {swipeCandidates.length}
           </Text>
-          <TouchableOpacity onPress={() => router.back()} className="p-2">
-            <X size={24} color="#fff" />
+          <TouchableOpacity onPress={() => setShowStatusDrawer(true)} className="p-2">
+            <Filter size={22} color="#fff" />
           </TouchableOpacity>
         </View>
 
-        {/* Action Gradients - Screen Level - Full Screen with Highest Z-Index */}
-        {/* Reject Gradient (Left) */}
-        {currentCandidate && currentProcess !== 'offered' && (
-          <Animated.View
-            style={[
-              {
-                position: 'absolute',
-                left: 0,
-                top: 0,
-                right: 0,
-                bottom: 0,
-                width: SCREEN_WIDTH,
-                height: SCREEN_HEIGHT,
-                zIndex: 9999,
-                pointerEvents: 'none',
-              },
-              rejectGradientAnimatedStyle,
-            ]}>
-            <LinearGradient
-              colors={['rgba(239, 68, 68, 1)', 'rgba(239, 68, 68, 0)']}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 0.3, y: 0.5 }}
-              style={{ flex: 1, justifyContent: 'center', alignItems: 'flex-start', paddingLeft: 40 }}>
-              <Animated.Text
+        {swipeCandidates.length === 0 ? (
+          <View className="flex-1 items-center justify-center">
+            <Text className="text-white">{exhausted ? 'No more candidates' : 'No candidates found'}</Text>
+          </View>
+        ) : (
+          <>
+            {/* Action Gradients - Screen Level - Full Screen with Highest Z-Index */}
+            {/* Reject Gradient (Left) */}
+            {currentCandidate && currentProcess !== 'offered' && (
+              <Animated.View
                 style={[
                   {
-                    fontSize: 32,
-                    fontWeight: 'bold',
-                    color: '#fff',
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: SCREEN_WIDTH,
+                    height: SCREEN_HEIGHT,
+                    zIndex: 9999,
+                    pointerEvents: 'none',
                   },
-                  rejectTextAnimatedStyle,
+                  rejectGradientAnimatedStyle,
                 ]}>
-                REJECT
-              </Animated.Text>
-            </LinearGradient>
-          </Animated.View>
+                <LinearGradient
+                  colors={['rgba(239, 68, 68, 1)', 'rgba(239, 68, 68, 0)']}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 0.3, y: 0.5 }}
+                  style={{ flex: 1, justifyContent: 'center', alignItems: 'flex-start', paddingLeft: 40 }}>
+                  <Animated.Text
+                    style={[
+                      {
+                        fontSize: 32,
+                        fontWeight: 'bold',
+                        color: '#fff',
+                      },
+                      rejectTextAnimatedStyle,
+                    ]}>
+                    REJECT
+                  </Animated.Text>
+                </LinearGradient>
+              </Animated.View>
+            )}
+
+            {/* Action Gradients (Right) - Full Screen */}
+            {currentCandidate && getAvailableActions.map((action, index) => (
+              <ActionRow
+                key={action}
+                action={action}
+                index={index}
+                actionCount={getAvailableActions.length}
+              />
+            ))}
+
+            {/* Card Stack Container */}
+            <View className="flex-1" style={{ paddingHorizontal: 20 }}>
+              {swipeCandidates
+                // keep the exiting card plus the next two to reduce churn
+                .slice(
+                  exitingIndex !== null && exitingIndex === currentIndex - 1 ? exitingIndex : currentIndex,
+                  currentIndex + 3
+                )
+                .map((candidate: any, renderOffset: number) => {
+                  const index = (exitingIndex !== null && exitingIndex === currentIndex - 1 ? exitingIndex : currentIndex) + renderOffset;
+                  const isTopCard = index === currentIndex;
+                  const isSecondCard = index === currentIndex + 1;
+                  const isExiting = exitingIndex === index;
+                  const stackedStyle = getStackedCardStyle(index);
+
+                  // Use appropriate data based on card position
+                  const talentProfileData = isTopCard ? currentTalentProfileData : (isSecondCard ? secondTalentProfileData : null);
+                  const isLoadingProfile = isTopCard ? isLoadingCurrentTalentProfile : (isSecondCard ? isLoadingSecondTalentProfile : false);
+
+                  return (
+                    <SwipeCard
+                      key={`candidate-${candidate?.jobApplicant?.id || index}`}
+                      candidate={candidate}
+                      index={index}
+                      isTopCard={isTopCard}
+                      isSecondCard={isSecondCard}
+                      stackedStyle={stackedStyle}
+                      talentProfileData={talentProfileData}
+                      isLoadingProfile={isLoadingProfile}
+                      currentTab={currentTab}
+                      onTabChange={setCurrentTab}
+                      tabs={tabs.map(tab => ({ id: tab.id, label: tab.label }))}
+                      projectId={projectId ? Number(projectId) : undefined}
+                      roleId={roleId ? Number(roleId) : undefined}
+                      availableActions={getAvailableActions}
+                      currentProcess={currentProcess}
+                      onSwipeComplete={handleCardSwipeComplete}
+                      onSwipeStartExit={() => setExitingIndex(currentIndex)}
+                      onExitAnimationEnd={(finishedIndex) => {
+                        if (exitingIndex === finishedIndex) {
+                          setExitingIndex(null);
+                        }
+                      }}
+                      onSwipeAction={executeSwipeRightAction}
+                      onSwipeReject={executeSwipeLeftReject}
+                      onHighlightAction={setHighlightedAction}
+                      rejectGradientOpacity={rejectGradientOpacity}
+                      rightActionOpacities={rightActionOpacities}
+                      availableActionsCount={availableActionsCount}
+                      currentIndexShared={currentIndexShared}
+                      currentProcessShared={currentProcessShared}
+                      isExiting={isExiting}
+                    />
+                  );
+                })}
+            </View>
+          </>
         )}
 
-        {/* Action Gradients (Right) - Full Screen */}
-        {currentCandidate && getAvailableActions.map((action, index) => (
-          <ActionRow
-            key={action}
-            action={action}
-            index={index}
-            actionCount={getAvailableActions.length}
-          />
-        ))}
+        {/* Status Filter Drawer */}
+        <CollapseDrawer
+          showDrawer={showStatusDrawer}
+          setShowDrawer={setShowStatusDrawer}
+          title="Filter by application status">
+          <View className="p-5 gap-4">
+            <Text className="text-sm font-semibold text-white/80">Application Status</Text>
+            <View className="gap-3">
+              {statusFilterOptions.map((option) => {
+                const isSelected = statusFilterSelection.includes(option.id);
+                return (
+                  <TouchableOpacity
+                    key={option.id}
+                    className={`flex-row items-center justify-between rounded-2xl border px-4 py-3 ${isSelected ? 'border-white/30 bg-white/10' : 'border-white/10 bg-white/5'
+                      }`}
+                    activeOpacity={0.85}
+                    onPress={() => toggleStatusFilter(option.id)}>
+                    <Text className="text-sm font-semibold text-white">{option.label}</Text>
+                    {isSelected ? (
+                      <View className="rounded-full bg-blue-500/20 px-2 py-1">
+                        <Text className="text-xs font-bold text-blue-200">ON</Text>
+                      </View>
+                    ) : null}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
 
-        {/* Card Stack Container */}
-        <View className="flex-1" style={{ paddingHorizontal: 20 }}>
-          {swipeCandidates
-            // keep the exiting card plus the next two to reduce churn
-            .slice(
-              exitingIndex !== null && exitingIndex === currentIndex - 1 ? exitingIndex : currentIndex,
-              currentIndex + 3
-            )
-            .map((candidate: any, renderOffset: number) => {
-            const index = (exitingIndex !== null && exitingIndex === currentIndex - 1 ? exitingIndex : currentIndex) + renderOffset;
-            const isTopCard = index === currentIndex;
-            const isSecondCard = index === currentIndex + 1;
-            const isExiting = exitingIndex === index;
-            const stackedStyle = getStackedCardStyle(index);
-
-            // Use appropriate data based on card position
-            const talentProfileData = isTopCard ? currentTalentProfileData : (isSecondCard ? secondTalentProfileData : null);
-            const isLoadingProfile = isTopCard ? isLoadingCurrentTalentProfile : (isSecondCard ? isLoadingSecondTalentProfile : false);
-
-            return (
-              <SwipeCard
-                key={`candidate-${candidate?.jobApplicant?.id || index}`}
-                candidate={candidate}
-                index={index}
-                isTopCard={isTopCard}
-                isSecondCard={isSecondCard}
-                stackedStyle={stackedStyle}
-                talentProfileData={talentProfileData}
-                isLoadingProfile={isLoadingProfile}
-                currentTab={currentTab}
-                onTabChange={setCurrentTab}
-                tabs={tabs.map(tab => ({ id: tab.id, label: tab.label }))}
-                projectId={projectId ? Number(projectId) : undefined}
-                roleId={roleId ? Number(roleId) : undefined}
-                availableActions={getAvailableActions}
-                currentProcess={currentProcess}
-                onSwipeComplete={handleCardSwipeComplete}
-                onSwipeStartExit={() => setExitingIndex(currentIndex)}
-                onExitAnimationEnd={(finishedIndex) => {
-                  if (exitingIndex === finishedIndex) {
-                    setExitingIndex(null);
-                  }
-                }}
-                onSwipeAction={executeSwipeRightAction}
-                onSwipeReject={executeSwipeLeftReject}
-                onHighlightAction={setHighlightedAction}
-                rejectGradientOpacity={rejectGradientOpacity}
-                rightActionOpacities={rightActionOpacities}
-                availableActionsCount={availableActionsCount}
-                currentIndexShared={currentIndexShared}
-                currentProcessShared={currentProcessShared}
-                isExiting={isExiting}
-              />
-            );
-          })}
-        </View>
+            <View className="mt-4 flex-row gap-3">
+              <TouchableOpacity
+                className="flex-1 items-center justify-center rounded-2xl border border-white/20 bg-white/5 px-4 py-3"
+                activeOpacity={0.85}
+                onPress={clearStatusFilter}>
+                <Text className="text-sm font-semibold text-white">Clear</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-1 items-center justify-center rounded-2xl border border-blue-500/40 bg-blue-500/15 px-4 py-3"
+                activeOpacity={0.85}
+                onPress={() => setShowStatusDrawer(false)}>
+                <Text className="text-sm font-semibold text-blue-200">Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </CollapseDrawer>
       </View>
     </GestureHandlerRootView>
   );

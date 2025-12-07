@@ -320,6 +320,9 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
     (index: number) => {
       if (!roleWithSchedules?.role?.id || !projectData?.id) return;
 
+      const selectedCandidate = filteredCandidates[index];
+      const selectedApplicantId = selectedCandidate?.jobApplicant?.id;
+
       // Invalidate query to ensure fresh data when navigating to swipe screen
       const params = new URLSearchParams();
       params.append('roleId', String(roleWithSchedules.role.id));
@@ -336,10 +339,12 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
           projectId: String(projectData.id),
           roleId: String(roleWithSchedules.role.id),
           process: currentProcess,
+          initialIndex: String(index),
+          initialApplicantId: selectedApplicantId ? String(selectedApplicantId) : undefined,
         },
       });
     },
-    [router, queryClient, projectData?.id, roleWithSchedules?.role?.id, currentProcess],
+    [router, queryClient, projectData?.id, roleWithSchedules?.role?.id, currentProcess, filteredCandidates],
   );
 
   const handleProcessChange = useCallback((process: string) => {
@@ -473,10 +478,6 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
         projectId={projectData?.id}
         onCardPress={handleCardPress}
       />
-
-      
-
-       
 
       {/* Pagination */}
       {candidateTotalPages > 1 && (
