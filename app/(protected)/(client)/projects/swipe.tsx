@@ -456,7 +456,13 @@ export default function RoleCandidatesSwipeScreen() {
       const applicantId = currentApplicantRef.current?.id;
       if (!applicantId) return;
 
-      const status = action === 'shortlisted' ? 'shortlisted' : applicant?.applicationStatus || 'applied';
+      const isSessionAction = sessionActivities.includes(action);
+      const status =
+        action === 'shortlisted'
+          ? 'shortlisted'
+          : isSessionAction
+            ? 'invited'
+            : applicant?.applicationStatus || 'applied';
       const process = action === 'shortlisted' ? 'shortlisted' : action;
 
       mutationMutateRef.current?.({
