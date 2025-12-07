@@ -117,8 +117,8 @@ export function RangeWheelPickerInput({
                                         <Picker
                                             selectedValue={String(tempMin)}
                                             onValueChange={(itemValue) => setTempMin(Number(itemValue))}
-                                            style={{ width: 100, height: 200 }}
-                                            itemStyle={{ color: 'white', fontSize: 24, height: 150 }}
+                                            style={{ width: 130, height: 200 }}
+                                            itemStyle={{ color: 'white', fontSize: 22, height: 150 }}
                                         >
                                             {rangeOptions.map((opt) => (
                                                 <Picker.Item key={opt.value} label={opt.label} value={opt.value} color={Platform.OS === 'ios' ? 'white' : 'black'} />
@@ -130,8 +130,8 @@ export function RangeWheelPickerInput({
                                         <Picker
                                             selectedValue={String(tempMax)}
                                             onValueChange={(itemValue) => setTempMax(Number(itemValue))}
-                                            style={{ width: 100, height: 200 }}
-                                            itemStyle={{ color: 'white', fontSize: 24, height: 150 }}
+                                            style={{ width: 130, height: 200 }}
+                                            itemStyle={{ color: 'white', fontSize: 22, height: 150 }}
                                         >
                                             {rangeOptions.map((opt) => (
                                                 <Picker.Item key={opt.value} label={opt.label} value={opt.value} color={Platform.OS === 'ios' ? 'white' : 'black'} />
