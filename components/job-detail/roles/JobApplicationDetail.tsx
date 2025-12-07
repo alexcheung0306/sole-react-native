@@ -108,9 +108,10 @@ export function JobApplicationDetail({ application, roleWithSchedules, onDeleted
               <View
                 key={`${schedule?.id || index}`}
                 className="rounded-xl border border-white/10 bg-zinc-900/60 px-3 py-2">
-                <Text className="text-sm text-white">
-                  {schedule?.location ? `${schedule.location} • ${formattedRange}` : formattedRange}
-                </Text>
+                {schedule?.location ? (
+                  <Text className="text-sm text-white">{schedule.location}</Text>
+                ) : null}
+                <Text className="text-xs text-white/80">{formattedRange}</Text>
                 {schedule?.remarks ? (
                   <Text className="text-xs text-white/70">{schedule.remarks}</Text>
                 ) : null}
