@@ -1,6 +1,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import React, { useEffect, useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { ChevronLeft } from 'lucide-react-native';
@@ -34,6 +35,7 @@ export default function ProjectDetail({
   const { id } = useLocalSearchParams();
   const { soleUserId } = useSoleUserContext();
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
+  const queryClient = useQueryClient();
   // Local state for tab and role selection (not in context)
   const [currentTab, setCurrentTab] = useState('project-information');
   const [currentRole, setCurrentRole] = useState(0);
@@ -104,6 +106,12 @@ export default function ProjectDetail({
   const onRefresh = async () => {
     setRefreshing(true);
     try {
+      // Invalidate cached data for this screen and child components
+      queryClient.invalidateQueries({ queryKey: ['project-detail', projectId, soleUserId] });
+      queryClient.invalidateQueries({ queryKey: ['projectRoles', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['projectContracts', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-announcements', projectId] });
+
       await Promise.all([
         refetchProject(),
         refetchRoles(),

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
-import { deleteApplicantById } from '@/api/apiservice/applicant_api';
+import { deleteApplicantById, updateApplicantProcessById } from '@/api/apiservice/applicant_api';
 import { formatDateTimeLocale, parseDateTime } from '@/lib/datetime';
 
 type JobApplicationDetailProps = {
@@ -42,6 +42,58 @@ export function JobApplicationDetail({ application, roleWithSchedules, onDeleted
       onDeleted?.();
     },
   });
+
+  const statusMutation = useMutation({
+    mutationFn: async (nextStatus: 'accepted' | 'rejected') => {
+      if (!application?.id) return;
+      const payload = {
+        id: application.id,
+        soleUserId: application?.soleUserId ?? null,
+        roleId: application?.roleId ?? roleWithSchedules?.role?.id ?? null,
+        projectId: application?.projectId ?? roleWithSchedules?.role?.projectId ?? null,
+        paymentBasis: application?.paymentBasis ?? null,
+        quotePrice: application?.quotePrice ?? null,
+        otQuotePrice: application?.otQuotePrice ?? null,
+        skills: application?.skills ?? null,
+        answer: application?.answer ?? null,
+        applicationStatus: nextStatus,
+        applicationProcess: application?.applicationProcess ?? 'invited',
+      };
+      await updateApplicantProcessById(payload, application.id);
+    },
+    onSuccess: () => {
+      onDeleted?.();
+    },
+  });
+
+  const renderInviteActions = () => {
+    if ((application?.applicationStatus || '').toLowerCase() !== 'invited') {
+      return null;
+    }
+    const isBusy = statusMutation.isPending;
+    return (
+      <View className="flex-row gap-2">
+        <TouchableOpacity
+          className="flex-1 items-center rounded-full border border-emerald-400/50 bg-emerald-500/20 px-3 py-2"
+          activeOpacity={0.85}
+          onPress={() => statusMutation.mutate('accepted')}
+          disabled={isBusy}>
+          <Text className="text-sm font-semibold text-emerald-100">
+            {isBusy ? 'Updating…' : 'Accept'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          className="flex-1 items-center rounded-full border border-rose-400/50 bg-rose-500/20 px-3 py-2"
+          activeOpacity={0.85}
+          onPress={() => statusMutation.mutate('rejected')}
+          disabled={isBusy}>
+          <Text className="text-sm font-semibold text-rose-100">
+            {isBusy ? 'Updating…' : 'Reject'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   return (
     <View className="gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
@@ -87,6 +139,8 @@ export function JobApplicationDetail({ application, roleWithSchedules, onDeleted
       <DetailRow label="Answer" value={application?.answer} />
       <DetailRow label="Remarks" value={application?.remarks} />
       <DetailRow label="Applied on" value={formattedAppliedAt} />
+
+      {renderInviteActions()}
 
       {process?.schedules && Array.isArray(process.schedules) && process.schedules.length > 0 ? (
         <View className="mt-2 gap-2">

@@ -3,21 +3,42 @@ import { View, Text, FlatList } from 'react-native';
 import { Calendar, Megaphone, Users } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 
-import { getProjectAnnouncementsByProjectId } from '@/api/apiservice/project_announcement_api';
+import {
+  getProjectAnnouncementsByProjectId,
+  getProjectAnnouncementsByProjectIdAndSenderId,
+  getProjectAnnouncementsForUser,
+} from '@/api/apiservice/project_announcement_api';
 import PaginationControl from '~/components/projects/PaginationControl';
 
 type ProjectAnnouncementsListProps = {
   projectId: number;
+  senderId?: string | null;
+  viewerId?: string | null;
+  viewerRoleLevels?: { roleId: number; level: number }[];
 };
 
-export function ProjectAnnouncementsList({ projectId }: ProjectAnnouncementsListProps) {
+export function ProjectAnnouncementsList({
+  projectId,
+  senderId,
+  viewerId,
+  viewerRoleLevels = [],
+}: ProjectAnnouncementsListProps) {
   const [page, setPage] = useState(0);
   const pageSize = 5;
-  const queryKey = useMemo(() => ['project-announcements', projectId, page, pageSize], [
-    projectId,
-    page,
-    pageSize,
-  ]);
+  const isViewerFiltered = Boolean(viewerId && viewerRoleLevels.length > 0);
+
+  const queryKey = useMemo(
+    () => [
+      'project-announcements',
+      projectId,
+      senderId || 'all-senders',
+      viewerId || 'no-viewer',
+      isViewerFiltered ? viewerRoleLevels : 'no-roles',
+      page,
+      pageSize,
+    ],
+    [projectId, senderId, viewerId, isViewerFiltered, viewerRoleLevels, page, pageSize]
+  );
 
   const {
     data,
@@ -25,8 +46,16 @@ export function ProjectAnnouncementsList({ projectId }: ProjectAnnouncementsList
     isFetching,
   } = useQuery({
     queryKey,
-    queryFn: () => getProjectAnnouncementsByProjectId(projectId, 'createdAt', 'desc', page, pageSize),
-    enabled: Boolean(projectId),
+    queryFn: () => {
+      if (isViewerFiltered) {
+        return getProjectAnnouncementsForUser(projectId, viewerId as string, viewerRoleLevels, 'createdAt', 'desc', page, pageSize);
+      }
+      if (senderId) {
+        return getProjectAnnouncementsByProjectIdAndSenderId(projectId, senderId, 'createdAt', 'desc', page, pageSize);
+      }
+      return getProjectAnnouncementsByProjectId(projectId, 'createdAt', 'desc', page, pageSize);
+    },
+    enabled: Boolean(projectId) && (!isViewerFiltered || Boolean(viewerId)),
     staleTime: 30_000,
   });
 

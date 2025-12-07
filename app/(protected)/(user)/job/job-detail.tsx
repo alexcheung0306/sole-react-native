@@ -1,6 +1,6 @@
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft } from 'lucide-react-native';
 import { useSoleUserContext } from '~/context/SoleUserContext';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
@@ -12,6 +12,7 @@ import { getJobApplicantsByProjectIdAndSoleUserId } from '~/api/apiservice/appli
 import { getJobContractsWithProfileByProjectIdAndTalentId } from '~/api/apiservice/jobContracts_api';
 import { useState, useEffect } from 'react';
 import { ProjectInformationCard } from '~/components/project-detail/details/ProjectInformationCard';
+import { ProjectAnnouncementsList } from '~/components/project-detail/details/ProjectAnnouncementsList';
 import { CustomTabs } from '@/components/custom/custom-tabs';
 import { JobContractsTab } from '~/components/job-detail/contracts/JobContractsTab';
 import { JobRolesBreadcrumb } from '~/components/job-detail/roles/JobRolesBreadcrumb';
@@ -30,6 +31,7 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
   const params = useLocalSearchParams();
   const { soleUserId } = useSoleUserContext();
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
+  const queryClient = useQueryClient();
   
   const projectId = params.id ? parseInt(params.id as string, 10) : 0;
   const [currentTab, setCurrentTab] = useState('job-information');
@@ -87,6 +89,13 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
   const onRefresh = async () => {
     setRefreshing(true);
     try {
+      // Invalidate cached data for this screen and its child components
+      queryClient.invalidateQueries({ queryKey: ['jobDetail', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['jobRoles', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['userContracts', projectId, soleUserId] });
+      queryClient.invalidateQueries({ queryKey: ['userApplications', projectId, soleUserId] });
+      queryClient.invalidateQueries({ queryKey: ['project-announcements', projectId] });
+
       await Promise.all([
         refetchRoles?.(),
         refetchContracts?.(),
@@ -134,6 +143,21 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
   const statusTint = STATUS_COLORS[project?.status] || STATUS_COLORS.Draft;
   const roleCount = rolesWithSchedules.length;
   const contractsCount = contractsData?.length || 0;
+
+  const userRoleLevels = (applicationsData || []).reduce((acc: { roleId: number; level: number }[], app: any) => {
+    if (!app?.roleId) return acc;
+    const status = (app.applicationProcess || app.applicationStatus || '').toLowerCase();
+    const processOrder = ['invited', 'applied', 'shortlisted', 'offered'];
+    const levelIndex = processOrder.indexOf(status);
+    const level = status === 'accepted' ? 4 : status === 'rejected' ? 0 : levelIndex >= 0 ? levelIndex + 1 : 1;
+    const existing = acc.find((r) => r.roleId === app.roleId);
+    if (existing) {
+      existing.level = Math.max(existing.level, level);
+    } else {
+      acc.push({ roleId: app.roleId, level });
+    }
+    return acc;
+  }, []);
 
   const tabs = [
     { id: 'job-information', label: 'Details' },
@@ -214,6 +238,22 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
             {currentTab === 'job-information' && (
               <View className="gap-0 px-2">
                 <ProjectInformationCard project={project} soleUserId={soleUserId || ''} />
+                <View className="mt-4">
+                  {applicationsData && applicationsData.length > 0 ? (
+                    <ProjectAnnouncementsList
+                      projectId={projectId}
+                      viewerId={soleUserId || ''}
+                      viewerRoleLevels={userRoleLevels}
+                    />
+                  ) : (
+                    <View className="mt-2 rounded-2xl border border-white/10 bg-zinc-900/60 p-4">
+                      <Text className="text-sm font-semibold text-white">Apply to see announcements</Text>
+                      <Text className="mt-1 text-xs text-white/70">
+                        Project announcements become visible once you have an application for a role.
+                      </Text>
+                    </View>
+                  )}
+                </View>
               </View>
             )}
 
