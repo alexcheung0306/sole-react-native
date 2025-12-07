@@ -1,17 +1,18 @@
 import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
-import { 
-  FileText, 
-  Calendar, 
-  UserCheck, 
-  UserX, 
-  Mail, 
+import {
+  FileText,
+  Calendar,
+  UserCheck,
+  UserX,
+  Mail,
   Plus,
   CheckCircle2,
   XCircle,
   Clock,
-  FileSignature
+  FileSignature,
 } from 'lucide-react-native';
 import { getStatusColorObject } from '@/utils/get-status-color';
+import { SendOfferModal } from './SendOfferModal';
 
 interface ActionToCandidatesProps {
   applicant: any;
@@ -51,31 +52,12 @@ export function ActionToCandidates({
           </Text>
         </View>
 
-        {/* Success Card */}
-        <View className="mx-4 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 p-6">
-          <View className="items-center gap-3">
-            <View className="w-16 h-16 rounded-full bg-green-500/20 items-center justify-center">
-              <CheckCircle2 size={32} color="#10b981" />
-            </View>
-            <Text className="text-lg font-bold text-white text-center">
-              Candidate Shortlisted!
-            </Text>
-            <Text className="text-sm text-white/70 text-center">
-              Create a contract to send a formal offer to this candidate
-            </Text>
-          </View>
-        </View>
-
-        {/* Action Button */}
         <View className="px-4 pb-4">
-          <TouchableOpacity
-            className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 rounded-xl flex-row items-center justify-center gap-2 shadow-lg"
-            onPress={() => {
-              // TODO: Navigate to create contract page when route is created
-            }}>
-            <Plus size={20} color="#ffffff" />
-            <Text className="text-white font-bold text-base">Create Contract</Text>
-          </TouchableOpacity>
+          <SendOfferModal
+            applicant={applicant}
+            projectData={projectData}
+            roleWithSchedules={applicant?.jobApplicant?.roleWithSchedules || roleId ? { role: { id: roleId } } : null}
+          />
         </View>
       </View>
     );

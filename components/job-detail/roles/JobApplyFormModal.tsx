@@ -5,6 +5,7 @@ import { Formik } from 'formik';
 import { FormModal } from '@/components/custom/form-modal';
 import { PrimaryButton } from '@/components/custom/primary-button';
 import { createApplicant } from '@/api/apiservice/applicant_api';
+import { parseDateTime } from '@/lib/datetime';
 
 type JobApplyFormModalProps = {
   projectData: any;
@@ -44,11 +45,11 @@ export function JobApplyFormModal({
       .filter((activity: any) => activity?.type === 'job')
       .flatMap((activity: any) => activity?.schedules ?? [])
       .reduce((total: number, schedule: any) => {
-        const fromTime = schedule?.fromTime ? new Date(schedule.fromTime) : null;
-        const toTime = schedule?.toTime ? new Date(schedule.toTime) : null;
+        const fromTime = schedule?.fromTime ? parseDateTime(String(schedule.fromTime)) : null;
+        const toTime = schedule?.toTime ? parseDateTime(String(schedule.toTime)) : null;
         if (!fromTime || !toTime) return total;
         const duration = (toTime.getTime() - fromTime.getTime()) / (1000 * 60 * 60);
-        return total + Math.max(duration, 0);
+        return duration > 0 ? total + duration : total;
       }, 0);
   }, [roleWithSchedules?.activities]);
 
@@ -123,7 +124,7 @@ export function JobApplyFormModal({
               {role?.paymentBasis !== 'Hourly Rate' ? 'Hourly Rate Quote (HKD)' : 'Project Quote (HKD)'}
             </Text>
             <TextInput
-              value={values.quotePrice}
+              value={values.quotePrice !== null && values.quotePrice !== undefined ? String(values.quotePrice) : ''}
               onChangeText={(text) => setFieldValue('quotePrice', text.replace(/[^0-9.]/g, ''))}
               keyboardType="numeric"
               placeholder="Enter your quote"
@@ -140,7 +141,7 @@ export function JobApplyFormModal({
             <View className="gap-2">
               <Text className="text-sm font-semibold text-white">Overtime Payment / Hour</Text>
               <TextInput
-                value={values.otQuotePrice}
+                value={values.otQuotePrice !== null && values.otQuotePrice !== undefined ? String(values.otQuotePrice) : ''}
                 onChangeText={(text) => setFieldValue('otQuotePrice', text.replace(/[^0-9.]/g, ''))}
                 keyboardType="numeric"
                 placeholder="Enter OT payment"
