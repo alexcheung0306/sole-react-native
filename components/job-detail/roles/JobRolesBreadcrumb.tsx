@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { Briefcase } from 'lucide-react-native';
+import { Briefcase, InfoIcon } from 'lucide-react-native';
 import { DisplayJobRoleInformation } from './DisplayJobRoleInformation';
 import CollapseDrawer from '~/components/custom/collapse-drawer';
 
@@ -21,8 +21,8 @@ export function JobRolesBreadcrumb({
 }: JobRolesBreadcrumbProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // Open drawer when a role is selected
-  const handleRolePress = (index: number) => {
+  // Open drawer via info icon
+  const handleInfoPress = (index: number) => {
     setCurrentRole(index);
     setIsDrawerOpen(true);
   };
@@ -58,25 +58,35 @@ export function JobRolesBreadcrumb({
           const application = applicationsData?.find((app: any) => app.roleId === role.id);
 
           return (
-            <TouchableOpacity
+            <View
               key={`role-${role.id}-${index}`}
-              className={`min-w-[160px] rounded-2xl border px-4 py-3 ${
+              className={`min-w-[160px] flex-row items-center rounded-2xl border overflow-hidden ${
                 isActive ? 'border-blue-500 bg-blue-500/15' : 'border-white/20 bg-zinc-800/60'
-              }`}
-              onPress={() => handleRolePress(index)}>
-              <View className="flex-row items-center justify-between gap-2">
-                <Text
-                  className={`flex-1 text-sm font-semibold ${
-                    isActive ? 'text-white' : 'text-white/80'
-                  }`}
-                  numberOfLines={1}>
-                  {role.roleTitle || 'Untitled role'}
+              }`}>
+              <TouchableOpacity
+                className="flex-1 py-3 pl-4 pr-2"
+                activeOpacity={0.9}
+                onPress={() => setCurrentRole(index)}>
+                <View className="flex-row items-center gap-2">
+                  <Text
+                    className={`flex-1 text-sm font-semibold ${
+                      isActive ? 'text-white' : 'text-white/80'
+                    }`}
+                    numberOfLines={1}>
+                    {role.roleTitle || 'Untitled role'}
+                  </Text>
+                </View>
+                <Text className={`mt-1 text-xs ${isActive ? 'text-white' : 'text-zinc-400'}`}>
+                  {application ? `Applied: ${application.applicationProcess || application.applicationStatus}` : 'Not applied'} • {role.talentNumbers || 1} position(s)
                 </Text>
-              </View>
-              <Text className={`mt-1 text-xs ${isActive ? 'text-white' : 'text-zinc-400'}`}>
-                {application ? `Applied: ${application.applicationProcess || application.applicationStatus}` : 'Not applied'} • {role.talentNumbers || 1} position(s)
-              </Text>
-            </TouchableOpacity>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="px-3 py-3 flex-shrink-0"
+                activeOpacity={0.9}
+                onPress={() => handleInfoPress(index)}>
+                <InfoIcon size={16} color="#a1a1aa" />
+              </TouchableOpacity>
+            </View>
           );
         })}
       </ScrollView>
