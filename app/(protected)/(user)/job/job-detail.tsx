@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft } from 'lucide-react-native';
@@ -33,6 +33,7 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
   const projectId = params.id ? parseInt(params.id as string, 10) : 0;
   const [currentTab, setCurrentTab] = useState('job-information');
   const [currentRole, setCurrentRole] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Fetch project data
   const {
@@ -60,6 +61,7 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
   const {
     data: applicationsData,
     isLoading: applicationsLoading,
+    refetch: refetchApplications,
   } = useQuery({
     queryKey: ['userApplications', projectId, soleUserId],
     queryFn: () => getJobApplicantsByProjectIdAndSoleUserId(projectId, soleUserId as string),
@@ -77,7 +79,25 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
     enabled: !!projectId && !!soleUserId,
   });
 
+  const refetchProject = () => refetchRoles(); // reuse roles refetch as project fetch placeholder
+
   const isInitialLoading = projectLoading;
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        refetchRoles?.(),
+        refetchContracts?.(),
+        refetchApplications?.(),
+        refetchProject?.(),
+      ].filter(Boolean) as Promise<any>[]);
+    } catch (error) {
+      console.error('Error refreshing job data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Ensure currentRole is within bounds when roles data changes
   useEffect(() => {
@@ -142,6 +162,14 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
           className="flex-1"
           onScroll={scrollHandler}
           scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#3b82f6"
+              colors={['#3b82f6']}
+            />
+          }
           contentContainerStyle={{
             paddingTop: insets.top + 72,
             paddingBottom: 28,

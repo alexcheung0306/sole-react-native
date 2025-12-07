@@ -16,7 +16,6 @@ import { RoleForm } from '~/components/form-components/role-form/RoleForm';
 import { RolesBreadcrumb } from '~/components/project-detail/roles/RolesBreadcrumb';
 import { ManageCandidates } from '~/components/project-detail/roles/ManageCandidates';
 import { PublishProjectButton } from '~/components/project-detail/PublishProjectButton';
-import { Exp } from '~/components/project-detail/roles/exp';
 
 const STATUS_COLORS: Record<string, string> = {
   Draft: '#6b7280',
