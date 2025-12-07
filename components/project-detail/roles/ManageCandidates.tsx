@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, memo } from 'react';
+import React, { useMemo, useState, useCallback, memo, useEffect } from 'react';
 import { View, Text, ScrollView, FlatList, TouchableOpacity, Dimensions, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
@@ -6,8 +6,6 @@ import { getApplicationProcessCounts, searchApplicants, getRoleApplicantsByRoleI
 import FilterSearch from '@/components/custom/filter-search';
 import PaginationControl from '@/components/projects/PaginationControl';
 import { CandidateCard } from './CandidateCard';
-import { CandidateSwipeModal } from './CandidateSwipeModal';
-import { ExpTinder } from './exptinder';
 
 type ManageCandidatesProps = {
   projectData: any;
@@ -16,6 +14,7 @@ type ManageCandidatesProps = {
 
 const candidateStatusOptions = [
   { id: 'applied', label: 'Applied', color: '#3b82f6' },
+  { id: 'invited', label: 'Invited', color: '#60a5fa' },
   { id: 'shortlisted', label: 'Shortlisted', color: '#facc15' },
   { id: 'offered', label: 'Offered', color: '#f97316' },
   { id: 'accepted', label: 'Accepted', color: '#10b981' },
@@ -164,10 +163,6 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
   const screenWidth = Dimensions.get('window').width;
   const cardWidth = (screenWidth - 48 - 24) / 3; // screen width - padding (24*2) - gaps (12*2) / 3 columns
 
-  // Modal state
-  const [modalVisible, setModalVisible] = useState(false);
-  const [modalInitialIndex, setModalInitialIndex] = useState(0);
-
   // Local state for process selection (not from context)
   const [currentProcess, setCurrentProcess] = useState('applied');
 
@@ -215,6 +210,39 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
     candidateSearchBy,
     selectedStatuses,
   ]);
+
+  // Limit available status filters based on current process (PS -> allowed AS)
+  const allowedStatusOptions = useMemo(() => {
+    if (currentProcess === 'applied') {
+      return candidateStatusOptions.filter((s) => s.id === 'applied');
+    }
+    if (currentProcess === 'shortlisted') {
+      return candidateStatusOptions.filter((s) => s.id === 'shortlisted');
+    }
+    if (currentProcess === 'offered') {
+      return candidateStatusOptions.filter((s) => s.id === 'offered');
+    }
+
+    const activityTitles = processSegments.filter(
+      (segment) => !['applied', ...trailingProcesses].includes(segment)
+    );
+    const isMappedSession = activityTitles.includes(currentProcess);
+
+    if (isMappedSession) {
+      return candidateStatusOptions.filter((s) =>
+        ['invited', 'accepted', 'rejected'].includes(s.id)
+      );
+    }
+
+    // Fallback: no status filtering options
+    return [];
+  }, [currentProcess, processSegments]);
+
+  // Ensure selected statuses stay within the allowed set for the current process
+  useEffect(() => {
+    const allowedIds = new Set(allowedStatusOptions.map((s) => s.id));
+    setSelectedStatuses((prev) => prev.filter((id) => allowedIds.has(id)));
+  }, [allowedStatusOptions]);
 
   const { data: processCounts } = useQuery({
     queryKey: ['role-process-counts', roleWithSchedules?.role?.id],
@@ -288,20 +316,36 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
     setCandidateSearchTrigger((prev) => prev + 1);
   }, []);
 
-  const handleCardPress = useCallback((index: number) => {
-    setModalInitialIndex(index);
-    setModalVisible(true);
-  }, []);
+  const handleCardPress = useCallback(
+    (index: number) => {
+      if (!roleWithSchedules?.role?.id || !projectData?.id) return;
 
-  const handleModalClose = useCallback(() => {
-    setModalVisible(false);
-  }, []);
+      const selectedCandidate = filteredCandidates[index];
+      const selectedApplicantId = selectedCandidate?.jobApplicant?.id;
 
-  const handleCandidateUpdated = useCallback(() => {
-    // Refresh candidate list
-    // queryClient.invalidateQueries({ queryKey: ['role-candidates'] });
-    // queryClient.invalidateQueries({ queryKey: ['role-process-counts'] });
-  }, []);
+      // Invalidate query to ensure fresh data when navigating to swipe screen
+      const params = new URLSearchParams();
+      params.append('roleId', String(roleWithSchedules.role.id));
+      params.append('applicationProcess', currentProcess);
+      params.append('pageNumber', '1');
+      params.append('pageSize', '100');
+      // queryClient.invalidateQueries({ 
+      //   queryKey: ['role-candidates', roleWithSchedules.role.id, params.toString()] 
+      // });
+
+      router.push({
+        pathname: '/(protected)/(client)/projects/swipe',
+        params: {
+          projectId: String(projectData.id),
+          roleId: String(roleWithSchedules.role.id),
+          process: currentProcess,
+          initialIndex: String(index),
+          initialApplicantId: selectedApplicantId ? String(selectedApplicantId) : undefined,
+        },
+      });
+    },
+    [router, queryClient, projectData?.id, roleWithSchedules?.role?.id, currentProcess, filteredCandidates],
+  );
 
   const handleProcessChange = useCallback((process: string) => {
     setCurrentProcess(process);
@@ -423,7 +467,7 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
         setSelectedStatuses={setSelectedStatuses}
         onSearch={handleCandidateSearch}
         searchOptions={candidateSearchOptions}
-        statusOptions={candidateStatusOptions}
+        statusOptions={allowedStatusOptions}
       />
 
       {/* Candidates List - Memoized, only rerenders when candidates change */}
@@ -434,31 +478,6 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
         projectId={projectData?.id}
         onCardPress={handleCardPress}
       />
-
-      {/* Swipeable Modal */}
-      <CandidateSwipeModal
-        visible={modalVisible}
-        onClose={handleModalClose}
-        candidates={filteredCandidates}
-        initialIndex={modalInitialIndex}
-        roleId={roleWithSchedules?.role?.id}
-        projectId={projectData?.id}
-        currentProcess={currentProcess}
-        roleWithSchedules={roleWithSchedules}
-        onCandidateUpdated={handleCandidateUpdated}
-      />
-
-      {/* <ExpTinder
-        visible={modalVisible}
-        onClose={handleModalClose}
-        candidates={filteredCandidates}
-        initialIndex={modalInitialIndex}
-        roleId={roleWithSchedules?.role?.id}
-        projectId={projectData?.id}
-        currentProcess={currentProcess}
-        roleWithSchedules={roleWithSchedules}
-        onCandidateUpdated={handleCandidateUpdated}
-      /> */}
 
       {/* Pagination */}
       {candidateTotalPages > 1 && (
