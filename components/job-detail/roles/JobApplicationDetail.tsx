@@ -20,7 +20,11 @@ const DetailRow = ({ label, value }: { label: string; value?: string | number | 
   );
 };
 
-export function JobApplicationDetail({ application, roleWithSchedules, onDeleted }: JobApplicationDetailProps) {
+export function JobApplicationDetail({
+  application,
+  roleWithSchedules,
+  onDeleted,
+}: JobApplicationDetailProps) {
   const process = useMemo(() => {
     const activities = roleWithSchedules?.activities ?? [];
     return activities.find((activity: any) => activity?.title === application?.applicationProcess);
@@ -96,44 +100,47 @@ export function JobApplicationDetail({ application, roleWithSchedules, onDeleted
   };
 
   return (
-    <View className="gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+    <View className="gap-3 rounded-2xl border bg-zinc-700 p-4 m-2">
+      {/* Application Details */}
       <View className="flex-row items-center justify-between">
         <Text className="text-base font-semibold text-white">Application details</Text>
-        <View className="flex-row items-center gap-2">
-          {application?.id ? (
-            <TouchableOpacity
-              className="rounded-full border border-rose-400/40 bg-rose-500/15 px-3 py-1"
-              activeOpacity={0.85}
-              onPress={() => deleteMutation.mutate()}
-              disabled={deleteMutation.isPending}>
-              <Text className="text-xs font-semibold text-rose-200">
-                {deleteMutation.isPending ? 'Deleting…' : 'Dev Delete'}
-              </Text>
-            </TouchableOpacity>
-          ) : null}
-          <View className="rounded-full border border-emerald-400/40 bg-emerald-500/25 px-3 py-1">
-            <Text className="text-xs font-semibold text-white">
-              {application?.applicationProcess || 'Applied'}
+        {application?.id ? (
+          <TouchableOpacity
+            className="rounded-full border border-rose-400/40 bg-rose-500/15 px-3 py-1"
+            activeOpacity={0.85}
+            onPress={() => deleteMutation.mutate()}
+            disabled={deleteMutation.isPending}>
+            <Text className="text-xs font-semibold text-rose-200">
+              {deleteMutation.isPending ? 'Deleting…' : 'Dev Delete'}
             </Text>
-          </View>
-          <View className="rounded-full border border-blue-300/40 bg-blue-500/25 px-3 py-1">
-            <Text className="text-xs font-semibold text-white">
-              {application?.applicationStatus || 'Pending'}
-            </Text>
-          </View>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+      {/* Application Process and Status */}
+      <View className="flex-row items-center gap-2">
+        <View className="rounded-full border border-emerald-400/40 bg-emerald-500/25 px-3 py-1">
+          <Text className="text-xs font-semibold text-white">
+          Process:  {application?.applicationProcess || 'Applied'}
+          </Text>
+        </View>
+        <View className="rounded-full border border-blue-300/40 bg-blue-500/25 px-3 py-1">
+          <Text className="text-xs font-semibold text-white">
+            Status: {application?.applicationStatus || 'Pending'}
+          </Text>
         </View>
       </View>
 
       <DetailRow
         label="Quote"
         value={
-          application?.quotePrice
-            ? `HKD ${Number(application.quotePrice).toFixed(2)}`
-            : undefined
+          application?.quotePrice ? `HKD ${Number(application.quotePrice).toFixed(2)}` : undefined
         }
       />
       {application?.otQuotePrice ? (
-        <DetailRow label="OT Payment" value={`HKD ${Number(application.otQuotePrice).toFixed(2)}`} />
+        <DetailRow
+          label="OT Payment"
+          value={`HKD ${Number(application.otQuotePrice).toFixed(2)}`}
+        />
       ) : null}
       <DetailRow label="Skills" value={application?.skills} />
       <DetailRow label="Answer" value={application?.answer} />

@@ -223,7 +223,10 @@ export default function ProjectDetail({
                   projectStatus={project?.status}
                   rolesWithSchedules={rolesWithSchedules}
                 />
-                <ProjectAnnouncementsList projectId={projectId} />
+                <ProjectAnnouncementsList 
+                  projectId={projectId} 
+                  viewerSoleUserId={soleUserId || ''}
+                />
               </View>
             )}
 

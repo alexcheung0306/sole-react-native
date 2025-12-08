@@ -46,7 +46,7 @@ export function ProjectInformationCard({ project, soleUserId }: ProjectInformati
       )}
 
       {/* ---------------------------------------Project Details--------------------------------------- */}
-      <View className="rounded-2xl border border-white/10 bg-zinc-800 p-5">
+      <View className="rounded-2xl border border-white/10 bg-zinc-700 p-5">
         {/* Header */}
         <View className="mb-6 flex-row items-start justify-between">
           <View className="flex-1 gap-2">

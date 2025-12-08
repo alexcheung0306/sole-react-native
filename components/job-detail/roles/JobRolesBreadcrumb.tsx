@@ -68,7 +68,7 @@ export function JobRolesBreadcrumb({
             <View
               key={`role-${role.id}-${index}`}
               className={`min-w-[160px] flex-row items-center rounded-2xl border overflow-hidden ${
-                isActive ? 'border-blue-500 bg-blue-500/15' : 'border-white/20 bg-zinc-800/60'
+                isActive ? 'border-white bg-zinc-700' : 'border-white/20 bg-zinc-800/60'
               }`}>
               <TouchableOpacity
                 className="flex-1 py-3 pl-4 pr-2"

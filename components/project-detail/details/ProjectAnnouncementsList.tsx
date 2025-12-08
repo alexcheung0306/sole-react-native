@@ -14,6 +14,7 @@ type ProjectAnnouncementsListProps = {
   projectId: number;
   senderId?: string | null;
   viewerId?: string | null;
+  viewerSoleUserId?: string | null;
   viewerRoleLevels?: { roleId: number; level: number }[];
 };
 
@@ -21,6 +22,7 @@ export function ProjectAnnouncementsList({
   projectId,
   senderId,
   viewerId,
+  viewerSoleUserId,
   viewerRoleLevels = [],
 }: ProjectAnnouncementsListProps) {
   const [page, setPage] = useState(0);
@@ -76,8 +78,12 @@ export function ProjectAnnouncementsList({
         })
       : '—';
 
+    // Check if the viewer is the creator of the announcement
+    const isCreator = viewerSoleUserId && item?.senderId && viewerSoleUserId === item.senderId;
+    const shouldShowTargetAudience = isCreator && receivers.length > 0;
+
     return (
-      <View className="rounded-2xl border border-white/10 bg-zinc-700 p-5">
+      <View className="rounded-2xl border border-white/10 bg-zinc-600 p-5">
         <View className="flex-row items-start justify-between gap-3">
           <View className="flex-1 gap-2">
             <Text className="text-lg font-semibold text-white">
@@ -105,7 +111,7 @@ export function ProjectAnnouncementsList({
           {parsedContent}
         </Text>
 
-        {receivers.length > 0 ? (
+        {shouldShowTargetAudience ? (
           <View className="mt-5 space-y-3 border-t border-white/10 pt-4">
             <View className="flex-row items-center gap-2">
               <Users size={16} color="rgba(250,250,250,0.85)" />
@@ -160,7 +166,7 @@ export function ProjectAnnouncementsList({
   );
 
   return (
-    <View className=" gap-4 rounded-2xl border border-white/10 bg-zinc-800 p-5">
+    <View className=" gap-4 rounded-2xl border border-white/10 bg-zinc-700 p-5">
       {listHeader}
 
       <FlatList

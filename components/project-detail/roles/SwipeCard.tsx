@@ -10,8 +10,7 @@ import Animated, {
   interpolate,
   SharedValue,
 } from "react-native-reanimated";
-import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
+import { GlassOverlay } from "@/components/custom/GlassView";
 import { CustomTabs } from "@/components/custom/custom-tabs";
 import { getStatusColor } from "@/utils/get-status-color";
 import TalentProfile from "~/components/talent-profile/TalentProfile";
@@ -329,14 +328,17 @@ export default function SwipeCard({
         isTopCard || isExiting ? cardAnimatedStyle : {},
       ]}
       pointerEvents={isExiting ? 'none' : 'auto'}>
-      <LinearGradient
-        colors={['rgba(255,255,255,0.9)', 'rgba(200,200,200,0.65)']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ flex: 1, borderRadius: 28, padding: 1 }}>
-        <View style={{ flex: 1, borderRadius: 27, overflow: 'hidden' }}>
-          <BlurView intensity={100} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-          <View className="bg-black absolute inset-0" />
+      <View
+        style={{
+          flex: 1,
+          borderRadius: 28,
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.3)',
+          backgroundColor: 'transparent',
+          overflow: 'hidden',
+        }}>
+        {/* Glass effect overlay */}
+        <GlassOverlay intensity={100} tint="dark" />
 
           <GestureDetector gesture={panGesture}>
             <ScrollView
@@ -345,7 +347,7 @@ export default function SwipeCard({
               nestedScrollEnabled
               scrollEventThrottle={16}>
               {/* Candidate Header Card */}
-              <View className="mx-4 mt-4 rounded-2xl border border-white/10 bg-zinc-800 p-4">
+              <View className="mx-4 mt-4 rounded-2xl border border-white/10   p-4">
                 <View className="flex-row items-center gap-4">
                   <Image
                     source={{
@@ -422,8 +424,7 @@ export default function SwipeCard({
               </View>
             </ScrollView>
           </GestureDetector>
-        </View>
-      </LinearGradient>
+      </View>
     </Animated.View>
   );
 }

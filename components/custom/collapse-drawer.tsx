@@ -1,5 +1,5 @@
 // custom/collapse-drawer.tsx
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Modal,
   View,
@@ -19,7 +19,7 @@ import Animated, {
   cancelAnimation,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import { BlurView } from 'expo-blur';
+import { GlassOverlay } from './GlassView';
 
 type Props = {
   showDrawer: boolean;
@@ -111,33 +111,24 @@ export default function CollapseDrawer({
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: 'rgba(0,0,0,0.65)',
+              backgroundColor: 'rgba(0, 0, 0, 0)',
             }}
             onPress={closeDrawer}
           />
 
           <Animated.View
-            className="overflow-hidden rounded-t-[28px] border border-b-0 border-white/35 pt-4"
+            className="overflow-hidden rounded-t-[28px] pt-4"
             style={[
               animatedStyle,
               {
                 height: DRAWER_HEIGHT,
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.3)',
+                borderBottomWidth: 0,
               },
             ]}>
-            {/* Blur Background */}
-            <BlurView
-              intensity={100}
-              tint="dark"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-              }}
-            />
-            {/* Semi-transparent overlay for better contrast */}
-            <View className="bg-black/12 absolute inset-0" />
+            {/* Glass effect overlay */}
+            <GlassOverlay intensity={100} tint="dark" />
 
             {/* Handle + Title - Draggable Area */}
             <GestureDetector gesture={panGesture}>

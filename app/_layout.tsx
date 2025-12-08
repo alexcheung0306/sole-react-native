@@ -5,6 +5,7 @@ import { ClerkProvider } from '@clerk/clerk-expo';
 import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { View, Text } from 'react-native';
 import { AuthWrapper } from '../components/AuthWrapper';
 import { AppContextProvider } from '~/context/AppContext';
 import { SoleUserProvider } from '~/context/SoleUserContext';
@@ -22,12 +23,38 @@ const PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 console.log('Clerk PUBLISHABLE_KEY:', PUBLISHABLE_KEY ? 'Loaded' : 'NOT LOADED');
 
+// Show error if Clerk key is missing
+if (!PUBLISHABLE_KEY) {
+  console.error('❌ EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY is missing!');
+  console.error('Please create a .env.local file with your Clerk publishable key.');
+}
+
 const tokenCache = {
   getToken: (key: string) => SecureStore.getItemAsync(key),
   saveToken: (key: string, value: string) => SecureStore.setItemAsync(key, value),
 };
 
 export default function RootLayout() {
+  // Show error screen if Clerk key is missing
+  if (!PUBLISHABLE_KEY) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <GluestackUIProvider mode="light">
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF', padding: 20 }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#EF4444', marginBottom: 10, textAlign: 'center' }}>
+              Clerk Configuration Error
+            </Text>
+            <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', marginBottom: 20 }}>
+              EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY is missing.{'\n\n'}
+              Please create a .env.local file in the root directory with:{'\n\n'}
+              EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+            </Text>
+          </View>
+        </GluestackUIProvider>
+      </GestureHandlerRootView>
+    );
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <GluestackUIProvider mode="light">

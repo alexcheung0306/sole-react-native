@@ -103,8 +103,8 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
 
   if (!isLoaded) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
+        <ActivityIndicator size="large" color="#000000" />
         {DEV_MODE && (
           <Text style={{ color: '#fbbf24', marginTop: 10, fontSize: 12 }}>
             🟡 DEV MODE

@@ -80,119 +80,6 @@ export function JobApplyFormModal({
     },
   });
 
-  const renderFormFields = (
-    values: JobApplyFormValues,
-    setFieldValue: (field: keyof JobApplyFormValues, value: any) => void,
-    touched: Record<string, any>,
-    setFieldTouched: (field: string, touched?: boolean) => void
-  ) => {
-    const quoteError = !values.quotePrice || Number(values.quotePrice) <= 0;
-    const otQuoteError = role?.otPayment && (!values.otQuotePrice || Number(values.otQuotePrice) <= 0);
-    const skillsError = !values.skills?.trim();
-    const answerRequired = Boolean(role?.questions);
-    const answerError = answerRequired && !values.answer?.trim();
-
-    return {
-      hasErrors: quoteError || otQuoteError || skillsError || answerError || !canApply,
-      fields: (
-        <View className="gap-4">
-          <View className="rounded-xl border border-white/10 bg-zinc-900/60 p-3">
-            <Text className="text-sm font-semibold text-white">Total Job Hours</Text>
-            <Text className="text-lg font-bold text-white">
-              {totalJobHours.toFixed(1)} {totalJobHours === 1 ? 'hour' : 'hours'}
-            </Text>
-            {role?.paymentBasis ? (
-              <Text className="text-xs text-white/70">Payment basis: {role.paymentBasis}</Text>
-            ) : null}
-          </View>
-
-          <TouchableOpacity
-            className="rounded-xl border border-amber-300/40 bg-amber-500/15 px-4 py-3"
-            activeOpacity={0.85}
-            onPress={() => {
-              setFieldValue('quotePrice', '100');
-              setFieldValue('otQuotePrice', role?.otPayment ? '10' : '');
-              setFieldValue('skills', 'Singing, dancing');
-              setFieldValue('answer', 'I am a good fit for this role.');
-            }}>
-            <Text className="text-sm font-semibold text-amber-200">Dev fill form</Text>
-            <Text className="text-xs text-amber-100/80">Quick fill for testing</Text>
-          </TouchableOpacity>
-
-          <View className="gap-2">
-            <Text className="text-sm font-semibold text-white">
-              {role?.paymentBasis !== 'Hourly Rate' ? 'Hourly Rate Quote (HKD)' : 'Project Quote (HKD)'}
-            </Text>
-            <TextInput
-              value={values.quotePrice !== null && values.quotePrice !== undefined ? String(values.quotePrice) : ''}
-              onChangeText={(text) => setFieldValue('quotePrice', text.replace(/[^0-9.]/g, ''))}
-              keyboardType="numeric"
-              placeholder="Enter your quote"
-              placeholderTextColor="rgba(255,255,255,0.6)"
-              className="rounded-xl border border-white/10 bg-zinc-900/70 px-4 py-3 text-white"
-              onBlur={() => setFieldTouched('quotePrice', true)}
-            />
-            {quoteError && touched.quotePrice && (
-              <Text className="text-xs text-rose-400">Quote is required</Text>
-            )}
-          </View>
-
-          {role?.otPayment && (
-            <View className="gap-2">
-              <Text className="text-sm font-semibold text-white">Overtime Payment / Hour</Text>
-              <TextInput
-                value={values.otQuotePrice !== null && values.otQuotePrice !== undefined ? String(values.otQuotePrice) : ''}
-                onChangeText={(text) => setFieldValue('otQuotePrice', text.replace(/[^0-9.]/g, ''))}
-                keyboardType="numeric"
-                placeholder="Enter OT payment"
-                placeholderTextColor="rgba(255,255,255,0.6)"
-                className="rounded-xl border border-white/10 bg-zinc-900/70 px-4 py-3 text-white"
-                onBlur={() => setFieldTouched('otQuotePrice', true)}
-              />
-              {otQuoteError && touched.otQuotePrice && (
-                <Text className="text-xs text-rose-400">Overtime payment is required</Text>
-              )}
-            </View>
-          )}
-
-          <View className="gap-2">
-            <Text className="text-sm font-semibold text-white">Skills</Text>
-            <TextInput
-              value={values.skills}
-              onChangeText={(text) => setFieldValue('skills', text)}
-              placeholder="Highlight relevant skills"
-              placeholderTextColor="rgba(255,255,255,0.6)"
-              multiline
-              className="rounded-xl border border-white/10 bg-zinc-900/70 px-4 py-3 text-white"
-              onBlur={() => setFieldTouched('skills', true)}
-            />
-            {skillsError && touched.skills && (
-              <Text className="text-xs text-rose-400">Please share at least one skill</Text>
-            )}
-          </View>
-
-          {role?.questions ? (
-            <View className="gap-2">
-              <Text className="text-sm font-semibold text-white">{role.questions}</Text>
-              <TextInput
-                value={values.answer}
-                onChangeText={(text) => setFieldValue('answer', text)}
-                placeholder="Answer the client's question"
-                placeholderTextColor="rgba(255,255,255,0.6)"
-                multiline
-                className="rounded-xl border border-white/10 bg-zinc-900/70 px-4 py-3 text-white"
-                onBlur={() => setFieldTouched('answer', true)}
-              />
-              {answerError && touched.answer && (
-                <Text className="text-xs text-rose-400">Answer is required</Text>
-              )}
-            </View>
-          ) : null}
-        </View>
-      ),
-    };
-  };
-
   return (
     <Formik
       enableReinitialize
@@ -212,15 +99,15 @@ export function JobApplyFormModal({
         resetForm();
       }}>
       {({ values, setFieldValue, submitForm, touched, setFieldTouched, resetForm }) => {
-        const { hasErrors, fields } = renderFormFields(
-          values,
-          setFieldValue as any,
-          touched,
-          setFieldTouched
-        );
+        const quoteError = !values.quotePrice || Number(values.quotePrice) <= 0;
+        const otQuoteError = role?.otPayment && (!values.otQuotePrice || Number(values.otQuotePrice) <= 0);
+        const skillsError = !values.skills?.trim();
+        const answerRequired = Boolean(role?.questions);
+        const answerError = answerRequired && !values.answer?.trim();
+        const hasErrors = quoteError || otQuoteError || skillsError || answerError || !canApply;
 
         return (
-          <View className="rounded-2xl border border-white/15 bg-zinc-900/70 p-4">
+          <View className="rounded-2xl border bg-zinc-700 p-4 mx-2">
             <View className="flex-row items-center justify-between">
               <View className="flex-1">
                 <Text className="text-base font-semibold text-white">Apply for this role</Text>
@@ -244,8 +131,8 @@ export function JobApplyFormModal({
                   {applyMutation.isPending ? 'Submitting…' : 'Open apply form'}
                 </PrimaryButton>
               )}
-              title={`Apply for ${role?.roleTitle || 'Role'}`}
-              submitButtonText="Submit application"
+              title={`Role Application`}
+              submitButtonText="Submit"
               isSubmitting={applyMutation.isPending}
               hasErrors={hasErrors}
               onSubmit={() => submitForm()}
@@ -268,7 +155,100 @@ export function JobApplyFormModal({
                         Role #{role?.id ?? '—'} • {role?.roleTitle || 'Untitled role'}
                       </Text>
                     </View>
-                    {fields}
+                    <View className="gap-4">
+                      <View className="rounded-xl border border-white/10 bg-zinc-900/60 p-3">
+                        <Text className="text-sm font-semibold text-white">Total Job Hours</Text>
+                        <Text className="text-lg font-bold text-white">
+                          {totalJobHours.toFixed(1)} {totalJobHours === 1 ? 'hour' : 'hours'}
+                        </Text>
+                        {role?.paymentBasis ? (
+                          <Text className="text-xs text-white/70">Payment basis: {role.paymentBasis}</Text>
+                        ) : null}
+                      </View>
+
+                      <TouchableOpacity
+                        className="rounded-xl border border-amber-300/40 bg-amber-500/15 px-4 py-3"
+                        activeOpacity={0.85}
+                        onPress={() => {
+                          setFieldValue('quotePrice', '100');
+                          setFieldValue('otQuotePrice', role?.otPayment ? '10' : '');
+                          setFieldValue('skills', 'Singing, dancing');
+                          setFieldValue('answer', 'I am a good fit for this role.');
+                        }}>
+                        <Text className="text-sm font-semibold text-amber-200">Dev fill form</Text>
+                        <Text className="text-xs text-amber-100/80">Quick fill for testing</Text>
+                      </TouchableOpacity>
+
+                      <View className="gap-2">
+                        <Text className="text-sm font-semibold text-white">
+                          {role?.paymentBasis !== 'Hourly Rate' ? 'Hourly Rate Quote (HKD)' : 'Project Quote (HKD)'}
+                        </Text>
+                        <TextInput
+                          value={values.quotePrice !== null && values.quotePrice !== undefined ? String(values.quotePrice) : ''}
+                          onChangeText={(text) => setFieldValue('quotePrice', text.replace(/[^0-9.]/g, ''))}
+                          keyboardType="numeric"
+                          placeholder="Enter your quote"
+                          placeholderTextColor="rgba(255,255,255,0.6)"
+                          className="rounded-xl border border-white/10 bg-zinc-900/70 px-4 py-3 text-white"
+                          onBlur={() => setFieldTouched('quotePrice', true)}
+                        />
+                        {quoteError && touched.quotePrice && (
+                          <Text className="text-xs text-rose-400">Quote is required</Text>
+                        )}
+                      </View>
+
+                      {role?.otPayment && (
+                        <View className="gap-2">
+                          <Text className="text-sm font-semibold text-white">Overtime Payment / Hour</Text>
+                          <TextInput
+                            value={values.otQuotePrice !== null && values.otQuotePrice !== undefined ? String(values.otQuotePrice) : ''}
+                            onChangeText={(text) => setFieldValue('otQuotePrice', text.replace(/[^0-9.]/g, ''))}
+                            keyboardType="numeric"
+                            placeholder="Enter OT payment"
+                            placeholderTextColor="rgba(255,255,255,0.6)"
+                            className="rounded-xl border border-white/10 bg-zinc-900/70 px-4 py-3 text-white"
+                            onBlur={() => setFieldTouched('otQuotePrice', true)}
+                          />
+                          {otQuoteError && touched.otQuotePrice && (
+                            <Text className="text-xs text-rose-400">Overtime payment is required</Text>
+                          )}
+                        </View>
+                      )}
+
+                      <View className="gap-2">
+                        <Text className="text-sm font-semibold text-white">Skills</Text>
+                        <TextInput
+                          value={values.skills}
+                          onChangeText={(text) => setFieldValue('skills', text)}
+                          placeholder="Highlight relevant skills"
+                          placeholderTextColor="rgba(255,255,255,0.6)"
+                          multiline
+                          className="rounded-xl border border-white/10 bg-zinc-900/70 px-4 py-3 text-white"
+                          onBlur={() => setFieldTouched('skills', true)}
+                        />
+                        {skillsError && touched.skills && (
+                          <Text className="text-xs text-rose-400">Please share at least one skill</Text>
+                        )}
+                      </View>
+
+                      {role?.questions ? (
+                        <View className="gap-2">
+                          <Text className="text-sm font-semibold text-white">{role.questions}</Text>
+                          <TextInput
+                            value={values.answer}
+                            onChangeText={(text) => setFieldValue('answer', text)}
+                            placeholder="Answer the client's question"
+                            placeholderTextColor="rgba(255,255,255,0.6)"
+                            multiline
+                            className="rounded-xl border border-white/10 bg-zinc-900/70 px-4 py-3 text-white"
+                            onBlur={() => setFieldTouched('answer', true)}
+                          />
+                          {answerError && touched.answer && (
+                            <Text className="text-xs text-rose-400">Answer is required</Text>
+                          )}
+                        </View>
+                      ) : null}
+                    </View>
                   </ScrollView>
                 );
               }}

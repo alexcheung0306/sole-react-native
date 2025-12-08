@@ -20,8 +20,7 @@ import {
   FolderKanban,
 } from 'lucide-react-native';
 import { AccountDropDownMenu } from '@/components/AccountDropDownMenu';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
+import { GlassOverlay } from '@/components/custom/GlassView';
 
 type TabConfig = {
   name: string;
@@ -245,32 +244,11 @@ export default function AppTabBar() {
         left: 0,
         right: 0,
         overflow: 'hidden',
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255, 255, 255, 0.3)',
       }}>
-      {/* Blur Background */}
-      <BlurView
-        intensity={80}
-        tint="dark"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-        }}
-      />
-      {/* Gradient Overlay */}
-      <LinearGradient
-        colors={['rgba(0, 0, 0, 0.45)', 'rgba(0, 0, 0, 0.4)']}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          borderTopColor: 'rgba(255, 255, 255, 0.1)',
-          borderTopWidth: 1,
-        }}
-      />
+      {/* Glass effect overlay */}
+      <GlassOverlay intensity={80} tint="dark" />
       {/* Content */}
       <View
         style={{

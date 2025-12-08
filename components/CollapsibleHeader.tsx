@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import { View, Text, StatusBar } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
+import { GlassOverlay } from '@/components/custom/GlassView';
 
 interface CollapsibleHeaderProps {
   title: string | React.ReactNode;
@@ -54,23 +54,16 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
       ]}
       onLayout={handleLayout}
     >
-      {/* Blur Background */}
-
-      {/* Gradient Overlay */}
-      <LinearGradient
-        colors={
-          backgroundColor
-            ? [backgroundColor, 'transparent']
-            : isDark
-              ? [`rgba(0, 0, 0, ${gradientOpacity})`, 'rgba(0, 0, 0, 0.4)']
-              : [`rgba(255, 255, 255, ${gradientOpacity})`, 'rgba(255, 255, 255, 0)']
-        }
+      {/* Glass effect overlay */}
+      <GlassOverlay intensity={80} tint={isDark ? 'dark' : 'light'} />
+      
+      {/* Border */}
+      <View
         style={{
           position: 'absolute',
-          top: 0,
+          bottom: 0,
           left: 0,
           right: 0,
-          bottom: 0,
           borderBottomWidth: 1,
           borderBottomColor: borderColor,
         }}

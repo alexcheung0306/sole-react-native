@@ -18,23 +18,7 @@ export default function TalentProfile({
 }) {
   const [imageAspectRatio, setImageAspectRatio] = useState<number | undefined>(undefined);
   const comcardPng = userProfileData?.comcardWithPhotosResponse?.png;
-
-  // useEffect(() => {
-  //   if (comcardPng) {
-  //     Image.getSize(
-  //       comcardPng,
-  //       (width, height) => {
-  //         // Store aspect ratio; we'll render at container width
-  //         setImageAspectRatio(width && height ? width / height : undefined);
-  //       },
-  //       (error) => {
-  //         console.error('Error loading image dimensions:', error);
-  //         // Fallback to a default 3:4 aspect ratio
-  //         setImageAspectRatio(3 / 4);
-  //       }
-  //     );
-  //   }
-  // }, [comcardPng]);
+ 
 
   const emptyContent = (
     <View className="p-4">
@@ -66,7 +50,8 @@ export default function TalentProfile({
               width: '100%',
               aspectRatio: imageAspectRatio || 4 / 3,
               borderRadius: 0,
-              borderWidth: 1,
+              borderWidth: 0,
+              borderColor:"none"
             }}
             contentFit="contain"
             transition={200}

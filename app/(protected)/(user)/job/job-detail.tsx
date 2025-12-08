@@ -1,4 +1,11 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+} from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft } from 'lucide-react-native';
@@ -16,7 +23,8 @@ import { ProjectAnnouncementsList } from '~/components/project-detail/details/Pr
 import { CustomTabs } from '@/components/custom/custom-tabs';
 import { JobContractsTab } from '~/components/job-detail/contracts/JobContractsTab';
 import { JobRolesBreadcrumb } from '~/components/job-detail/roles/JobRolesBreadcrumb';
-import { JobRoleApplicationPanel } from '~/components/job-detail/roles/JobRoleApplicationPanel';
+import { JobApplicationDetail } from '~/components/job-detail/roles/JobApplicationDetail';
+import { JobApplyFormModal } from '~/components/job-detail/roles/JobApplyFormModal';
 
 const STATUS_COLORS: Record<string, string> = {
   Draft: '#6b7280',
@@ -32,7 +40,7 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
   const { soleUserId } = useSoleUserContext();
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   const queryClient = useQueryClient();
-  
+
   const projectId = params.id ? parseInt(params.id as string, 10) : 0;
   const [currentTab, setCurrentTab] = useState('job-information');
   const [currentRole, setCurrentRole] = useState(0);
@@ -78,7 +86,8 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
     refetch: refetchContracts,
   } = useQuery({
     queryKey: ['userContracts', projectId, soleUserId],
-    queryFn: () => getJobContractsWithProfileByProjectIdAndTalentId(projectId, soleUserId as string),
+    queryFn: () =>
+      getJobContractsWithProfileByProjectIdAndTalentId(projectId, soleUserId as string),
     enabled: !!projectId && !!soleUserId,
   });
 
@@ -96,12 +105,14 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
       queryClient.invalidateQueries({ queryKey: ['userApplications', projectId, soleUserId] });
       queryClient.invalidateQueries({ queryKey: ['project-announcements', projectId] });
 
-      await Promise.all([
-        refetchRoles?.(),
-        refetchContracts?.(),
-        refetchApplications?.(),
-        refetchProject?.(),
-      ].filter(Boolean) as Promise<any>[]);
+      await Promise.all(
+        [
+          refetchRoles?.(),
+          refetchContracts?.(),
+          refetchApplications?.(),
+          refetchProject?.(),
+        ].filter(Boolean) as Promise<any>[]
+      );
     } catch (error) {
       console.error('Error refreshing job data:', error);
     } finally {
@@ -144,26 +155,40 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
   const roleCount = rolesWithSchedules.length;
   const contractsCount = contractsData?.length || 0;
 
-  const userRoleLevels = (applicationsData || []).reduce((acc: { roleId: number; level: number }[], app: any) => {
-    if (!app?.roleId) return acc;
-    const status = (app.applicationProcess || app.applicationStatus || '').toLowerCase();
-    const processOrder = ['invited', 'applied', 'shortlisted', 'offered'];
-    const levelIndex = processOrder.indexOf(status);
-    const level = status === 'accepted' ? 4 : status === 'rejected' ? 0 : levelIndex >= 0 ? levelIndex + 1 : 1;
-    const existing = acc.find((r) => r.roleId === app.roleId);
-    if (existing) {
-      existing.level = Math.max(existing.level, level);
-    } else {
-      acc.push({ roleId: app.roleId, level });
-    }
-    return acc;
-  }, []);
+  const userRoleLevels = (applicationsData || []).reduce(
+    (acc: { roleId: number; level: number }[], app: any) => {
+      if (!app?.roleId) return acc;
+      const status = (app.applicationProcess || app.applicationStatus || '').toLowerCase();
+      const processOrder = ['invited', 'applied', 'shortlisted', 'offered'];
+      const levelIndex = processOrder.indexOf(status);
+      const level =
+        status === 'accepted'
+          ? 4
+          : status === 'rejected'
+            ? 0
+            : levelIndex >= 0
+              ? levelIndex + 1
+              : 1;
+      const existing = acc.find((r) => r.roleId === app.roleId);
+      if (existing) {
+        existing.level = Math.max(existing.level, level);
+      } else {
+        acc.push({ roleId: app.roleId, level });
+      }
+      return acc;
+    },
+    []
+  );
 
   const tabs = [
     { id: 'job-information', label: 'Details' },
     { id: 'job-roles', label: 'Roles', count: roleCount },
     { id: 'job-contracts', label: 'Contracts', count: contractsCount },
   ];
+
+  const application = applicationsData?.find(
+    (app: any) => app.roleId === rolesWithSchedules[currentRole]?.role?.id
+  );
 
   return (
     <>
@@ -211,7 +236,9 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
                 </Text>
               </View>
               <View className="rounded-full border border-blue-500/40 bg-blue-500/15 px-3 py-1">
-                <Text className="text-xs font-semibold text-white">Job #{project?.id ? String(project.id) : ''}</Text>
+                <Text className="text-xs font-semibold text-white">
+                  Job #{project?.id ? String(project.id) : ''}
+                </Text>
               </View>
             </View>
 
@@ -243,13 +270,17 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
                     <ProjectAnnouncementsList
                       projectId={projectId}
                       viewerId={soleUserId || ''}
+                      viewerSoleUserId={soleUserId || ''}
                       viewerRoleLevels={userRoleLevels}
                     />
                   ) : (
                     <View className="mt-2 rounded-2xl border border-white/10 bg-zinc-900/60 p-4">
-                      <Text className="text-sm font-semibold text-white">Apply to see announcements</Text>
+                      <Text className="text-sm font-semibold text-white">
+                        Apply to see announcements
+                      </Text>
                       <Text className="mt-1 text-xs text-white/70">
-                        Project announcements become visible once you have an application for a role.
+                        Project announcements become visible once you have an application for a
+                        role.
                       </Text>
                     </View>
                   )}
@@ -263,7 +294,7 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
                 {rolesLoading ? (
                   <View className="items-center justify-center py-20">
                     <ActivityIndicator size="large" color="#3b82f6" />
-                    <Text className="text-gray-400 mt-3 text-sm">Loading roles...</Text>
+                    <Text className="mt-3 text-sm text-gray-400">Loading roles...</Text>
                   </View>
                 ) : rolesWithSchedules.length === 0 ? (
                   <View className="items-center gap-3 rounded-2xl border border-white/10 bg-zinc-800 p-8">
@@ -285,17 +316,22 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
                     />
 
                     {rolesWithSchedules[currentRole] && (
-                      <View className="px-2">
-                        <JobRoleApplicationPanel
-                          projectData={project}
-                          roleWithSchedules={rolesWithSchedules[currentRole]}
-                          application={applicationsData?.find(
-                            (app: any) => app.roleId === rolesWithSchedules[currentRole]?.role?.id
-                          )}
-                          soleUserId={soleUserId}
-                          onApplicationUpdated={refetchApplications}
-                        />
-                      </View>
+                      < >
+                        {application ? (
+                          <JobApplicationDetail
+                            application={application}
+                            roleWithSchedules={rolesWithSchedules[currentRole]}
+                            onDeleted={refetchApplications}
+                          />
+                        ) : (
+                          <JobApplyFormModal
+                            projectData={projectData}
+                            roleWithSchedules={rolesWithSchedules[currentRole]}
+                            soleUserId={soleUserId}
+                            onSubmitted={refetchApplications}
+                          />
+                        )}
+                      </ >
                     )}
                   </>
                 )}
@@ -304,10 +340,7 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
 
             {/* ---------------------------------------Job Contracts--------------------------------------- */}
             {currentTab === 'job-contracts' && (
-              <JobContractsTab
-                contracts={contractsData || []}
-                isLoading={contractsLoading}
-              />
+              <JobContractsTab contracts={contractsData || []} isLoading={contractsLoading} />
             )}
           </View>
         </ScrollView>
@@ -315,4 +348,3 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
     </>
   );
 }
-
