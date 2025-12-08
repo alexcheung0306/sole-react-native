@@ -9,6 +9,25 @@ type JobContractsTabProps = {
   highlightedContractId?: number;
 };
 
+// Helper function to get primary condition (latest condition)
+const getPrimaryCondition = (conditions: any[]) => {
+  if (!conditions || conditions.length === 0) return null;
+  if (conditions.length === 1) return conditions[0];
+  
+  // Sort by creation date (newest first) and return the latest
+  const sortedConditions = [...conditions].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+  return sortedConditions[0];
+};
+
+// Helper function to check if contract is read by talent (check latest condition)
+const isReadByTalent = (conditions: any[]) => {
+  if (!conditions || conditions.length === 0) return true;
+  const latestCondition = getPrimaryCondition(conditions);
+  return latestCondition?.readByTalent === true;
+};
+
 export function JobContractsTab({ contracts, isLoading, highlightedContractId }: JobContractsTabProps) {
   const router = useRouter();
 
@@ -36,10 +55,14 @@ export function JobContractsTab({ contracts, isLoading, highlightedContractId }:
     const contract = item?.jobContract ?? item;
     const statusColor = getStatusColorObject(contract?.contractStatus);
     const isHighlighted = highlightedContractId && contract?.id === highlightedContractId;
+    const hasUnreadConditions = !isReadByTalent(contract?.conditions || []);
 
     return (
       <TouchableOpacity
-        onPress={() => router.push(`/(protected)/(user)/contract-detail/${contract?.id}` as any)}
+        onPress={() => router.push({
+          pathname: '/(protected)/(user)/job/my-contract-detail' as any,
+          params: { id: contract?.id },
+        })}
         className={`rounded-2xl p-4 mb-3 border ${
           isHighlighted 
             ? 'bg-blue-500/20 border-blue-500/50' 
@@ -47,7 +70,12 @@ export function JobContractsTab({ contracts, isLoading, highlightedContractId }:
         }`}
         activeOpacity={0.7}>
         <View className="flex-row items-center justify-between mb-2">
-          <Text className="text-lg font-bold text-white">Contract #{contract?.id}</Text>
+          <View className="flex-row items-center gap-2">
+            <Text className="text-lg font-bold text-white">Contract #{contract?.id}</Text>
+            {hasUnreadConditions && (
+              <View className="w-2 h-2 bg-red-500 rounded-full" />
+            )}
+          </View>
           <View className="px-3 py-1.5 rounded-full" style={{ backgroundColor: statusColor.bg }}>
             <Text className="text-xs font-semibold" style={{ color: statusColor.text }}>
               {contract?.contractStatus || 'Pending'}

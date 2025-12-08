@@ -67,6 +67,25 @@ export default function MyContracts({ scrollHandler }: MyContractsProps) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  // Helper function to get primary condition (latest condition)
+  const getPrimaryCondition = (conditions: any[]) => {
+    if (!conditions || conditions.length === 0) return null;
+    if (conditions.length === 1) return conditions[0];
+    
+    // Sort by creation date (newest first) and return the latest
+    const sortedConditions = [...conditions].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    return sortedConditions[0];
+  };
+
+  // Helper function to check if contract is read by talent (check latest condition)
+  const isReadByTalent = (conditions: any[]) => {
+    if (!conditions || conditions.length === 0) return true;
+    const latestCondition = getPrimaryCondition(conditions);
+    return latestCondition?.readByTalent === true;
+  };
+
   const handleContractPress = (contract: any) => {
     const jobContract = contract?.jobContract || contract;
     const projectId = jobContract?.projectId;
@@ -110,6 +129,9 @@ export default function MyContracts({ scrollHandler }: MyContractsProps) {
             <Text className="text-sm text-blue-400 font-semibold">
               Contract #{contractId || 'N/A'}
             </Text>
+            {!isReadByTalent(jobContract?.conditions || []) && (
+              <View className="w-2 h-2 bg-red-500 rounded-full" />
+            )}
           </View>
           <View className="px-3 py-1.5 rounded-full" style={{ backgroundColor: statusColor.bg }}>
             <Text className="text-xs font-semibold" style={{ color: statusColor.text }}>

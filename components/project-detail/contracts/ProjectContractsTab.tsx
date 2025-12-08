@@ -169,7 +169,7 @@ export function ProjectContractsTab({
         style={[styles.contractCard, isSelected && styles.contractCardSelected]}
         onPress={() =>
           router.push({
-            pathname: '/(protected)/(client)/projects/contract',
+            pathname: '/(protected)/(client)/projects/contract-detail',
             params: { id: contract?.id?.toString() },
           })
         }

@@ -24,9 +24,10 @@ export default function ProtectedLayout() {
     if (
       path.includes('projects/project-detail') ||
       path.includes('projects/swipe') ||
-      path.includes('job/job-detail') ||
       path.includes('projects/contract-detail') ||
-      path.includes('projects/candidate-detail')
+      path.includes('projects/candidate-detail') ||
+      path.includes('job/job-detail') ||
+      path.includes('job/contract-detail')
     ) {
       return false;
     }
