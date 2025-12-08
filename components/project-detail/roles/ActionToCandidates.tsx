@@ -1,14 +1,7 @@
-import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import {
   FileText,
   Calendar,
-  UserCheck,
-  UserX,
-  Mail,
-  Plus,
-  CheckCircle2,
-  XCircle,
-  Clock,
   FileSignature,
 } from 'lucide-react-native';
 import { getStatusColorObject } from '@/utils/get-status-color';
@@ -18,6 +11,7 @@ interface ActionToCandidatesProps {
   applicant: any;
   projectData: any;
   roleId?: number;
+  roleWithSchedules?: any;
   contractsData?: any[];
   isLoadingContracts?: boolean;
 }
@@ -26,6 +20,7 @@ export function ActionToCandidates({
   applicant, 
   projectData,
   roleId,
+  roleWithSchedules,
   contractsData = [],
   isLoadingContracts = false,
 }: ActionToCandidatesProps) {
@@ -56,7 +51,7 @@ export function ActionToCandidates({
           <SendOfferModal
             applicant={applicant}
             projectData={projectData}
-            roleWithSchedules={applicant?.jobApplicant?.roleWithSchedules || roleId ? { role: { id: roleId } } : null}
+            roleWithSchedules={roleWithSchedules || applicant?.jobApplicant?.roleWithSchedules || (roleId ? { role: { id: roleId } } : null)}
           />
         </View>
       </View>

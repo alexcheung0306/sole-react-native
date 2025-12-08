@@ -24,15 +24,20 @@ export function SwitchInterface({ setIsOpen }: { setIsOpen: (isOpen: boolean) =>
   const toggleWidth = useSharedValue(280); // Will be updated on layout
   const maxTranslateX = useSharedValue(280 - TOGGLE_CIRCLE_SIZE - TOGGLE_PADDING * 2);
   
-  // Initialize translateX based on current mode
+  // Initialize translateX based on current mode immediately (no animation on mount)
   // 0 = User (left), maxTranslateX = Client (right)
-  const translateX = useSharedValue(0);
+  // Use a temporary max value to calculate initial position
+  const initialMaxTranslateX = 280 - TOGGLE_CIRCLE_SIZE - TOGGLE_PADDING * 2;
+  const translateX = useSharedValue(
+    currentMode === 'client' ? initialMaxTranslateX : 0
+  );
   const isGestureActive = useSharedValue(false);
   const startX = useSharedValue(0); // Track starting position when gesture begins
+  const hasInitialized = React.useRef(false);
   
-  // Update translateX when mode changes externally
+  // Update translateX when mode changes externally (only after initial render)
   React.useEffect(() => {
-    if (maxTranslateX.value > 0) {
+    if (hasInitialized.current && maxTranslateX.value > 0) {
       if (currentMode === 'client') {
         translateX.value = withTiming(maxTranslateX.value, {
           duration: 200,
@@ -42,6 +47,8 @@ export function SwitchInterface({ setIsOpen }: { setIsOpen: (isOpen: boolean) =>
           duration: 200,
         });
       }
+    } else {
+      hasInitialized.current = true;
     }
   }, [currentMode]);
 
@@ -147,13 +154,25 @@ export function SwitchInterface({ setIsOpen }: { setIsOpen: (isOpen: boolean) =>
             toggleWidth.value = width;
             const newMaxTranslateX = width - TOGGLE_CIRCLE_SIZE - TOGGLE_PADDING * 2;
             maxTranslateX.value = newMaxTranslateX;
-            // Update initial position based on current mode
-            if (currentMode === 'client') {
-              translateX.value = withTiming(newMaxTranslateX, {
-                duration: 200,
-              });
+            // Set initial position immediately without animation if not already set correctly
+            if (!hasInitialized.current) {
+              if (currentMode === 'client') {
+                translateX.value = newMaxTranslateX;
+              } else {
+                translateX.value = 0;
+              }
+              hasInitialized.current = true;
             } else {
-              translateX.value = 0;
+              // Only animate if the position needs to change after layout
+              if (currentMode === 'client' && translateX.value !== newMaxTranslateX) {
+                translateX.value = withTiming(newMaxTranslateX, {
+                  duration: 200,
+                });
+              } else if (currentMode === 'user' && translateX.value !== 0) {
+                translateX.value = withTiming(0, {
+                  duration: 200,
+                });
+              }
             }
           }}
           className="w-full relative overflow-hidden rounded-[30px] border border-white/15 bg-white/[0.08] 

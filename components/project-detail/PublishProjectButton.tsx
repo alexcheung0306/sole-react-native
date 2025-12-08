@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Upload, Calendar, Clock } from 'lucide-react-native';
+import { Upload } from 'lucide-react-native';
 import { PrimaryButton } from '@/components/custom/primary-button';
 import { Button, ButtonText } from '@/components/ui/button';
 import CollapseDrawer from '@/components/custom/collapse-drawer';
-import DatePicker from 'react-native-date-picker';
-import { parseDateTime, formatDateTime, formatDisplayDateTime } from '@/lib/datetime';
+import { parseDateTime } from '@/lib/datetime';
 import { publishProject } from '@/api/apiservice/project_api';
+import { DateTimePickerInput } from '@/components/form-components/DateTimePickerInput';
 
 interface PublishProjectButtonProps {
   projectData: any;
@@ -27,10 +27,6 @@ export function PublishProjectButton({
   const [isLoading, setIsLoading] = useState(false);
   const [applicationDeadline, setApplicationDeadline] = useState<string>('');
   const [dateError, setDateError] = useState<string>('');
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [pickerInitialDate, setPickerInitialDate] = useState<Date>(new Date());
 
   const projectId = projectData?.id || projectData?.project?.id;
 
@@ -63,99 +59,12 @@ export function PublishProjectButton({
   const handleOpen = () => {
     setIsOpen(true);
     setDateError('');
-    // Set initial date to tomorrow if no deadline is set
-    if (!applicationDeadline) {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(12, 0, 0, 0);
-      setPickerInitialDate(tomorrow);
-    }
   };
 
   const handleClose = () => {
     setIsOpen(false);
     setApplicationDeadline('');
     setDateError('');
-    setShowDatePicker(false);
-    setShowTimePicker(false);
-    setSelectedDate(null);
-  };
-
-  const openDateTimePicker = () => {
-    // Parse existing deadline or use tomorrow as default
-    let initialDate = new Date();
-    if (applicationDeadline) {
-      const parsed = parseDateTime(applicationDeadline);
-      if (parsed && !isNaN(parsed.getTime())) {
-        initialDate = parsed;
-      } else {
-        initialDate.setDate(initialDate.getDate() + 1);
-        initialDate.setHours(12, 0, 0, 0);
-      }
-    } else {
-      initialDate.setDate(initialDate.getDate() + 1);
-      initialDate.setHours(12, 0, 0, 0);
-    }
-    setPickerInitialDate(initialDate);
-    setSelectedDate(null);
-    setShowDatePicker(true);
-  };
-
-  const handleDateChange = (date: Date) => {
-    setPickerInitialDate(date);
-  };
-
-  const handleDateConfirm = (selectedDateValue: Date) => {
-    // Validate that the date is not in the past (allow today)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const selectedDateOnly = new Date(selectedDateValue);
-    selectedDateOnly.setHours(0, 0, 0, 0);
-    
-    if (selectedDateOnly < today) {
-      setDateError('Application deadline date cannot be in the past');
-      setShowDatePicker(false);
-      setSelectedDate(null);
-      return;
-    }
-
-    // Store the selected date and move to time picker
-    setSelectedDate(selectedDateValue);
-    setPickerInitialDate(selectedDateValue);
-    setShowDatePicker(false);
-    setShowTimePicker(true);
-    setDateError('');
-  };
-
-  const handleTimeConfirm = (selectedTime: Date) => {
-    if (!selectedDate) return;
-
-    // Combine the selected date with the selected time
-    const finalDate = new Date(selectedDate);
-    finalDate.setHours(selectedTime.getHours());
-    finalDate.setMinutes(selectedTime.getMinutes());
-    finalDate.setSeconds(selectedTime.getSeconds());
-
-    // Validate that the complete date/time is in the future
-    const now = new Date();
-    if (finalDate <= now) {
-      setDateError('Application deadline must be in the future');
-      setShowTimePicker(false);
-      setSelectedDate(null);
-      return;
-    }
-    
-    const formatted = formatDateTime(finalDate);
-    setApplicationDeadline(formatted);
-    setDateError('');
-    setShowTimePicker(false);
-    setSelectedDate(null);
-  };
-
-  const handlePickerCancel = () => {
-    setShowDatePicker(false);
-    setShowTimePicker(false);
-    setSelectedDate(null);
   };
 
   const handlePublish = () => {
@@ -211,31 +120,16 @@ export function PublishProjectButton({
               </Text>
 
               {/* Application Deadline Picker */}
-              <View>
-                <Text className="mb-2 text-sm font-semibold text-white">Application Deadline *</Text>
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={openDateTimePicker}
-                  className="flex-row items-center justify-between rounded-2xl border border-white/20 bg-zinc-600 p-3">
-                  <View className="flex-row items-center gap-2">
-                    <Calendar size={16} color="#ffffff" />
-                    <Text className="text-white">
-                      {applicationDeadline
-                        ? formatDisplayDateTime(applicationDeadline, 'Select deadline')
-                        : 'Select deadline'}
-                    </Text>
-                  </View>
-                  <Clock size={16} color="#ffffff" />
-                </TouchableOpacity>
-                {dateError !== '' && (
-                  <Text className="mt-1 text-xs text-red-400">{dateError}</Text>
-                )}
-                {!dateError && applicationDeadline && (
-                  <Text className="mt-1 text-xs text-white/60">
-                    Selected: {formatDisplayDateTime(applicationDeadline)}
-                  </Text>
-                )}
-              </View>
+              <DateTimePickerInput
+                value={applicationDeadline}
+                onChange={setApplicationDeadline}
+                label="Application Deadline *"
+                placeholder="Select deadline"
+                errorMessagePrefix="Application deadline"
+                error={dateError}
+                onErrorChange={setDateError}
+                buttonClassName="flex-row items-center justify-between rounded-2xl border border-white/20 bg-zinc-600 p-3"
+              />
 
               {/* Action Buttons */}
               <View className="mt-4 flex-row gap-3">
@@ -258,40 +152,6 @@ export function PublishProjectButton({
           </ScrollView>
         </View>
       </CollapseDrawer>
-
-      {/* Date Picker - Step 1: Select Date (with year) */}
-      <DatePicker
-        modal
-        open={showDatePicker}
-        date={pickerInitialDate}
-        mode="date"
-        minimumDate={(() => {
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          return today;
-        })()}
-        onConfirm={handleDateConfirm}
-        onCancel={handlePickerCancel}
-        onDateChange={handleDateChange}
-        theme="dark"
-        locale="en"
-        title="Select Application Deadline Date"
-      />
-
-      {/* Time Picker - Step 2: Select Time */}
-      <DatePicker
-        modal
-        open={showTimePicker}
-        date={pickerInitialDate}
-        mode="time"
-        onConfirm={handleTimeConfirm}
-        onCancel={handlePickerCancel}
-        onDateChange={handleDateChange}
-        minuteInterval={5}
-        theme="dark"
-        locale="en"
-        title="Select Application Deadline Time"
-      />
     </View>
   );
 }

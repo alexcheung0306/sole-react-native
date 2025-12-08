@@ -718,6 +718,7 @@ export default function RoleCandidatesSwipeScreen() {
                       tabs={tabs.map(tab => ({ id: tab.id, label: tab.label }))}
                       projectId={projectId ? Number(projectId) : undefined}
                       roleId={roleId ? Number(roleId) : undefined}
+                      roleWithSchedules={roleWithSchedules}
                       availableActions={getAvailableActions}
                       currentProcess={currentProcess}
                       onSwipeComplete={handleCardSwipeComplete}

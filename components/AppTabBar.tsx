@@ -3,8 +3,6 @@ import { View, Text, TouchableOpacity, Animated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   useAppTabContext,
-  isUserTab,
-  isClientTab,
   UserTab,
   ClientTab,
 } from '~/context/AppTabContext';
@@ -278,7 +276,7 @@ export default function AppTabBar() {
                   justifyContent: 'center',
                   paddingVertical: 4,
                 }}>
-                <Icon color={active ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)'} size={24} />
+                <Icon  color={active ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)'} size={24} />
                 <Text
                   style={{
                     color: active ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)',

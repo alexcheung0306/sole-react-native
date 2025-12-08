@@ -35,6 +35,7 @@ interface SwipeCardProps {
   tabs: Array<{ id: string; label: string }>;
   projectId?: number;
   roleId?: number;
+  roleWithSchedules?: any;
   availableActions: string[];
   currentProcess: string;
   onSwipeComplete: () => void;
@@ -64,6 +65,7 @@ export default function SwipeCard({
   tabs,
   projectId,
   roleId,
+  roleWithSchedules,
   availableActions,
   currentProcess,
   onSwipeComplete,
@@ -419,6 +421,7 @@ export default function SwipeCard({
                     applicant={candidate}
                     projectData={{ id: projectId }}
                     roleId={roleId}
+                    roleWithSchedules={roleWithSchedules}
                   />
                 )}
               </View>

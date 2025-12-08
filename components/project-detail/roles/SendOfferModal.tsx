@@ -1,11 +1,13 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useMemo, useState, useEffect } from 'react';
+import { View, Text, TextInput, ScrollView } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { FormModal } from '@/components/custom/form-modal';
 import { PrimaryButton } from '@/components/custom/primary-button';
 import { createJobContractWithConditions } from '@/api/apiservice/jobContracts_api';
 import { updateApplicantProcessById } from '@/api/apiservice/applicant_api';
-import { parseDateTime } from '@/lib/datetime';
+import { parseDateTime, formatDisplayDateTime } from '@/lib/datetime';
+import { DateTimePickerInput } from '@/components/form-components/DateTimePickerInput';
+import { RoleScheduleListInputs } from '@/components/form-components/role-form/RoleScheduleListInputs';
 
 type SendOfferModalProps = {
   applicant: any;
@@ -19,6 +21,7 @@ type OfferFormState = {
   paymentAdditional: string;
   paymentDate: string;
   remarks: string;
+  activityScheduleLists: any[];
 };
 
 const toNumber = (value: string) => {
@@ -31,38 +34,140 @@ export function SendOfferModal({ applicant, projectData, roleWithSchedules }: Se
   const jobApplicant = applicant?.jobApplicant || applicant || {};
   const role = roleWithSchedules?.role || {};
 
+  // Initialize activityScheduleLists from role's job schedules
+  const initialActivityScheduleLists = useMemo(() => {
+    const activities = roleWithSchedules?.activities ?? [];
+    const jobActivities = activities.filter((activity: any) => activity?.type === 'job');
+
+    if (jobActivities.length === 0) {
+      // If no job activities exist, create an empty one
+      return [
+        {
+          title: '',
+          type: 'job',
+          schedules: [],
+          remarks: '',
+        },
+      ];
+    }
+
+    // Convert job activities to the format expected by RoleScheduleListInputs
+    return jobActivities.map((activity: any) => ({
+      title: activity?.title || '',
+      type: activity?.type || 'job',
+      schedules: (activity?.schedules || []).map((schedule: any, idx: number) => ({
+        id: schedule?.id || Date.now() + idx,
+        location: schedule?.location || '',
+        fromTime: schedule?.fromTime || '',
+        toTime: schedule?.toTime || '',
+      })),
+      remarks: activity?.remarks || '',
+    }));
+  }, [roleWithSchedules?.activities]);
+
   const [formState, setFormState] = useState<OfferFormState>({
     paymentAmount: jobApplicant?.quotePrice ? String(jobApplicant.quotePrice) : '',
     paymentAmountOt: jobApplicant?.otQuotePrice ? String(jobApplicant.otQuotePrice) : '',
     paymentAdditional: '0',
-    paymentDate: '',
+    paymentDate: projectData?.applicationDeadline || '',
     remarks: '',
+    activityScheduleLists: initialActivityScheduleLists,
   });
 
-  const handleChange = (field: keyof OfferFormState, value: string) => {
+  const [dateError, setDateError] = useState<string>('');
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  // Update activityScheduleLists when roleWithSchedules changes
+  useEffect(() => {
+    setFormState((prev) => ({
+      ...prev,
+      activityScheduleLists: initialActivityScheduleLists,
+    }));
+  }, [initialActivityScheduleLists]);
+
+  const handleChange = (field: keyof OfferFormState, value: string | any[]) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
   };
 
-  const totalJobHours = useMemo(() => {
-    const activities = roleWithSchedules?.activities ?? [];
-    return activities
-      .filter((activity: any) => activity?.type === 'job')
-      .flatMap((activity: any) => activity?.schedules ?? [])
-      .reduce((total: number, schedule: any) => {
-        const fromTime = schedule?.fromTime ? parseDateTime(String(schedule.fromTime)) : null;
-        const toTime = schedule?.toTime ? parseDateTime(String(schedule.toTime)) : null;
-        if (!fromTime || !toTime) return total;
-        const duration = (toTime.getTime() - fromTime.getTime()) / (1000 * 60 * 60);
-        return duration > 0 ? total + duration : total;
-      }, 0);
-  }, [roleWithSchedules?.activities]);
+  // Formik-like helpers for RoleScheduleListInputs
+  const setFieldValue = (field: string, value: any) => {
+    if (field === 'activityScheduleLists') {
+      setFormState((prev) => ({ ...prev, activityScheduleLists: value }));
+    }
+  };
 
+  const setValues = (newValues: any) => {
+    if (newValues.activityScheduleLists) {
+      setFormState((prev) => ({ ...prev, activityScheduleLists: newValues.activityScheduleLists }));
+    }
+  };
+
+  const setFieldTouched = (field: string, isTouched: boolean) => {
+    setTouched((prev) => ({ ...prev, [field]: isTouched }));
+  };
+
+  // Calculate total job hours from form state (activityScheduleLists)
+  const totalJobHours = useMemo(() => {
+    if (!formState.activityScheduleLists || !Array.isArray(formState.activityScheduleLists)) {
+      return 0;
+    }
+
+    let totalTime = 0;
+
+    formState.activityScheduleLists.forEach((activity: any) => {
+      if (activity?.type === 'job' && activity?.schedules && Array.isArray(activity.schedules)) {
+        activity.schedules.forEach((schedule: any) => {
+          if (schedule?.fromTime && schedule?.toTime) {
+            try {
+              const fromTime = parseDateTime(String(schedule.fromTime));
+              const toTime = parseDateTime(String(schedule.toTime));
+              if (fromTime && toTime) {
+                const durationMs = toTime.getTime() - fromTime.getTime();
+                if (durationMs > 0) {
+                  totalTime += durationMs;
+                }
+              }
+            } catch (error) {
+              // If parsing fails, try using Date directly as fallback
+              try {
+                const fromTime = new Date(schedule.fromTime).getTime();
+                const toTime = new Date(schedule.toTime).getTime();
+                if (!isNaN(fromTime) && !isNaN(toTime) && toTime > fromTime) {
+                  totalTime += toTime - fromTime;
+                }
+              } catch {
+                // Skip invalid schedule
+              }
+            }
+          }
+        });
+      }
+    });
+
+    return totalTime / (1000 * 60 * 60); // Convert milliseconds to hours
+  }, [formState.activityScheduleLists]);
+
+  // Extract job schedules from form state for the mutation
   const jobSchedules = useMemo(() => {
-    const activities = roleWithSchedules?.activities ?? [];
-    return activities
+    return formState.activityScheduleLists
       .filter((activity: any) => activity?.type === 'job')
       .flatMap((activity: any) => activity?.schedules ?? []);
-  }, [roleWithSchedules?.activities]);
+  }, [formState.activityScheduleLists]);
+
+  // Calculate estimated payment
+  const estimatedPayment = useMemo(() => {
+    const paymentBasis = role?.paymentBasis || jobApplicant?.paymentBasis || 'On Project';
+    const baseAmount = toNumber(formState.paymentAmount);
+    const additionalAmount = toNumber(formState.paymentAdditional);
+
+    if (paymentBasis === 'Hourly Rate') {
+      // For hourly rate: base amount * total hours + additional
+      return baseAmount * totalJobHours + additionalAmount;
+    } else {
+      // For project rate: base amount + additional
+      return baseAmount + additionalAmount;
+    }
+  }, [formState.paymentAmount, formState.paymentAdditional, totalJobHours, role?.paymentBasis, jobApplicant?.paymentBasis]);
 
   const offerMutation = useMutation({
     mutationFn: async () => {
@@ -143,63 +248,84 @@ export function SendOfferModal({ applicant, projectData, roleWithSchedules }: Se
           className="flex-1 px-4"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 40 }}>
-          <View className="rounded-2xl border border-white/10 bg-zinc-900/70 p-4">
-            <Text className="text-sm font-semibold text-white">Total Job Hours</Text>
-            <Text className="text-lg font-bold text-white">
-              {totalJobHours.toFixed(1)} {totalJobHours === 1 ? 'hour' : 'hours'}
-            </Text>
-          </View>
-
+          {/* Payment Details */}
           <View className="mt-4 gap-3">
             <View className="gap-2">
-              <Text className="text-sm font-semibold text-white">
-                {role?.paymentBasis === 'Hourly Rate' ? 'Finalize Hourly Rate (HKD)' : 'Finalize Project Rate (HKD)'}
-              </Text>
-              <TextInput
-                value={formState.paymentAmount}
-                onChangeText={(text) => handleChange('paymentAmount', text.replace(/[^0-9.]/g, ''))}
-                keyboardType="numeric"
-                placeholder="Enter payment"
-                placeholderTextColor="rgba(255,255,255,0.6)"
-                className="rounded-xl border border-white/10 bg-zinc-900/70 px-4 py-3 text-white"
-              />
+              <View className="flex-row items-center gap-2">
+                <Text className="text-sm font-semibold text-white">
+                  {role?.paymentBasis === 'Hourly Rate'
+                    ? 'Finalize Hourly Rate (HKD)'
+                    : 'Finalize Project Rate (HKD)'}
+                </Text>
+                <View
+                  className={`rounded-full px-3 py-1 ${
+                    (role?.paymentBasis || jobApplicant?.paymentBasis) === 'Hourly Rate'
+                      ? 'bg-blue-500/20 border border-blue-500/50'
+                      : 'bg-green-500/20 border border-green-500/50'
+                  }`}>
+                  <Text
+                    className={`text-xs font-semibold ${
+                      (role?.paymentBasis || jobApplicant?.paymentBasis) === 'Hourly Rate'
+                        ? 'text-blue-400'
+                        : 'text-green-400'
+                    }`}>
+                    {role?.paymentBasis || jobApplicant?.paymentBasis || 'On Project'}
+                  </Text>
+                </View>
+              </View>
+              <View className="flex-row items-center rounded-xl border border-white/10 bg-zinc-900/70">
+                <Text className="px-4 text-white text-base font-semibold">$</Text>
+                <TextInput
+                  value={formState.paymentAmount}
+                  onChangeText={(text) => handleChange('paymentAmount', text.replace(/[^0-9.]/g, ''))}
+                  keyboardType="numeric"
+                  placeholder="Enter payment"
+                  placeholderTextColor="rgba(255,255,255,0.6)"
+                  className="flex-1 py-3 pr-4 text-white"
+                />
+              </View>
             </View>
 
+            {/* Finalize OT Payment / Hour */}
             <View className="gap-2">
-              <Text className="text-sm font-semibold text-white">Finalize OT Payment / Hour (HKD)</Text>
-              <TextInput
-                value={formState.paymentAmountOt}
-                onChangeText={(text) => handleChange('paymentAmountOt', text.replace(/[^0-9.]/g, ''))}
-                keyboardType="numeric"
-                placeholder="Enter OT payment"
-                placeholderTextColor="rgba(255,255,255,0.6)"
-                className="rounded-xl border border-white/10 bg-zinc-900/70 px-4 py-3 text-white"
-              />
+              <Text className="text-sm font-semibold text-white">
+                Finalize OT Payment / Hour (HKD)
+              </Text>
+              <View className="flex-row items-center rounded-xl border border-white/10 bg-zinc-900/70">
+                <Text className="px-4 text-white text-base font-semibold">$</Text>
+                <TextInput
+                  value={formState.paymentAmountOt}
+                  onChangeText={(text) =>
+                    handleChange('paymentAmountOt', text.replace(/[^0-9.]/g, ''))
+                  }
+                  keyboardType="numeric"
+                  placeholder="Enter OT payment"
+                  placeholderTextColor="rgba(255,255,255,0.6)"
+                  className="flex-1 py-3 pr-4 text-white"
+                />
+              </View>
             </View>
 
+            {/* Additional Payment */}
             <View className="gap-2">
               <Text className="text-sm font-semibold text-white">Additional Payment (HKD)</Text>
-              <TextInput
-                value={formState.paymentAdditional}
-                onChangeText={(text) => handleChange('paymentAdditional', text.replace(/[^0-9.]/g, ''))}
-                keyboardType="numeric"
-                placeholder="Optional"
-                placeholderTextColor="rgba(255,255,255,0.6)"
-                className="rounded-xl border border-white/10 bg-zinc-900/70 px-4 py-3 text-white"
-              />
+              <View className="flex-row items-center rounded-xl border border-white/10 bg-zinc-900/70">
+                <Text className="px-4 text-white text-base font-semibold">$</Text>
+                <TextInput
+                  value={formState.paymentAdditional}
+                  onChangeText={(text) =>
+                    handleChange('paymentAdditional', text.replace(/[^0-9.]/g, ''))
+                  }
+                  keyboardType="numeric"
+                  placeholder="Optional"
+                  placeholderTextColor="rgba(255,255,255,0.6)"
+                  className="flex-1 py-3 pr-4 text-white"
+                />
+              </View>
             </View>
 
-            <View className="gap-2">
-              <Text className="text-sm font-semibold text-white">Payment Date (ISO or yyyy-MM-dd)</Text>
-              <TextInput
-                value={formState.paymentDate}
-                onChangeText={(text) => handleChange('paymentDate', text)}
-                placeholder="2025-08-27T10:00:00.000+08:00"
-                placeholderTextColor="rgba(255,255,255,0.6)"
-                className="rounded-xl border border-white/10 bg-zinc-900/70 px-4 py-3 text-white"
-              />
-            </View>
 
+            {/* Remarks */}
             <View className="gap-2">
               <Text className="text-sm font-semibold text-white">Remarks</Text>
               <TextInput
@@ -212,23 +338,59 @@ export function SendOfferModal({ applicant, projectData, roleWithSchedules }: Se
               />
             </View>
 
-            <View className="gap-2 rounded-2xl border border-white/10 bg-zinc-900/60 p-3">
+            {/* Finalized Schedules */}
+            <View className="mt-4 gap-2">
               <Text className="text-sm font-semibold text-white">Finalized Schedules</Text>
-              {jobSchedules.length === 0 ? (
-                <Text className="text-xs text-white/70">No job schedules found for this role.</Text>
-              ) : (
-                jobSchedules.map((s: any, idx: number) => (
-                  <View key={`schedule-${idx}`} className="rounded-xl border border-white/10 bg-zinc-800/60 px-3 py-2">
-                    {s?.location ? (
-                      <Text className="text-sm text-white">{s.location}</Text>
-                    ) : null}
-                    <Text className="text-xs text-white/80">
-                      {s?.fromTime} - {s?.toTime}
-                    </Text>
-                  </View>
-                ))
-              )}
+              <RoleScheduleListInputs
+                values={formState}
+                setFieldValue={setFieldValue}
+                setValues={setValues}
+                touched={touched}
+                setFieldTouched={setFieldTouched}
+                onFillLater={() => {}}
+                fillSchedulesLater={false}
+                isFinal={true}
+                isSendOffer={true}
+              />
             </View>
+
+            {/* Total Job Hours */}
+            <View className="gap-2">
+              <Text className="text-sm font-semibold text-white">Total Job Hours</Text>
+              <View className="rounded-2xl border border-white/10 bg-zinc-900/70 p-4">
+                <Text className="text-lg font-bold text-white">
+                  {totalJobHours.toFixed(1)} {totalJobHours === 1 ? 'hour' : 'hours'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Estimated Payment */}
+            <View className="gap-2">
+              <Text className="text-sm font-semibold text-white">Estimated Payment</Text>
+              <View className="rounded-2xl border border-white/10 bg-zinc-900/70 p-4">
+                <Text className="text-lg font-bold text-white">
+                  ${estimatedPayment.toFixed(2)} HKD
+                </Text>
+              </View>
+            </View>
+
+            
+            {/* Payment Date */}
+            <DateTimePickerInput
+              value={formState.paymentDate}
+              onChange={(value) => handleChange('paymentDate', value)}
+              label="Payment Date"
+              placeholder="Select payment date"
+              errorMessagePrefix="Payment date"
+              defaultValue={projectData?.applicationDeadline}
+              defaultDateLabel={
+                projectData?.applicationDeadline
+                  ? `Use application deadline: ${formatDisplayDateTime(projectData.applicationDeadline)}`
+                  : undefined
+              }
+              error={dateError}
+              onErrorChange={setDateError}
+            />
           </View>
         </ScrollView>
       )}

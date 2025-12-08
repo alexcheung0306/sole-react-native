@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import { Plus, Trash2, MapPin, Calendar, Clock } from 'lucide-react-native';
+import { Plus, Trash2, Calendar, Clock } from 'lucide-react-native';
 import { Input, InputField } from '@/components/ui/input';
 import { Textarea, TextareaInput } from '@/components/ui/textarea';
 import { Button, ButtonText, ButtonIcon } from '@/components/ui/button';
@@ -26,7 +26,6 @@ import {
   validateTimeSlot,
   ScheduleObject,
 } from '@/lib/validations/role-validation';
-import { getFieldError } from '@/lib/validations/form-field-validations';
 import { activityTypes } from '@/components/form-components/options-to-use';
 import { SingleSelectCard } from '@/components/form-components/SingleSelectCard';
 import { ActivityTypeSelector } from '~/components/form-components/role-form/ActivityTypeSelector';
@@ -43,6 +42,7 @@ interface RoleScheduleListInputsProps {
   onFillLater?: () => void;
   fillSchedulesLater: boolean;
   isFinal?: boolean;
+  isSendOffer?: boolean; // When true, prevents adding new activities and changing activity types
   // Ref callback to register close handler with parent
   onRegisterScrollClose?: (closeHandler: () => void) => void;
   // Legacy props - kept for compatibility but not used with inline dropdown
@@ -65,6 +65,7 @@ export function RoleScheduleListInputs({
   onFillLater,
   fillSchedulesLater,
   isFinal = false,
+  isSendOffer = false,
   onRegisterScrollClose,
   showTypePicker = false,
   setShowTypePicker,
@@ -481,7 +482,7 @@ export function RoleScheduleListInputs({
                         )}
                         <Text className="text-white flex-1">{activity.title || 'Untitled'}</Text>
                       </View>
-                      {getActivities().length > 1 && (
+                      {!isSendOffer && getActivities().length > 1 && (
                         <TouchableOpacity
                           onPress={() => removeActivity(activityIndex)}
                           className="ml-2">
@@ -521,42 +522,57 @@ export function RoleScheduleListInputs({
 
                         {/* Activity Type */}
                         <View className="mb-3">
-                          <SingleSelectCard
-                            label="Activity Type"
-                            selectedItem={
-                              activity.type
-                                ? activityTypes.find((t) => t.key === activity.type)?.label ||
+                          {isSendOffer ? (
+                            // Read-only display when sending offer
+                            <View>
+                              <Text className="mb-2 text-sm text-white">Activity Type</Text>
+                              <View className="mt-3 flex-row items-center justify-between rounded-2xl border border-white/30 bg-white/5 px-4 py-3">
+                                <Text className="flex-1 text-sm font-semibold text-white">
+                                  {activity.type
+                                    ? activityTypes.find((t) => t.key === activity.type)?.label ||
+                                      activity.type
+                                    : 'Not selected'}
+                                </Text>
+                              </View>
+                            </View>
+                          ) : (
+                            <SingleSelectCard
+                              label="Activity Type"
+                              selectedItem={
                                 activity.type
-                                : null
-                            }
-                            onItemChange={(label) => {
-                              const currentActivities = [...getActivities()];
-                              if (currentActivities[activityIndex]) {
-                                const typeKey =
-                                  activityTypes.find((t) => t.label === label)?.key || label;
-                                currentActivities[activityIndex].type = typeKey;
-                                setFieldValue('activityScheduleLists', currentActivities);
-                                handleFieldBlur(`activityScheduleLists.${activityIndex}.type`);
+                                  ? activityTypes.find((t) => t.key === activity.type)?.label ||
+                                    activity.type
+                                  : null
                               }
-                            }}
-                            fieldName={`activityScheduleLists.${activityIndex}.type`}
-                            setFieldValue={(field, value) => {
-                              // This won't be called directly, but kept for compatibility
-                            }}
-                            selectorComponent={ActivityTypeSelector}
-                            placeholder="Select activity type"
-                            selectorProps={{
-                              availableTypes: getAvailableActivityTypes(activityIndex),
-                              onSaveKey: (typeKey: string | null) => {
+                              onItemChange={(label) => {
                                 const currentActivities = [...getActivities()];
                                 if (currentActivities[activityIndex]) {
-                                  currentActivities[activityIndex].type = typeKey || '';
+                                  const typeKey =
+                                    activityTypes.find((t) => t.label === label)?.key || label;
+                                  currentActivities[activityIndex].type = typeKey;
                                   setFieldValue('activityScheduleLists', currentActivities);
                                   handleFieldBlur(`activityScheduleLists.${activityIndex}.type`);
                                 }
-                              },
-                            }}
-                          />
+                              }}
+                              fieldName={`activityScheduleLists.${activityIndex}.type`}
+                              setFieldValue={(field, value) => {
+                                // This won't be called directly, but kept for compatibility
+                              }}
+                              selectorComponent={ActivityTypeSelector}
+                              placeholder="Select activity type"
+                              selectorProps={{
+                                availableTypes: getAvailableActivityTypes(activityIndex),
+                                onSaveKey: (typeKey: string | null) => {
+                                  const currentActivities = [...getActivities()];
+                                  if (currentActivities[activityIndex]) {
+                                    currentActivities[activityIndex].type = typeKey || '';
+                                    setFieldValue('activityScheduleLists', currentActivities);
+                                    handleFieldBlur(`activityScheduleLists.${activityIndex}.type`);
+                                  }
+                                },
+                              }}
+                            />
+                          )}
                           {isTypeTouched && validateActivityType(activity.type) ? (
                             <Text className="mt-1 text-xs text-red-400">
                               {validateActivityType(activity.type)}
@@ -664,12 +680,11 @@ export function RoleScheduleListInputs({
                           )}
 
                           <Button
-                            action="secondary"
-                            variant="outline"
+                            action="primary"
                             size="sm"
                             onPress={() => addSchedule(activityIndex)}
                             className="w-full rounded-2xl">
-                            <ButtonIcon as={Plus} size={16} />
+                            <ButtonIcon as={Plus} size={16} color="#ffffff" />
                             <ButtonText>Add Time Slot</ButtonText>
                           </Button>
                         </View>
@@ -707,21 +722,23 @@ export function RoleScheduleListInputs({
               })}
             </ScrollView>
 
-            <View className="flex-row gap-3">
-              <Button action="primary" onPress={addActivity} className="flex-1 rounded-2xl">
-                <ButtonIcon as={Plus} size={20} />
-                <ButtonText>New Activity</ButtonText>
-              </Button>
-              {!isFinal && onFillLater && (
-                <Button
-                  action="secondary"
-                  variant="outline"
-                  onPress={onFillLater}
-                  className="flex-1 rounded-2xl">
-                  <ButtonText>Fill Later</ButtonText>
+            {!isSendOffer && (
+              <View className="flex-row gap-3">
+                <Button action="primary" onPress={addActivity} className="flex-1 rounded-2xl">
+                  <ButtonIcon as={Plus} size={20} color="#ffffff" />
+                  <ButtonText>New Activity</ButtonText>
                 </Button>
-              )}
-            </View>
+                {!isFinal && onFillLater && (
+                  <Button
+                    action="secondary"
+                    variant="outline"
+                    onPress={onFillLater}
+                    className="flex-1 rounded-2xl">
+                    <ButtonText>Fill Later</ButtonText>
+                  </Button>
+                )}
+              </View>
+            )}
           </>
         )}
       </View>

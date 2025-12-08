@@ -128,7 +128,7 @@ export default function CollapseDrawer({
               },
             ]}>
             {/* Glass effect overlay */}
-            <GlassOverlay intensity={100} tint="dark" />
+            <GlassOverlay intensity={100} tint="dark" darkOverlayOpacity={0.5} />
 
             {/* Handle + Title - Draggable Area */}
             <GestureDetector gesture={panGesture}>
