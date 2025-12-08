@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Modal, TouchableOpacity, TouchableWithoutFeedback, Platform } from 'react-native';
 import { FormControl, FormControlLabel, FormControlLabelText } from '@/components/ui/form-control';
-import { Picker } from '@react-native-picker/picker';
+import { Picker } from 'react-native-wheel-pick';
 
 interface RangeWheelPickerInputProps {
     title: string;
@@ -115,28 +115,24 @@ export function RangeWheelPickerInput({
                                     <View className="flex-1 items-center">
                                         <Text className="text-white/60 mb-2 font-medium">Min</Text>
                                         <Picker
+                                            style={{ backgroundColor: 'transparent', width: 130, height: 215 }}
                                             selectedValue={String(tempMin)}
-                                            onValueChange={(itemValue) => setTempMin(Number(itemValue))}
-                                            style={{ width: 130, height: 200 }}
-                                            itemStyle={{ color: 'white', fontSize: 22, height: 150 }}
-                                        >
-                                            {rangeOptions.map((opt) => (
-                                                <Picker.Item key={opt.value} label={opt.label} value={opt.value} color={Platform.OS === 'ios' ? 'white' : 'black'} />
-                                            ))}
-                                        </Picker>
+                                            pickerData={rangeOptions}
+                                            onValueChange={(value: any) => setTempMin(Number(value))}
+                                            textColor="white"
+                                            textSize={22}
+                                        />
                                     </View>
                                     <View className="flex-1 items-center">
                                         <Text className="text-white/60 mb-2 font-medium">Max</Text>
                                         <Picker
+                                            style={{ backgroundColor: 'transparent', width: 130, height: 215 }}
                                             selectedValue={String(tempMax)}
-                                            onValueChange={(itemValue) => setTempMax(Number(itemValue))}
-                                            style={{ width: 130, height: 200 }}
-                                            itemStyle={{ color: 'white', fontSize: 22, height: 150 }}
-                                        >
-                                            {rangeOptions.map((opt) => (
-                                                <Picker.Item key={opt.value} label={opt.label} value={opt.value} color={Platform.OS === 'ios' ? 'white' : 'black'} />
-                                            ))}
-                                        </Picker>
+                                            pickerData={rangeOptions}
+                                            onValueChange={(value: any) => setTempMax(Number(value))}
+                                            textColor="white"
+                                            textSize={22}
+                                        />
                                     </View>
                                 </View>
                             </View>
