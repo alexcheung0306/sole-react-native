@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Stack } from 'expo-router';
-import { View, Text, FlatList, Animated } from 'react-native';
+import { View, Text, FlatList, Animated, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useJobPostsContext } from '@/context/JobPostsContext';
 import { useRouter } from 'expo-router';
@@ -17,6 +17,7 @@ export default function JobPosts({ scrollHandler }: JobPostsProps) {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
+  const [refreshing, setRefreshing] = useState(false);
   
   const {
     projects,
@@ -34,6 +35,17 @@ export default function JobPosts({ scrollHandler }: JobPostsProps) {
     isSearching,
     refetchProjects,
   } = useJobPostsContext();
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetchProjects();
+    } catch (error) {
+      console.error('Error refreshing job posts:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Scroll to top when page changes
   useEffect(() => {
@@ -63,6 +75,14 @@ export default function JobPosts({ scrollHandler }: JobPostsProps) {
           keyExtractor={(item) => (item?.project?.id ?? item?.id ?? Math.random()).toString()}
           numColumns={2}
           columnWrapperStyle={{ justifyContent: 'space-between' }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#3b82f6"
+              colors={['#3b82f6']}
+            />
+          }
           ListEmptyComponent={
             <FlatListEmpty
               title="job posts"

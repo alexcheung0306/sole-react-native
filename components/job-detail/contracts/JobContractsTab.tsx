@@ -6,9 +6,10 @@ import { getStatusColorObject } from '@/utils/get-status-color';
 type JobContractsTabProps = {
   contracts: any[];
   isLoading: boolean;
+  highlightedContractId?: number;
 };
 
-export function JobContractsTab({ contracts, isLoading }: JobContractsTabProps) {
+export function JobContractsTab({ contracts, isLoading, highlightedContractId }: JobContractsTabProps) {
   const router = useRouter();
 
   if (isLoading) {
@@ -34,11 +35,16 @@ export function JobContractsTab({ contracts, isLoading }: JobContractsTabProps) 
   const renderContract = ({ item }: { item: any }) => {
     const contract = item?.jobContract ?? item;
     const statusColor = getStatusColorObject(contract?.contractStatus);
+    const isHighlighted = highlightedContractId && contract?.id === highlightedContractId;
 
     return (
       <TouchableOpacity
-        onPress={() => router.push(`/(protected)/contract-detail/${contract?.id}` as any)}
-        className="bg-zinc-800/60 rounded-2xl p-4 mb-3 border border-white/10"
+        onPress={() => router.push(`/(protected)/(user)/contract-detail/${contract?.id}` as any)}
+        className={`rounded-2xl p-4 mb-3 border ${
+          isHighlighted 
+            ? 'bg-blue-500/20 border-blue-500/50' 
+            : 'bg-zinc-800/60 border-white/10'
+        }`}
         activeOpacity={0.7}>
         <View className="flex-row items-center justify-between mb-2">
           <Text className="text-lg font-bold text-white">Contract #{contract?.id}</Text>

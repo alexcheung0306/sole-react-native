@@ -42,7 +42,13 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
   const queryClient = useQueryClient();
 
   const projectId = params.id ? parseInt(params.id as string, 10) : 0;
-  const [currentTab, setCurrentTab] = useState('job-information');
+  const roleIdParam = params.roleId ? parseInt(params.roleId as string, 10) : null;
+  const contractIdParam = params.contractId ? parseInt(params.contractId as string, 10) : null;
+  
+  // Set initial tab and role based on params (similar to web version)
+  const [currentTab, setCurrentTab] = useState(
+    contractIdParam ? 'job-contracts' : roleIdParam ? 'job-roles' : 'job-information'
+  );
   const [currentRole, setCurrentRole] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -67,6 +73,26 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
     queryFn: () => getRolesByProjectId(projectId),
     enabled: !!projectId && !isNaN(projectId),
   });
+
+  // Set currentRole when roleId param is provided and roles are loaded
+  useEffect(() => {
+    if (roleIdParam && rolesWithSchedules.length > 0) {
+      const roleIndex = rolesWithSchedules.findIndex(
+        (r: any) => r?.role?.id === roleIdParam
+      );
+      if (roleIndex >= 0) {
+        setCurrentRole(roleIndex);
+        setCurrentTab('job-roles');
+      }
+    }
+  }, [roleIdParam, rolesWithSchedules]);
+
+  // Set tab to contracts when contractId param is provided
+  useEffect(() => {
+    if (contractIdParam) {
+      setCurrentTab('job-contracts');
+    }
+  }, [contractIdParam]);
 
   // Fetch user's applications for this project
   const {
@@ -340,7 +366,11 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
 
             {/* ---------------------------------------Job Contracts--------------------------------------- */}
             {currentTab === 'job-contracts' && (
-              <JobContractsTab contracts={contractsData || []} isLoading={contractsLoading} />
+              <JobContractsTab 
+                contracts={contractsData || []} 
+                isLoading={contractsLoading}
+                highlightedContractId={contractIdParam || undefined}
+              />
             )}
           </View>
         </ScrollView>

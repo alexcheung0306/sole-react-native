@@ -141,10 +141,11 @@ export default function SwipeCard({
       const draggedRightAny = event.translationX > 0;
       const draggedToRightEdge = event.translationX > SWIPE_THRESHOLD;
       const inRightActionArea = event.absoluteX >= SCREEN_WIDTH - ACTION_AREA_WIDTH;
-      const isOffered = currentProcessShared.value === 'offered';
+      const currentProcess = currentProcessShared.value;
+      const isOfferedOrRejected = currentProcess === 'offered' || currentProcess === 'rejected';
 
-      // Left side - Reject
-      if (draggedToLeftEdge && !isOffered) {
+      // Left side - Reject (only if not offered or rejected - card is still draggable but gradient won't show)
+      if (draggedToLeftEdge && !isOfferedOrRejected) {
         const progress = Math.min(Math.abs(event.translationX) / ACTION_AREA_WIDTH, 1);
         rejectGradientOpacity.value = progress;
         if (progress > 0.5) {
@@ -197,12 +198,13 @@ export default function SwipeCard({
       const draggedRightAny = event.translationX > 0;
       const draggedToRightEdge = event.translationX > SWIPE_THRESHOLD;
       const inRightActionArea = event.absoluteX >= SCREEN_WIDTH - ACTION_AREA_WIDTH;
-      const isOffered = currentProcessShared.value === 'offered';
+      const currentProcess = currentProcessShared.value;
+      const isOfferedOrRejected = currentProcess === 'offered' || currentProcess === 'rejected';
       const highlightOpacityThreshold = 0.5;
 
       // Swipe LEFT - Reject
       if (draggedToLeftEdge) {
-        if (!isOffered && rejectGradientOpacity.value > highlightOpacityThreshold) {
+        if (!isOfferedOrRejected && rejectGradientOpacity.value > highlightOpacityThreshold) {
           runOnJS(onSwipeReject)();
           if (onSwipeStartExit) {
             runOnJS(onSwipeStartExit)();

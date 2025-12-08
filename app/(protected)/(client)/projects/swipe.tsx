@@ -653,7 +653,7 @@ export default function RoleCandidatesSwipeScreen() {
           <>
             {/* Action Gradients - Screen Level - Full Screen with Highest Z-Index */}
             {/* Reject Gradient (Left) */}
-            {currentCandidate && currentProcess !== 'offered' && (
+            {currentCandidate && currentProcess !== 'offered' && currentProcess !== 'rejected' && (
               <Animated.View
                 style={[
                   {

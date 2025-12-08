@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Stack } from 'expo-router';
-import { View, Text, FlatList, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Animated, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppliedRolesContext } from '@/context/AppliedRolesContext';
 import { useRouter } from 'expo-router';
@@ -18,6 +18,7 @@ export default function AppliedRoles({ scrollHandler }: AppliedRolesProps) {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
+  const [refreshing, setRefreshing] = useState(false);
   
   const {
     appliedRoles,
@@ -35,6 +36,18 @@ export default function AppliedRoles({ scrollHandler }: AppliedRolesProps) {
     isSearching,
     refetch,
   } = useAppliedRolesContext();
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } catch (error) {
+      console.error('Error refreshing applied roles:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
 
   // Scroll to top when page changes
   useEffect(() => {
@@ -56,13 +69,34 @@ export default function AppliedRoles({ scrollHandler }: AppliedRolesProps) {
   };
 
   const handleApplicationPress = (application: any) => {
-    router.push(`/(protected)/job-detail/${application.projectId}${application.roleId ? `?roleId=${application.roleId}` : ''}` as any);
+    const projectId = application?.project?.id || application?.jobApplicant?.projectId;
+    const roleId = application?.role?.id || application?.jobApplicant?.roleId;
+    if (projectId) {
+      router.push({
+        pathname: `/(protected)/(user)/job/job-detail` as any,
+        params: { id: projectId, roleId: roleId },
+      });
+    }
   };
 
   const applicationsData = appliedRoles;
 
   const renderAppliedRole = ({ item }: { item: any }) => {
-    const statusColor = getStatusColorObject(item.applicationProcess || item.applicationStatus);
+    // Extract nested data to match the logged structure
+    const jobApplicant = item?.jobApplicant || {};
+    const project = item?.project || {};
+    const role = item?.role || {};
+    
+    const projectId = project?.id || jobApplicant?.projectId;
+    const roleId = role?.id || jobApplicant?.roleId;
+    const roleTitle = role?.roleTitle || 'Unnamed Role';
+    const projectName = project?.projectName || `Project #${projectId}`;
+    const applicationProcess = jobApplicant?.applicationProcess;
+    const applicationStatus = jobApplicant?.applicationStatus;
+    const appliedAt = jobApplicant?.createdAt;
+    const remarks = project?.remarks || role?.roleDescription;
+    
+    const statusColor = getStatusColorObject(applicationProcess || applicationStatus);
     
     return (
       <TouchableOpacity
@@ -72,14 +106,14 @@ export default function AppliedRoles({ scrollHandler }: AppliedRolesProps) {
       >
         {/* Role Title */}
         <Text className="text-lg font-bold text-white mb-2" numberOfLines={2}>
-          {item.roleTitle || 'Unnamed Role'}
+          {roleTitle}
         </Text>
 
         {/* Project Info */}
         <View className="flex-row items-center mb-2 gap-2">
           <Briefcase size={14} color="#9ca3af" />
           <Text className="text-sm text-gray-300 flex-1" numberOfLines={1}>
-            {item.projectName || `Project #${item.projectId}`}
+            {projectName}
           </Text>
         </View>
 
@@ -87,39 +121,32 @@ export default function AppliedRoles({ scrollHandler }: AppliedRolesProps) {
         <View className="flex-row items-center mb-2 gap-2">
           <FileText size={14} color="#9ca3af" />
           <Text className="text-sm text-gray-400">
-            Project ID: {item.projectId} | Role ID: {item.roleId}
+            Project ID: {projectId || 'N/A'} | Role ID: {roleId || 'N/A'}
           </Text>
         </View>
-
-        {/* Publisher */}
-        {item.publisherUsername && (
-          <Text className="text-sm text-gray-400 mb-3">
-            By: {item.publisherUsername}
-          </Text>
-        )}
 
         {/* Application Status */}
         <View className="flex-row items-center justify-between mb-2">
           <View className="px-3 py-1.5 rounded-full" style={{ backgroundColor: statusColor.bg }}>
             <Text className="text-xs font-semibold" style={{ color: statusColor.text }}>
-              {item.applicationProcess || item.applicationStatus || 'Pending'}
+              {applicationProcess || applicationStatus || 'Pending'}
             </Text>
           </View>
           
-          {item.appliedAt && (
+          {appliedAt && (
             <View className="flex-row items-center gap-1">
               <Calendar size={12} color="#9ca3af" />
               <Text className="text-xs text-gray-400">
-                {formatDate(item.appliedAt)}
+                {formatDate(appliedAt)}
               </Text>
             </View>
           )}
         </View>
 
         {/* Additional Info */}
-        {item.remarks && (
+        {remarks && (
           <Text className="text-sm text-gray-400 mt-2 italic" numberOfLines={2}>
-            {item.remarks}
+            {remarks}
           </Text>
         )}
       </TouchableOpacity>
@@ -133,7 +160,15 @@ export default function AppliedRoles({ scrollHandler }: AppliedRolesProps) {
         <Animated.FlatList
           ref={flatListRef}
           data={applicationsData}
-          keyExtractor={(item, index) => item?.id?.toString() || index.toString()}
+          keyExtractor={(item, index) => item?.jobApplicant?.id?.toString() || item?.id?.toString() || index.toString()}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#3b82f6"
+              colors={['#3b82f6']}
+            />
+          }
           ListEmptyComponent={
             <FlatListEmpty
               title="applications"

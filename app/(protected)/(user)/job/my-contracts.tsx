@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Stack } from 'expo-router';
-import { View, Text, FlatList, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Animated, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMyContractsContext } from '@/context/MyContractsContext';
 import { useRouter } from 'expo-router';
@@ -18,6 +18,7 @@ export default function MyContracts({ scrollHandler }: MyContractsProps) {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
+  const [refreshing, setRefreshing] = useState(false);
   
   const {
     contracts,
@@ -35,6 +36,18 @@ export default function MyContracts({ scrollHandler }: MyContractsProps) {
     isSearching,
     refetch,
   } = useMyContractsContext();
+
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } catch (error) {
+      console.error('Error refreshing contracts:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Scroll to top when page changes
   useEffect(() => {
@@ -55,14 +68,34 @@ export default function MyContracts({ scrollHandler }: MyContractsProps) {
   };
 
   const handleContractPress = (contract: any) => {
-    router.push(`/(protected)/contract-detail/${contract.id}` as any);
+    const jobContract = contract?.jobContract || contract;
+    const projectId = jobContract?.projectId;
+    const roleId = jobContract?.roleId;
+    if (projectId) {
+      router.push({
+        pathname: `/(protected)/(user)/job/job-detail` as any,
+        params: { id: projectId, contractId: jobContract?.id || contract?.id },
+      });
+    }
   };
 
   const contractsList = contracts;
 
   const renderContract = ({ item }: { item: any }) => {
-    const statusColor = getStatusColorObject(item.contractStatus);
-    const conditionsCount = item.conditions?.length || 0;
+    // Extract nested data to match the logged structure
+    const jobContract = item?.jobContract || item;
+    
+    const contractId = jobContract?.id;
+    const projectId = jobContract?.projectId;
+    const roleId = jobContract?.roleId;
+    const roleTitle = jobContract?.roleTitle || 'Unnamed Role';
+    const projectName = jobContract?.projectName || `Project #${projectId}`;
+    const contractStatus = jobContract?.contractStatus;
+    const createdAt = jobContract?.createdAt;
+    const remarks = jobContract?.remarks;
+    const conditionsCount = jobContract?.conditions?.length || 0;
+    
+    const statusColor = getStatusColorObject(contractStatus);
 
     return (
       <TouchableOpacity
@@ -75,32 +108,32 @@ export default function MyContracts({ scrollHandler }: MyContractsProps) {
           <View className="flex-row items-center gap-2">
             <FileCheck size={16} color="#3b82f6" />
             <Text className="text-sm text-blue-400 font-semibold">
-              Contract #{item.id}
+              Contract #{contractId || 'N/A'}
             </Text>
           </View>
           <View className="px-3 py-1.5 rounded-full" style={{ backgroundColor: statusColor.bg }}>
             <Text className="text-xs font-semibold" style={{ color: statusColor.text }}>
-              {item.contractStatus}
+              {contractStatus || 'Unknown'}
             </Text>
           </View>
         </View>
 
         {/* Role Title */}
         <Text className="text-lg font-bold text-white mb-2" numberOfLines={2}>
-          {item.roleTitle || 'Unnamed Role'}
+          {roleTitle}
         </Text>
 
         {/* Project Info */}
         <View className="flex-row items-center mb-2 gap-2">
           <Briefcase size={14} color="#9ca3af" />
           <Text className="text-sm text-gray-300 flex-1" numberOfLines={1}>
-            {item.projectName || `Project #${item.projectId}`}
+            {projectName}
           </Text>
         </View>
 
         {/* Project & Role IDs */}
         <Text className="text-xs text-gray-400 mb-3">
-          Project ID: {item.projectId} | Role ID: {item.roleId}
+          Project ID: {projectId || 'N/A'} | Role ID: {roleId || 'N/A'}
         </Text>
 
         {/* Conditions Count */}
@@ -114,19 +147,19 @@ export default function MyContracts({ scrollHandler }: MyContractsProps) {
         )}
 
         {/* Created Date */}
-        {item.createdAt && (
+        {createdAt && (
           <View className="flex-row items-center gap-1 mb-2">
             <Calendar size={12} color="#9ca3af" />
             <Text className="text-xs text-gray-400">
-              Created: {formatDate(item.createdAt)}
+              Created: {formatDate(createdAt)}
             </Text>
           </View>
         )}
 
         {/* Remarks */}
-        {item.remarks && (
+        {remarks && (
           <Text className="text-sm text-gray-400 mt-2 italic" numberOfLines={2}>
-            "{item.remarks}"
+            "{remarks}"
           </Text>
         )}
       </TouchableOpacity>
@@ -140,7 +173,15 @@ export default function MyContracts({ scrollHandler }: MyContractsProps) {
         <Animated.FlatList
           ref={flatListRef}
           data={contractsList}
-          keyExtractor={(item, index) => item?.id?.toString() || index.toString()}
+          keyExtractor={(item, index) => item?.jobContract?.id?.toString() || item?.id?.toString() || index.toString()}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#3b82f6"
+              colors={['#3b82f6']}
+            />
+          }
           ListEmptyComponent={
             <FlatListEmpty
               title="contracts"
