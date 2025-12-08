@@ -2,10 +2,13 @@ import React, { useMemo } from 'react';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TouchableOpacity, View, Text, Image, ImageBackground, StyleSheet } from 'react-native';
+import GlassView from '@/components/custom/GlassView';
 import { formatDateTime } from '~/utils/time-converts';
 import { getStatusColor } from '@/utils/get-status-color';
+import { useSoleUserContext } from '~/context/SoleUserContext';
 
 export default function JobListCard({ item }: { item: any }) {
+  const { soleUserId } = useSoleUserContext();
   const project = item?.project || item;
 
   if (!project) {
@@ -13,10 +16,18 @@ export default function JobListCard({ item }: { item: any }) {
   }
 
   const handleJobPress = () => {
-    router.push({
-      pathname: `/(protected)/(user)/job/job-detail` as any,
-      params: { id: project.id },
-    });
+    // If user is the creator, redirect to project detail page
+    if (project.soleUserId === soleUserId) {
+      router.push({
+        pathname: '/(protected)/(client)/projects/project-detail' as any,
+        params: { id: project.id },
+      });
+    } else {
+      router.push({
+        pathname: `/(protected)/(user)/job/job-detail` as any,
+        params: { id: project.id },
+      });
+    }
   };
 
   const statusColor = useMemo(() => getStatusColor(project.status || 'Published'), [project.status]);
@@ -107,9 +118,13 @@ export default function JobListCard({ item }: { item: any }) {
             {renderCardOverlay}
           </ImageBackground>
         ) : (
-          <LinearGradient colors={['rgba(255, 255, 255, 0.4)', 'rgba(250, 250, 250, 0.35)', 'rgba(245, 245, 245, 0.3)']} style={styles.cardBackground}>
+          <GlassView
+            style={styles.cardBackground}
+            intensity={80}
+            tint="dark"
+            borderRadius={16}>
             {renderCardOverlay}
-          </LinearGradient>
+          </GlassView>
         )}
       </TouchableOpacity>
 

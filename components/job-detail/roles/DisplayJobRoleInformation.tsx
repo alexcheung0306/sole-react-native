@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { DisplayRoleInformation } from '~/components/project-detail/roles/DisplayRoleInformation';
+import { formatDateTimeLocale } from '@/lib/datetime';
 
 type DisplayJobRoleInformationProps = {
   role: any;
@@ -64,11 +65,7 @@ export function DisplayJobRoleInformation({
                   Applied On
                 </Text>
                 <Text className="text-sm text-white">
-                  {new Date(application.appliedAt).toLocaleDateString('en-US', {
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
+                  {formatDateTimeLocale(application.appliedAt, 'Not specified')}
                 </Text>
               </View>
             )}

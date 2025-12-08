@@ -133,7 +133,7 @@ export function SendOfferModal({ applicant, projectData, roleWithSchedules }: Se
         </PrimaryButton>
       )}
       title="Send Offer"
-      submitButtonText="Send Offer"
+      submitButtonText="Send"
       isSubmitting={offerMutation.isPending}
       hasErrors={isSubmitDisabled}
       onSubmit={() => offerMutation.mutate()}

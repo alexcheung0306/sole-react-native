@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TouchableOpacity, View, Text, ImageBackground, StyleSheet } from 'react-native';
+import GlassView from '@/components/custom/GlassView';
 import { formatDateTime } from '~/utils/time-converts';
 import { getStatusColor } from '@/utils/get-status-color';
 
@@ -28,8 +29,8 @@ export default function ProjectListCard({ item }: { item: any }) {
     <LinearGradient
       colors={
         hasImage
-          ? ['rgba(0,0,0,0.5)', 'rgba(174, 174, 174, 0.18)', 'rgba(0,0,0,0.5)']
-          : ['rgba(174, 174, 174, 0.4)', 'rgba(0,0,0,0.5)', 'rgba(174, 174, 174, 0.4)']
+          ? ['rgba(0,0,0,0.85)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.1)']
+          : ['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.25)', 'rgba(0,0,0,0.1)']
       }
       style={styles.overlayGradient}>
       <View className="flex-1 justify-between">
@@ -58,7 +59,7 @@ export default function ProjectListCard({ item }: { item: any }) {
       className="mx-1 mb-5"
       style={{ width: '100%' }}
       onPress={() => handleProjectPress(project.id)}>
-      <View className="overflow-hidden rounded-2xl border bg-zinc-900/80">
+      <View className="overflow-hidden rounded-2xl border  bg-zinc-900/80">
         {projectImage ? (
           <ImageBackground
             source={{ uri: projectImage }}
@@ -67,15 +68,14 @@ export default function ProjectListCard({ item }: { item: any }) {
             {renderCardOverlay()}
           </ImageBackground>
         ) : (
-          <LinearGradient
-            colors={[
-              'rgba(255, 255, 255, 0.4)',
-              'rgba(250, 250, 250, 0.35)',
-              'rgba(245, 245, 245, 0.3)',
-            ]}
-            style={styles.cardBackground}>
+          <GlassView
+            style={styles.cardBackground}
+            intensity={80}
+            tint="dark"
+            borderRadius={16}
+            darkOverlayOpacity={0}>
             {renderCardOverlay()}
-          </LinearGradient>
+          </GlassView>
         )}
       </View>
 

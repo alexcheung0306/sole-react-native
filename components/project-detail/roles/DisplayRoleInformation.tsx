@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { RoleForm } from '../../form-components/role-form/RoleForm';
 import { DeleteRoleButton } from './DeleteRoleButton';
+import { formatDateTimeLocale } from '@/lib/datetime';
 
 type DisplayRoleInformationProps = {
   projectId: number;
@@ -263,15 +264,8 @@ export function DisplayRoleInformation({
                           </Text>
                           {schedule.fromTime && schedule.toTime && (
                             <Text className="text-xs  text-white">
-                              {new Date(schedule.fromTime).toLocaleDateString()} •{' '}
-                              {new Date(schedule.fromTime).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}{' '}
-                              - {new Date(schedule.toTime).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
+                              {formatDateTimeLocale(schedule.fromTime, 'TBC')} -{' '}
+                              {formatDateTimeLocale(schedule.toTime, 'TBC')}
                             </Text>
                           )}
                         </View>

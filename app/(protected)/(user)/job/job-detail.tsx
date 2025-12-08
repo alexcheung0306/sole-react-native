@@ -266,7 +266,7 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
               <View className="gap-0 px-2">
                 <ProjectInformationCard project={project} soleUserId={soleUserId || ''} />
                 <View className="mt-4">
-                  {applicationsData && applicationsData.length > 0 ? (
+                  {project?.soleUserId === soleUserId || (applicationsData && applicationsData.length > 0) ? (
                     <ProjectAnnouncementsList
                       projectId={projectId}
                       viewerId={soleUserId || ''}

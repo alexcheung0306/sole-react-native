@@ -141,7 +141,7 @@ const CandidateList = memo(({
       keyExtractor={(item) => `candidate-${item?.jobApplicant?.id}`}
       scrollEnabled={false}
       numColumns={3}
-      columnWrapperStyle={{ gap: 12, justifyContent: 'space-between' }}
+      columnWrapperStyle={{ gap: 12, justifyContent: 'flex-start' }}
       contentContainerStyle={{ gap: 12, paddingTop: 8 }}
       ListEmptyComponent={() => (
         <View className="w-full items-center gap-2 py-8">

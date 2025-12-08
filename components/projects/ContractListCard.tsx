@@ -7,6 +7,7 @@ import {
   ImageBackground,
   StyleSheet,
 } from 'react-native';
+import GlassView from '@/components/custom/GlassView';
 import { formatDateTime } from '~/utils/time-converts';
 import { getStatusColor } from '@/utils/get-status-color';
 
@@ -83,9 +84,15 @@ export default function ContractListCard({ item }: ContractListCardProps) {
             {renderCardOverlay()}
           </ImageBackground>
         ) : (
-          <LinearGradient colors={['rgba(255, 255, 255, 0.4)', 'rgba(250, 250, 250, 0.35)', 'rgba(245, 245, 245, 0.3)']} style={styles.cardBackground}>
+          <GlassView
+            style={styles.cardBackground}
+            intensity={80}
+            tint="dark"
+            borderRadius={16}
+            darkOverlayOpacity={0}>
+
             {renderCardOverlay()}
-          </LinearGradient>
+          </GlassView>
         )}
       </View>
 

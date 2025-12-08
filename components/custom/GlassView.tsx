@@ -10,7 +10,7 @@ import { BlurView } from 'expo-blur';
  * @example
  * ```tsx
  * <Animated.View style={styles.container}>
- *   <GlassOverlay intensity={80} tint="dark" />
+ *   <GlassOverlay intensity={80} tint="dark" darkOverlayOpacity={0.5} />
  *   <Text>Your content</Text>
  * </Animated.View>
  * ```
@@ -18,9 +18,11 @@ import { BlurView } from 'expo-blur';
 export function GlassOverlay({
   intensity = 80,
   tint = 'dark',
+  darkOverlayOpacity = 0.5,
 }: {
   intensity?: number;
   tint?: 'light' | 'dark' | 'default';
+  darkOverlayOpacity?: number;
 }) {
   return (
     <>
@@ -46,7 +48,7 @@ export function GlassOverlay({
         style={[
           StyleSheet.absoluteFill,
           {
-            backgroundColor: 'rgba(0, 0, 0, 0.5)', // Dark overlay to make background less visible
+            backgroundColor: `rgba(0, 0, 0, ${darkOverlayOpacity})`, // Dark overlay to make background less visible
           },
         ]}
       />
@@ -74,6 +76,7 @@ type GlassViewProps = {
   intensity?: number;
   tint?: 'light' | 'dark' | 'default';
   borderRadius?: number;
+  darkOverlayOpacity?: number;
 };
 
  
@@ -84,6 +87,7 @@ export default function GlassView({
   intensity = 80,
   tint = 'dark',
   borderRadius,
+  darkOverlayOpacity = 0.5,
 }: GlassViewProps) {
   const containerStyle: ViewStyle = {
     ...styles.container,
@@ -92,7 +96,7 @@ export default function GlassView({
 
   return (
     <View style={[containerStyle, style]} className={className}>
-      <GlassOverlay intensity={intensity} tint={tint} />
+      <GlassOverlay intensity={intensity} tint={tint} darkOverlayOpacity={darkOverlayOpacity} />
       
       {/* Content */}
       <View style={styles.content}>
