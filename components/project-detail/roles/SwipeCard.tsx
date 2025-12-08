@@ -34,11 +34,13 @@ interface SwipeCardProps {
   onTabChange: (tab: string) => void;
   tabs: Array<{ id: string; label: string }>;
   projectId?: number;
+  projectData?: any;
   roleId?: number;
   roleWithSchedules?: any;
   availableActions: string[];
   currentProcess: string;
   onSwipeComplete: () => void;
+  onOfferSuccess?: () => void;
   onSwipeStartExit?: () => void;
   onExitAnimationEnd?: (index: number) => void;
   onSwipeAction: (actionIndex: number) => void;
@@ -64,11 +66,13 @@ export default function SwipeCard({
   onTabChange,
   tabs,
   projectId,
+  projectData,
   roleId,
   roleWithSchedules,
   availableActions,
   currentProcess,
   onSwipeComplete,
+  onOfferSuccess,
   onSwipeStartExit,
   onExitAnimationEnd,
   onSwipeAction,
@@ -419,9 +423,10 @@ export default function SwipeCard({
                 {currentTab === 'actions' && (
                   <ActionToCandidates
                     applicant={candidate}
-                    projectData={{ id: projectId }}
+                    projectData={projectData || { id: projectId }}
                     roleId={roleId}
                     roleWithSchedules={roleWithSchedules}
+                    onOfferSuccess={onOfferSuccess}
                   />
                 )}
               </View>

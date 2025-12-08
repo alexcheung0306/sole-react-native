@@ -2,7 +2,7 @@
 
 import { JobContract, JobContractConditions } from "@/types/contract"
 
-import { API_BASE_URL } from "../apiservice"
+import { API_BASE_URL, fetchWithTimeout } from "../apiservice"
 
 export const createJobContracts = async (values: JobContract) => {
   console.log("createJobContracts", values)
@@ -120,7 +120,7 @@ export const createJobContractWithConditions = async (contractData: {
 }) => {
   console.log("createJobContractWithConditions", contractData)
   try {
-    const response = await fetch(`${API_BASE_URL}/job-contracts`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/job-contracts`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -128,13 +128,25 @@ export const createJobContractWithConditions = async (contractData: {
       body: JSON.stringify(contractData),
     })
 
-    const result = await response.json()
-    if (response.ok) {
-      console.log("JobContract with conditions created successfully")
-      return result
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ 
+        message: `HTTP error! status: ${response.status}` 
+      }))
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
     }
-  } catch (error) {
+
+    const result = await response.json()
+    console.log("JobContract with conditions created successfully", result)
+    return result
+  } catch (error: any) {
     console.error("Error creating job contract with conditions:", error)
+    // Re-throw with more context if it's a network error
+    if (error?.message?.includes('Network request failed') || 
+        error?.message?.includes('Failed to fetch') ||
+        error?.name === 'TypeError') {
+      throw new Error(`Network request failed: ${error.message}`)
+    }
+    throw error
   }
 }
 

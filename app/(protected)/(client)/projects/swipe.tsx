@@ -6,6 +6,7 @@ import { useSoleUserContext } from "~/context/SoleUserContext";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { searchApplicants, updateApplicantProcessById } from "@/api/apiservice/applicant_api";
 import { getRolesByProjectId } from "@/api/apiservice/role_api";
+import { getProjectByID } from "@/api/apiservice/project_api";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
   useSharedValue,
@@ -157,6 +158,20 @@ export default function RoleCandidatesSwipeScreen() {
       return statusFilterSelection.includes(status);
     });
   }, [orderedCandidates, statusFilterSelection]);
+
+  // Fetch project data
+  const { data: projectData } = useQuery({
+    queryKey: ['project', projectId],
+    queryFn: async () => {
+      if (!projectId) return null;
+      const response = await getProjectByID(Number(projectId));
+      return response ?? null;
+    },
+    enabled: Boolean(projectId),
+    staleTime: 1000 * 60 * 5,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
 
   // Fetch role data
   const { data: rolesWithSchedules = [] } = useQuery({
@@ -717,11 +732,13 @@ export default function RoleCandidatesSwipeScreen() {
                       onTabChange={setCurrentTab}
                       tabs={tabs.map(tab => ({ id: tab.id, label: tab.label }))}
                       projectId={projectId ? Number(projectId) : undefined}
+                      projectData={projectData}
                       roleId={roleId ? Number(roleId) : undefined}
                       roleWithSchedules={roleWithSchedules}
                       availableActions={getAvailableActions}
                       currentProcess={currentProcess}
                       onSwipeComplete={handleCardSwipeComplete}
+                      onOfferSuccess={() => router.back()}
                       onSwipeStartExit={() => setExitingIndex(currentIndex)}
                       onExitAnimationEnd={(finishedIndex) => {
                         if (exitingIndex === finishedIndex) {

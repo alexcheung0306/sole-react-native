@@ -14,6 +14,7 @@ interface ActionToCandidatesProps {
   roleWithSchedules?: any;
   contractsData?: any[];
   isLoadingContracts?: boolean;
+  onOfferSuccess?: () => void;
 }
 
 export function ActionToCandidates({ 
@@ -23,6 +24,7 @@ export function ActionToCandidates({
   roleWithSchedules,
   contractsData = [],
   isLoadingContracts = false,
+  onOfferSuccess,
 }: ActionToCandidatesProps) {
   const applicationStatus = applicant?.jobApplicant?.applicationStatus || 'applied';
   const soleUserId = applicant?.jobApplicant?.soleUserId;
@@ -52,6 +54,7 @@ export function ActionToCandidates({
             applicant={applicant}
             projectData={projectData}
             roleWithSchedules={roleWithSchedules || applicant?.jobApplicant?.roleWithSchedules || (roleId ? { role: { id: roleId } } : null)}
+            onSuccess={onOfferSuccess}
           />
         </View>
       </View>

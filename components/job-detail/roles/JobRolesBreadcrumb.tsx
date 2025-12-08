@@ -84,7 +84,7 @@ export function JobRolesBreadcrumb({
                   </Text>
                 </View>
                 <Text className={`mt-1 text-xs ${isActive ? 'text-white' : 'text-zinc-400'}`}>
-                  {application ? `Applied: ${application.applicationProcess || application.applicationStatus}` : 'Not applied'} • {role.talentNumbers || 1} position(s)
+                  ID: {role.id || 'N/A'} • {application ? `Applied: ${application.applicationProcess || application.applicationStatus}` : 'Not applied'} • {role.talentNumbers || 1} position(s)
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity

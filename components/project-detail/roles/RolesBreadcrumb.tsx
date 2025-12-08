@@ -78,7 +78,7 @@ export function RolesBreadcrumb({
                   {jobActivitiesCount < 1 && <AlertCircle size={14} color="#ef4444" />}
                 </View>
                 <Text className={`mt-1 text-xs ${isActive ? 'text-white' : 'text-white'}`}>
-                  {totalActivitiesCount} activities • {role.talentNumbers || 1} talent(s) required
+                  ID: {role.id || 'N/A'} • {totalActivitiesCount} activities • {role.talentNumbers || 1} talent(s) required
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity 
