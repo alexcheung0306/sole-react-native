@@ -8,9 +8,10 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from 'react-native';
-import { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
-import { MediaZoom } from '@/components/custom/media-zoom';
+// import { ReactNativeZoomableView } from '@openspacelabs/react-native-zoomable-view';
+import { MediaZoom2 } from '@/components/custom/media-zoom2';
 
 interface MediaItem {
   mediaUrl: string;
@@ -25,10 +26,23 @@ interface ImageCarouselProps {
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export function ImageCarousel({ media }: ImageCarouselProps) {
+  // const ZoomableView: any = ReactNativeZoomableView;
+  // if (ZoomableView && !ZoomableView.displayName) {
+  //   ZoomableView.displayName = 'ReactNativeZoomableView';
+  // }
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageHeights, setImageHeights] = useState<{ [key: number]: number }>({});
   const [currentHeight, setCurrentHeight] = useState<number>(SCREEN_WIDTH); // Default to square
   const listRef = useRef<FlatList<MediaItem>>(null);
+
+  const logOutZoomState = React.useCallback(
+    (_event: any, _gestureState: any, zoomState: { zoomLevel?: number }) => {
+      if (__DEV__) {
+        console.log('Zoom level:', zoomState?.zoomLevel);
+      }
+    },
+    []
+  );
 
   if (!media || media.length === 0) {
     return null;
@@ -113,20 +127,41 @@ export function ImageCarousel({ media }: ImageCarouselProps) {
   if (media.length === 1) {
     const singleImageHeight = imageHeights[0] || currentHeight;
     return (
-      <View style={{ 
-        width: SCREEN_WIDTH, 
-        height: singleImageHeight, 
-        overflow: 'visible',
-        position: 'relative',
-      }}>
-        <MediaZoom
-          imageUrl={media[0].mediaUrl}
+      <View
+        style={{
+          width: SCREEN_WIDTH,
+          height: singleImageHeight,
+          overflow: 'visible',
+          position: 'relative',
+        }}>
+
+          
+        <MediaZoom2
+          children={<Image source={{ uri: media[0].mediaUrl }} style={{ width: SCREEN_WIDTH, height: singleImageHeight }} resizeMode="contain" />}
           width={SCREEN_WIDTH}
           height={singleImageHeight}
-          resetOnRelease={false}
+          resetOnRelease={true}
           minScale={1}
           maxScale={3}
         />
+
+        {/* <ZoomableView
+          maxZoom={1.5}
+          minZoom={0.5}
+          zoomStep={0.5}
+          initialZoom={1}
+          bindToBorders={true}
+          onZoomAfter={logOutZoomState}
+          style={{
+            padding: 10,
+            backgroundColor: 'red',
+          }}>
+          <Image
+            source={{ uri: media[0].mediaUrl }}
+            style={{ width: SCREEN_WIDTH, height: singleImageHeight }}
+            resizeMode="contain"
+          />
+        </ZoomableView> */}
       </View>
     );
   }
@@ -159,14 +194,31 @@ export function ImageCarousel({ media }: ImageCarouselProps) {
                 overflow: 'visible',
                 position: 'relative',
               }}>
-              <MediaZoom
-                imageUrl={item.mediaUrl}
+              <MediaZoom2
+                children={<Image source={{ uri: item.mediaUrl }} style={{ width: SCREEN_WIDTH, height: itemHeight }} resizeMode="contain" />}
                 width={SCREEN_WIDTH}
                 height={itemHeight}
                 resetOnRelease={true}
                 minScale={1}
                 maxScale={3}
               />
+              {/* <ZoomableView
+                maxZoom={1.5}
+                minZoom={0.5}
+                zoomStep={0.5}
+                initialZoom={1}
+                bindToBorders={true}
+                onZoomAfter={logOutZoomState}
+                style={{
+                  padding: 10,
+                  backgroundColor: 'red',
+                }}>
+                <Image
+                  source={{ uri: item.mediaUrl }}
+                  style={{ width: SCREEN_WIDTH, height: itemHeight }}
+                  resizeMode="contain"
+                />
+              </ZoomableView> */}
             </View>
           );
         }}

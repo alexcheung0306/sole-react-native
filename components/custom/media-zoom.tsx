@@ -27,6 +27,13 @@ export function MediaZoom({
   minScale = 1,
   maxScale = 3,
 }: MediaZoomProps) {
+  const pinchSensitivity = 0.2; // lower = less responsive scaling to pinch distance
+  // JS-side logger; safe to call from worklets via runOnJS
+  const debugLog = React.useCallback((label: string, payload: Record<string, any>) => {
+    if (!__DEV__) return;
+    console.log(`[media-zoom] ${label}`, payload);
+  }, []);
+
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const translateX = useSharedValue(0);
@@ -49,24 +56,16 @@ export function MediaZoom({
   const initialTranslateY = useSharedValue(0);
   const panStartX = useSharedValue(0); // Track pan gesture start position
   const panStartY = useSharedValue(0);
+  // Track content point under the focal at pinch start so we can keep it under the fingers
+  const pinchContentX = useSharedValue(0);
+  const pinchContentY = useSharedValue(0);
+  const logCounter = useSharedValue(0); // throttle logging on UI thread
 
-  // Clamp translation so the scaled image still covers the container.
-  // This keeps the focal point visible when pinching near edges.
-//   const clampTranslate = React.useCallback(
-//     (tx: number, ty: number, sc: number) => {
-//       'worklet';
-//       const scaledW = width * sc;
-//       const scaledH = height * sc;
-//       const minX = Math.min(0, width - scaledW);
-//       const maxX = 0;
-//       const minY = Math.min(0, height - scaledH);
-//       const maxY = 0;
-//       const clampedX = Math.max(minX, Math.min(maxX, tx));
-//       const clampedY = Math.max(minY, Math.min(maxY, ty));
-//       return { x: clampedX, y: clampedY };
-//     },
-//     [height, width]
-//   );
+  const shouldLog = () => {
+    'worklet';
+    logCounter.value = (logCounter.value + 1) % 4;
+    return logCounter.value === 0;
+  };
 
   // Function to reset and close backdrop
   const resetAndClose = React.useCallback(() => {
@@ -84,6 +83,14 @@ export function MediaZoom({
     savedTranslateY.value = 0;
     activeTouches.value = 0;
     isPinching.value = false;
+    // Center focal when reset
+    focalX.value = width / 2;
+    focalY.value = height / 2;
+    touchCount.value = 0;
+    touch1X.value = -1000;
+    touch1Y.value = -1000;
+    touch2X.value = -1000;
+    touch2Y.value = -1000;
   }, []);
 
   // Function to check if all touches are released and reset if needed
@@ -100,6 +107,14 @@ export function MediaZoom({
       savedScale.value = initialScale.value;
       savedTranslateX.value = initialTranslateX.value;
       savedTranslateY.value = initialTranslateY.value;
+      // Reset focal/touch visuals
+      focalX.value = width / 2;
+      focalY.value = height / 2;
+      touchCount.value = 0;
+      touch1X.value = -1000;
+      touch1Y.value = -1000;
+      touch2X.value = -1000;
+      touch2Y.value = -1000;
     }
   }, [resetAndClose]);
 
@@ -184,10 +199,40 @@ export function MediaZoom({
       savedScale.value = scale.value;
       savedTranslateX.value = translateX.value;
       savedTranslateY.value = translateY.value;
+
+      // Compute the content point currently under the focal so we can keep it under the fingers
+      const baseScale = savedScale.value || initialScale.value;
+      const contentX = (focalX.value - savedTranslateX.value) / baseScale;
+      const contentY = (focalY.value - savedTranslateY.value) / baseScale;
+      pinchContentX.value = contentX;
+      pinchContentY.value = contentY;
+
+      if (shouldLog()) {
+        runOnJS(debugLog)('pinch-start', {
+          scale: scale.value,
+          focalX: focalX.value,
+          focalY: focalY.value,
+        });
+      }
     })
     .onUpdate((e) => {
       'worklet';
       // Only resize while actively pinching (two fingers)
+      const pointerCount =
+        (e as any).numberOfTouches ?? (e as any).numberOfPointers ?? touchCount.value;
+      if (pointerCount < 2) {
+        // Transitioned to one finger: stop scaling and preserve current state for pan
+        const touches = extractTouches(e as any);
+        setTouches(touches);
+        setFocalFromTouches(touches, e.focalX, e.focalY);
+        isPinching.value = false;
+        activeTouches.value = pointerCount;
+        savedScale.value = scale.value;
+        savedTranslateX.value = translateX.value;
+        savedTranslateY.value = translateY.value;
+        return;
+      }
+
       if (isPinching.value) {
         // Update touches and focal every frame
         const touches = extractTouches(e as any);
@@ -196,25 +241,15 @@ export function MediaZoom({
 
         // Calculate new scale: fingers apart = zoom in, fingers together = zoom out
         const baseScale = savedScale.value || initialScale.value;
-        const newScale = baseScale * e.scale;
+        // Reduce sensitivity so scaling tracks pinch distance more gently
+        const newScale = baseScale * (1 + (e.scale - 1) * pinchSensitivity);
         // Clamp between minScale (1 = original size) and maxScale
         const clampedScale = Math.max(minScale, Math.min(maxScale, newScale));
 
-        // Current translation (content offset) relative to the gesture view origin
-        const baseTranslateX = savedTranslateX.value;
-        const baseTranslateY = savedTranslateY.value;
-
-        // Keep the point under the fingers fixed on screen:
-        // screenPos = (contentPoint * scale) + translate
-        // Solve for new translate so screenPos (focal) remains unchanged.
-        const scaleDelta = clampedScale / baseScale;
-        const newTranslateX =
-          focalX.value - (focalX.value - baseTranslateX) * scaleDelta;
-        const newTranslateY =
-          focalY.value - (focalY.value - baseTranslateY) * scaleDelta;
-
-        // Keep image within bounds so focal stays visible near edges
-        // const clamped = clampTranslate(newTranslateX, newTranslateY, clampedScale);
+        // Keep the original content point under the fingers anchored to the moving focal
+        // focal = content * scale + translate => translate = focal - content * scale
+        const newTranslateX = focalX.value - pinchContentX.value * clampedScale;
+        const newTranslateY = focalY.value - pinchContentY.value * clampedScale;
 
         // Update touch points for debugging
         setTouches(touches);
@@ -226,6 +261,15 @@ export function MediaZoom({
         savedScale.value = clampedScale;
         // savedTranslateX.value = clamped.x;
         // savedTranslateY.value = clamped.y;
+
+        // Lightweight debug (bridge): scale + focal
+        if (shouldLog()) {
+          runOnJS(debugLog)('pinch', {
+            scale: clampedScale,
+            focalX: focalX.value,
+            focalY: focalY.value,
+          });
+        }
       }
     })
     .onTouchesUp((e) => {
@@ -235,8 +279,8 @@ export function MediaZoom({
       setFocalFromTouches(touches, focalX.value, focalY.value);
       // Update touch count and pinching state
       const previousPinching = isPinching.value;
-      activeTouches.value = e.numberOfTouches;
-      isPinching.value = e.numberOfTouches === 2;
+      activeTouches.value = touches.length;
+      isPinching.value = touches.length === 2;
       
       // When transitioning from pinching (2 fingers) to panning (1 finger)
       // Save current values so pan gesture can continue smoothly
@@ -255,6 +299,8 @@ export function MediaZoom({
       'worklet';
       const wasPinching = isPinching.value;
       isPinching.value = false;
+      // Ensure activeTouches is zeroed on gesture end
+      activeTouches.value = 0;
       
       // Save final values after pinch ends
       savedScale.value = scale.value;
@@ -265,10 +311,18 @@ export function MediaZoom({
       if (activeTouches.value === 0 && isZoomActive.value) {
         checkAndReset();
       }
+    })
+    .onFinalize(() => {
+      'worklet';
+      // Fallback to ensure reset after any termination
+      activeTouches.value = 0;
+      isPinching.value = false;
+      if (isZoomActive.value) {
+        checkAndReset();
+      }
     });
 
 // Moving the image around (allow simultaneous with pinch)
-  // Use manual activation so we can decide when pan should run (avoids calling state.activate on undefined)
   const panGesture = Gesture.Pan().manualActivation(true)
     .onBegin(() => {
       'worklet';
@@ -280,8 +334,6 @@ export function MediaZoom({
         savedTranslateX.value = translateX.value;
         savedTranslateY.value = translateY.value;
         savedScale.value = scale.value;
-        // Clear pinching state when pan begins
-        isPinching.value = false;
       }
     })
     .onStart((e) => {
@@ -294,7 +346,6 @@ export function MediaZoom({
         savedTranslateX.value = translateX.value;
         savedTranslateY.value = translateY.value;
         savedScale.value = scale.value;
-        isPinching.value = false;
       }
     })
     .onTouchesDown((e, state) => {
@@ -329,6 +380,11 @@ export function MediaZoom({
       'worklet';
       // Allow panning whenever zoom is active (can be simultaneous with pinch)
       if (isZoomActive.value) {
+        // Refresh touches/focal during pan updates so focal follows the active finger
+        const touches = extractTouches(e as any);
+        setTouches(touches);
+        setFocalFromTouches(touches, focalX.value, focalY.value);
+
         // Use the latest translate as base to stay in sync with pinch updates
         const baseTranslateX = translateX.value;
         const baseTranslateY = translateY.value;
@@ -341,6 +397,14 @@ export function MediaZoom({
         // Direct assignment for real-time responsiveness during active gesture
         // translateX.value = clamped.x;
         // translateY.value = clamped.y;
+
+        if (shouldLog()) {
+          runOnJS(debugLog)('pan', {
+            translationX: e.translationX,
+            translationY: e.translationY,
+            activeTouches: activeTouches.value,
+          });
+        }
       }
     })
     .onTouchesUp((e, state) => {
@@ -350,7 +414,7 @@ export function MediaZoom({
       setFocalFromTouches(touches, focalX.value, focalY.value);
       if (isZoomActive.value) {
         // Update touch count when not pinching (pinch gesture handles when pinching)
-        activeTouches.value = e.allTouches.length;
+        activeTouches.value = touches.length;
         
         // Save current position
         savedTranslateX.value = translateX.value;
@@ -368,54 +432,31 @@ export function MediaZoom({
       savedTranslateX.value = translateX.value;
       savedTranslateY.value = translateY.value;
 
+      // Zero out touch count on pan end to allow reset
+      activeTouches.value = 0;
       // Final check if all touches are released
       if (activeTouches.value === 0 && isZoomActive.value) {
+        checkAndReset();
+      }
+    })
+    .onFinalize(() => {
+      'worklet';
+      activeTouches.value = 0;
+      if (isZoomActive.value) {
         checkAndReset();
       }
     });
 
   // Combine gestures - pinch and pan can work simultaneously
   // This allows zooming while panning, or panning while zoomed
-  const composedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
-
-  // Double tap to zoom in/out (optional - only works when zoom not active)
-//   const doubleTapGesture = Gesture.Tap()
-//     .numberOfTaps(2)
-//     .enabled(!isZoomActive.value)
-//     .onEnd(() => {
-//       'worklet';
-//       if (scale.value > 1) {
-//         // Zoom out
-//         scale.value = withSpring(1);
-//         translateX.value = withSpring(0);
-//         translateY.value = withSpring(0);
-//         savedScale.value = 1;
-//         savedTranslateX.value = 0;
-//         savedTranslateY.value = 0;
-//       } else {
-//         // Zoom in - show backdrop
-//         isZoomActive.value = true;
-//         backdropOpacity.value = withTiming(1);
-//         initialScale.value = 1;
-//         initialTranslateX.value = 0;
-//         initialTranslateY.value = 0;
-//         scale.value = withSpring(2);
-//         savedScale.value = 2;
-//         translateX.value = 0;
-//         translateY.value = 0;
-//         savedTranslateX.value = 0;
-//         savedTranslateY.value = 0;
-//       }
-//     });
-
-  // Combine all gestures - double tap takes priority, but pinch/pan can work together
-  const gesture = Gesture.Exclusive( composedGesture);
+  const gesture = Gesture.Simultaneous(pinchGesture, panGesture);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
-        { translateX: translateX.value },
-        { translateY: translateY.value },
+        // Use focal-centered positioning while zoom is active; fall back to translate otherwise
+        { translateX: isZoomActive.value ? focalX.value - width / 2 : translateX.value },
+        { translateY: isZoomActive.value ? focalY.value - height / 2 : translateY.value },
         { scale: scale.value },
       ],
       zIndex: isZoomActive.value ? 10000 : 1, // High z-index when zoomed
@@ -456,6 +497,7 @@ export function MediaZoom({
         <GestureDetector gesture={gesture}>
           <Animated.View 
             style={[
+                
               styles.imageContainer, 
               animatedStyle,
               {
@@ -499,8 +541,8 @@ const SCREEN_HEIGHT = SCREEN_DIMENSIONS.height;
 
   const styles = StyleSheet.create({
   container: {
-    overflow: 'visible', // Changed from 'hidden' to allow image to overflow
-    // Remove justifyContent and alignItems to allow free movement
+    overflow: 'visible',
+    zIndex: 2, // ensure debug dots/images stay above backdrop
   },
   backdrop: {
     position: 'absolute',
@@ -511,7 +553,7 @@ const SCREEN_HEIGHT = SCREEN_DIMENSIONS.height;
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
     backgroundColor: 'rgba(0, 0, 0, 0)',
-    zIndex: 9999, // Just below the zoomed image
+    zIndex: 0, // keep backdrop behind image/dots
   },
   imageContainer: {
     // Remove justifyContent and alignItems to allow free movement
@@ -534,7 +576,7 @@ const SCREEN_HEIGHT = SCREEN_DIMENSIONS.height;
     height: 12,
     borderRadius: 6,
     backgroundColor: 'blue',
-    zIndex: 10001,
+    zIndex: 3,
   },
 });
 
