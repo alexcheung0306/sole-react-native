@@ -1,6 +1,16 @@
-import { View, Image, Dimensions, TouchableOpacity, Text, FlatList, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
-import { useRef, useState } from 'react';
+import {
+  View,
+  Image,
+  Dimensions,
+  TouchableOpacity,
+  Text,
+  FlatList,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+} from 'react-native';
+import { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { MediaZoom } from '@/components/custom/media-zoom';
 
 interface MediaItem {
   mediaUrl: string;
@@ -16,33 +26,68 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export function ImageCarousel({ media }: ImageCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [imageHeights, setImageHeights] = useState<{ [key: number]: number }>({});
+  const [currentHeight, setCurrentHeight] = useState<number>(SCREEN_WIDTH); // Default to square
   const listRef = useRef<FlatList<MediaItem>>(null);
-  
+
   if (!media || media.length === 0) {
     return null;
   }
 
-  // Calculate aspect ratio for consistent sizing
-  const firstMedia = media[0];
-  const aspectRatio = firstMedia.width && firstMedia.height 
-    ? firstMedia.width / firstMedia.height 
-    : 1;
+  // Load image dimensions and calculate heights
+  useEffect(() => {
+    const loadImageDimensions = async () => {
+      const heights: { [key: number]: number } = {};
 
-  // Determine height based on aspect ratio
-  const getHeight = () => {
-    if (aspectRatio > 1.5) {
-      // Landscape (16:9)
-      return SCREEN_WIDTH / 1.78;
-    } else if (aspectRatio < 0.9) {
-      // Portrait (4:5)
-      return SCREEN_WIDTH * 1.25;
-    } else {
-      // Square (1:1)
-      return SCREEN_WIDTH;
+      for (let i = 0; i < media.length; i++) {
+        const item = media[i];
+
+        // If dimensions are already provided, use them
+        if (item.width && item.height) {
+          const aspectRatio = item.width / item.height;
+          heights[i] = SCREEN_WIDTH / aspectRatio;
+        } else {
+          // Otherwise, fetch image dimensions
+          try {
+            await new Promise<void>((resolve, reject) => {
+              Image.getSize(
+                item.mediaUrl,
+                (width, height) => {
+                  const aspectRatio = width / height;
+                  heights[i] = SCREEN_WIDTH / aspectRatio;
+                  resolve();
+                },
+                (error) => {
+                  console.error('Error loading image size:', error);
+                  // Fallback to square if error
+                  heights[i] = SCREEN_WIDTH;
+                  resolve();
+                }
+              );
+            });
+          } catch (error) {
+            console.error('Error loading image dimensions:', error);
+            heights[i] = SCREEN_WIDTH; // Fallback to square
+          }
+        }
+      }
+
+      setImageHeights(heights);
+      // Set initial height for first image
+      if (heights[0]) {
+        setCurrentHeight(heights[0]);
+      }
+    };
+
+    loadImageDimensions();
+  }, [media]);
+
+  // Update height when current index changes
+  useEffect(() => {
+    if (imageHeights[currentIndex] !== undefined) {
+      setCurrentHeight(imageHeights[currentIndex]);
     }
-  };
-
-  const imageHeight = getHeight();
+  }, [currentIndex, imageHeights]);
 
   const handlePrevious = () => {
     const nextIndex = currentIndex === 0 ? media.length - 1 : currentIndex - 1;
@@ -66,12 +111,21 @@ export function ImageCarousel({ media }: ImageCarouselProps) {
 
   // Single image - no carousel needed
   if (media.length === 1) {
+    const singleImageHeight = imageHeights[0] || currentHeight;
     return (
-      <View style={{ width: SCREEN_WIDTH, height: imageHeight }}>
-        <Image
-          source={{ uri: media[0].mediaUrl }}
-          style={{ width: '100%', height: '100%' }}
-          resizeMode="cover"
+      <View style={{ 
+        width: SCREEN_WIDTH, 
+        height: singleImageHeight, 
+        overflow: 'visible',
+        position: 'relative',
+      }}>
+        <MediaZoom
+          imageUrl={media[0].mediaUrl}
+          width={SCREEN_WIDTH}
+          height={singleImageHeight}
+          resetOnRelease={false}
+          minScale={1}
+          maxScale={3}
         />
       </View>
     );
@@ -79,7 +133,13 @@ export function ImageCarousel({ media }: ImageCarouselProps) {
 
   // Multiple images - show carousel
   return (
-    <View style={{ width: SCREEN_WIDTH, height: imageHeight, position: 'relative' }}>
+    <View
+      style={{
+        width: SCREEN_WIDTH,
+        height: currentHeight,
+        position: 'relative',
+        overflow: 'visible',
+      }}>
       <FlatList
         ref={listRef}
         data={media}
@@ -88,46 +148,65 @@ export function ImageCarousel({ media }: ImageCarouselProps) {
         showsHorizontalScrollIndicator={false}
         keyExtractor={(_, index) => `${index}`}
         onMomentumScrollEnd={handleMomentumEnd}
-        renderItem={({ item }) => (
-          <Image
-            source={{ uri: item.mediaUrl }}
-            style={{ width: SCREEN_WIDTH, height: imageHeight }}
-            resizeMode="cover"
-          />
-        )}
+        renderItem={({ item, index }) => {
+          // All items use currentHeight for consistent paging
+          const itemHeight = imageHeights[index] || currentHeight;
+          return (
+            <View
+              style={{
+                width: SCREEN_WIDTH,
+                // Remove justifyContent and alignItems to allow free movement
+                overflow: 'visible',
+                position: 'relative',
+              }}>
+              <MediaZoom
+                imageUrl={item.mediaUrl}
+                width={SCREEN_WIDTH}
+                height={itemHeight}
+                resetOnRelease={true}
+                minScale={1}
+                maxScale={3}
+              />
+            </View>
+          );
+        }}
       />
 
       {/* Navigation Arrows */}
       {media.length > 1 && currentIndex > 0 && (
         <TouchableOpacity
           onPress={handlePrevious}
-          className="absolute left-2 bg-black/50 p-2 rounded-full"
-          style={{ top: '50%', marginTop: -20 }}
-          activeOpacity={0.7}
-        >
-          <ChevronLeft size={24} color="#ffffff" />
+          className="absolute left-2 h-6 w-6 items-center justify-center rounded-full bg-black/50"
+          style={{
+            top: '50%',
+            transform: [{ translateY: -12 }], // Half of button height (24px / 2 = 12px)
+          }}
+          activeOpacity={0.7}>
+          <ChevronLeft size={12} color="#ffffff" />
         </TouchableOpacity>
       )}
 
       {media.length > 1 && currentIndex < media.length - 1 && (
         <TouchableOpacity
           onPress={handleNext}
-          className="absolute right-2 bg-black/50 p-2 rounded-full"
-          style={{ top: '50%', marginTop: -20 }}
-          activeOpacity={0.7}
-        >
-          <ChevronRight size={24} color="#ffffff" />
+          className="absolute right-2 h-6 w-6 items-center justify-center rounded-full bg-black/50"
+          style={{
+            top: '50%',
+            transform: [{ translateY: -12 }], // Half of button height (24px / 2 = 12px)
+          }}
+          activeOpacity={0.7}>
+          <ChevronRight size={12} color="#ffffff" />
         </TouchableOpacity>
       )}
 
       {/* Image Counter & Indicators */}
       <View className="absolute bottom-3 left-0 right-0 items-center">
         {/* Dot Indicators */}
-        <View className="flex-row gap-1 mb-2">
+        <View className="mb-2 flex-row gap-1">
           {media.map((_, index) => (
             <View
               key={index}
-              className={`w-1.5 h-1.5 rounded-full ${
+              className={`h-1.5 w-1.5 rounded-full ${
                 index === currentIndex ? 'bg-white' : 'bg-white/40'
               }`}
             />
@@ -135,8 +214,8 @@ export function ImageCarousel({ media }: ImageCarouselProps) {
         </View>
 
         {/* Counter */}
-        <View className="bg-black/60 px-3 py-1 rounded-full">
-          <Text className="text-white text-xs font-semibold">
+        <View className="rounded-full bg-black/60 px-3 py-1">
+          <Text className="text-xs font-semibold text-white">
             {currentIndex + 1} / {media.length}
           </Text>
         </View>
@@ -144,4 +223,3 @@ export function ImageCarousel({ media }: ImageCarouselProps) {
     </View>
   );
 }
-

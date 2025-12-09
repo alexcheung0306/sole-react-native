@@ -42,7 +42,10 @@ export default function UserPosts({
                   key={item.id}
                   className="aspect-square bg-gray-800"
                   style={{ width: IMAGE_SIZE, height: IMAGE_SIZE }}
-                  onPress={() => router.push(`/(protected)/post/${item.id}` as any)}>
+                  onPress={() => router.push({
+                    pathname: `/(protected)/post` as any,
+                    params: { postId: item.id },
+                  })}>
                   {firstMedia ? (
                     <Image
                       source={{ uri: firstMedia.mediaUrl }}

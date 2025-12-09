@@ -61,7 +61,7 @@ export function PostCard({ post, onLike, onAddComment, comments }: PostCardProps
 
   return (
     <>
-      <View className="mb-2 border-b border-gray-800/50 bg-black">
+      <View className="mb-2 border-b border-gray-800/50 bg-black" style={{ overflow: 'visible' }}>
         {/* Header: User Info */}
         <View className="flex-row items-center justify-between px-4 py-3">
           <TouchableOpacity
@@ -120,7 +120,10 @@ export function PostCard({ post, onLike, onAddComment, comments }: PostCardProps
             />
 
             <TouchableOpacity
-              onPress={() => router.push(`/(protected)/post/${post.id}` as any)}
+              onPress={() => router.push({
+                pathname: `/(protected)/post` as any,
+                params: { postId: post.id },
+              })}
               className="ml-4 flex-row items-center gap-2"
               activeOpacity={0.7}>
               <MessageCircle size={24} color="#ffffff" strokeWidth={2} />

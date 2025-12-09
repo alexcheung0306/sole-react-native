@@ -76,6 +76,7 @@ type GlassViewProps = {
   intensity?: number;
   tint?: 'light' | 'dark' | 'default';
   borderRadius?: number;
+  borderWidth?: number;
   darkOverlayOpacity?: number;
 };
 
@@ -87,11 +88,13 @@ export default function GlassView({
   intensity = 80,
   tint = 'dark',
   borderRadius,
+  borderWidth = 1,
   darkOverlayOpacity = 0.5,
 }: GlassViewProps) {
   const containerStyle: ViewStyle = {
     ...styles.container,
     ...(borderRadius !== undefined && { borderRadius }),
+    ...(borderWidth !== undefined && { borderWidth }),
   };
 
   return (
@@ -108,7 +111,6 @@ export default function GlassView({
 
 const styles = StyleSheet.create({
   container: {
-    borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     overflow: 'hidden',
     backdropFilter: 'blur(10px)',

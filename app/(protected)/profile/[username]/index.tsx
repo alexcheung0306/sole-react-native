@@ -26,7 +26,7 @@ export default function ProfileScreen() {
   const [profileTab, setProfileTab] = useState<TabKey>('posts');
   const { user } = useUser();
   const insets = useSafeAreaInsets();
-  const { headerTranslateY, handleScroll } = useScrollHeader();
+  const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   const { username } = useLocalSearchParams<{ username: string }>();
 
   // Check if viewing own profile
@@ -120,13 +120,13 @@ export default function ProfileScreen() {
               </View>
             ) : undefined
           }
-          translateY={headerTranslateY}
+          animatedStyle={animatedHeaderStyle}
           isDark={true}
         />
 
         <ScrollView
           className="flex-1 bg-black"
-          onScroll={handleScroll}
+          onScroll={onScroll}
           scrollEventThrottle={16}
           contentContainerStyle={{
             paddingTop: insets.top + 72,

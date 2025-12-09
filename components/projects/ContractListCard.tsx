@@ -43,8 +43,8 @@ export default function ContractListCard({ item }: ContractListCardProps) {
   const renderCardOverlay = () => (
     <LinearGradient
       colors={hasImage
-        ? ['rgba(0,0,0,0.85)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.1)']
-        : ['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.25)', 'rgba(0,0,0,0.1)']}
+        ? ['rgba(255, 255, 255, 0.14)', 'rgba(0,0,0,0.45)', 'rgba(22, 22, 22, 0.15)']
+        : ['rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0)']}
       style={styles.overlayGradient}
     >
       <View className="flex-1 justify-between">
@@ -90,7 +90,6 @@ export default function ContractListCard({ item }: ContractListCardProps) {
             tint="dark"
             borderRadius={16}
             darkOverlayOpacity={0}>
-
             {renderCardOverlay()}
           </GlassView>
         )}

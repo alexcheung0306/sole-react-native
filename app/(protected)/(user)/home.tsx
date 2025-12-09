@@ -217,7 +217,7 @@ export default React.memo(function UserHome() {
           onScroll={onScroll}
           scrollEventThrottle={16}
           contentContainerStyle={{
-            paddingTop: insets.top + 120, // Increased for header space
+            paddingTop: insets.top+60, // Increased for header space
             paddingBottom: insets.bottom + 80,
           }}
           onEndReached={() => {

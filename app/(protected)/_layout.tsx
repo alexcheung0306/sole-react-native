@@ -48,6 +48,14 @@ export default function ProtectedLayout() {
             {/* <Stack.Screen name="index" options={{ headerShown: false, href: null }} /> */}
             <Stack.Screen name="(client)" options={{ headerShown: false }} />
             <Stack.Screen name="(user)" options={{ headerShown: false }} />
+            <Stack.Screen 
+              name="post" 
+              options={{ 
+                headerShown: false,
+                headerStyle: { backgroundColor: '#000000' },
+                contentStyle: { backgroundColor: '#000000' },
+              }} 
+            />
             <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
             <Stack.Screen name="chat" options={{ headerShown: false }} />
           </Stack>

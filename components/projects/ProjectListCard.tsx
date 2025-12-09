@@ -29,9 +29,8 @@ export default function ProjectListCard({ item }: { item: any }) {
     <LinearGradient
       colors={
         hasImage
-          ? ['rgba(0,0,0,0.85)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.1)']
-          : ['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.25)', 'rgba(0,0,0,0.1)']
-      }
+        ? ['rgba(255, 255, 255, 0.14)', 'rgba(0,0,0,0.45)', 'rgba(22, 22, 22, 0.15)']
+          : ['rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0)']}
       style={styles.overlayGradient}>
       <View className="flex-1 justify-between">
         <View className="flex-row items-start justify-between gap-3">
@@ -60,7 +59,7 @@ export default function ProjectListCard({ item }: { item: any }) {
       style={{ width: '100%' }}
       onPress={() => handleProjectPress(project.id)}>
       <View className="overflow-hidden rounded-2xl border  bg-zinc-900/80">
-        {projectImage ? (
+        {hasImage ? (
           <ImageBackground
             source={{ uri: projectImage }}
             style={styles.cardBackground}

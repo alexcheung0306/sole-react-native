@@ -18,6 +18,7 @@ export default function PostDetail() {
   const queryClient = useQueryClient();
   const commentSheetRef = useRef<BottomSheet>(null);
 
+
   // Extract actual post ID from the "postid{id}" format
   const postId = postIdParam?.replace('postid', '') || postIdParam;
 
@@ -167,7 +168,13 @@ export default function PostDetail() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: false }} />
+      <Stack.Screen 
+        options={{ 
+          headerShown: false,
+          headerStyle: { backgroundColor: '#000000' },
+          contentStyle: { backgroundColor: '#000000' },
+        }} 
+      />
       <View className="flex-1 bg-black" style={{ zIndex: 1000 }}>
         {/* Custom Header */}
         <View className="bg-black pt-12 pb-4 px-4 border-b border-gray-700/50">
