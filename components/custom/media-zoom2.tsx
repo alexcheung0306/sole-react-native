@@ -122,6 +122,8 @@ export function MediaZoom2({
         savedScale: savedScale.value,
       });
 
+      isZoomActive.value = true
+
       // Cancel any ongoing springs
       cancelAnimation(scale);
       cancelAnimation(translateX);
@@ -390,7 +392,7 @@ export function MediaZoom2({
         { translateY: translateY.value },
         { scale: scale.value },
       ],
-      zIndex: isZoomActive.value ? 100 : 30, // Keep high even when not active to be safe, but boost when active
+      zIndex: isZoomActive.value ? 9999 : 30, // Keep high even when not active to be safe, but boost when active
     };
   });
 
