@@ -46,6 +46,8 @@ export function MediaZoom2({
   const isPanning = useSharedValue(false);
   const isZoomActive = useSharedValue(false);
   const backdropOpacity = useSharedValue(0);
+  // Prevent duplicate resets when both gestures fire end events
+  const hasResetOnEnd = useSharedValue(false);
 
   const initialFocalX = useSharedValue(0);
   const initialFocalY = useSharedValue(0);
@@ -54,6 +56,16 @@ export function MediaZoom2({
     if (!__DEV__) return;
     console.log(`[media-zoom-2] ${label}`, payload);
   }, []);
+
+  // Worklet-safe logger; only fires in dev
+  const logGesture = React.useCallback(
+    (label: string, payload: Record<string, any>) => {
+      'worklet';
+      if (!__DEV__) return;
+      runOnJS(debugLog)(label, payload);
+    },
+    [debugLog],
+  );
 
   const reset = React.useCallback(() => {
     'worklet';
@@ -67,14 +79,36 @@ export function MediaZoom2({
     
     isZoomActive.value = false;
     backdropOpacity.value = withTiming(0);
+    hasResetOnEnd.value = false;
   }, []);
+
+  // Shared pan-end handler so we can call it from pinch end when no fingers remain
+  const handlePanEndReset = React.useCallback(
+    (payload: Record<string, any>) => {
+      'worklet';
+      if (hasResetOnEnd.value) {
+        return;
+      }
+      hasResetOnEnd.value = true;
+      reset();
+      logGesture('pan.end', payload);
+    },
+    [reset, logGesture],
+  );
 
   const pinchGesture = Gesture.Pinch()
     .onStart((e) => {
       'worklet';
+      hasResetOnEnd.value = false;
       isPinching.value = true;
       isZoomActive.value = true;
       backdropOpacity.value = withTiming(1);
+      logGesture('pinch.start', {
+        focalX: e.focalX,
+        focalY: e.focalY,
+        scale: scale.value,
+        savedScale: savedScale.value,
+      });
 
       // Cancel any ongoing springs
       cancelAnimation(scale);
@@ -153,12 +187,46 @@ export function MediaZoom2({
             reset();
         }
       }
+
+      // If all fingers are lifted and pan isn't active, treat this as a pan end
+      // so we consistently snap back.
+      if (e.numberOfPointers === 0 && !isPanning.value) {
+        handlePanEndReset({
+          velocityX: 0,
+          velocityY: 0,
+          translateX: translateX.value,
+          translateY: translateY.value,
+          scale: scale.value,
+          reason: 'pinch.end.noPointers',
+        });
+      }
+      logGesture('pinch.end', {
+        pointers: e.numberOfPointers,
+        scale: scale.value,
+        translateX: translateX.value,
+        translateY: translateY.value,
+      });
+    })
+    .onFinalize(() => {
+      'worklet';
+      // Fallback: if pinch is cancelled or ends without firing onEnd, ensure reset when no pan is active
+      if (!isPanning.value) {
+        handlePanEndReset({
+          velocityX: 0,
+          velocityY: 0,
+          translateX: translateX.value,
+          translateY: translateY.value,
+          scale: scale.value,
+          reason: 'pinch.finalize',
+        });
+      }
     });
 
   const panGesture = Gesture.Pan()
     .averageTouches(true)
     .onStart((e) => {
       'worklet';
+      hasResetOnEnd.value = false;
       // If panning starts while zoomed out, don't activate if we want normal scrolling
       // BUT we need to check if we are zooming or not.
       if (scale.value === 1 && !isZoomActive.value) {
@@ -167,6 +235,13 @@ export function MediaZoom2({
       isPanning.value = true;
       cancelAnimation(translateX);
       cancelAnimation(translateY);
+      logGesture('pan.start', {
+        translationX: e.translationX,
+        translationY: e.translationY,
+        savedTranslateX: savedTranslateX.value,
+        savedTranslateY: savedTranslateY.value,
+        scale: scale.value,
+      });
       
       // If coming from a pinch (where pinch sets saved values), this might need adjustment
       // But typically we want to just start tracking from where we are
@@ -180,6 +255,10 @@ export function MediaZoom2({
         state.activate();
       } else {
         state.fail();
+        logGesture('pan.fail', {
+          scale: scale.value,
+          isZoomActive: isZoomActive.value,
+        });
       }
     })
     .onUpdate((e) => {
@@ -205,15 +284,27 @@ export function MediaZoom2({
       savedTranslateX.value = translateX.value;
       savedTranslateY.value = translateY.value;
 
-      // Always reset if resetOnRelease is true
-      if (resetOnRelease) {
-        // If we are still pinching (e.g. lift one finger but still pinching?), 
-        // no, pan end usually means all fingers for pan are gone.
-        // But if pinch is active, we shouldn't reset.
-        if (!isPinching.value) {
-            reset();
-        }
-      }
+      // Reset to original position/scale when pan ends
+      handlePanEndReset({
+        velocityX: e.velocityX,
+        velocityY: e.velocityY,
+        translateX: translateX.value,
+        translateY: translateY.value,
+        scale: scale.value,
+        reason: 'pan.end',
+      });
+    })
+    .onFinalize((e) => {
+      'worklet';
+      // Fallback in case onEnd doesn't fire (e.g., cancellation)
+      handlePanEndReset({
+        velocityX: e?.velocityX ?? 0,
+        velocityY: e?.velocityY ?? 0,
+        translateX: translateX.value,
+        translateY: translateY.value,
+        scale: scale.value,
+        reason: 'pan.finalize',
+      });
     });
 
   // Activate pan ONLY when zoom is active or scale > 1, otherwise fail to let scrollview take over
