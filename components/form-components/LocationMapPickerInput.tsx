@@ -2,8 +2,24 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, Modal, TouchableOpacity, ActivityIndicator, Alert, TextInput, ScrollView } from 'react-native';
 import { Input, InputField } from '@/components/ui/input';
 import { MapPin, X, Check, Search } from 'lucide-react-native';
-import MapView, { Marker, Region, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Location from 'expo-location';
+// Dynamic import MapView to prevent early native module loading
+let MapView: any = null;
+let Marker: any = null;
+let PROVIDER_DEFAULT: any = null;
+
+const loadMapModule = async () => {
+  if (!MapView) {
+    try {
+      const mapsModule = require('react-native-maps');
+      MapView = mapsModule.default;
+      Marker = mapsModule.Marker;
+      PROVIDER_DEFAULT = mapsModule.PROVIDER_DEFAULT;
+    } catch (error) {
+      console.error('Failed to load react-native-maps:', error);
+    }
+  }
+};
 
 interface LocationMapPickerInputProps {
   value: string;
@@ -26,6 +42,13 @@ interface NominatimResult {
   importance: number;
 }
 
+interface Region {
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
+}
+
 export function LocationMapPickerInput({
   value,
   onChangeText,
@@ -34,7 +57,7 @@ export function LocationMapPickerInput({
 }: LocationMapPickerInputProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const [region, setRegion] = useState<Region | null>(null);
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<any>(null);
 
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [loadingAddress, setLoadingAddress] = useState(false);
@@ -158,6 +181,9 @@ export function LocationMapPickerInput({
   };
 
   const handleOpenMap = async () => {
+    // Load map module when opening the modal
+    await loadMapModule();
+    
     setSuggestions([]);
     setShowDropdown(false);
     setModalVisible(true);
@@ -355,7 +381,7 @@ export function LocationMapPickerInput({
             </View>
           ) : (
             <View className="flex-1 rounded-3xl overflow-hidden mt-0">
-              {region && (
+              {region && MapView ? (
                 <MapView
                   ref={mapRef}
                   style={{ flex: 1 }}
@@ -367,6 +393,11 @@ export function LocationMapPickerInput({
                   showsMyLocationButton={false}
                   provider={PROVIDER_DEFAULT}
                 />
+              ) : (
+                <View className="flex-1 items-center justify-center bg-zinc-900">
+                  <ActivityIndicator size="large" color="white" />
+                  <Text className="text-white mt-4">Loading map...</Text>
+                </View>
               )}
 
               {/* Center Marker Overlay */}
