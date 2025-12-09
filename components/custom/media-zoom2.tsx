@@ -38,6 +38,10 @@ export function MediaZoom2({
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
 
+  // Offset to subtract from pan translation to prevent jumps
+  const panOffsetX = useSharedValue(0);
+  const panOffsetY = useSharedValue(0);
+
   // Tracks the content point (relative to center) under the focal point at pinch start
   const originX = useSharedValue(0);
   const originY = useSharedValue(0);
@@ -80,6 +84,9 @@ export function MediaZoom2({
     savedTranslateX.value = 0;
     savedTranslateY.value = 0;
     
+    panOffsetX.value = 0;
+    panOffsetY.value = 0;
+    
     isZoomActive.value = false;
     backdropOpacity.value = withTiming(0);
     hasResetOnEnd.value = false;
@@ -104,8 +111,10 @@ export function MediaZoom2({
       'worklet';
       hasResetOnEnd.value = false;
       isPinching.value = true;
-      isZoomActive.value = true;
-      backdropOpacity.value = withTiming(1);
+      // Don't set isZoomActive here; wait for actual scale change in onUpdate
+      // isZoomActive.value = true;
+      // backdropOpacity.value = withTiming(1);
+      
       logGesture('pinch.start', {
         focalX: e.focalX,
         focalY: e.focalY,
@@ -137,12 +146,41 @@ export function MediaZoom2({
       
       activePointers.value = e.numberOfPointers;
       
+      // If fingers are moving in same direction, we shouldn't start pinching yet.
+      // We can check if initial distance is small or if we want to enforce spread.
+      // But more robustly, we can check velocity or direction? 
+      // The simplest way to avoid "pushing" being read as pinch is to wait until scale changes significantly?
+      // Or rely on Gesture Handler's built-in recognition.
+      
       savedScale.value = currentScale;
       savedTranslateX.value = currentTx;
       savedTranslateY.value = currentTy;
     })
     .onUpdate((e) => {
       'worklet';
+
+      if (!isZoomActive.value) {
+        // Enforce a threshold to distinguish "push" (parallel fingers) from "pinch" (zoom)
+        const scaleChange = Math.abs(e.scale - 1);
+        if (scaleChange > 0.05) { // 5% threshold
+           isZoomActive.value = true;
+           backdropOpacity.value = withTiming(1);
+           
+           // Re-anchor origin to current focal point to prevent jump upon activation
+           const cx = width / 2;
+           const cy = height / 2;
+           originX.value = (e.focalX - cx - translateX.value) / scale.value;
+           originY.value = (e.focalY - cy - translateY.value) / scale.value;
+           
+           // Adjust savedScale so the zoom starts smoothly from current scale (1)
+           // effectively treating current e.scale as the baseline
+           savedScale.value = scale.value / e.scale;
+           
+        } else {
+           // Wait until threshold is met
+           return;
+        }
+      }
       
       // If number of pointers changes (e.g. 2 -> 1), re-anchor origin to prevent jump
       // because the focal point (center of pointers) changes abruptly.
@@ -260,17 +298,23 @@ export function MediaZoom2({
 
   const panGesture = Gesture.Pan()
     .averageTouches(true)
+    .manualActivation(true)
     .onStart((e) => {
       'worklet';
       hasResetOnEnd.value = false;
-      // If panning starts while zoomed out, don't activate if we want normal scrolling
-      // BUT we need to check if we are zooming or not.
+
+      // Note: We rely on onTouchesMove to prevent invalid activation.
+      // If we reach here, we set isPanning to true so we properly track the gesture state.
       if (scale.value === 1 && !isZoomActive.value) {
-         return; 
+         // This block intentionally empty; we proceed to set isPanning = true
       }
       isPanning.value = true;
       cancelAnimation(translateX);
       cancelAnimation(translateY);
+
+      panOffsetX.value = 0;
+      panOffsetY.value = 0;
+
       logGesture('pan.start', {
         translationX: e.translationX,
         translationY: e.translationY,
@@ -289,29 +333,22 @@ export function MediaZoom2({
       'worklet';
       if (scale.value > 1 || isZoomActive.value) {
         state.activate();
-      } else {
+      } else if (e.allTouches.length < 2) {
         state.fail();
-        logGesture('pan.fail', {
-          scale: scale.value,
-          isZoomActive: isZoomActive.value,
-        });
       }
     })
     .onUpdate((e) => {
       'worklet';
-      // Only pan if we are zoomed in or if zoom is active
-      // If we are pinching, the pinch gesture handles translation via focal point movement
+      // If we are pinching, we track the offset but don't apply translation here.
       if (isPinching.value) {
+        panOffsetX.value = e.translationX;
+        panOffsetY.value = e.translationY;
         return;
       }
       
       if (scale.value > 1 || isZoomActive.value) {
-        // If we are coming from a state where pan wasn't tracking (e.g. pinch), 
-        // we might need to reset start values? 
-        // Actually, the issue with "jump" on finger lift is often that Pan saved values are stale.
-        // We sync them in pinch.onUpdate now.
-        translateX.value = savedTranslateX.value + e.translationX;
-        translateY.value = savedTranslateY.value + e.translationY;
+        translateX.value = savedTranslateX.value + (e.translationX - panOffsetX.value);
+        translateY.value = savedTranslateY.value + (e.translationY - panOffsetY.value);
       }
     })
     .onEnd((e) => {
