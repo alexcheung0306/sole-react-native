@@ -4,6 +4,8 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
+  Modal,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { Plus, Trash2, Calendar, Clock } from 'lucide-react-native';
 import { Input, InputField } from '@/components/ui/input';
@@ -265,21 +267,12 @@ export function RoleScheduleListInputs({
 
     // Calculate min/max dates based on the other time field
     let minDate: Date | undefined = undefined;
-    let maxDate: Date | undefined = undefined;
+    // Default max date to far future (2100) to avoid implicit limits
+    let maxDate: Date | undefined = new Date('2100-01-01');
 
     if (field === 'fromTime') {
-      // When selecting start time, max date should be the end time (if it exists)
-      const toTimeValue = schedule?.toTime || '';
-      if (toTimeValue) {
-        const toDate = parseDateTime(toTimeValue);
-        if (toDate && !isNaN(toDate.getTime())) {
-          maxDate = toDate;
-          // Ensure initial date doesn't exceed max date
-          if (dateInstance > maxDate) {
-            dateInstance = new Date(maxDate);
-          }
-        }
-      }
+      // Start time is not constrained by end time during selection
+      // Validation will handle invalid ranges
     } else if (field === 'toTime') {
       // When selecting end time, min date should be the start time (if it exists)
       const fromTimeValue = schedule?.fromTime || '';
@@ -330,8 +323,9 @@ export function RoleScheduleListInputs({
     // Store the selected date and move to time picker
     setSelectedDate(selectedDateValue);
     setPickerInitialDate(selectedDateValue);
-    setShowDatePicker(false);
-    setShowTimePicker(true);
+    // Don't close modal, just switch to time mode
+    // setShowDatePicker(false); // Removed to keep modal open
+    // setShowTimePicker(true); // Redundant
     setPickerMode('time');
   };
 
@@ -386,6 +380,7 @@ export function RoleScheduleListInputs({
     handleFieldBlur(fieldname);
 
     // Reset all picker state
+    setShowDatePicker(false);
     setShowTimePicker(false);
     setDatePickerConfig(null);
     setSelectedDate(null);
@@ -402,6 +397,18 @@ export function RoleScheduleListInputs({
     setPickerMinDate(undefined);
     setPickerMaxDate(undefined);
     setPickerMode('date');
+  };
+
+  const handlePickerNext = () => {
+    if (pickerMode === 'date') {
+      // Switching to Time mode
+      setSelectedDate(pickerInitialDate);
+      setPickerMode('time');
+      // No need to close modal, just switch mode
+    } else {
+      // Done - Confirm Time
+      handleTimeConfirm(pickerInitialDate);
+    }
   };
 
   // Always get activities directly from values to ensure fresh data
@@ -530,7 +537,7 @@ export function RoleScheduleListInputs({
                                 <Text className="flex-1 text-sm font-semibold text-white">
                                   {activity.type
                                     ? activityTypes.find((t) => t.key === activity.type)?.label ||
-                                      activity.type
+                                    activity.type
                                     : 'Not selected'}
                                 </Text>
                               </View>
@@ -541,7 +548,7 @@ export function RoleScheduleListInputs({
                               selectedItem={
                                 activity.type
                                   ? activityTypes.find((t) => t.key === activity.type)?.label ||
-                                    activity.type
+                                  activity.type
                                   : null
                               }
                               onItemChange={(label) => {
@@ -780,48 +787,60 @@ export function RoleScheduleListInputs({
         </Actionsheet>
       )}
 
-      {/* Date Picker - Step 1: Select Date (with year) */}
-      <DatePicker
-        modal
-        open={showDatePicker}
-        date={pickerInitialDate}
-        mode="date"
-        minimumDate={pickerMinDate}
-        maximumDate={pickerMaxDate}
-        onConfirm={handleDateConfirm}
-        onCancel={handlePickerCancel}
-        onDateChange={handleDateTimeChange}
-        theme="dark"
-        locale="en"
-        title={
-          datePickerConfig?.field === 'fromTime'
-            ? 'Select Start Date'
-            : datePickerConfig?.field === 'toTime'
-              ? 'Select End Date'
-              : 'Select Date'
-        }
-      />
+      {/* Custom Date Picker Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={showDatePicker}
+        onRequestClose={handlePickerCancel}
+      >
+        <TouchableWithoutFeedback onPress={handlePickerCancel}>
+          <View className="flex-1 justify-end bg-black/50">
+            <TouchableWithoutFeedback>
+              <View className="bg-zinc-900 rounded-t-3xl border-t border-white/10 pb-10">
+                {/* Header */}
+                <View className="flex-row justify-between items-center p-4 border-b border-white/10">
+                  <TouchableOpacity onPress={handlePickerCancel}>
+                    <Text className="text-white/60 text-lg">Cancel</Text>
+                  </TouchableOpacity>
+                  <Text className="text-white font-bold text-lg">
+                    {pickerMode === 'date' ? 'Select Date' : 'Select Time'}
+                  </Text>
+                  <TouchableOpacity onPress={handlePickerNext}>
+                    <Text className="text-blue-500 text-lg font-bold">
+                      {pickerMode === 'date' ? 'Next' : 'Done'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
 
-      {/* Time Picker - Step 2: Select Time */}
-      <DatePicker
-        modal
-        open={showTimePicker}
-        date={pickerInitialDate}
-        mode="time"
-        onConfirm={handleTimeConfirm}
-        onCancel={handlePickerCancel}
-        onDateChange={handleDateTimeChange}
-        minuteInterval={5}
-        theme="dark"
-        locale="en"
-        title={
-          datePickerConfig?.field === 'fromTime'
-            ? 'Select Start Time'
-            : datePickerConfig?.field === 'toTime'
-              ? 'Select End Time'
-              : 'Select Time'
-        }
-      />
+                {/* Picker Content */}
+                <View className="items-center py-6">
+                  {pickerMode === 'date' ? (
+                    <DatePicker
+                      date={pickerInitialDate}
+                      onDateChange={setPickerInitialDate}
+                      mode="date"
+                      minimumDate={pickerMinDate}
+                      maximumDate={pickerMaxDate}
+                      theme="dark"
+                      locale="en"
+                    />
+                  ) : (
+                    <DatePicker
+                      date={pickerInitialDate}
+                      onDateChange={setPickerInitialDate}
+                      mode="time"
+                      theme="dark"
+                      locale="en"
+                    />
+                  )}
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
     </>
   );
 }
