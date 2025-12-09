@@ -51,6 +51,9 @@ export function MediaZoom2({
 
   const initialFocalX = useSharedValue(0);
   const initialFocalY = useSharedValue(0);
+  
+  // Track number of pointers to detect changes (e.g. lifting one finger)
+  const activePointers = useSharedValue(0);
 
   const debugLog = React.useCallback((label: string, payload: Record<string, any>) => {
     if (!__DEV__) return;
@@ -132,12 +135,35 @@ export function MediaZoom2({
       initialFocalX.value = e.focalX;
       initialFocalY.value = e.focalY;
       
+      activePointers.value = e.numberOfPointers;
+      
       savedScale.value = currentScale;
       savedTranslateX.value = currentTx;
       savedTranslateY.value = currentTy;
     })
     .onUpdate((e) => {
       'worklet';
+      
+      // If number of pointers changes (e.g. 2 -> 1), re-anchor origin to prevent jump
+      // because the focal point (center of pointers) changes abruptly.
+      if (e.numberOfPointers !== activePointers.value) {
+        const cx = width / 2;
+        const cy = height / 2;
+        
+        // Re-calculate origin so that (Origin * Scale) + Translate + Center = Focal
+        // using the *new* focal point but keeping current Translate/Scale.
+        originX.value = (e.focalX - cx - translateX.value) / scale.value;
+        originY.value = (e.focalY - cy - translateY.value) / scale.value;
+        
+        activePointers.value = e.numberOfPointers;
+        
+        logGesture('pinch.update.pointersChanged', { 
+            pointers: e.numberOfPointers,
+            focalX: e.focalX,
+            focalY: e.focalY
+        });
+      }
+
       // Calculate new scale
       const newScale = savedScale.value * e.scale;
       const clampedScale = Math.max(minScale, Math.min(maxScale, newScale));
@@ -158,23 +184,33 @@ export function MediaZoom2({
       // This is crucial for avoiding jumps when transitioning from 2 fingers to 1 finger
       savedTranslateX.value = newTx;
       savedTranslateY.value = newTy;
+
+      logGesture('pinch.update', { 
+        pointers: e.numberOfPointers,
+        msg: 'Pinch updated'
+      });
     })
     .onEnd((e) => {
       'worklet';
       
-      // If releasing one finger but still have others (e.g. going from pinch to pan),
-      // we need to update the saved state to prevent jumping
-      if (e.numberOfPointers > 0) {
-          savedScale.value = scale.value;
-          savedTranslateX.value = translateX.value;
-          savedTranslateY.value = translateY.value;
-          return;
-      }
+      logGesture('pinch.end', { 
+        pointers: e.numberOfPointers,
+        msg: 'Pinch ended'
+      });
 
-      isPinching.value = false;
+      // Update saved state before ending pinch
       savedScale.value = scale.value;
       savedTranslateX.value = translateX.value;
       savedTranslateY.value = translateY.value;
+
+      isPinching.value = false;
+
+      // If releasing one finger but still have others (e.g. going from pinch to pan),
+      // we need to update the saved state to prevent jumping
+      if (e.numberOfPointers > 0) {
+          logGesture('pinch.end.fingerReleased', { pointers: e.numberOfPointers });
+          return;
+      }
       
       // Always reset if resetOnRelease is true
       if (resetOnRelease) {
