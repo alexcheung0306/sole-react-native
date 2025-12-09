@@ -71,7 +71,33 @@ try {
 
     fs.writeFileSync(envPath, content);
     console.log(`Updated ${key} to ${newValue}`);
+
+    // Update backend application.properties
+    const servicePath = path.join(__dirname, '..', '..', 'sole-service', 'src', 'main', 'resources', 'application.properties');
+    if (fs.existsSync(servicePath)) {
+        let serviceContent = fs.readFileSync(servicePath, 'utf8');
+        const serviceKey = 'api.base.url';
+        // Match api.base.url=http://.../api
+        const serviceRegex = new RegExp(`^${serviceKey.replace(/\./g, '\\.')}=http://[^:]+:${port}/api$`, 'm');
+        const newServiceValue = `${serviceKey}=http://${ip}:${port}/api`;
+
+        // Use a broader regex to catch any existing value for this key
+        const broadServiceRegex = new RegExp(`^${serviceKey.replace(/\./g, '\\.')}=(.*)$`, 'm');
+
+        if (broadServiceRegex.test(serviceContent)) {
+            serviceContent = serviceContent.replace(broadServiceRegex, newServiceValue);
+            fs.writeFileSync(servicePath, serviceContent);
+            console.log(`Updated ${serviceKey} in sole-service to ${newServiceValue}`);
+        } else {
+            console.log(`Could not find ${serviceKey} in application.properties`);
+        }
+    } else {
+        console.log(`Backend properties file not found at: ${servicePath}`);
+        // Try fallback path if the structure is different?
+        // User said: locate application.properties in sole-service...
+    }
+
 } catch (error) {
-    console.error('Error updating .env.local:', error);
+    console.error('Error updating files:', error);
     process.exit(1);
 }
