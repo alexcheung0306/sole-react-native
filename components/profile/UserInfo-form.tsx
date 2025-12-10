@@ -59,27 +59,78 @@ function UserInfoFormEffects({
   setSelectedCategories: (categories: string[]) => void;
 }) {
   const { values, setFieldValue } = useFormikContext<ProfileFormValues>();
+  const hasSyncedOnOpenRef = React.useRef(false);
 
   // Effect to update profilePic when selectedMedia changes (returned from camera)
+  // Track the first media item's URI to detect changes
+  const selectedMediaUri = selectedMedia.length > 0 ? selectedMedia[0]?.uri : null;
+  
   useEffect(() => {
-    if (isFocused && isWaitingForCamera && selectedMedia.length > 0) {
-      const mediaItem = selectedMedia[0];
-      console.log('Setting profilePic to:', mediaItem.uri);
-      setFieldValue('profilePic', mediaItem.uri);
-      setIsWaitingForCamera(false); // Reset flag
+    console.log('[UserInfoForm] Effect triggered:', {
+      isFocused,
+      isWaitingForCamera,
+      selectedMediaLength: selectedMedia.length,
+      selectedMediaUri,
+      currentProfilePic: values.profilePic,
+    });
+    
+    if (isFocused && isWaitingForCamera && selectedMediaUri) {
+      console.log('[UserInfoForm] Camera returned, setting profilePic to:', selectedMediaUri);
+      console.log('[UserInfoForm] Current profilePic value:', values.profilePic);
+      if (selectedMediaUri !== values.profilePic) {
+        console.log('[UserInfoForm] Updating profilePic from', values.profilePic, 'to', selectedMediaUri);
+        setFieldValue('profilePic', selectedMediaUri);
+        setIsWaitingForCamera(false); // Reset flag
+      } else {
+        console.log('[UserInfoForm] URI unchanged, skipping update');
+        setIsWaitingForCamera(false);
+      }
+    } else if (isWaitingForCamera && !selectedMediaUri) {
+      console.log('[UserInfoForm] Waiting for camera but no media yet');
     }
-  }, [isFocused, isWaitingForCamera, selectedMedia, setFieldValue]);
+  }, [isFocused, isWaitingForCamera, selectedMediaUri, values.profilePic]); // Track URI directly to detect changes
+
+  // Reset sync flag when modal closes
+  useEffect(() => {
+    if (!isModalOpen) {
+      hasSyncedOnOpenRef.current = false;
+    }
+  }, [isModalOpen]);
 
   // Sync Formik values when modal opens to ensure initial values are set
+  // Only sync ONCE when modal first opens, and only if we're NOT waiting for camera
+  // Also don't sync if current value is a local file URI (from camera) - preserve user's new selection
   useEffect(() => {
-    if (isModalOpen) {
+    if (isModalOpen && !isWaitingForCamera && !hasSyncedOnOpenRef.current) {
       const currentProfilePic = userInfo?.profilePic || user?.imageUrl || null;
-      if (currentProfilePic && currentProfilePic !== values.profilePic) {
-        console.log('Syncing profilePic on modal open:', currentProfilePic);
+      const isLocalFile = values.profilePic?.startsWith('file://');
+      
+      console.log('[UserInfoForm] Sync effect check:', {
+        isModalOpen,
+        isWaitingForCamera,
+        hasSynced: hasSyncedOnOpenRef.current,
+        currentProfilePic,
+        valuesProfilePic: values.profilePic,
+        isLocalFile,
+      });
+      
+      // Don't overwrite if:
+      // 1. Current value is a local file (from camera) - user just selected a new image
+      // 2. Current value matches the server value - already in sync
+      if (isLocalFile) {
+        console.log('[UserInfoForm] Skipping sync - preserving local file selection:', values.profilePic);
+        hasSyncedOnOpenRef.current = true; // Mark as synced to prevent future overwrites
+      } else if (currentProfilePic && currentProfilePic !== values.profilePic) {
+        console.log('[UserInfoForm] Syncing profilePic on modal open:', currentProfilePic);
         setFieldValue('profilePic', currentProfilePic);
+        hasSyncedOnOpenRef.current = true;
+      } else if (currentProfilePic === values.profilePic) {
+        // Already in sync, just mark as synced
+        console.log('[UserInfoForm] Already in sync, marking as synced');
+        hasSyncedOnOpenRef.current = true;
       }
     }
-  }, [isModalOpen, userInfo?.profilePic, user?.imageUrl, values.profilePic, setFieldValue]);
+  }, [isModalOpen, isWaitingForCamera, userInfo?.profilePic, user?.imageUrl, values.profilePic]); // Added isWaitingForCamera to prevent overwrite
 
   // Sync selectedCategories with Formik values when modal opens
   useEffect(() => {
@@ -335,6 +386,7 @@ export const UserInfoForm = React.memo(function UserInfoForm({ userProfileData, 
                     className="h-24 w-24 self-center overflow-hidden rounded-full border-2 border-white/20 bg-zinc-800">
                     {values.profilePic && values.profilePic.trim() ? (
                       <Image
+                        key={values.profilePic}
                         source={{ uri: values.profilePic }}
                         className="h-full w-full"
                       />
