@@ -6,9 +6,9 @@ import {
   TextInput,
   Alert,
   ScrollView,
+  Image,
 } from 'react-native';
 import { X, Camera, User as UserIcon, Plus } from 'lucide-react-native';
-import { Image as ExpoImage } from 'expo-image';
 import { Formik, useFormikContext } from 'formik';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
@@ -334,10 +334,9 @@ export const UserInfoForm = React.memo(function UserInfoForm({ userProfileData, 
                     }}
                     className="h-24 w-24 self-center overflow-hidden rounded-full border-2 border-white/20 bg-zinc-800">
                     {values.profilePic && values.profilePic.trim() ? (
-                      <ExpoImage
+                      <Image
                         source={{ uri: values.profilePic }}
                         className="h-full w-full"
-                        contentFit="cover"
                       />
                     ) : (
                       <View className="h-full w-full items-center justify-center">

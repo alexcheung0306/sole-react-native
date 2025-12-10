@@ -1,12 +1,13 @@
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { MessageCircle, MoreVertical, MapPin } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { Post, Comment } from '~/types/post';
 import { ImageCarousel } from './ImageCarousel';
 import { LikeButton } from './LikeButton';
 import { CommentSheet } from './CommentSheet';
+import { PostDrawer } from './PostDrawer';
 
 interface PostCardProps {
   post: Post;
@@ -18,6 +19,7 @@ interface PostCardProps {
 export function PostCard({ post, onLike, onAddComment, comments }: PostCardProps) {
   const router = useRouter();
   const commentSheetRef = useRef<BottomSheet>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -101,7 +103,10 @@ export function PostCard({ post, onLike, onAddComment, comments }: PostCardProps
           </TouchableOpacity>
 
           {/* More Options */}
-          <TouchableOpacity className="p-2">
+          <TouchableOpacity 
+            className="p-2"
+            onPress={() => setIsDrawerOpen(true)}
+            activeOpacity={0.7}>
             <MoreVertical size={20} color="#ffffff" />
           </TouchableOpacity>
         </View>
@@ -161,6 +166,13 @@ export function PostCard({ post, onLike, onAddComment, comments }: PostCardProps
         postId={post.id}
         comments={comments}
         onAddComment={(content) => onAddComment(post.id, content)}
+      />
+
+      {/* Post Drawer */}
+      <PostDrawer
+        post={post}
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
       />
     </>
   );

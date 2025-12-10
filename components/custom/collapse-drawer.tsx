@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   KeyboardAvoidingView,
+  LayoutChangeEvent,
 } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -19,6 +20,7 @@ import Animated, {
   cancelAnimation,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GlassOverlay } from './GlassView';
 
 type Props = {
@@ -27,6 +29,7 @@ type Props = {
   title?: string;
   children: React.ReactNode;
   height?: number;
+  autoHeight?: boolean; // If true, height fits content (max 0.88 of screen)
 };
 
 export default function CollapseDrawer({
@@ -35,11 +38,28 @@ export default function CollapseDrawer({
   title = '',
   children,
   height = 0.88,
+  autoHeight = true,
 }: Props) {
   const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-  const DRAWER_HEIGHT = SCREEN_HEIGHT * height;
+  const insets = useSafeAreaInsets();
   const translateY = useSharedValue(SCREEN_HEIGHT);
   const [isVisible, setIsVisible] = useState(false);
+  const [contentHeight, setContentHeight] = useState(0);
+  
+  // Handle height: ~33px (5px handle + 12px paddingBottom + 16px title margin if exists)
+  const HANDLE_HEIGHT = title ? 33 : 17;
+  const MAX_HEIGHT = SCREEN_HEIGHT * 0.88;
+  
+  // Calculate drawer height: fixed or dynamic
+  const getDrawerHeight = () => {
+    if (autoHeight) {
+      const calculatedHeight = HANDLE_HEIGHT + contentHeight + 20 + insets.bottom; // +20 for padding + bottom inset
+      return Math.min(calculatedHeight, MAX_HEIGHT);
+    }
+    return SCREEN_HEIGHT * height;
+  };
+  
+  const DRAWER_HEIGHT = getDrawerHeight();
 
   // Handle drawer show/hide with animation
   useEffect(() => {
@@ -96,6 +116,11 @@ export default function CollapseDrawer({
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
+  
+  // Calculate current drawer height (reactive to contentHeight changes)
+  const currentDrawerHeight = autoHeight
+    ? Math.min(HANDLE_HEIGHT + contentHeight + 20 + insets.bottom, MAX_HEIGHT)
+    : DRAWER_HEIGHT;
 
   if (!isVisible) return null;
 
@@ -121,7 +146,7 @@ export default function CollapseDrawer({
             style={[
               animatedStyle,
               {
-                height: DRAWER_HEIGHT,
+                height: currentDrawerHeight,
                 borderWidth: 1,
                 borderColor: 'rgba(255, 255, 255, 0.3)',
                 borderBottomWidth: 0,
@@ -143,20 +168,37 @@ export default function CollapseDrawer({
             </GestureDetector>
 
             {/* Content */}
-            {Platform.OS === 'ios' ? (
-              <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-                <ScrollView
-                  bounces={false}
-                  showsVerticalScrollIndicator={false}
-                  keyboardShouldPersistTaps="handled"
-                  scrollEnabled={true}>
-                  {children}
-                </ScrollView>
-              </KeyboardAvoidingView>
-            ) : (
-              <ScrollView style={{ flex: 1 }} scrollEnabled={true} nestedScrollEnabled={true}>
+            {autoHeight ? (
+              <View
+                style={{ paddingBottom: insets.bottom }}
+                onLayout={(e: LayoutChangeEvent) => {
+                  setContentHeight(e.nativeEvent.layout.height);
+                }}>
                 {children}
-              </ScrollView>
+              </View>
+            ) : (
+              <View style={{ flex: 1, paddingBottom: insets.bottom }}>
+                {Platform.OS === 'ios' ? (
+                  <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+                    <ScrollView
+                      bounces={false}
+                      showsVerticalScrollIndicator={false}
+                      keyboardShouldPersistTaps="handled"
+                      scrollEnabled={true}
+                      contentContainerStyle={{ paddingBottom: insets.bottom }}>
+                      {children}
+                    </ScrollView>
+                  </KeyboardAvoidingView>
+                ) : (
+                  <ScrollView 
+                    style={{ flex: 1 }} 
+                    scrollEnabled={true} 
+                    nestedScrollEnabled={true}
+                    contentContainerStyle={{ paddingBottom: insets.bottom }}>
+                    {children}
+                  </ScrollView>
+                )}
+              </View>
             )}
           </Animated.View>
         </View>

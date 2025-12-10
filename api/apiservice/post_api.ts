@@ -332,6 +332,25 @@ export const createPost = async (postData: CreatePostRequest): Promise<PostWithD
 }
 
 /**
+ * Delete a post
+ * DELETE /api/post/{id}
+ */
+export const deletePost = async (id: number): Promise<void> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/post/${id}`, {
+      method: 'DELETE',
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Failed to delete post: ${response.statusText}`)
+    }
+  } catch (error) {
+    console.error("Error deleting post:", error)
+    throw error
+  }
+}
+
+/**
  * Create a comment on a post
  * POST /api/post-comments
  * 
