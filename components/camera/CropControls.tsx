@@ -1,4 +1,4 @@
-import { Trash2 } from 'lucide-react-native';
+import { Layers, Trash2 } from 'lucide-react-native';
 import { View, TouchableOpacity, Alert } from 'react-native';
 import { AspectRatioWheel } from './AspectRatioWheel';
 import { MediaItem, useCreatePostContext } from '~/context/CreatePostContext';
@@ -9,11 +9,17 @@ export default function CropControls({
   setSelectedAspectRatio,
   currentIndex,
   setCurrentIndex,
+  multipleSelection,
+  setIsMultiSelect,
+  isMultiSelect,
 }: {
   selectedAspectRatio: number;
   setSelectedAspectRatio: (ratio: number) => void;
   currentIndex: number;
   setCurrentIndex: (index: number) => void;
+  multipleSelection: string;
+  setIsMultiSelect: (isMultiSelect: boolean) => void;
+  isMultiSelect: boolean;
 }) {
   const { selectedMedia, setSelectedMedia, removeMedia } = useCreatePostContext();
 
@@ -81,43 +87,42 @@ export default function CropControls({
 
     setSelectedMedia(updated);
   };
-  const handleDelete = () => {
-    if (!selectedMedia[currentIndex]) return;
-
-    Alert.alert('Delete Media', 'Are you sure you want to remove this item?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          removeMedia(selectedMedia[currentIndex].id);
-
-          if (selectedMedia.length === 1) {
-            router.back();
-          } else if (currentIndex >= selectedMedia.length - 1) {
-            setCurrentIndex(selectedMedia.length - 2);
-          }
-        },
-      },
-    ]);
-  };
+ 
   return (
-    <View className="border-b border-gray-800 px-4 py-4">
-      <View className="flex-row items-center justify-between gap-4">
-        {/* Aspect Ratio Wheel - Centered */}
-        <View className="flex-1 items-center justify-center">
-          <AspectRatioWheel
-            selectedRatio={selectedAspectRatio}
-            onRatioChange={handleAspectRatioChange}
-          />
-        </View>
+    <View className="absolute bottom-3 left-0 right-0 z-50 px-4">
+      <View className="flex-row items-center justify-between">
+        {/* Aspect Ratio Toggle - Left */}
+        <AspectRatioWheel
+          selectedRatio={selectedAspectRatio}
+          onRatioChange={handleAspectRatioChange}
+        />
 
-        {/* Delete Button - Icon Only */}
-        <TouchableOpacity
-          onPress={handleDelete}
-          className="aspect-square h-[50px] flex-row items-center justify-center rounded-lg bg-red-500/20 px-4 py-3">
-          <Trash2 size={20} color="#ef4444" />
-        </TouchableOpacity>
+        {/* Multi-select toggle button - Right */}
+        {multipleSelection === 'true' && (
+          <TouchableOpacity
+            onPress={() => {
+              setIsMultiSelect(!isMultiSelect);
+              // If switching to single mode, keep only the last selected item
+              if (isMultiSelect && selectedMedia.length > 1) {
+                const lastItem = selectedMedia[selectedMedia.length - 1];
+                setSelectedMedia([lastItem]);
+                setCurrentIndex(0);
+              }
+            }}
+            style={{
+              position: 'absolute',
+              right: 12,
+              bottom: 12,
+              backgroundColor: isMultiSelect ? 'rgb(0, 140, 255)' : 'rgba(0,0,0,0.6)',
+              borderRadius: 20,
+              padding: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+            }}>
+            <Layers size={12} color="#ffffff" />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );

@@ -7,11 +7,13 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
+  FlatList,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import {
   Camera,
   Image as ImageIcon,
@@ -24,6 +26,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useCreatePostContext, MediaItem } from '~/context/CreatePostContext';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { CollapsibleHeader } from '~/components/CollapsibleHeader';
+import MainMedia from '~/components/camera/MainMedia';
+import CropControls from '~/components/camera/CropControls';
 
 const { width } = Dimensions.get('window');
 const ITEM_SIZE = width / 3;
@@ -42,6 +46,9 @@ export default React.memo(function CameraScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isMultiSelect, setIsMultiSelect] = useState(true);
   const [manualPreview, setManualPreview] = useState<MediaItem | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState<number>(1);
+
   const preserveSelectionRef = useRef(false);
   const { functionParam, multipleSelection } = useLocalSearchParams<{
     functionParam: FunctionParam;
@@ -184,6 +191,11 @@ export default React.memo(function CameraScreen() {
       }));
 
       setPhotos(assets);
+      
+      // Automatically select the first photo (most recent) if nothing is selected yet
+      if (retryCount === 0 && assets.length > 0 && selectedMedia.length === 0) {
+        setSelectedMedia([assets[0]]);
+      }
     } catch (error) {
       // Suppress AUDIO permission error logging on emulator
       const errorMessage = (error as Error).message || 'Unknown error';
@@ -267,7 +279,16 @@ export default React.memo(function CameraScreen() {
         };
 
         // Add to selection (append) and refresh list
-        setSelectedMedia([...selectedMedia, newMedia]);
+        // Note: loadPhotos logic above handles selecting first item if empty, 
+        // but here we explicitly want to select the new camera photo.
+        // We do this by ensuring it's in the list and selected.
+        const updatedSelected = [...selectedMedia, newMedia];
+        setSelectedMedia(updatedSelected);
+        
+        // We need to reload photos to show the new asset in the grid
+        // but passing a flag or checking inside loadPhotos to avoid over-selecting might be needed.
+        // For now, loadPhotos selects [0] only if selectedMedia is empty. 
+        // Since we just updated selectedMedia, loadPhotos won't override it.
         loadPhotos();
       }
     } catch (error) {
@@ -280,6 +301,10 @@ export default React.memo(function CameraScreen() {
     const isSelected = selectedMedia.some((m) => m.id === media.id);
 
     if (isSelected) {
+      // Prevent deselecting if it's the last remaining photo
+      if (selectedMedia.length <= 1) {
+        return;
+      }
       setSelectedMedia(selectedMedia.filter((m) => m.id !== media.id));
     } else {
       // If not in multi-select mode, only allow one selection
@@ -340,6 +365,201 @@ export default React.memo(function CameraScreen() {
         ? photos[0]
         : null);
 
+  // Calculate center crop for a given aspect ratio
+  const calculateCenterCrop = (media: MediaItem, targetRatio: number) => {
+    const naturalWidth = media.cropData?.naturalWidth ?? media.width;
+    const naturalHeight = media.cropData?.naturalHeight ?? media.height;
+
+    // If we don't have dimensions, return null or default
+    if (!naturalWidth || !naturalHeight) return null;
+
+    let cropWidth = naturalWidth;
+    let cropHeight = cropWidth / targetRatio;
+
+    if (cropHeight > naturalHeight) {
+      cropHeight = naturalHeight;
+      cropWidth = cropHeight * targetRatio;
+    }
+
+    const x = (naturalWidth - cropWidth) / 2;
+    const y = (naturalHeight - cropHeight) / 2;
+
+    return {
+      x,
+      y,
+      width: cropWidth,
+      height: cropHeight,
+      zoom: 1,
+      naturalWidth,
+      naturalHeight,
+    };
+  };
+
+  return (
+    <CameraContent
+      insets={insets}
+      animatedHeaderStyle={animatedHeaderStyle}
+      onScroll={onScroll}
+      handleHeightChange={handleHeightChange}
+      selectedMedia={selectedMedia}
+      setSelectedMedia={setSelectedMedia}
+      isLoading={isLoading}
+      isMultiSelect={isMultiSelect}
+      setIsMultiSelect={setIsMultiSelect}
+      setManualPreview={setManualPreview}
+      currentIndex={currentIndex}
+      setCurrentIndex={setCurrentIndex}
+      selectedAspectRatio={selectedAspectRatio}
+      setSelectedAspectRatio={setSelectedAspectRatio}
+      mediaItems={mediaItems}
+      previewItem={previewItem}
+      openCamera={openCamera}
+      toggleSelection={toggleSelection}
+      getSelectionNumber={getSelectionNumber}
+      width={width}
+      functionParam={functionParam}
+      multipleSelection={multipleSelection}
+      router={router}
+      calculateCenterCrop={calculateCenterCrop}
+      preserveSelectionRef={preserveSelectionRef}
+    />
+  );
+});
+
+// Extracted component to avoid hooks issue in memoized component
+const CameraContent = ({
+  insets,
+  animatedHeaderStyle,
+  onScroll,
+  handleHeightChange,
+  selectedMedia,
+  setSelectedMedia,
+  isLoading,
+  isMultiSelect,
+  setIsMultiSelect,
+  setManualPreview,
+  currentIndex,
+  setCurrentIndex,
+  selectedAspectRatio,
+  setSelectedAspectRatio,
+  mediaItems,
+  previewItem,
+  openCamera,
+  toggleSelection,
+  getSelectionNumber,
+  width,
+  functionParam,
+  multipleSelection,
+  router,
+  calculateCenterCrop,
+  preserveSelectionRef,
+}: any) => {
+  // Initialize crop data for all photos when selection changes
+  useEffect(() => {
+    // Only initialize if photos don't have cropData yet
+    const needsInitialization = selectedMedia.some(
+      (item: MediaItem) => item.mediaType === 'photo' && !item.cropData
+    );
+
+    if (needsInitialization) {
+      const updated = selectedMedia.map((item: MediaItem) => {
+        if (item.mediaType !== 'photo' || item.cropData) return item;
+
+        const newCropData = calculateCenterCrop(item, selectedAspectRatio);
+        if (!newCropData) return item;
+
+        const originalUri = item.originalUri ?? item.uri;
+
+        return {
+          ...item,
+          cropData: newCropData,
+          originalUri: originalUri,
+        };
+      });
+
+      setSelectedMedia(updated);
+    }
+  }, [selectedMedia, selectedAspectRatio]);
+
+  const handleNext = async () => {
+    if (selectedMedia.length === 0) {
+      Alert.alert('No Media Selected', 'Please select at least one photo or video');
+      return;
+    }
+    preserveSelectionRef.current = true;
+
+    if (functionParam === 'post') {
+      router.push('/(protected)/camera/caption' as any);
+    } else if (functionParam === 'project') {
+      // Apply crop if available
+      if (selectedMedia.length > 0) {
+        const media = selectedMedia[0];
+        if (media.mediaType === 'photo' && media.cropData) {
+          try {
+            const sourceUri = media.originalUri ?? media.uri;
+            const naturalWidth = media.cropData.naturalWidth ?? media.width ?? 1080;
+            const naturalHeight = media.cropData.naturalHeight ?? media.height ?? 1080;
+
+            const cropX = Math.max(0, Math.min(Math.round(media.cropData.x), naturalWidth - 1));
+            const cropY = Math.max(0, Math.min(Math.round(media.cropData.y), naturalHeight - 1));
+
+            let cropWidth = Math.round(media.cropData.width);
+            let cropHeight = Math.round(media.cropData.height);
+
+            // Ensure width/height are at least 1 and fit within bounds
+            cropWidth = Math.max(1, cropWidth);
+            cropHeight = Math.max(1, cropHeight);
+
+            if (cropX + cropWidth > naturalWidth) cropWidth = naturalWidth - cropX;
+            if (cropY + cropHeight > naturalHeight) cropHeight = naturalHeight - cropY;
+
+            const actions = [
+              {
+                crop: {
+                  originX: cropX,
+                  originY: cropY,
+                  width: cropWidth,
+                  height: cropHeight,
+                },
+              },
+            ];
+
+            const result = await ImageManipulator.manipulateAsync(sourceUri, actions, {
+              compress: 0.8,
+              format: ImageManipulator.SaveFormat.JPEG,
+            });
+
+            // Update context with cropped image
+            const updated = [...selectedMedia];
+            updated[0] = {
+              ...media,
+              uri: result.uri,
+              width: result.width,
+              height: result.height,
+            };
+            setSelectedMedia(updated);
+          } catch (error) {
+            console.error('Failed to crop project image:', error);
+          }
+        }
+      }
+
+      // Return to Project Modal
+      if (router.canGoBack()) router.back();
+    } else {
+      router.push('/(protected)/projects' as any);
+    }
+  };
+
+  // Update currentIndex when selection changes to ensure it's valid
+  useEffect(() => {
+    if (selectedMedia.length === 0) {
+      setCurrentIndex(0);
+    } else if (currentIndex >= selectedMedia.length) {
+      setCurrentIndex(selectedMedia.length - 1);
+    }
+  }, [selectedMedia.length]);
+
   return (
     <>
       <View className="flex-1 bg-black">
@@ -362,17 +582,7 @@ export default React.memo(function CameraScreen() {
           isDark={true}
           headerRight={
             <TouchableOpacity
-              onPress={() => {
-                if (selectedMedia.length === 0) {
-                  Alert.alert('No Media Selected', 'Please select at least one photo or video');
-                  return;
-                }
-                preserveSelectionRef.current = true;
-                router.push({
-                  pathname: '/(protected)/camera/edit' as any,
-                  params: { functionParam },
-                });
-              }}
+              onPress={handleNext}
               disabled={selectedMedia.length === 0}
               className="p-2">
               <Text
@@ -395,7 +605,7 @@ export default React.memo(function CameraScreen() {
         ) : (
           <Animated.FlatList
             data={mediaItems}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item: any) => item.id}
             numColumns={3}
             onScroll={onScroll}
             scrollEventThrottle={16}
@@ -404,58 +614,68 @@ export default React.memo(function CameraScreen() {
               paddingTop: insets.top + 50,
               paddingBottom: insets.bottom + 72,
             }}
-
             // Preview item
             ListHeaderComponent={() => {
-              {
-                if (!previewItem) return null;
+              if (!previewItem) return null;
 
-                return (
-                  <View style={{ width, height: width }} className="relative bg-black">
-                    <ExpoImage
-                      source={{ uri: previewItem.uri }}
-                      style={{ width, height: width }}
-                      contentFit="cover"
-                    />
-                    {previewItem.mediaType === 'video' && (
-                      <View className="absolute inset-0 items-center justify-center bg-black/30">
-                        <VideoIcon size={48} color="#ffffff" />
-                      </View>
-                    )}
+              return (
+                <View>
+                  {/* Main Media Display (Editable) */}
+                  <MainMedia
+                    currentIndex={currentIndex}
+                    width={width}
+                    selectedAspectRatio={selectedAspectRatio}
+                  />
 
-                    {/* Multi-select toggle button */}
-                    {multipleSelection === 'true' && (
-                      <TouchableOpacity
-                        onPress={() => {
-                          setIsMultiSelect(!isMultiSelect);
-                          // If switching to single mode, keep only the last selected item
-                          if (isMultiSelect && selectedMedia.length > 1) {
-                            const lastItem = selectedMedia[selectedMedia.length - 1];
-                            setSelectedMedia([lastItem]);
-                          }
-                        }}
-                        style={{
-                          position: 'absolute',
-                          right: 12,
-                          bottom: 12,
-                          backgroundColor: isMultiSelect ? 'rgb(0, 140, 255)' : 'rgba(0,0,0,0.6)',
-                          borderRadius: 20,
-                          padding: 8,
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          gap: 6,
-                        }}>
-                        <Layers size={12} color="#ffffff" />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                );
-              }
+                  {/* Controls */}
+                  <CropControls
+                    selectedAspectRatio={selectedAspectRatio}
+                    setSelectedAspectRatio={setSelectedAspectRatio}
+                    currentIndex={currentIndex}
+                    setCurrentIndex={setCurrentIndex}
+                    multipleSelection={multipleSelection}
+                    setIsMultiSelect={setIsMultiSelect}
+                    isMultiSelect={isMultiSelect}
+                  />
+
+                  {/* Thumbnail Strip (only if multiple selected) */}
+                  {1==1 && (
+                    <View className="bg-black px-4 py-3">
+                      <Text className="mb-2 text-sm text-gray-400">
+                        Selected ({selectedMedia.length})
+                      </Text>
+                      <FlatList
+                        data={selectedMedia}
+                        renderItem={({ item, index }: { item: MediaItem; index: number }) => (
+                          <TouchableOpacity
+                            onPress={() => setCurrentIndex(index)}
+                            className={`mr-2 ${currentIndex === index ? 'border-2 border-blue-500' : 'border border-gray-600'} overflow-hidden rounded-lg`}
+                            style={{ width: 60, height: 60 }}>
+                            <ExpoImage
+                              source={{ uri: item.uri }}
+                              style={{ width: 60, height: 60 }}
+                              contentFit="cover"
+                            />
+                            {item.mediaType === 'video' && (
+                              <View className="absolute inset-0 items-center justify-center bg-black/30">
+                                <ImageIcon size={16} color="#ffffff" />
+                              </View>
+                            )}
+                          </TouchableOpacity>
+                        )}
+                        keyExtractor={(item) => item.id}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                      />
+                    </View>
+                  )}
+              
+                </View>
+              );
+
             }}
-
-
             // Gallery grid items
-            renderItem={({ item, index }) => {
+            renderItem={({ item, index }: any) => {
               // Camera option in first position
               if (index === 0 && item.id === 'camera') {
                 return (
@@ -469,7 +689,7 @@ export default React.memo(function CameraScreen() {
                   </TouchableOpacity>
                 );
               }
-              const isSelected = selectedMedia.some((m) => m.id === item.id);
+              const isSelected = selectedMedia.some((m: MediaItem) => m.id === item.id);
               const selectionNumber = getSelectionNumber(item.id);
               return (
                 <View
@@ -492,11 +712,13 @@ export default React.memo(function CameraScreen() {
                             );
                           } else {
                             setSelectedMedia([...selectedMedia, item]);
+                            setCurrentIndex(selectedMedia.length); // Focus on new item
                           }
                         }
                       } else {
                         // In single mode, selecting sets preview automatically via selection
                         toggleSelection(item);
+                        setCurrentIndex(0); // Single item is always index 0
                       }
                     }}
                     activeOpacity={0.9}>
@@ -558,4 +780,4 @@ export default React.memo(function CameraScreen() {
       </View>
     </>
   );
-});
+};
