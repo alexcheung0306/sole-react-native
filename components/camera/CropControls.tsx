@@ -87,7 +87,7 @@ export default function CropControls({
 
     setSelectedMedia(updated);
   };
- 
+
   return (
     <View className="absolute bottom-3 left-0 right-0 z-50 px-4">
       <View className="flex-row items-center justify-between">

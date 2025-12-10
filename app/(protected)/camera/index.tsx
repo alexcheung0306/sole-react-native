@@ -191,7 +191,7 @@ export default React.memo(function CameraScreen() {
       }));
 
       setPhotos(assets);
-      
+
       // Automatically select the first photo (most recent) if nothing is selected yet
       if (retryCount === 0 && assets.length > 0 && selectedMedia.length === 0) {
         setSelectedMedia([assets[0]]);
@@ -279,15 +279,15 @@ export default React.memo(function CameraScreen() {
         };
 
         // Add to selection (append) and refresh list
-        // Note: loadPhotos logic above handles selecting first item if empty, 
+        // Note: loadPhotos logic above handles selecting first item if empty,
         // but here we explicitly want to select the new camera photo.
         // We do this by ensuring it's in the list and selected.
         const updatedSelected = [...selectedMedia, newMedia];
         setSelectedMedia(updatedSelected);
-        
+
         // We need to reload photos to show the new asset in the grid
         // but passing a flag or checking inside loadPhotos to avoid over-selecting might be needed.
-        // For now, loadPhotos selects [0] only if selectedMedia is empty. 
+        // For now, loadPhotos selects [0] only if selectedMedia is empty.
         // Since we just updated selectedMedia, loadPhotos won't override it.
         loadPhotos();
       }
@@ -425,6 +425,121 @@ export default React.memo(function CameraScreen() {
     />
   );
 });
+
+// Separate component for ListHeader to ensure stability
+const CameraHeader = ({
+  previewItem,
+  selectedMedia,
+  currentIndex,
+  width,
+  selectedAspectRatio,
+  setSelectedAspectRatio,
+  setCurrentIndex,
+  multipleSelection,
+  setIsMultiSelect,
+  isMultiSelect,
+}: any) => {
+  if (!previewItem) return null;
+
+  if (selectedMedia.length > 0) {
+    return (
+      <View>
+        {/* Main Media Display (Editable) */}
+        <View>
+          <MainMedia
+            currentIndex={currentIndex}
+            width={width}
+            selectedAspectRatio={selectedAspectRatio}
+          />
+
+          {/* Controls */}
+          <CropControls
+            selectedAspectRatio={selectedAspectRatio}
+            setSelectedAspectRatio={setSelectedAspectRatio}
+            currentIndex={currentIndex}
+            setCurrentIndex={setCurrentIndex}
+            multipleSelection={multipleSelection}
+            setIsMultiSelect={setIsMultiSelect}
+            isMultiSelect={isMultiSelect}
+          />
+        </View>
+
+        {/* Thumbnail Strip (only if multiple selected) */}
+        {selectedMedia.length > 1 && (
+          <View className="bg-black px-4 py-3">
+            <Text className="mb-2 text-sm text-gray-400">Selected ({selectedMedia.length})</Text>
+            <FlatList
+              data={selectedMedia}
+              renderItem={({ item, index }: { item: MediaItem; index: number }) => (
+                <TouchableOpacity
+                  onPress={() => setCurrentIndex(index)}
+                  className={`mr-2 ${currentIndex === index ? 'border-2 border-blue-500' : 'border border-gray-600'} overflow-hidden rounded-lg`}
+                  style={{ width: 60, height: 60 }}>
+                  <ExpoImage
+                    source={{ uri: item.uri }}
+                    style={{ width: 60, height: 60 }}
+                    contentFit="cover"
+                  />
+                  {item.mediaType === 'video' && (
+                    <View className="absolute inset-0 items-center justify-center bg-black/30">
+                      <ImageIcon size={16} color="#ffffff" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              )}
+              keyExtractor={(item) => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+            />
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ width, height: width }} className="relative bg-black">
+      <ExpoImage
+        source={{ uri: previewItem.uri }}
+        style={{ width, height: width }}
+        contentFit="cover"
+      />
+
+      {previewItem.mediaType === 'video' && (
+        <View className="absolute inset-0 items-center justify-center bg-black/30">
+          <VideoIcon size={48} color="#ffffff" />
+        </View>
+      )}
+
+      {/* Multi-select toggle button */}
+      {multipleSelection === 'true' && (
+        <TouchableOpacity
+          onPress={() => {
+            setIsMultiSelect(!isMultiSelect);
+            // If switching to single mode, keep only the last selected item
+            if (isMultiSelect && selectedMedia.length > 1) {
+              const lastItem = selectedMedia[selectedMedia.length - 1];
+              setSelectedMedia([lastItem]);
+              setCurrentIndex(0);
+            }
+          }}
+          style={{
+            position: 'absolute',
+            right: 12,
+            bottom: 12,
+            backgroundColor: isMultiSelect ? 'rgb(0, 140, 255)' : 'rgba(0,0,0,0.6)',
+            borderRadius: 20,
+            padding: 8,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+          }}>
+          <Layers size={12} color="#ffffff" />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
 
 // Extracted component to avoid hooks issue in memoized component
 const CameraContent = ({
@@ -614,66 +729,21 @@ const CameraContent = ({
               paddingTop: insets.top + 50,
               paddingBottom: insets.bottom + 72,
             }}
-            // Preview item
-            ListHeaderComponent={() => {
-              if (!previewItem) return null;
-
-              return (
-                <View>
-                  {/* Main Media Display (Editable) */}
-                  <MainMedia
-                    currentIndex={currentIndex}
-                    width={width}
-                    selectedAspectRatio={selectedAspectRatio}
-                  />
-
-                  {/* Controls */}
-                  <CropControls
-                    selectedAspectRatio={selectedAspectRatio}
-                    setSelectedAspectRatio={setSelectedAspectRatio}
-                    currentIndex={currentIndex}
-                    setCurrentIndex={setCurrentIndex}
-                    multipleSelection={multipleSelection}
-                    setIsMultiSelect={setIsMultiSelect}
-                    isMultiSelect={isMultiSelect}
-                  />
-
-                  {/* Thumbnail Strip (only if multiple selected) */}
-                  {1==1 && (
-                    <View className="bg-black px-4 py-3">
-                      <Text className="mb-2 text-sm text-gray-400">
-                        Selected ({selectedMedia.length})
-                      </Text>
-                      <FlatList
-                        data={selectedMedia}
-                        renderItem={({ item, index }: { item: MediaItem; index: number }) => (
-                          <TouchableOpacity
-                            onPress={() => setCurrentIndex(index)}
-                            className={`mr-2 ${currentIndex === index ? 'border-2 border-blue-500' : 'border border-gray-600'} overflow-hidden rounded-lg`}
-                            style={{ width: 60, height: 60 }}>
-                            <ExpoImage
-                              source={{ uri: item.uri }}
-                              style={{ width: 60, height: 60 }}
-                              contentFit="cover"
-                            />
-                            {item.mediaType === 'video' && (
-                              <View className="absolute inset-0 items-center justify-center bg-black/30">
-                                <ImageIcon size={16} color="#ffffff" />
-                              </View>
-                            )}
-                          </TouchableOpacity>
-                        )}
-                        keyExtractor={(item) => item.id}
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                      />
-                    </View>
-                  )}
-              
-                </View>
-              );
-
-            }}
+            // Preview item - Use stable component
+            ListHeaderComponent={
+              <CameraHeader
+                previewItem={previewItem}
+                selectedMedia={selectedMedia}
+                currentIndex={currentIndex}
+                width={width}
+                selectedAspectRatio={selectedAspectRatio}
+                setSelectedAspectRatio={setSelectedAspectRatio}
+                setCurrentIndex={setCurrentIndex}
+                multipleSelection={multipleSelection}
+                setIsMultiSelect={setIsMultiSelect}
+                isMultiSelect={isMultiSelect}
+              />
+            }
             // Gallery grid items
             renderItem={({ item, index }: any) => {
               // Camera option in first position
@@ -703,7 +773,7 @@ const CameraContent = ({
                         // 1. Set preview
                         setManualPreview(item);
                         // 2. Select (add) if not already selected
-                        // 3. DO NOT deselect if already selected (let the number tap handle that)
+                        // 3. If already selected, just update current index to show it
                         if (!isSelected) {
                           if (selectedMedia.length >= MAX_SELECTION) {
                             Alert.alert(
@@ -713,6 +783,12 @@ const CameraContent = ({
                           } else {
                             setSelectedMedia([...selectedMedia, item]);
                             setCurrentIndex(selectedMedia.length); // Focus on new item
+                          }
+                        } else {
+                          // Already selected - find its index in selectedMedia and focus it
+                          const index = selectedMedia.findIndex((m: MediaItem) => m.id === item.id);
+                          if (index !== -1) {
+                            setCurrentIndex(index);
                           }
                         }
                       } else {

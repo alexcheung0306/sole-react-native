@@ -41,7 +41,7 @@ export function AspectRatioWheel({ selectedRatio, onRatioChange }: AspectRatioWh
         gap: 6,
       }}>
       <Icon size={12} color="#ffffff" />
-      <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: 'bold' }}>
+      <Text style={{ color: '#ffffff', fontSize:8, fontWeight: 'bold' }}>
         {currentItem.label}
       </Text>
     </TouchableOpacity>
