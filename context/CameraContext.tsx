@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 export interface MediaItem {
   id: string;
@@ -30,6 +31,7 @@ interface CameraContextType {
   selectedAspectRatio: 'free' | '1:1' | '4:5' | '16:9';
   setSelectedAspectRatio: (ratio: 'free' | '1:1' | '4:5' | '16:9') => void;
   resetPostData: () => void;
+  cropMedia: (media: MediaItem) => Promise<MediaItem>;
 }
 
 const CameraContext = createContext<CameraContextType | undefined>(undefined);
@@ -55,6 +57,87 @@ export function CameraProvider({ children }: { children: ReactNode }) {
     setSelectedAspectRatio('free');
   }, []);
 
+  /**
+   * Crops a media item based on its cropData.
+   * Returns the original media item if cropping is not needed or fails.
+   */
+  const cropMedia = useCallback(async (media: MediaItem): Promise<MediaItem> => {
+    // Only crop photos with crop data
+    if (media.mediaType !== 'photo' || !media.cropData) {
+      return media;
+    }
+
+    try {
+      // Use originalUri if available to ensure best quality and correct coordinates
+      const sourceUri = media.originalUri ?? media.uri;
+      
+      // Get the natural dimensions from cropData or fallback to media dimensions
+      const naturalWidth = media.cropData.naturalWidth ?? media.width ?? 1080;
+      const naturalHeight = media.cropData.naturalHeight ?? media.height ?? 1080;
+      
+      // Validate that we have valid crop data
+      if (!media.cropData.width || !media.cropData.height || 
+          media.cropData.width <= 0 || media.cropData.height <= 0) {
+        console.warn('Invalid crop data, skipping crop:', media.cropData);
+        return media;
+      }
+
+      // Round and clamp crop coordinates to ensure they're valid integers within bounds
+      const cropX = Math.max(0, Math.min(Math.round(media.cropData.x), naturalWidth - 1));
+      const cropY = Math.max(0, Math.min(Math.round(media.cropData.y), naturalHeight - 1));
+      
+      let cropWidth = Math.max(1, Math.min(
+        Math.round(media.cropData.width),
+        naturalWidth - cropX
+      ));
+      let cropHeight = Math.max(1, Math.min(
+        Math.round(media.cropData.height),
+        naturalHeight - cropY
+      ));
+
+      // Ensure crop doesn't exceed image bounds
+      if (cropX + cropWidth > naturalWidth) {
+        cropWidth = naturalWidth - cropX;
+      }
+      if (cropY + cropHeight > naturalHeight) {
+        cropHeight = naturalHeight - cropY;
+      }
+
+      // Ensure valid dimensions
+      if (cropWidth <= 0 || cropHeight <= 0) {
+        console.warn('Invalid crop dimensions, using original');
+        return media;
+      }
+
+      const actions = [
+        {
+          crop: {
+            originX: cropX,
+            originY: cropY,
+            width: cropWidth,
+            height: cropHeight,
+          },
+        },
+      ];
+
+      const result = await ImageManipulator.manipulateAsync(sourceUri, actions, {
+        compress: 0.8,
+        format: ImageManipulator.SaveFormat.JPEG,
+      });
+
+      return {
+        ...media,
+        uri: result.uri,
+        width: result.width,
+        height: result.height,
+      };
+    } catch (error) {
+      console.error('Failed to crop media:', error);
+      // Return original media on error
+      return media;
+    }
+  }, []);
+
   const value = useMemo(
     () => ({
       selectedMedia,
@@ -65,6 +148,7 @@ export function CameraProvider({ children }: { children: ReactNode }) {
       selectedAspectRatio,
       setSelectedAspectRatio,
       resetPostData,
+      cropMedia,
     }),
     [
       selectedMedia,
@@ -74,6 +158,7 @@ export function CameraProvider({ children }: { children: ReactNode }) {
       selectedAspectRatio,
       setSelectedAspectRatio,
       resetPostData,
+      cropMedia,
     ]
   );
 

@@ -13,7 +13,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
 import {
   Camera,
   Image as ImageIcon,
@@ -42,7 +41,7 @@ type AspectRatio = '1:1' | '4:5' | '16:9' | 'free';
 export default React.memo(function CameraScreen() {
   const insets = useSafeAreaInsets();
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
-  const { selectedMedia, setSelectedMedia, clearMedia } = useCameraContext();
+  const { selectedMedia, setSelectedMedia, clearMedia, cropMedia } = useCameraContext();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [photos, setPhotos] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -452,12 +451,13 @@ export default React.memo(function CameraScreen() {
       calculateCenterCrop={calculateCenterCrop}
       preserveSelectionRef={preserveSelectionRef}
       isAspectRatioLocked={isAspectRatioLocked}
+      cropMedia={cropMedia}
     />
   );
 });
 
 // Separate component for ListHeader to ensure stability
-const CameraHeader = ({
+const CameraCroppingArea = ({
   previewItem,
   selectedMedia,
   currentIndex,
@@ -601,6 +601,7 @@ const CameraContent = ({
   calculateCenterCrop,
   preserveSelectionRef,
   isAspectRatioLocked,
+  cropMedia,
 }: any) => {
   // Initialize crop data for all photos when selection changes
   useEffect(() => {
@@ -642,53 +643,13 @@ const CameraContent = ({
       // Apply crop if available
       if (selectedMedia.length > 0) {
         const media = selectedMedia[0];
-        if (media.mediaType === 'photo' && media.cropData) {
-          try {
-            const sourceUri = media.originalUri ?? media.uri;
-            const naturalWidth = media.cropData.naturalWidth ?? media.width ?? 1080;
-            const naturalHeight = media.cropData.naturalHeight ?? media.height ?? 1080;
-
-            const cropX = Math.max(0, Math.min(Math.round(media.cropData.x), naturalWidth - 1));
-            const cropY = Math.max(0, Math.min(Math.round(media.cropData.y), naturalHeight - 1));
-
-            let cropWidth = Math.round(media.cropData.width);
-            let cropHeight = Math.round(media.cropData.height);
-
-            // Ensure width/height are at least 1 and fit within bounds
-            cropWidth = Math.max(1, cropWidth);
-            cropHeight = Math.max(1, cropHeight);
-
-            if (cropX + cropWidth > naturalWidth) cropWidth = naturalWidth - cropX;
-            if (cropY + cropHeight > naturalHeight) cropHeight = naturalHeight - cropY;
-
-            const actions = [
-              {
-                crop: {
-                  originX: cropX,
-                  originY: cropY,
-                  width: cropWidth,
-                  height: cropHeight,
-                },
-              },
-            ];
-
-            const result = await ImageManipulator.manipulateAsync(sourceUri, actions, {
-              compress: 0.8,
-              format: ImageManipulator.SaveFormat.JPEG,
-            });
-
-            // Update context with cropped image
-            const updated = [...selectedMedia];
-            updated[0] = {
-              ...media,
-              uri: result.uri,
-              width: result.width,
-              height: result.height,
-            };
-            setSelectedMedia(updated);
-          } catch (error) {
-            console.error('Failed to crop project image:', error);
-          }
+        const croppedMedia = await cropMedia(media);
+        
+        // Update context with cropped image if it was actually cropped
+        if (croppedMedia.uri !== media.uri) {
+          const updated = [...selectedMedia];
+          updated[0] = croppedMedia;
+          setSelectedMedia(updated);
         }
       }
 
@@ -764,7 +725,7 @@ const CameraContent = ({
             }}
             // Preview item - Use stable component
             ListHeaderComponent={
-              <CameraHeader
+              <CameraCroppingArea
                 previewItem={previewItem}
                 selectedMedia={selectedMedia}
                 currentIndex={currentIndex}
