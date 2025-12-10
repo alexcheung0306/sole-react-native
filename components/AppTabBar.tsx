@@ -81,8 +81,8 @@ export default function AppTabBar() {
         setActiveTab('home');
       } else if (pathname?.includes('/explore')) {
         setActiveTab('explore');
-      } else if (pathname?.includes('/camera')) {
-        setActiveTab('camera');
+      // } else if (pathname?.includes('/camera')) {
+      //   setActiveTab('camera');
       } else if (pathname?.includes('/job')) {
         setActiveTab('job');
       } else if (pathname?.includes('/user/')) {
@@ -121,9 +121,7 @@ export default function AppTabBar() {
   };
 
   const handleUserCameraPress = () => {
-    if (activeTab !== 'camera') {
-      setActiveTab('camera');
-    }
+    router.push('/(protected)/camera' as any);
   };
 
   const handleUserJobPress = () => {

@@ -12,7 +12,7 @@ export default function UserTabLayout() {
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="home" options={{ headerShown: false }} />
         <Stack.Screen name="explore" options={{ headerShown: false }} />
-        <Stack.Screen name="camera" options={{ headerShown: false }} />
+        {/* <Stack.Screen name="camera" options={{ headerShown: false }} /> */}
         <Stack.Screen name="job" options={{ headerShown: false }} />
         <Stack.Screen name="user" options={{ headerShown: false }} />
       </Stack>

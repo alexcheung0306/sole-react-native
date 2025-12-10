@@ -26,7 +26,7 @@ export default function UserSwipeableContainer({
     activeTabRef.current = activeTab;
   }, [activeTab]);
 
-  const indexToTab = ['home', 'explore', 'camera', 'job', 'user'] as const;
+  const indexToTab = ['home', 'explore', 'job', 'user'] as const;
   const onIndexChange = useCallback(
     (index: number) => {
       // Get the latest activeTab value from ref to avoid stale closure

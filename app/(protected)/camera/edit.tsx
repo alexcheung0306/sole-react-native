@@ -10,7 +10,16 @@ import {
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
-import { X, Check, Trash2, Image as ImageIcon, Crop, Square, RectangleVertical, RectangleHorizontal } from 'lucide-react-native';
+import {
+  X,
+  Check,
+  Trash2,
+  Image as ImageIcon,
+  Crop,
+  Square,
+  RectangleVertical,
+  RectangleHorizontal,
+} from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Video, ResizeMode } from 'expo-av';
 import { useCreatePostContext, MediaItem } from '~/context/CreatePostContext';
@@ -42,8 +51,7 @@ const BouncyButton = ({ onPress, children, className, style }: any) => {
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       className={className}
-      style={[style, animatedStyle]}
-    >
+      style={[style, animatedStyle]}>
       {children}
     </AnimatedPressable>
   );
@@ -53,11 +61,7 @@ const { width, height } = Dimensions.get('window');
 
 export default function PreviewScreen() {
   const insets = useSafeAreaInsets();
-  const {
-    selectedMedia,
-    setSelectedMedia,
-    removeMedia,
-  } = useCreatePostContext();
+  const { selectedMedia, setSelectedMedia, removeMedia } = useCreatePostContext();
   const [currentIndex, setCurrentIndex] = useState(0);
   // Default to 1:1 as requested
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<number>(1);
@@ -167,26 +171,22 @@ export default function PreviewScreen() {
   const handleDelete = () => {
     if (!selectedMedia[currentIndex]) return;
 
-    Alert.alert(
-      'Delete Media',
-      'Are you sure you want to remove this item?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            removeMedia(selectedMedia[currentIndex].id);
+    Alert.alert('Delete Media', 'Are you sure you want to remove this item?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          removeMedia(selectedMedia[currentIndex].id);
 
-            if (selectedMedia.length === 1) {
-              router.back();
-            } else if (currentIndex >= selectedMedia.length - 1) {
-              setCurrentIndex(selectedMedia.length - 2);
-            }
-          },
+          if (selectedMedia.length === 1) {
+            router.back();
+          } else if (currentIndex >= selectedMedia.length - 1) {
+            setCurrentIndex(selectedMedia.length - 2);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleCropUpdate = (cropData: any) => {
@@ -202,10 +202,6 @@ export default function PreviewScreen() {
     });
 
     setSelectedMedia(updated);
-  };
-
-  const navigateToCaption = () => {
-    router.push('/(protected)/(user)/camera/caption' as any);
   };
 
   const getAspectRatioValue = (item: MediaItem) => {
@@ -244,8 +240,7 @@ export default function PreviewScreen() {
     return (
       <View
         style={{ width, height: fixedContainerHeight }}
-        className="bg-black items-center justify-center overflow-hidden relative"
-      >
+        className="relative items-center justify-center overflow-hidden bg-black">
         {item.mediaType === 'video' ? (
           <Video
             source={{ uri: item.uri }}
@@ -274,14 +269,9 @@ export default function PreviewScreen() {
   const renderThumbnail = ({ item, index }: { item: MediaItem; index: number }) => (
     <TouchableOpacity
       onPress={() => setCurrentIndex(index)}
-      className={`mr-2 ${currentIndex === index ? 'border-2 border-blue-500' : 'border border-gray-600'} rounded-lg overflow-hidden`}
-      style={{ width: 60, height: 60 }}
-    >
-      <ExpoImage
-        source={{ uri: item.uri }}
-        style={{ width: 60, height: 60 }}
-        contentFit="cover"
-      />
+      className={`mr-2 ${currentIndex === index ? 'border-2 border-blue-500' : 'border border-gray-600'} overflow-hidden rounded-lg`}
+      style={{ width: 60, height: 60 }}>
+      <ExpoImage source={{ uri: item.uri }} style={{ width: 60, height: 60 }} contentFit="cover" />
       {item.mediaType === 'video' && (
         <View className="absolute inset-0 items-center justify-center bg-black/30">
           <ImageIcon size={16} color="#ffffff" />
@@ -295,22 +285,27 @@ export default function PreviewScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-black" style={{ paddingTop: insets.top }}>
         {/* Header */}
-        <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-800">
+        <View className="flex-row items-center justify-between border-b border-gray-800 px-4 py-3">
           <TouchableOpacity onPress={handleClose} className="p-2">
             <X size={24} color="#ffffff" />
           </TouchableOpacity>
-          <Text className="text-white font-semibold text-lg">Edit</Text>
-          <TouchableOpacity onPress={navigateToCaption} className="p-2">
-            <Text className="text-blue-500 font-semibold">Next</Text>
+          <Text className="text-lg font-semibold text-white">Edit</Text>
+          <TouchableOpacity
+            onPress={() => router.push('/(protected)/camera/caption' as any)}
+            className="p-2">
+            <Text className="font-semibold text-blue-500">Next</Text>
           </TouchableOpacity>
         </View>
 
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+        <ScrollView
+          className="flex-1"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 100 }}>
           {/* Main Media Display */}
           {renderMainMedia()}
 
           {/* Controls */}
-          <View className="px-4 py-4 border-b border-gray-800">
+          <View className="border-b border-gray-800 px-4 py-4">
             <View className="flex-row items-center justify-between gap-4">
               {/* Aspect Ratio Wheel - Centered */}
               <View className="flex-1 items-center justify-center">
@@ -323,8 +318,7 @@ export default function PreviewScreen() {
               {/* Delete Button - Icon Only */}
               <TouchableOpacity
                 onPress={handleDelete}
-                className="flex-row items-center justify-center bg-red-500/20 rounded-lg px-4 py-3 aspect-square h-[50px]"
-              >
+                className="aspect-square h-[50px] flex-row items-center justify-center rounded-lg bg-red-500/20 px-4 py-3">
                 <Trash2 size={20} color="#ef4444" />
               </TouchableOpacity>
             </View>
@@ -333,7 +327,7 @@ export default function PreviewScreen() {
           {/* Thumbnail Strip */}
           {selectedMedia.length > 1 && (
             <View className="px-4 py-3">
-              <Text className="text-gray-400 text-sm mb-2">All Media ({selectedMedia.length})</Text>
+              <Text className="mb-2 text-sm text-gray-400">All Media ({selectedMedia.length})</Text>
               <FlatList
                 data={selectedMedia}
                 renderItem={renderThumbnail}
@@ -345,9 +339,6 @@ export default function PreviewScreen() {
           )}
         </ScrollView>
       </View>
-
-
     </>
   );
 }
-

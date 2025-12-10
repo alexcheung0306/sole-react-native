@@ -43,6 +43,7 @@ export default function ProtectedLayout() {
         <View style={{ flex: 1, backgroundColor: '#000000' }}>
           <Stack
             screenOptions={{
+              headerShown: false,
               contentStyle: { backgroundColor: '#000000' },
             }}>
             {/* <Stack.Screen name="index" options={{ headerShown: false, href: null }} /> */}
@@ -58,6 +59,7 @@ export default function ProtectedLayout() {
             />
             <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
             <Stack.Screen name="chat" options={{ headerShown: false }} />
+            <Stack.Screen name="camera" options={{ headerShown: false }} />
           </Stack>
           {showTabBar && <AppTabBar />}
         </View>

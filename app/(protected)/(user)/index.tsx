@@ -2,18 +2,18 @@ import { useAppTabContext, isUserTab } from '@/context/AppTabContext';
 import UserSwipeableContainer from '@/components/user/UserSwipeableContainer';
 import UserHome from './home';
 import Explore from './explore';
-import CameraScreen from './camera/index';
+// import CameraScreen from './camera/index';
 import UserProfileWrapper from './UserProfileWrapper';
 import JobIndex from './job';
 
 // Map tab names to indices
-const tabToIndex = {
+const tabToIndex: { [key: string]: number } = {
   home: 0,
   explore: 1,
-  camera: 2,
-  job: 3,
-  user: 4,
-} as const;
+  // camera: 2,
+  job: 2,
+  user: 3,
+};
 
 export default function UserIndex() {
   const { activeTab } = useAppTabContext();
@@ -29,7 +29,7 @@ export default function UserIndex() {
     <UserSwipeableContainer activeIndex={activeIndex}>
       <UserHome />
       <Explore />
-      <CameraScreen />
+      {/* <CameraScreen /> */}
       <JobIndex />
       <UserProfileWrapper />
     </UserSwipeableContainer>

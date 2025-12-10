@@ -14,7 +14,14 @@ import { Stack, router } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
-import { Camera, X, Check, Image as ImageIcon, Video as VideoIcon } from 'lucide-react-native';
+import {
+  Camera,
+  X,
+  Check,
+  Image as ImageIcon,
+  Video as VideoIcon,
+  ChevronLeft,
+} from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCreatePostContext, MediaItem } from '~/context/CreatePostContext';
@@ -281,16 +288,6 @@ export default React.memo(function CameraScreen() {
     return index >= 0 ? index + 1 : null;
   };
 
-  const navigateToPreview = () => {
-    if (selectedMedia.length === 0) {
-      Alert.alert('No Media Selected', 'Please select at least one photo or video');
-      return;
-    }
-
-    preserveSelectionRef.current = true;
-    router.push('/(protected)/(user)/camera/edit' as any);
-  };
-
   const renderMediaItem = ({ item, index }: { item: MediaItem; index: number }) => {
     // Camera option in first position
     if (index === 0 && item.id === 'camera') {
@@ -409,9 +406,16 @@ export default React.memo(function CameraScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-black">
         <CollapsibleHeader
+          headerLeft={
+            <TouchableOpacity
+              onPress={() => router.back()}
+              activeOpacity={0.85}
+              className="flex items-center justify-center p-2">
+              <ChevronLeft color="#93c5fd" size={24} />
+            </TouchableOpacity>
+          }
           title={
             selectedMedia.length > 0 ? `${selectedMedia.length}/${MAX_SELECTION}` : 'Select Media'
           }
@@ -420,7 +424,14 @@ export default React.memo(function CameraScreen() {
           isDark={true}
           headerRight={
             <TouchableOpacity
-              onPress={navigateToPreview}
+              onPress={() => {
+                if (selectedMedia.length === 0) {
+                  Alert.alert('No Media Selected', 'Please select at least one photo or video');
+                  return;
+                }
+                preserveSelectionRef.current = true;
+                router.push('/(protected)/camera/edit' as any);
+              }}
               disabled={selectedMedia.length === 0}
               className="p-2">
               <Text
