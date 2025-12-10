@@ -214,23 +214,22 @@ export function TalentInfoForm({ userProfileData, talentLevel, talentInfo }: Tal
 
     return (
       <View className="mb-4">
-        <Text className="mb-2 text-sm font-medium text-white">
-          {label} <Text className="text-red-500">*</Text>
-        </Text>
-        <View className="rounded-lg border border-gray-700 bg-gray-800 px-4 py-3">
-          <TextInput
-            className="text-base text-white"
-            value={value?.toString() || ''}
-            onChangeText={(text) => {
-              setFieldValue(key, text);
-              setFieldTouched(key, true);
-            }}
-            placeholder={placeholder}
-            placeholderTextColor="#6b7280"
-            keyboardType={keyboardType}
-          />
+        <View className="mb-2 flex-row items-center gap-2">
+          <Text className="text-white">{label}</Text>
+          <Text className="text-red-500">*</Text>
         </View>
-        {error && <Text className="mt-1 text-xs text-red-500">{error}</Text>}
+        <TextInput
+          className="rounded-lg border border-white/20 bg-zinc-800 p-3 text-white"
+          value={value?.toString() || ''}
+          onChangeText={(text) => {
+            setFieldValue(key, text);
+            setFieldTouched(key, true);
+          }}
+          placeholder={placeholder}
+          placeholderTextColor="#6b7280"
+          keyboardType={keyboardType}
+        />
+        {error && <Text className="mt-1 text-sm text-red-400">{error}</Text>}
       </View>
     );
   };
@@ -249,9 +248,10 @@ export function TalentInfoForm({ userProfileData, talentLevel, talentInfo }: Tal
 
     return (
       <View className="mb-4">
-        <Text className="mb-2 text-sm font-medium text-white">
-          {label} <Text className="text-red-500">*</Text>
-        </Text>
+        <View className="mb-2 flex-row items-center gap-2">
+          <Text className="text-white">{label}</Text>
+          <Text className="text-red-500">*</Text>
+        </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
           {options.map((option) => (
             <TouchableOpacity
@@ -261,7 +261,7 @@ export function TalentInfoForm({ userProfileData, talentLevel, talentInfo }: Tal
                 setFieldTouched(key, true);
               }}
               className={`mr-2 rounded-full border px-4 py-2 ${
-                value === option ? 'border-blue-500 bg-blue-500' : 'border-gray-700 bg-gray-800'
+                value === option ? 'border-blue-500 bg-blue-500' : 'border-white/20 bg-zinc-800'
               }`}>
               <Text
                 className={`text-sm ${
@@ -272,7 +272,7 @@ export function TalentInfoForm({ userProfileData, talentLevel, talentInfo }: Tal
             </TouchableOpacity>
           ))}
         </ScrollView>
-        {error && <Text className="mt-1 text-xs text-red-500">{error}</Text>}
+        {error && <Text className="mt-1 text-sm text-red-400">{error}</Text>}
       </View>
     );
   };
@@ -290,12 +290,13 @@ export function TalentInfoForm({ userProfileData, talentLevel, talentInfo }: Tal
 
     return (
       <View className="mb-4">
-        <Text className="mb-2 text-sm font-medium text-white">
-          {label} <Text className="text-red-500">*</Text>
-        </Text>
+        <View className="mb-2 flex-row items-center gap-2">
+          <Text className="text-white">{label}</Text>
+          <Text className="text-red-500">*</Text>
+        </View>
         <TouchableOpacity
           onPress={() => pickImage(type, setFieldValue)}
-          className="overflow-hidden rounded-lg border border-gray-700 bg-gray-800"
+          className="overflow-hidden rounded-lg border border-white/20 bg-zinc-800"
           style={{ height: 200 }}>
           {imageUri ? (
             <ExpoImage source={{ uri: imageUri }} className="h-full w-full" contentFit="cover" />
@@ -306,7 +307,7 @@ export function TalentInfoForm({ userProfileData, talentLevel, talentInfo }: Tal
             </View>
           )}
         </TouchableOpacity>
-        {error && <Text className="mt-1 text-xs text-red-500">{error}</Text>}
+        {error && <Text className="mt-1 text-sm text-red-400">{error}</Text>}
       </View>
     );
   };
@@ -376,6 +377,8 @@ export function TalentInfoForm({ userProfileData, talentLevel, talentInfo }: Tal
               onClose={() => {
                 resetForm();
               }}
+              headerClassName="border-b border-white/10 px-4 pb-3 pt-12"
+              contentClassName="flex-1"
               trigger={({ open }) =>
                 talentLevel === 0 ? (
                   <View className="items-center ">
@@ -399,7 +402,12 @@ export function TalentInfoForm({ userProfileData, talentLevel, talentInfo }: Tal
                 )
               }>
               {(close) => (
-                <View className="px-4 py-4">
+                <ScrollView
+                  className="flex-1 px-4"
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode="interactive"
+                  contentContainerStyle={{ paddingBottom: 100 }}>
                   {/* Personal Information */}
                   <Text className="mb-4 text-xl font-bold text-white">Personal Information</Text>
                   {renderField(
@@ -542,20 +550,17 @@ export function TalentInfoForm({ userProfileData, talentLevel, talentInfo }: Tal
                     Professional Experience
                   </Text>
                   <View className="mb-4">
-                    <Text className="mb-2 text-sm font-medium text-white">Experience</Text>
-                    <View className="rounded-lg border border-gray-700 bg-gray-800 px-4 py-3">
-                      <TextInput
-                        className="text-base text-white"
-                        value={values.experience}
-                        onChangeText={(text) => setFieldValue('experience', text)}
-                        placeholder="Describe your professional experience..."
-                        placeholderTextColor="#6b7280"
-                        multiline
-                        numberOfLines={6}
-                        textAlignVertical="top"
-                        style={{ minHeight: 120 }}
-                      />
-                    </View>
+                    <Text className="mb-2 text-white">Experience</Text>
+                    <TextInput
+                      className="min-h-[80px] rounded-lg border border-white/20 bg-zinc-800 p-3 text-white"
+                      style={{ textAlignVertical: 'top', color: '#ffffff' }}
+                      value={values.experience}
+                      onChangeText={(text) => setFieldValue('experience', text)}
+                      placeholder="Describe your professional experience..."
+                      placeholderTextColor="#6b7280"
+                      multiline
+                      numberOfLines={6}
+                    />
                   </View>
 
                   {/* Portfolio Snapshots */}
@@ -579,9 +584,7 @@ export function TalentInfoForm({ userProfileData, talentLevel, talentInfo }: Tal
                     validateImageField
                   )}
 
-                  {/* Spacing at bottom */}
-                  <View className="h-8" />
-                </View>
+                </ScrollView>
               )}
             </FormModal>
           );

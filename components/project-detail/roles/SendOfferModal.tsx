@@ -373,22 +373,25 @@ export function SendOfferModal({ applicant, projectData, roleWithSchedules, onSu
             hasErrors={hasErrors}
             onSubmit={submitForm}
             onReset={resetForm}
-            contentClassName="max-h-[80vh]">
+            headerClassName="border-b border-white/10 px-4 pb-3 pt-12"
+            contentClassName="flex-1">
             {() => (
               <ScrollView
                 className="flex-1 px-4"
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 40 }}>
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="interactive"
+                contentContainerStyle={{ paddingBottom: 100 }}>
                 {/* Payment Details */}
-                <View className="mt-4 gap-3">
-                  <View className="gap-2">
-                    <View className="flex-row items-center gap-2">
-                      <Text className="text-sm font-semibold text-white">
+                <View className="mt-4 gap-4">
+                  <View className="mb-4">
+                    <View className="mb-2 flex-row items-center gap-2">
+                      <Text className="text-white">
                         {values.conditions?.[0]?.paymentBasis === 'Hourly Rate'
                           ? 'Finalize Hourly Rate (HKD)'
                           : 'Finalize Project Rate (HKD)'}
-                        <Text className="text-red-400"> *</Text>
                       </Text>
+                      <Text className="text-red-500">*</Text>
                       <View
                         className={`rounded-full px-3 py-1 ${
                           values.conditions?.[0]?.paymentBasis === 'Hourly Rate'
@@ -405,30 +408,30 @@ export function SendOfferModal({ applicant, projectData, roleWithSchedules, onSu
                         </Text>
                       </View>
                     </View>
-                    <View className="flex-row items-center rounded-xl border border-white/10 bg-zinc-900/70">
+                    <View className="flex-row items-center rounded-lg border border-white/20 bg-zinc-800">
                       <Text className="px-4 text-white text-base font-semibold">$</Text>
                       <TextInput
                         value={values.conditions?.[0]?.paymentAmount ? String(values.conditions[0].paymentAmount) : ''}
                         onChangeText={(text) => setFieldValue('conditions.0.paymentAmount', toNumber(text.replace(/[^0-9.]/g, '')))}
                         keyboardType="numeric"
                         placeholder="Enter payment"
-                        placeholderTextColor="rgba(255,255,255,0.6)"
+                        placeholderTextColor="#6b7280"
                         className="flex-1 py-3 pr-4 text-white"
                       />
                     </View>
                     {(touched as any)['conditions.0.paymentAmount'] && (errors as any)['conditions.0.paymentAmount'] && (
-                      <Text className="text-red-400 text-xs">
+                      <Text className="mt-1 text-sm text-red-400">
                         {typeof (errors as any)['conditions.0.paymentAmount'] === 'string' ? (errors as any)['conditions.0.paymentAmount'] : 'Invalid payment amount'}
                       </Text>
                     )}
                   </View>
 
                   {/* Finalize OT Payment / Hour */}
-                  <View className="gap-2">
-                    <Text className="text-sm font-semibold text-white">
+                  <View className="mb-4">
+                    <Text className="mb-2 text-white">
                       Finalize OT Payment / Hour (HKD)
                     </Text>
-                    <View className="flex-row items-center rounded-xl border border-white/10 bg-zinc-900/70">
+                    <View className="flex-row items-center rounded-lg border border-white/20 bg-zinc-800">
                       <Text className="px-4 text-white text-base font-semibold">$</Text>
                       <TextInput
                         value={values.conditions?.[0]?.paymentAmountOt ? String(values.conditions[0].paymentAmountOt) : ''}
@@ -437,21 +440,21 @@ export function SendOfferModal({ applicant, projectData, roleWithSchedules, onSu
                         }
                         keyboardType="numeric"
                         placeholder="Enter OT payment"
-                        placeholderTextColor="rgba(255,255,255,0.6)"
+                        placeholderTextColor="#6b7280"
                         className="flex-1 py-3 pr-4 text-white"
                       />
                     </View>
                     {(touched as any)['conditions.0.paymentAmountOt'] && (errors as any)['conditions.0.paymentAmountOt'] && (
-                      <Text className="text-red-400 text-xs">
+                      <Text className="mt-1 text-sm text-red-400">
                         {typeof (errors as any)['conditions.0.paymentAmountOt'] === 'string' ? (errors as any)['conditions.0.paymentAmountOt'] : 'Invalid OT payment amount'}
                       </Text>
                     )}
                   </View>
 
                   {/* Additional Payment */}
-                  <View className="gap-2">
-                    <Text className="text-sm font-semibold text-white">Additional Payment (HKD)</Text>
-                    <View className="flex-row items-center rounded-xl border border-white/10 bg-zinc-900/70">
+                  <View className="mb-4">
+                    <Text className="mb-2 text-white">Additional Payment (HKD)</Text>
+                    <View className="flex-row items-center rounded-lg border border-white/20 bg-zinc-800">
                       <Text className="px-4 text-white text-base font-semibold">$</Text>
                       <TextInput
                         value={values.conditions?.[0]?.paymentAdditional ? String(values.conditions[0].paymentAdditional) : '0'}
@@ -460,28 +463,30 @@ export function SendOfferModal({ applicant, projectData, roleWithSchedules, onSu
                         }
                         keyboardType="numeric"
                         placeholder="Optional"
-                        placeholderTextColor="rgba(255,255,255,0.6)"
+                        placeholderTextColor="#6b7280"
                         className="flex-1 py-3 pr-4 text-white"
                       />
                     </View>
                   </View>
 
                   {/* Remarks */}
-                  <View className="gap-2">
-                    <Text className="text-sm font-semibold text-white">Remarks</Text>
+                  <View className="mb-4">
+                    <Text className="mb-2 text-white">Remarks</Text>
                     <TextInput
                       value={values.remarks}
                       onChangeText={(text) => setFieldValue('remarks', text)}
                       placeholder="Optional remarks"
-                      placeholderTextColor="rgba(255,255,255,0.6)"
-                      className="rounded-xl border border-white/10 bg-zinc-900/70 px-4 py-3 text-white"
+                      placeholderTextColor="#6b7280"
+                      className="min-h-[80px] rounded-lg border border-white/20 bg-zinc-800 p-3 text-white"
+                      style={{ textAlignVertical: 'top', color: '#ffffff' }}
                       multiline
+                      numberOfLines={3}
                     />
                   </View>
 
                   {/* Finalized Schedules */}
-                  <View className="mt-4 gap-2">
-                    <Text className="text-sm font-semibold text-white">Finalized Schedules</Text>
+                  <View className="mb-4">
+                    <Text className="mb-2 text-white">Finalized Schedules</Text>
                     <RoleScheduleListInputs
                       values={values}
                       setFieldValue={setFieldValue}
@@ -494,16 +499,16 @@ export function SendOfferModal({ applicant, projectData, roleWithSchedules, onSu
                       isSendOffer={true}
                     />
                     {touched.activityScheduleLists && errors.activityScheduleLists && (
-                      <Text className="text-red-400 text-xs">
+                      <Text className="mt-1 text-sm text-red-400">
                         {typeof errors.activityScheduleLists === 'string' ? errors.activityScheduleLists : 'Invalid schedules'}
                       </Text>
                     )}
                   </View>
 
                   {/* Total Job Hours */}
-                  <View className="gap-2">
-                    <Text className="text-sm font-semibold text-white">Total Job Hours</Text>
-                    <View className="rounded-2xl border border-white/10 bg-zinc-900/70 p-4">
+                  <View className="mb-4">
+                    <Text className="mb-2 text-white">Total Job Hours</Text>
+                    <View className="rounded-lg border border-white/20 bg-zinc-800 p-4">
                       <Text className="text-lg font-bold text-white">
                         {totalJobHours.toFixed(1)} {totalJobHours === 1 ? 'hour' : 'hours'}
                       </Text>
@@ -511,9 +516,9 @@ export function SendOfferModal({ applicant, projectData, roleWithSchedules, onSu
                   </View>
 
                   {/* Estimated Payment */}
-                  <View className="gap-2">
-                    <Text className="text-sm font-semibold text-white">Estimated Payment</Text>
-                    <View className="rounded-2xl border border-white/10 bg-zinc-900/70 p-4">
+                  <View className="mb-4">
+                    <Text className="mb-2 text-white">Estimated Payment</Text>
+                    <View className="rounded-lg border border-white/20 bg-zinc-800 p-4">
                       <Text className="text-lg font-bold text-white">
                         ${estimatedPayment.toFixed(2)} HKD
                       </Text>
@@ -521,10 +526,11 @@ export function SendOfferModal({ applicant, projectData, roleWithSchedules, onSu
                   </View>
 
                   {/* Payment Date */}
-                  <View className="gap-2">
-                    <Text className="text-sm font-semibold text-white">
-                      Payment Date<Text className="text-red-400"> *</Text>
-                    </Text>
+                  <View className="mb-4">
+                    <View className="mb-2 flex-row items-center gap-2">
+                      <Text className="text-white">Payment Date</Text>
+                      <Text className="text-red-500">*</Text>
+                    </View>
                     <DateTimePickerInput
                       value={values.conditions?.[0]?.paymentDate || ''}
                       onChange={(value) => setFieldValue('conditions.0.paymentDate', value)}

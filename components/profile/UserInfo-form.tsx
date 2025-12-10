@@ -285,10 +285,10 @@ export const UserInfoForm = React.memo(function UserInfoForm({ userProfileData, 
                     {values.profilePic ? (
                       <ExpoImage
                         source={{ uri: values.profilePic }}
-                        className="h-24 w-24 rounded-full border-2 border-gray-600"
+                        className="h-24 w-24 rounded-full border-2 border-white/20"
                       />
                     ) : (
-                      <View className="h-24 w-24 items-center justify-center rounded-full border-2 border-gray-600 bg-gray-700">
+                      <View className="h-24 w-24 items-center justify-center rounded-full border-2 border-white/20 bg-zinc-800">
                         <UserIcon size={32} color="#9ca3af" />
                       </View>
                     )}
@@ -303,71 +303,66 @@ export const UserInfoForm = React.memo(function UserInfoForm({ userProfileData, 
                 <View className="px-4">
                   {/* Username */}
                   <View className="mb-4">
-                    <Text className="mb-2 text-sm font-medium text-white">
-                      Username <Text className="text-red-500">*</Text>
-                    </Text>
-                    <View className="rounded-lg border border-gray-700 bg-gray-800 px-4 py-3">
-                      <TextInput
-                        className="text-base text-white"
-                        value={values.username}
-                        onChangeText={(text) => {
-                          setFieldValue('username', text);
-                          setFieldTouched('username', true);
-                        }}
-                        placeholder="Enter username"
-                        placeholderTextColor="#6b7280"
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                      />
+                    <View className="mb-2 flex-row items-center gap-2">
+                      <Text className="text-white">Username</Text>
+                      <Text className="text-red-500">*</Text>
                     </View>
+                    <TextInput
+                      className="rounded-lg border border-white/20 bg-zinc-800 p-3 text-white"
+                      value={values.username}
+                      onChangeText={(text) => {
+                        setFieldValue('username', text);
+                        setFieldTouched('username', true);
+                      }}
+                      placeholder="Enter username"
+                      placeholderTextColor="#6b7280"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
                     {touched.username && usernameError && (
-                      <Text className="mt-1 text-xs text-red-500">{usernameError}</Text>
+                      <Text className="mt-1 text-sm text-red-400">{usernameError}</Text>
                     )}
                   </View>
 
                   {/* Name */}
                   <View className="mb-4">
-                    <Text className="mb-2 text-sm font-medium text-white">
-                      Name <Text className="text-red-500">*</Text>
-                    </Text>
-                    <View className="rounded-lg border border-gray-700 bg-gray-800 px-4 py-3">
-                      <TextInput
-                        className="text-base text-white"
-                        value={values.name}
-                        onChangeText={(text) => {
-                          setFieldValue('name', text);
-                          setFieldTouched('name', true);
-                        }}
-                        placeholder="Enter your name"
-                        placeholderTextColor="#6b7280"
-                      />
+                    <View className="mb-2 flex-row items-center gap-2">
+                      <Text className="text-white">Name</Text>
+                      <Text className="text-red-500">*</Text>
                     </View>
+                    <TextInput
+                      className="rounded-lg border border-white/20 bg-zinc-800 p-3 text-white"
+                      value={values.name}
+                      onChangeText={(text) => {
+                        setFieldValue('name', text);
+                        setFieldTouched('name', true);
+                      }}
+                      placeholder="Enter your name"
+                      placeholderTextColor="#6b7280"
+                    />
                     {touched.name && nameError && (
-                      <Text className="mt-1 text-xs text-red-500">{nameError}</Text>
+                      <Text className="mt-1 text-sm text-red-400">{nameError}</Text>
                     )}
                   </View>
 
                   {/* Bio */}
                   <View className="mb-4">
-                    <Text className="mb-2 text-sm font-medium text-white">Bio</Text>
-                    <View className="rounded-lg border border-gray-700 bg-gray-800 px-4 py-3">
-                      <TextInput
-                        className="text-base text-white"
-                        value={values.bio}
-                        onChangeText={(text) => {
-                          setFieldValue('bio', text);
-                          setFieldTouched('bio', true);
-                        }}
-                        placeholder="Tell us about yourself..."
-                        placeholderTextColor="#6b7280"
-                        multiline
-                        numberOfLines={4}
-                        textAlignVertical="top"
-                        style={{ minHeight: 100 }}
-                      />
-                    </View>
+                    <Text className="mb-2 text-white">Bio</Text>
+                    <TextInput
+                      className="min-h-[80px] rounded-lg border border-white/20 bg-zinc-800 p-3 text-white"
+                      style={{ textAlignVertical: 'top', color: '#ffffff' }}
+                      value={values.bio}
+                      onChangeText={(text) => {
+                        setFieldValue('bio', text);
+                        setFieldTouched('bio', true);
+                      }}
+                      placeholder="Tell us about yourself..."
+                      placeholderTextColor="#6b7280"
+                      multiline
+                      numberOfLines={4}
+                    />
                     {touched.bio && bioError && (
-                      <Text className="mt-1 text-xs text-red-500">{bioError}</Text>
+                      <Text className="mt-1 text-sm text-red-400">{bioError}</Text>
                     )}
                     <Text className="mt-1 text-xs text-gray-500">
                       {values.bio.length}/500 characters
@@ -376,7 +371,7 @@ export const UserInfoForm = React.memo(function UserInfoForm({ userProfileData, 
 
                   {/* Categories */}
                   <View className="mb-6">
-                    <Text className="mb-2 text-sm font-medium text-white">
+                    <Text className="mb-2 text-white">
                       Categories (Max 5)
                     </Text>
                     <View className="mb-2 flex-row flex-wrap">
@@ -400,7 +395,7 @@ export const UserInfoForm = React.memo(function UserInfoForm({ userProfileData, 
                     </View>
                     <TouchableOpacity
                       onPress={() => setShowCategorySelector(true)}
-                      className="items-center rounded-lg border border-gray-700 bg-gray-800 px-4 py-3">
+                      className="items-center rounded-lg border border-white/20 bg-zinc-800 px-4 py-3">
                       <Text className="font-medium text-blue-500">
                         {selectedCategories.length === 0 ? 'Add Categories' : 'Edit Categories'}
                       </Text>

@@ -206,15 +206,15 @@ export default function ProjectInfoFormModal({
                       </PrimaryButton>
                     )
               }
-              headerClassName="flex-row items-center justify-between border-b border-white/10 px-4 pb-3 pt-12"
-              contentClassName="p-5">
+              headerClassName="border-b border-white/10 px-4 pb-3 pt-12"
+              contentClassName="flex-1 px-4">
               {(close) => (
                 <>
                   {/* Project Image */}
-                  <View className="mb-5">
-                    <Text className="mb-2 text-sm font-semibold text-white">Project Image</Text>
+                  <View className="mb-4">
+                    <Text className="mb-2 text-white">Project Image</Text>
                     <TouchableOpacity
-                      className="aspect-video w-full overflow-hidden rounded-xl border border-white/10 bg-gray-800/60"
+                      className="aspect-video w-full overflow-hidden rounded-xl border border-white/20 bg-zinc-800"
                       onPress={() => {
                         clearMedia(); // Clear previous selection to ensure we wait for new one
                         setIsWaitingForCamera(true); // Signal that we are waiting for a return
@@ -244,10 +244,10 @@ export default function ProjectInfoFormModal({
 
                   {/* Private Toggle */}
                   <TouchableOpacity
-                    className="mb-5 flex-row items-center justify-between"
+                    className="mb-4 flex-row items-center justify-between"
                     activeOpacity={1}
                     onPress={() => setFieldValue('isPrivate', !values.isPrivate)}>
-                    <Text className="text-sm font-semibold text-white">Private Project</Text>
+                    <Text className="text-white">Private Project</Text>
                     <View
                       className={`h-7 w-[52px] justify-center rounded-full p-0.5 ${
                         values.isPrivate ? 'bg-blue-500' : 'bg-gray-700'
@@ -261,12 +261,13 @@ export default function ProjectInfoFormModal({
                   </TouchableOpacity>
 
                   {/* Project Name */}
-                  <View className="mb-5">
-                    <Text className="mb-2 text-sm font-semibold text-white">
-                      Project Name <Text className="text-red-500">*</Text>
-                    </Text>
+                  <View className="mb-4">
+                    <View className="mb-2 flex-row items-center gap-2">
+                      <Text className="text-white">Project Name</Text>
+                      <Text className="text-red-500">*</Text>
+                    </View>
                     <TextInput
-                      className="rounded-lg border border-white/10 bg-gray-800/60 p-3 text-base text-white"
+                      className="rounded-lg border border-white/20 bg-zinc-800 p-3 text-white"
                       value={values.projectName}
                       onChangeText={(text) => {
                         setFieldValue('projectName', text);
@@ -276,18 +277,19 @@ export default function ProjectInfoFormModal({
                       placeholderTextColor="#6b7280"
                     />
                     {touched.projectName && projectNameError && (
-                      <Text className="mt-1 text-xs text-red-500">Project name is required</Text>
+                      <Text className="mt-1 text-sm text-red-400">Project name is required</Text>
                     )}
                   </View>
 
                   {/* Project Description */}
-                  <View className="mb-5">
-                    <Text className="mb-2 text-sm font-semibold text-white">
-                      Project Description <Text className="text-red-500">*</Text>
-                    </Text>
+                  <View className="mb-4">
+                    <View className="mb-2 flex-row items-center gap-2">
+                      <Text className="text-white">Project Description</Text>
+                      <Text className="text-red-500">*</Text>
+                    </View>
                     <TextInput
-                      className="min-h-[80px] rounded-lg border border-white/10 bg-gray-800/60 p-3 text-base text-white"
-                      style={{ textAlignVertical: 'top' }}
+                      className="min-h-[80px] rounded-lg border border-white/20 bg-zinc-800 p-3 text-white"
+                      style={{ textAlignVertical: 'top', color: '#ffffff' }}
                       value={values.projectDescription}
                       onChangeText={(text) => {
                         setFieldValue('projectDescription', text);
@@ -299,18 +301,18 @@ export default function ProjectInfoFormModal({
                       numberOfLines={4}
                     />
                     {touched.projectDescription && projectDescriptionError && (
-                      <Text className="mt-1 text-xs text-red-500">
+                      <Text className="mt-1 text-sm text-red-400">
                         Project description is required
                       </Text>
                     )}
                   </View>
 
                   {/* Usage */}
-                  <View className="mb-5">
-                    <Text className="mb-2 text-sm font-semibold text-white">Usage</Text>
+                  <View className="mb-4">
+                    <Text className="mb-2 text-white">Usage</Text>
                     <TextInput
-                      className="min-h-[80px] rounded-lg border border-white/10 bg-gray-800/60 p-3 text-base text-white"
-                      style={{ textAlignVertical: 'top' }}
+                      className="min-h-[80px] rounded-lg border border-white/20 bg-zinc-800 p-3 text-white"
+                      style={{ textAlignVertical: 'top', color: '#ffffff' }}
                       value={values.usage}
                       onChangeText={(text) => {
                         setFieldValue('usage', text);
@@ -324,11 +326,11 @@ export default function ProjectInfoFormModal({
                   </View>
 
                   {/* Remarks */}
-                  <View className="mb-5">
-                    <Text className="mb-2 text-sm font-semibold text-white">Remarks</Text>
+                  <View className="mb-4">
+                    <Text className="mb-2 text-white">Remarks</Text>
                     <TextInput
-                      className="min-h-[80px] rounded-lg border border-white/10 bg-gray-800/60 p-3 text-base text-white"
-                      style={{ textAlignVertical: 'top' }}
+                      className="min-h-[80px] rounded-lg border border-white/20 bg-zinc-800 p-3 text-white"
+                      style={{ textAlignVertical: 'top', color: '#ffffff' }}
                       value={values.remarks}
                       onChangeText={(text) => {
                         setFieldValue('remarks', text);

@@ -5,7 +5,6 @@ import { Formik } from 'formik';
 import { Plus, Pencil } from 'lucide-react-native';
 import { FormModal } from '@/components/custom/form-modal';
 import { PrimaryButton } from '@/components/custom/primary-button';
-import { Button, ButtonText } from '@/components/ui/button';
 import { createRoleWithSchedules, updateRoleAndSchedules } from '@/api/apiservice/role_api';
 import { validateNumberField } from '@/lib/validations/form-field-validations';
 import { validateRoleTitle, validateRoleDescription } from '@/lib/validations/role-validation';
@@ -357,7 +356,7 @@ export function RoleForm({
                   />
                 </View>
               }
-              submitButtonText={currentPage === 'confirm' ? 'Save Role' : 'Next'}
+              submitButtonText={currentPage === 'confirm' ? 'Save' : 'Next'}
               isSubmitting={roleMutation.isPending}
               hasErrors={currentPage === 'confirm' ? hasErrors : !isCurrentPageValid()}
               onSubmit={
@@ -411,6 +410,9 @@ export function RoleForm({
                       onRegisterScrollClose={(closeHandler) => {
                         closeDropdownRef.current = closeHandler;
                       }}
+
+
+                      
                     />
                   </ScrollView>
                   <RoleFormNavigationButtons
