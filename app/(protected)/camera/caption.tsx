@@ -18,7 +18,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPost, CreatePostRequest, PostMedia } from '~/api/apiservice/post_api';
 import { useSoleUserContext } from '~/context/SoleUserContext';
 import { useUser } from '@clerk/clerk-expo';
-import { useCameraContext, MediaItem } from '~/context/CreatePostContext';
+import { useCameraContext, MediaItem } from '~/context/CameraContext';
 import * as MediaLibrary from 'expo-media-library';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { useAppTabContext } from '~/context/AppTabContext';

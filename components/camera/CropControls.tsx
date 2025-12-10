@@ -1,7 +1,7 @@
 import { Layers, Trash2 } from 'lucide-react-native';
 import { View, TouchableOpacity, Alert } from 'react-native';
 import { AspectRatioWheel } from './AspectRatioWheel';
-import { MediaItem, useCameraContext } from '~/context/CreatePostContext';
+import { MediaItem, useCameraContext } from '~/context/CameraContext';
 import { router } from 'expo-router';
 
 export default function CropControls({
@@ -12,6 +12,7 @@ export default function CropControls({
   multipleSelection,
   setIsMultiSelect,
   isMultiSelect,
+  isAspectRatioLocked = false,
 }: {
   selectedAspectRatio: number;
   setSelectedAspectRatio: (ratio: number) => void;
@@ -20,6 +21,7 @@ export default function CropControls({
   multipleSelection: string;
   setIsMultiSelect: (isMultiSelect: boolean) => void;
   isMultiSelect: boolean;
+  isAspectRatioLocked?: boolean;
 }) {
   const { selectedMedia, setSelectedMedia, removeMedia } = useCameraContext();
 
@@ -52,6 +54,11 @@ export default function CropControls({
     };
   };
   const handleAspectRatioChange = (ratio: number) => {
+    // Don't allow changes if locked
+    if (isAspectRatioLocked) {
+      return;
+    }
+
     setSelectedAspectRatio(ratio);
 
     // Apply center crop to ALL photos
@@ -95,11 +102,13 @@ export default function CropControls({
         <AspectRatioWheel
           selectedRatio={selectedAspectRatio}
           onRatioChange={handleAspectRatioChange}
+          isLocked={isAspectRatioLocked}
         />
 
         {/* Multi-select toggle button - Right */}
         {multipleSelection === 'true' && (
           <TouchableOpacity
+            activeOpacity={1}
             onPress={() => {
               setIsMultiSelect(!isMultiSelect);
               // If switching to single mode, keep only the last selected item

@@ -70,33 +70,6 @@ export function EditableImage({
             // cropData.zoom is the relative zoom
             scale.value = cropData.zoom || 1;
 
-            // Calculate translation
-            // The cropData.x/y are offsets in the ORIGINAL image coordinates.
-            // We need to convert them to view translation.
-            // 
-            // Logic:
-            // totalScale = baseScale * zoom
-            // imageLeft = -cropData.x * totalScale
-            // imageTop = -cropData.y * totalScale
-            // 
-            // But wait, our view is centered.
-            // Let's look at how we want to behave.
-            // 
-            // If we simplify:
-            // We just want to restore the visual state.
-            // If we saved the cropData from THIS component, we should be able to restore it.
-            // 
-            // Let's assume cropData.x/y are the top-left corner of the crop in original pixels.
-            // 
-            // center of crop in original = x + width/2, y + height/2
-            // center of view = containerWidth/2, containerHeight/2
-            // 
-            // It's complicated to reverse perfectly if the container size changed.
-            // But if we assume consistent container size for the same aspect ratio...
-            // 
-            // Let's try to use the previous logic from ImageCropModal which seemed to work:
-            // translateX = -(x * totalScale) - (frameWidth - scaledWidth) / 2
-
             const totalScale = baseScale * (cropData.zoom || 1);
             const scaledWidth = naturalWidth * totalScale;
             const scaledHeight = naturalHeight * totalScale;

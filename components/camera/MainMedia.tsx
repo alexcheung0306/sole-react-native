@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import { Video, ResizeMode } from 'expo-av';
-import { MediaItem, useCameraContext } from '~/context/CreatePostContext';
+import { MediaItem, useCameraContext } from '~/context/CameraContext';
 import { EditableImage } from '~/components/camera/EditableImage';
 
 export default function MainMedia({

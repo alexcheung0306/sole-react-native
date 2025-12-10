@@ -5,6 +5,7 @@ import { RectangleHorizontal, RectangleVertical, Square } from 'lucide-react-nat
 interface AspectRatioWheelProps {
   selectedRatio: number;
   onRatioChange: (ratio: number) => void;
+  isLocked?: boolean;
 }
 
 const ASPECT_RATIOS = [
@@ -13,12 +14,19 @@ const ASPECT_RATIOS = [
   { key: '16/9', value: 16 / 9, label: '16:9', icon: RectangleHorizontal },
 ];
 
-export function AspectRatioWheel({ selectedRatio, onRatioChange }: AspectRatioWheelProps) {
+export function AspectRatioWheel({
+  selectedRatio,
+  onRatioChange,
+  isLocked = false,
+}: AspectRatioWheelProps) {
   const currentRatioIndex = ASPECT_RATIOS.findIndex(
     (r) => Math.abs(r.value - (selectedRatio === -1 ? 1 : selectedRatio)) < 0.01
   );
 
   const handlePress = () => {
+    if (isLocked) {
+      return; // Don't allow changes when locked
+    }
     const nextIndex = (currentRatioIndex + 1) % ASPECT_RATIOS.length;
     onRatioChange(ASPECT_RATIOS[nextIndex].value);
   };
@@ -29,6 +37,8 @@ export function AspectRatioWheel({ selectedRatio, onRatioChange }: AspectRatioWh
   return (
     <TouchableOpacity
       onPress={handlePress}
+      disabled={isLocked}
+      activeOpacity={1}
       style={{
         position: 'absolute',
         left: 12,
@@ -41,9 +51,7 @@ export function AspectRatioWheel({ selectedRatio, onRatioChange }: AspectRatioWh
         gap: 6,
       }}>
       <Icon size={12} color="#ffffff" />
-      <Text style={{ color: '#ffffff', fontSize:8, fontWeight: 'bold' }}>
-        {currentItem.label}
-      </Text>
+      <Text style={{ color: '#ffffff', fontSize: 8, fontWeight: 'bold' }}>{currentItem.label}</Text>
     </TouchableOpacity>
   );
 }

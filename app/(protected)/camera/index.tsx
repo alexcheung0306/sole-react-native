@@ -23,7 +23,7 @@ import {
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCameraContext, MediaItem } from '~/context/CreatePostContext';
+import { useCameraContext, MediaItem } from '~/context/CameraContext';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { CollapsibleHeader } from '~/components/CollapsibleHeader';
 import MainMedia from '~/components/camera/MainMedia';
@@ -36,6 +36,8 @@ const MAX_SELECTION = 10;
 // define where the camera is used
 type FunctionParam = 'post' | 'profile' | 'project';
 // type MultipleSelection = boolean;
+
+type AspectRatio = '1:1' | '4:5' | '16:9' | 'free';
 
 export default React.memo(function CameraScreen() {
   const insets = useSafeAreaInsets();
@@ -50,10 +52,37 @@ export default React.memo(function CameraScreen() {
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<number>(1);
 
   const preserveSelectionRef = useRef(false);
-  const { functionParam, multipleSelection } = useLocalSearchParams<{
+  const { functionParam, multipleSelection, aspectRatio } = useLocalSearchParams<{
     functionParam: FunctionParam;
     multipleSelection?: string;
+    aspectRatio?: string;
   }>();
+
+  // Parse aspectRatio param and determine if it's locked
+  const parseAspectRatio = (ratio?: string): { value: number; isLocked: boolean } => {
+    if (!ratio || ratio === 'free') {
+      return { value: 1, isLocked: false }; // Default to 1:1 but allow changes
+    }
+    
+    switch (ratio) {
+      case '1:1':
+        return { value: 1, isLocked: true };
+      case '4:5':
+        return { value: 4 / 5, isLocked: true };
+      case '16:9':
+        return { value: 16 / 9, isLocked: true };
+      default:
+        return { value: 1, isLocked: false };
+    }
+  };
+
+  const { value: initialAspectRatio, isLocked: isAspectRatioLocked } = parseAspectRatio(aspectRatio);
+
+  // Initialize aspect ratio from param
+  useEffect(() => {
+    setSelectedAspectRatio(initialAspectRatio);
+  }, [initialAspectRatio]);
+
   // Clear previous data when screen mounts
   useEffect(() => {
     clearMedia();
@@ -422,6 +451,7 @@ export default React.memo(function CameraScreen() {
       router={router}
       calculateCenterCrop={calculateCenterCrop}
       preserveSelectionRef={preserveSelectionRef}
+      isAspectRatioLocked={isAspectRatioLocked}
     />
   );
 });
@@ -438,6 +468,7 @@ const CameraHeader = ({
   multipleSelection,
   setIsMultiSelect,
   isMultiSelect,
+  isAspectRatioLocked,
 }: any) => {
   if (!previewItem) return null;
 
@@ -461,6 +492,7 @@ const CameraHeader = ({
             multipleSelection={multipleSelection}
             setIsMultiSelect={setIsMultiSelect}
             isMultiSelect={isMultiSelect}
+            isAspectRatioLocked={isAspectRatioLocked}
           />
         </View>
 
@@ -568,6 +600,7 @@ const CameraContent = ({
   router,
   calculateCenterCrop,
   preserveSelectionRef,
+  isAspectRatioLocked,
 }: any) => {
   // Initialize crop data for all photos when selection changes
   useEffect(() => {
@@ -742,6 +775,7 @@ const CameraContent = ({
                 multipleSelection={multipleSelection}
                 setIsMultiSelect={setIsMultiSelect}
                 isMultiSelect={isMultiSelect}
+                isAspectRatioLocked={isAspectRatioLocked}
               />
             }
             // Gallery grid items

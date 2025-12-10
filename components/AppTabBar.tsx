@@ -119,7 +119,7 @@ export default function AppTabBar() {
   const handleUserCameraPress = () => {
     router.push({
       pathname: '/(protected)/camera' as any,
-      params: { functionParam: 'post', multipleSelection: 'true' },
+      params: { functionParam: 'post', multipleSelection: 'true', aspectRatio: 'free' },
     });
   };
 

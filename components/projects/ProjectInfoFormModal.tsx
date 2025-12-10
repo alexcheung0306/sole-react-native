@@ -7,7 +7,7 @@ import { useSoleUserContext } from '@/context/SoleUserContext';
 import { createProject, updateProject } from '@/api/apiservice/project_api';
 import { FormModal } from '@/components/custom/form-modal';
 import { PrimaryButton } from '../custom/primary-button';
-import { useCameraContext } from '@/context/CreatePostContext';
+import { useCameraContext } from '~/context/CameraContext';
 import { router } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 
@@ -127,7 +127,7 @@ export default function ProjectInfoFormModal({
       Alert.alert('Error', 'Failed to save project changes');
     }
   };
- 
+
   const modalTitle = method === 'POST' ? 'Create New Project' : 'Edit Project';
   const projectId = initValues?.id;
 
@@ -220,7 +220,11 @@ export default function ProjectInfoFormModal({
                         setIsWaitingForCamera(true); // Signal that we are waiting for a return
                         router.push({
                           pathname: '/(protected)/camera' as any,
-                          params: { functionParam: 'project', multipleSelection: 'false' },
+                          params: {
+                            functionParam: 'project',
+                            multipleSelection: 'false',
+                            aspectRatio: '16:9',
+                          },
                         });
                       }}>
                       {values.projectImage ? (
@@ -339,7 +343,6 @@ export default function ProjectInfoFormModal({
                 </>
               )}
             </FormModal>
- 
           </>
         );
       }}

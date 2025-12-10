@@ -17,7 +17,7 @@ import { Check, X } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 // Slider imports removed
 
-import { MediaItem } from '~/context/CreatePostContext';
+import { MediaItem } from '~/context/CameraContext';
 
 interface ImageCropModalProps {
     visible: boolean;
