@@ -62,6 +62,7 @@ export function EditableImage({
     const scale = useSharedValue(1);
     const translateX = useSharedValue(0);
     const translateY = useSharedValue(0);
+    const isGesturing = useSharedValue(0); // 0 = hidden, 1 = visible
 
     // Initialize from cropData if available
     useEffect(() => {
@@ -127,6 +128,9 @@ export function EditableImage({
     };
 
     const panGesture = Gesture.Pan()
+        .onBegin(() => {
+            isGesturing.value = withTiming(1, { duration: 150 });
+        })
         .onChange((event) => {
             if (isNaN(event.changeX) || isNaN(event.changeY)) return;
 
@@ -144,10 +148,14 @@ export function EditableImage({
             translateY.value = clamp(nextY, -maxTranslateY, maxTranslateY);
         })
         .onEnd(() => {
+            isGesturing.value = withTiming(0, { duration: 200 });
             runOnJS(updateCropData)();
         });
 
     const pinchGesture = Gesture.Pinch()
+        .onBegin(() => {
+            isGesturing.value = withTiming(1, { duration: 150 });
+        })
         .onChange((event) => {
             if (isNaN(event.scaleChange)) return;
 
@@ -164,6 +172,7 @@ export function EditableImage({
             translateY.value = clamp(translateY.value, -maxTranslateY, maxTranslateY);
         })
         .onEnd(() => {
+            isGesturing.value = withTiming(0, { duration: 200 });
             runOnJS(updateCropData)();
         });
 
@@ -183,6 +192,10 @@ export function EditableImage({
         top: (containerHeight - displayHeight) / 2,
     }));
 
+    const gridAnimatedStyle = useAnimatedStyle(() => ({
+        opacity: isGesturing.value,
+    }));
+
     return (
         <View style={{ width: containerWidth, height: containerHeight, overflow: 'hidden', backgroundColor: 'black' }}>
             <GestureDetector gesture={composedGesture}>
@@ -195,15 +208,15 @@ export function EditableImage({
                 </Animated.View>
             </GestureDetector>
 
-            {/* Grid Overlay - Always visible as requested "add the 4 lines" */}
-            <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+            {/* Grid Overlay - Only visible during pan/pinch gestures */}
+            <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, gridAnimatedStyle]}>
                 {/* Vertical Lines */}
                 <View style={{ position: 'absolute', left: '33.33%', top: 0, bottom: 0, width: 1, backgroundColor: 'rgba(255,255,255,0.3)' }} />
                 <View style={{ position: 'absolute', left: '66.66%', top: 0, bottom: 0, width: 1, backgroundColor: 'rgba(255,255,255,0.3)' }} />
                 {/* Horizontal Lines */}
                 <View style={{ position: 'absolute', top: '33.33%', left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.3)' }} />
                 <View style={{ position: 'absolute', top: '66.66%', left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.3)' }} />
-            </View>
+            </Animated.View>
         </View>
     );
 }

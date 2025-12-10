@@ -37,6 +37,7 @@ type FunctionParam = 'post' | 'profile' | 'project';
 // type MultipleSelection = boolean;
 
 type AspectRatio = '1:1' | '4:5' | '16:9' | 'free';
+type Mask = 'circle' | 'square';
 
 export default React.memo(function CameraScreen() {
   const insets = useSafeAreaInsets();
@@ -51,10 +52,11 @@ export default React.memo(function CameraScreen() {
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<number>(1);
 
   const preserveSelectionRef = useRef(false);
-  const { functionParam, multipleSelection, aspectRatio } = useLocalSearchParams<{
+  const { functionParam, multipleSelection, aspectRatio, mask } = useLocalSearchParams<{
     functionParam: FunctionParam;
     multipleSelection?: string;
-    aspectRatio?: string;
+    aspectRatio?: AspectRatio;
+    mask?: Mask;
   }>();
 
   // Parse aspectRatio param and determine if it's locked
@@ -452,6 +454,7 @@ export default React.memo(function CameraScreen() {
       preserveSelectionRef={preserveSelectionRef}
       isAspectRatioLocked={isAspectRatioLocked}
       cropMedia={cropMedia}
+      mask={mask}
     />
   );
 });
@@ -469,6 +472,7 @@ const CameraCroppingArea = ({
   setIsMultiSelect,
   isMultiSelect,
   isAspectRatioLocked,
+  mask,
 }: any) => {
   if (!previewItem) return null;
 
@@ -481,6 +485,7 @@ const CameraCroppingArea = ({
             currentIndex={currentIndex}
             width={width}
             selectedAspectRatio={selectedAspectRatio}
+            mask={mask}
           />
 
           {/* Controls */}
@@ -533,7 +538,11 @@ const CameraCroppingArea = ({
     <View style={{ width, height: width }} className="relative bg-black">
       <ExpoImage
         source={{ uri: previewItem.uri }}
-        style={{ width, height: width }}
+        style={{ 
+          width, 
+          height: width,
+          borderRadius: mask === 'circle' ? width / 2 : 0,
+        }}
         contentFit="cover"
       />
 
@@ -602,6 +611,7 @@ const CameraContent = ({
   preserveSelectionRef,
   isAspectRatioLocked,
   cropMedia,
+  mask,
 }: any) => {
   // Initialize crop data for all photos when selection changes
   useEffect(() => {
@@ -737,6 +747,7 @@ const CameraContent = ({
                 setIsMultiSelect={setIsMultiSelect}
                 isMultiSelect={isMultiSelect}
                 isAspectRatioLocked={isAspectRatioLocked}
+                mask={mask}
               />
             }
             // Gallery grid items

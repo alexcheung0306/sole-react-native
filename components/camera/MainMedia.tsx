@@ -7,10 +7,12 @@ export default function MainMedia({
   currentIndex,
   width,
   selectedAspectRatio,
+  mask,
 }: {
   currentIndex: number;
   width: number;
   selectedAspectRatio: number;
+  mask?: 'circle' | 'square';
 }) {
   const { selectedMedia, setSelectedMedia } = useCameraContext();
   if (selectedMedia.length === 0 || !selectedMedia[currentIndex]) {
@@ -57,6 +59,10 @@ export default function MainMedia({
     setSelectedMedia(updated);
   };
 
+  // Calculate the size for circle mask (use the smaller dimension to ensure it fits)
+  const circleSize = mask === 'circle' ? Math.min(renderWidth, renderHeight) : null;
+  const circleRadius = circleSize ? circleSize / 2 : null;
+
   return (
     <View
       style={{ width, height: fixedContainerHeight }}
@@ -64,13 +70,23 @@ export default function MainMedia({
       {item.mediaType === 'video' ? (
         <Video
           source={{ uri: item.uri }}
-          style={{ width: renderWidth, height: renderHeight }}
+          style={{ 
+            width: renderWidth, 
+            height: renderHeight,
+            borderRadius: mask === 'circle' ? circleRadius || 0 : 0,
+          }}
           resizeMode={ResizeMode.COVER}
           shouldPlay={false}
           useNativeControls
         />
       ) : (
-        <View style={{ width: renderWidth, height: renderHeight, overflow: 'hidden' }}>
+        <View 
+          style={{ 
+            width: renderWidth, 
+            height: renderHeight, 
+            overflow: 'hidden',
+            borderRadius: mask === 'circle' ? circleRadius || 0 : 0,
+          }}>
           <EditableImage
             uri={item.originalUri ?? item.uri}
             containerWidth={renderWidth}

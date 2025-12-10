@@ -64,7 +64,7 @@ function UserInfoFormEffects({
   // Effect to update profilePic when selectedMedia changes (returned from camera)
   // Track the first media item's URI to detect changes
   const selectedMediaUri = selectedMedia.length > 0 ? selectedMedia[0]?.uri : null;
-  
+
   useEffect(() => {
     console.log('[UserInfoForm] Effect triggered:', {
       isFocused,
@@ -73,7 +73,7 @@ function UserInfoFormEffects({
       selectedMediaUri,
       currentProfilePic: values.profilePic,
     });
-    
+
     if (isFocused && isWaitingForCamera && selectedMediaUri) {
       console.log('[UserInfoForm] Camera returned, setting profilePic to:', selectedMediaUri);
       console.log('[UserInfoForm] Current profilePic value:', values.profilePic);
@@ -104,7 +104,7 @@ function UserInfoFormEffects({
     if (isModalOpen && !isWaitingForCamera && !hasSyncedOnOpenRef.current) {
       const currentProfilePic = userInfo?.profilePic || user?.imageUrl || null;
       const isLocalFile = values.profilePic?.startsWith('file://');
-      
+
       console.log('[UserInfoForm] Sync effect check:', {
         isModalOpen,
         isWaitingForCamera,
@@ -113,7 +113,7 @@ function UserInfoFormEffects({
         valuesProfilePic: values.profilePic,
         isLocalFile,
       });
-      
+
       // Don't overwrite if:
       // 1. Current value is a local file (from camera) - user just selected a new image
       // 2. Current value matches the server value - already in sync
@@ -351,172 +351,173 @@ export const UserInfoForm = React.memo(function UserInfoForm({ userProfileData, 
               user={user}
               setSelectedCategories={setSelectedCategories}
             />
-          <FormModal
-            open={isModalOpen}
-            onOpenChange={setIsModalOpen}
-            title="Edit Profile"
-            triggerText="Edit Profile"
-            submitButtonText="Save"
-            isSubmitting={isSubmitting}
-            hasErrors={hasErrors}
-            isLoading={isLoading}
-            onSubmit={submitForm}
-            onReset={resetForm}
-            onClose={() => {
-              resetForm();
-            }}>
-            {(close) => (
-              <>
-                {/* Profile Picture */}
-                <View className="mb-4">
-                  <Text className="mb-2 text-white">Profile Picture</Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      clearMedia(); // Clear previous selection to ensure we wait for new one
-                      setIsWaitingForCamera(true); // Signal that we are waiting for a return
-                      router.push({
-                        pathname: '/(protected)/camera' as any,
-                        params: {
-                          functionParam: 'userProfile',
-                          multipleSelection: 'false',
-                          aspectRatio: '1:1',
-                        },
-                      });
-                    }}
-                    className="h-24 w-24 self-center overflow-hidden rounded-full border-2 border-white/20 bg-zinc-800">
-                    {values.profilePic && values.profilePic.trim() ? (
-                      <Image
-                        key={values.profilePic}
-                        source={{ uri: values.profilePic }}
-                        className="h-full w-full"
-                      />
-                    ) : (
-                      <View className="h-full w-full items-center justify-center">
-                        <UserIcon size={32} color="#6b7280" />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                </View>
-
-                {/* Form Fields */}
-                <View className="px-4">
-                  {/* Username */}
+            <FormModal
+              open={isModalOpen}
+              onOpenChange={setIsModalOpen}
+              title="Edit Profile"
+              triggerText="Edit Profile"
+              submitButtonText="Save"
+              isSubmitting={isSubmitting}
+              hasErrors={hasErrors}
+              isLoading={isLoading}
+              onSubmit={submitForm}
+              onReset={resetForm}
+              onClose={() => {
+                resetForm();
+              }}>
+              {(close) => (
+                <>
+                  {/* Profile Picture */}
                   <View className="mb-4">
-                    <View className="mb-2 flex-row items-center gap-2">
-                      <Text className="text-white">Username</Text>
-                      <Text className="text-red-500">*</Text>
-                    </View>
-                    <TextInput
-                      className="rounded-lg border border-white/20 bg-zinc-800 p-3 text-white"
-                      value={values.username}
-                      onChangeText={(text) => {
-                        setFieldValue('username', text);
-                        setFieldTouched('username', true);
-                      }}
-                      placeholder="Enter username"
-                      placeholderTextColor="#6b7280"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                    />
-                    {touched.username && usernameError && (
-                      <Text className="mt-1 text-sm text-red-400">{usernameError}</Text>
-                    )}
-                  </View>
-
-                  {/* Name */}
-                  <View className="mb-4">
-                    <View className="mb-2 flex-row items-center gap-2">
-                      <Text className="text-white">Name</Text>
-                      <Text className="text-red-500">*</Text>
-                    </View>
-                    <TextInput
-                      className="rounded-lg border border-white/20 bg-zinc-800 p-3 text-white"
-                      value={values.name}
-                      onChangeText={(text) => {
-                        setFieldValue('name', text);
-                        setFieldTouched('name', true);
-                      }}
-                      placeholder="Enter your name"
-                      placeholderTextColor="#6b7280"
-                    />
-                    {touched.name && nameError && (
-                      <Text className="mt-1 text-sm text-red-400">{nameError}</Text>
-                    )}
-                  </View>
-
-                  {/* Bio */}
-                  <View className="mb-4">
-                    <Text className="mb-2 text-white">Bio</Text>
-                    <TextInput
-                      className="min-h-[80px] rounded-lg border border-white/20 bg-zinc-800 p-3 text-white"
-                      style={{ textAlignVertical: 'top', color: '#ffffff' }}
-                      value={values.bio}
-                      onChangeText={(text) => {
-                        setFieldValue('bio', text);
-                        setFieldTouched('bio', true);
-                      }}
-                      placeholder="Tell us about yourself..."
-                      placeholderTextColor="#6b7280"
-                      multiline
-                      numberOfLines={4}
-                    />
-                    {touched.bio && bioError && (
-                      <Text className="mt-1 text-sm text-red-400">{bioError}</Text>
-                    )}
-                    <Text className="mt-1 text-xs text-gray-500">
-                      {values.bio.length}/500 characters
-                    </Text>
-                  </View>
-
-                  {/* Categories */}
-                  <View className="mb-6">
-                    <Text className="mb-2 text-white">
-                      Categories (Max 5)
-                    </Text>
-                    <View className="mb-2 flex-row flex-wrap">
-                      {selectedCategories.map((cat, index) => (
-                        <View
-                          key={index}
-                          className="mb-2 mr-2 flex-row items-center rounded-full border border-blue-500 bg-blue-500/20 px-3 py-1">
-                          <Text className="mr-1 text-xs text-blue-400">{cat}</Text>
-                          <TouchableOpacity
-                            onPress={() => {
-                              const newCategories = selectedCategories.filter(
-                                (_, i) => i !== index
-                              );
-                              setSelectedCategories(newCategories);
-                              setFieldValue('category', newCategories);
-                            }}>
-                            <X size={14} color="#60a5fa" />
-                          </TouchableOpacity>
-                        </View>
-                      ))}
-                    </View>
+                    <Text className="mb-2 text-white">Profile Picture</Text>
                     <TouchableOpacity
-                      onPress={() => setShowCategorySelector(true)}
-                      className="items-center rounded-lg border border-white/20 bg-zinc-800 px-4 py-3">
-                      <Text className="font-medium text-blue-500">
-                        {selectedCategories.length === 0 ? 'Add Categories' : 'Edit Categories'}
-                      </Text>
+                      onPress={() => {
+                        clearMedia(); // Clear previous selection to ensure we wait for new one
+                        setIsWaitingForCamera(true); // Signal that we are waiting for a return
+                        router.push({
+                          pathname: '/(protected)/camera' as any,
+                          params: {
+                            functionParam: 'userProfile',
+                            multipleSelection: 'false',
+                            aspectRatio: '1:1',
+                            mask: "circle"
+                          },
+                        });
+                      }}
+                      className="h-24 w-24 self-center overflow-hidden rounded-full border-2 border-white/20 bg-zinc-800">
+                      {values.profilePic && values.profilePic.trim() ? (
+                        <Image
+                          key={values.profilePic}
+                          source={{ uri: values.profilePic }}
+                          className="h-full w-full"
+                        />
+                      ) : (
+                        <View className="h-full w-full items-center justify-center">
+                          <UserIcon size={32} color="#6b7280" />
+                        </View>
+                      )}
                     </TouchableOpacity>
                   </View>
-                </View>
 
-                {/* Category Selector Modal */}
-                <CategorySelector
-                  visible={showCategorySelector}
-                  onClose={() => setShowCategorySelector(false)}
-                  selectedCategories={selectedCategories}
-                  onSave={(categories) => {
-                    setSelectedCategories(categories);
-                    setFieldValue('category', categories);
-                    setShowCategorySelector(false);
-                  }}
-                  maxSelections={5}
-                />
-              </>
-            )}
-          </FormModal>
+                  {/* Form Fields */}
+                  <View className="px-4">
+                    {/* Username */}
+                    <View className="mb-4">
+                      <View className="mb-2 flex-row items-center gap-2">
+                        <Text className="text-white">Username</Text>
+                        <Text className="text-red-500">*</Text>
+                      </View>
+                      <TextInput
+                        className="rounded-lg border border-white/20 bg-zinc-800 p-3 text-white"
+                        value={values.username}
+                        onChangeText={(text) => {
+                          setFieldValue('username', text);
+                          setFieldTouched('username', true);
+                        }}
+                        placeholder="Enter username"
+                        placeholderTextColor="#6b7280"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                      />
+                      {touched.username && usernameError && (
+                        <Text className="mt-1 text-sm text-red-400">{usernameError}</Text>
+                      )}
+                    </View>
+
+                    {/* Name */}
+                    <View className="mb-4">
+                      <View className="mb-2 flex-row items-center gap-2">
+                        <Text className="text-white">Name</Text>
+                        <Text className="text-red-500">*</Text>
+                      </View>
+                      <TextInput
+                        className="rounded-lg border border-white/20 bg-zinc-800 p-3 text-white"
+                        value={values.name}
+                        onChangeText={(text) => {
+                          setFieldValue('name', text);
+                          setFieldTouched('name', true);
+                        }}
+                        placeholder="Enter your name"
+                        placeholderTextColor="#6b7280"
+                      />
+                      {touched.name && nameError && (
+                        <Text className="mt-1 text-sm text-red-400">{nameError}</Text>
+                      )}
+                    </View>
+
+                    {/* Bio */}
+                    <View className="mb-4">
+                      <Text className="mb-2 text-white">Bio</Text>
+                      <TextInput
+                        className="min-h-[80px] rounded-lg border border-white/20 bg-zinc-800 p-3 text-white"
+                        style={{ textAlignVertical: 'top', color: '#ffffff' }}
+                        value={values.bio}
+                        onChangeText={(text) => {
+                          setFieldValue('bio', text);
+                          setFieldTouched('bio', true);
+                        }}
+                        placeholder="Tell us about yourself..."
+                        placeholderTextColor="#6b7280"
+                        multiline
+                        numberOfLines={4}
+                      />
+                      {touched.bio && bioError && (
+                        <Text className="mt-1 text-sm text-red-400">{bioError}</Text>
+                      )}
+                      <Text className="mt-1 text-xs text-gray-500">
+                        {values.bio.length}/500 characters
+                      </Text>
+                    </View>
+
+                    {/* Categories */}
+                    <View className="mb-6">
+                      <Text className="mb-2 text-white">
+                        Categories (Max 5)
+                      </Text>
+                      <View className="mb-2 flex-row flex-wrap">
+                        {selectedCategories.map((cat, index) => (
+                          <View
+                            key={index}
+                            className="mb-2 mr-2 flex-row items-center rounded-full border border-blue-500 bg-blue-500/20 px-3 py-1">
+                            <Text className="mr-1 text-xs text-blue-400">{cat}</Text>
+                            <TouchableOpacity
+                              onPress={() => {
+                                const newCategories = selectedCategories.filter(
+                                  (_, i) => i !== index
+                                );
+                                setSelectedCategories(newCategories);
+                                setFieldValue('category', newCategories);
+                              }}>
+                              <X size={14} color="#60a5fa" />
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => setShowCategorySelector(true)}
+                        className="items-center rounded-lg border border-white/20 bg-zinc-800 px-4 py-3">
+                        <Text className="font-medium text-blue-500">
+                          {selectedCategories.length === 0 ? 'Add Categories' : 'Edit Categories'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {/* Category Selector Modal */}
+                  <CategorySelector
+                    visible={showCategorySelector}
+                    onClose={() => setShowCategorySelector(false)}
+                    selectedCategories={selectedCategories}
+                    onSave={(categories) => {
+                      setSelectedCategories(categories);
+                      setFieldValue('category', categories);
+                      setShowCategorySelector(false);
+                    }}
+                    maxSelections={5}
+                  />
+                </>
+              )}
+            </FormModal>
           </>
         );
       }}
