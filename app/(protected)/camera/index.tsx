@@ -391,13 +391,14 @@ export default React.memo(function CameraScreen() {
             alignItems: 'flex-end', // Align circle to top-right visually
             justifyContent: 'flex-start',
           }}>
-          {isSelected && selectionNumber ? (
-            <View className="h-6 w-6 items-center justify-center rounded-full bg-blue-500">
-              <Text className="text-xs font-bold text-white">{selectionNumber}</Text>
-            </View>
-          ) : (
-            <View className="h-6 w-6 rounded-full border-2 border-white bg-white/80" />
-          )}
+          {isMultiSelect &&
+            (isSelected && selectionNumber ? (
+              <View className="h-6 w-6 items-center justify-center rounded-full bg-blue-500">
+                <Text className="text-xs font-bold text-white">{selectionNumber}</Text>
+              </View>
+            ) : (
+              <View className="h-6 w-6 rounded-full border-2 border-white bg-white/80" />
+            ))}
         </TouchableOpacity>
       </View>
     );
@@ -500,7 +501,9 @@ export default React.memo(function CameraScreen() {
             </TouchableOpacity>
           }
           title={
-            selectedMedia.length > 0 ? `${selectedMedia.length}/${MAX_SELECTION}` : 'Select Media'
+            isMultiSelect && selectedMedia.length > 0
+              ? `${selectedMedia.length}/${MAX_SELECTION}`
+              : 'Select Media'
           }
           animatedStyle={animatedHeaderStyle}
           onHeightChange={handleHeightChange}

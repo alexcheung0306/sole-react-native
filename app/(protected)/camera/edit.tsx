@@ -293,8 +293,23 @@ export default function PreviewScreen() {
             <X size={24} color="#ffffff" />
           </TouchableOpacity>
           <Text className="text-lg font-semibold text-white">Edit</Text>
+
           <TouchableOpacity
-            onPress={() => router.push('/(protected)/camera/caption' as any)}
+            onPress={() => {
+              if (functionParam === 'post') {
+                router.push('/(protected)/camera/caption' as any);
+              } else if (functionParam === 'project') {
+                // Return to Project Modal
+                // We use double back to close Edit (modal) and Camera (screen)
+                // This preserves the state of the screen underneath (Project Modal)
+                if (router.canGoBack()) router.back(); // Dismiss Edit
+                setTimeout(() => {
+                  if (router.canGoBack()) router.back(); // Dismiss Camera
+                }, 50);
+              } else {
+                router.push('/(protected)/projects' as any);
+              }
+            }}
             className="p-2">
             <Text className="font-semibold text-blue-500">Next</Text>
           </TouchableOpacity>

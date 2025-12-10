@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, Image } from 'react-native';
 import { Pencil, Plus } from 'lucide-react-native';
 import { Formik } from 'formik';
@@ -6,10 +6,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSoleUserContext } from '@/context/SoleUserContext';
 import { createProject, updateProject } from '@/api/apiservice/project_api';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { FormModal } from '@/components/custom/form-modal';
 import { PrimaryButton } from '../custom/primary-button';
 import { ImageCropModal } from '@/components/camera/ImageCropModal';
-import type { MediaItem } from '@/context/CreatePostContext';
+import { type MediaItem, useCreatePostContext } from '@/context/CreatePostContext';
+import { router } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 
 interface ProjectInfoFormModalProps {
   method: 'POST' | 'PUT';
@@ -41,8 +44,9 @@ export default function ProjectInfoFormModal({
   const { soleUserId } = useSoleUserContext();
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
-  const [isCropModalVisible, setIsCropModalVisible] = useState(false);
-  const [selectedImageForCrop, setSelectedImageForCrop] = useState<MediaItem | null>(null);
+  const { selectedMedia, clearMedia } = useCreatePostContext();
+  const isFocused = useIsFocused();
+  const [isWaitingForCamera, setIsWaitingForCamera] = useState(false);
 
   // Compute initial values using the actual data - memoized to prevent excessive renders
   const initialValues = useMemo((): ProjectFormValues => {
@@ -55,7 +59,25 @@ export default function ProjectInfoFormModal({
       remarks: initValues?.remarks ?? '',
       status: initValues?.status || 'Draft',
     };
-  }, [initValues?.projectImage, initValues?.isPrivate, initValues?.projectName, initValues?.projectDescription, initValues?.usage, initValues?.remarks, initValues?.status]);
+  }, [initValues]);
+
+  // To solve the Formik update issue, we can lift the state of the image or use a ref.
+  // Let's use a state for the NEW image selected from camera to override initialValues.
+  const [newProjectImage, setNewProjectImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Only process when we're focused AND waiting AND have media
+    // Note: isOpen might be false if the modal closed, but form state should persist if component is mounted
+    if (isWaitingForCamera && selectedMedia.length > 0) {
+      const mediaItem = selectedMedia[0];
+      // Use originalUri if available, or uri. Note: Edit screen updates context but not crop file.
+      // If we want the crop, we need to handle it. For now, we take what's in context.
+      setNewProjectImage(mediaItem.uri);
+      setIsWaitingForCamera(false); // Reset flag
+      // We don't clear media here to avoid flicker if it's used elsewhere, but ideally we should?
+      // clearMedia();
+    }
+  }, [isWaitingForCamera, selectedMedia]); // Removed isFocused to ensure it runs even if focus transition is subtle
 
   // React Query mutations
   const projectMutation = useMutation({
@@ -124,85 +146,85 @@ export default function ProjectInfoFormModal({
     }
   };
 
-  const pickImage = async (setFieldValue: any) => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permission needed',
-          'Please grant photo library access to change project image'
-        );
-        return;
-      }
+  // const pickImage = async (setFieldValue: any) => {
+  //   try {
+  //     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  //     if (status !== 'granted') {
+  //       Alert.alert(
+  //         'Permission needed',
+  //         'Please grant photo library access to change project image'
+  //       );
+  //       return;
+  //     }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: false, // We'll use our custom cropper
-        quality: 1.0, // Use full quality for cropping
-      });
+  //     const result = await ImagePicker.launchImageLibraryAsync({
+  //       mediaTypes: ImagePicker.MediaTypeOptions.Images,
+  //       allowsEditing: false, // We'll use our custom cropper
+  //       quality: 1.0, // Use full quality for cropping
+  //     });
 
-      if (!result.canceled && result.assets[0]) {
-        const asset = result.assets[0];
-        console.log('Image selected:', asset.uri);
-        
-        // Get image dimensions
-        Image.getSize(
-          asset.uri,
-          (width, height) => {
-            const mediaItem: MediaItem = {
-              id: `project-image-${Date.now()}`,
-              uri: asset.uri,
-              mediaType: 'photo',
-              width,
-              height,
-              aspectRatio: '16:9',
-            };
-            setSelectedImageForCrop(mediaItem);
-            setIsCropModalVisible(true);
-          },
-          (error) => {
-            console.error('Error getting image size:', error);
-            // Fallback: use default dimensions
-            const mediaItem: MediaItem = {
-              id: `project-image-${Date.now()}`,
-              uri: asset.uri,
-              mediaType: 'photo',
-              width: asset.width || 1920,
-              height: asset.height || 1080,
-              aspectRatio: '16:9',
-            };
-            setSelectedImageForCrop(mediaItem);
-            setIsCropModalVisible(true);
-          }
-        );
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image');
-    }
-  };
+  //     if (!result.canceled && result.assets[0]) {
+  //       const asset = result.assets[0];
+  //       console.log('Image selected:', asset.uri);
 
-  const handleCropApply = (payload: {
-    uri: string;
-    width: number;
-    height: number;
-    cropData: {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-      zoom: number;
-      naturalWidth?: number;
-      naturalHeight?: number;
-    };
-  }, setFieldValue?: any) => {
-    console.log('Cropped image:', payload.uri);
-    if (setFieldValue) {
-      setFieldValue('projectImage', payload.uri);
-    }
-    setIsCropModalVisible(false);
-    setSelectedImageForCrop(null);
-  };
+  //       // Get image dimensions
+  //       Image.getSize(
+  //         asset.uri,
+  //         (width, height) => {
+  //           const mediaItem: MediaItem = {
+  //             id: `project-image-${Date.now()}`,
+  //             uri: asset.uri,
+  //             mediaType: 'photo',
+  //             width,
+  //             height,
+  //             aspectRatio: '16:9',
+  //           };
+  //           setSelectedImageForCrop(mediaItem);
+  //           setIsCropModalVisible(true);
+  //         },
+  //         (error) => {
+  //           console.error('Error getting image size:', error);
+  //           // Fallback: use default dimensions
+  //           const mediaItem: MediaItem = {
+  //             id: `project-image-${Date.now()}`,
+  //             uri: asset.uri,
+  //             mediaType: 'photo',
+  //             width: asset.width || 1920,
+  //             height: asset.height || 1080,
+  //             aspectRatio: '16:9',
+  //           };
+  //           setSelectedImageForCrop(mediaItem);
+  //           setIsCropModalVisible(true);
+  //         }
+  //       );
+  //     }
+  //   } catch (error) {
+  //     console.error('Error picking image:', error);
+  //     Alert.alert('Error', 'Failed to pick image');
+  //   }
+  // };
+
+  // const handleCropApply = (payload: {
+  //   uri: string;
+  //   width: number;
+  //   height: number;
+  //   cropData: {
+  //     x: number;
+  //     y: number;
+  //     width: number;
+  //     height: number;
+  //     zoom: number;
+  //     naturalWidth?: number;
+  //     naturalHeight?: number;
+  //   };
+  // }, setFieldValue?: any) => {
+  //   console.log('Cropped image:', payload.uri);
+  //   if (setFieldValue) {
+  //     setFieldValue('projectImage', payload.uri);
+  //   }
+  //   setIsCropModalVisible(false);
+  //   setSelectedImageForCrop(null);
+  // };
 
   const modalTitle = method === 'POST' ? 'Create New Project' : 'Edit Project';
   const projectId = initValues?.id;
@@ -225,16 +247,23 @@ export default function ProjectInfoFormModal({
         submitForm,
         isSubmitting,
       }) => {
+        // Effect to update projectImage when newProjectImage changes (returned from camera)
+        useEffect(() => {
+          if (newProjectImage) {
+            console.log('Setting projectImage to:', newProjectImage);
+            setFieldValue('projectImage', newProjectImage);
+            setNewProjectImage(null); // Reset after setting
+          }
+        }, [newProjectImage]); // Removed setFieldValue from dependency array to avoid loops
+
         // Validate required fields
         const projectNameError = !values.projectName?.trim();
         const projectDescriptionError = !values.projectDescription?.trim();
         const hasErrors = projectNameError || projectDescriptionError;
 
-        const submitButtonText = isSubmitting
-          ? 'Saving...'
-          : method === 'POST'
-            ? 'Create'
-            : 'Save';
+        const submitButtonText = isSubmitting ? 'Saving...' : method === 'POST' ? 'Create' : 'Save';
+
+        console.log('values.projectImage', values.projectImage);
 
         return (
           <>
@@ -283,7 +312,13 @@ export default function ProjectInfoFormModal({
                     <Text className="mb-2 text-sm font-semibold text-white">Project Image</Text>
                     <TouchableOpacity
                       className="aspect-video w-full overflow-hidden rounded-xl border border-white/10 bg-gray-800/60"
-                      onPress={() => pickImage(setFieldValue)}>
+                      onPress={() => {
+                        setIsWaitingForCamera(true); // Signal that we are waiting for a return
+                        router.push({
+                          pathname: '/(protected)/camera' as any,
+                          params: { functionParam: 'project', multipleSelection: 'false' },
+                        });
+                      }}>
                       {values.projectImage ? (
                         <Image source={{ uri: values.projectImage }} className="h-full w-full" />
                       ) : (
@@ -295,119 +330,108 @@ export default function ProjectInfoFormModal({
                     </TouchableOpacity>
                   </View>
 
-                {/* Private Toggle */}
-                <TouchableOpacity
-                  className="mb-5 flex-row items-center justify-between"
-                  activeOpacity={1}
-                  onPress={() => setFieldValue('isPrivate', !values.isPrivate)}>
-                  <Text className="text-sm font-semibold text-white">Private Project</Text>
-                  <View
-                    className={`h-7 w-[52px] justify-center rounded-full p-0.5 ${
-                      values.isPrivate ? 'bg-blue-500' : 'bg-gray-700'
-                    }`}>
+                  {/* Private Toggle */}
+                  <TouchableOpacity
+                    className="mb-5 flex-row items-center justify-between"
+                    activeOpacity={1}
+                    onPress={() => setFieldValue('isPrivate', !values.isPrivate)}>
+                    <Text className="text-sm font-semibold text-white">Private Project</Text>
                     <View
-                      className={`h-6 w-6 rounded-full bg-gray-300 ${
-                        values.isPrivate ? 'self-end' : 'self-start'
-                      }`}
+                      className={`h-7 w-[52px] justify-center rounded-full p-0.5 ${
+                        values.isPrivate ? 'bg-blue-500' : 'bg-gray-700'
+                      }`}>
+                      <View
+                        className={`h-6 w-6 rounded-full bg-gray-300 ${
+                          values.isPrivate ? 'self-end' : 'self-start'
+                        }`}
+                      />
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Project Name */}
+                  <View className="mb-5">
+                    <Text className="mb-2 text-sm font-semibold text-white">
+                      Project Name <Text className="text-red-500">*</Text>
+                    </Text>
+                    <TextInput
+                      className="rounded-lg border border-white/10 bg-gray-800/60 p-3 text-base text-white"
+                      value={values.projectName}
+                      onChangeText={(text) => {
+                        setFieldValue('projectName', text);
+                        setFieldTouched('projectName', true);
+                      }}
+                      placeholder="Enter project name"
+                      placeholderTextColor="#6b7280"
+                    />
+                    {touched.projectName && projectNameError && (
+                      <Text className="mt-1 text-xs text-red-500">Project name is required</Text>
+                    )}
+                  </View>
+
+                  {/* Project Description */}
+                  <View className="mb-5">
+                    <Text className="mb-2 text-sm font-semibold text-white">
+                      Project Description <Text className="text-red-500">*</Text>
+                    </Text>
+                    <TextInput
+                      className="min-h-[80px] rounded-lg border border-white/10 bg-gray-800/60 p-3 text-base text-white"
+                      style={{ textAlignVertical: 'top' }}
+                      value={values.projectDescription}
+                      onChangeText={(text) => {
+                        setFieldValue('projectDescription', text);
+                        setFieldTouched('projectDescription', true);
+                      }}
+                      placeholder="Enter project description"
+                      placeholderTextColor="#6b7280"
+                      multiline
+                      numberOfLines={4}
+                    />
+                    {touched.projectDescription && projectDescriptionError && (
+                      <Text className="mt-1 text-xs text-red-500">
+                        Project description is required
+                      </Text>
+                    )}
+                  </View>
+
+                  {/* Usage */}
+                  <View className="mb-5">
+                    <Text className="mb-2 text-sm font-semibold text-white">Usage</Text>
+                    <TextInput
+                      className="min-h-[80px] rounded-lg border border-white/10 bg-gray-800/60 p-3 text-base text-white"
+                      style={{ textAlignVertical: 'top' }}
+                      value={values.usage}
+                      onChangeText={(text) => {
+                        setFieldValue('usage', text);
+                        setFieldTouched('usage', true);
+                      }}
+                      placeholder="Enter usage details"
+                      placeholderTextColor="#6b7280"
+                      multiline
+                      numberOfLines={3}
                     />
                   </View>
-                </TouchableOpacity>
 
-                {/* Project Name */}
-                <View className="mb-5">
-                  <Text className="mb-2 text-sm font-semibold text-white">
-                    Project Name <Text className="text-red-500">*</Text>
-                  </Text>
-                  <TextInput
-                    className="rounded-lg border border-white/10 bg-gray-800/60 p-3 text-base text-white"
-                    value={values.projectName}
-                    onChangeText={(text) => {
-                      setFieldValue('projectName', text);
-                      setFieldTouched('projectName', true);
-                    }}
-                    placeholder="Enter project name"
-                    placeholderTextColor="#6b7280"
-                  />
-                  {touched.projectName && projectNameError && (
-                    <Text className="mt-1 text-xs text-red-500">Project name is required</Text>
-                  )}
-                </View>
-
-                {/* Project Description */}
-                <View className="mb-5">
-                  <Text className="mb-2 text-sm font-semibold text-white">
-                    Project Description <Text className="text-red-500">*</Text>
-                  </Text>
-                  <TextInput
-                    className="min-h-[80px] rounded-lg border border-white/10 bg-gray-800/60 p-3 text-base text-white"
-                    style={{ textAlignVertical: 'top' }}
-                    value={values.projectDescription}
-                    onChangeText={(text) => {
-                      setFieldValue('projectDescription', text);
-                      setFieldTouched('projectDescription', true);
-                    }}
-                    placeholder="Enter project description"
-                    placeholderTextColor="#6b7280"
-                    multiline
-                    numberOfLines={4}
-                  />
-                  {touched.projectDescription && projectDescriptionError && (
-                    <Text className="mt-1 text-xs text-red-500">
-                      Project description is required
-                    </Text>
-                  )}
-                </View>
-
-                {/* Usage */}
-                <View className="mb-5">
-                  <Text className="mb-2 text-sm font-semibold text-white">Usage</Text>
-                  <TextInput
-                    className="min-h-[80px] rounded-lg border border-white/10 bg-gray-800/60 p-3 text-base text-white"
-                    style={{ textAlignVertical: 'top' }}
-                    value={values.usage}
-                    onChangeText={(text) => {
-                      setFieldValue('usage', text);
-                      setFieldTouched('usage', true);
-                    }}
-                    placeholder="Enter usage details"
-                    placeholderTextColor="#6b7280"
-                    multiline
-                    numberOfLines={3}
-                  />
-                </View>
-
-                {/* Remarks */}
-                <View className="mb-5">
-                  <Text className="mb-2 text-sm font-semibold text-white">Remarks</Text>
-                  <TextInput
-                    className="min-h-[80px] rounded-lg border border-white/10 bg-gray-800/60 p-3 text-base text-white"
-                    style={{ textAlignVertical: 'top' }}
-                    value={values.remarks}
-                    onChangeText={(text) => {
-                      setFieldValue('remarks', text);
-                      setFieldTouched('remarks', true);
-                    }}
-                    placeholder="Enter remarks"
-                    placeholderTextColor="#6b7280"
-                    multiline
-                    numberOfLines={3}
-                  />
-                </View>
-              </>
-            )}
+                  {/* Remarks */}
+                  <View className="mb-5">
+                    <Text className="mb-2 text-sm font-semibold text-white">Remarks</Text>
+                    <TextInput
+                      className="min-h-[80px] rounded-lg border border-white/10 bg-gray-800/60 p-3 text-base text-white"
+                      style={{ textAlignVertical: 'top' }}
+                      value={values.remarks}
+                      onChangeText={(text) => {
+                        setFieldValue('remarks', text);
+                        setFieldTouched('remarks', true);
+                      }}
+                      placeholder="Enter remarks"
+                      placeholderTextColor="#6b7280"
+                      multiline
+                      numberOfLines={3}
+                    />
+                  </View>
+                </>
+              )}
             </FormModal>
-            
-            <ImageCropModal
-              visible={isCropModalVisible}
-              media={selectedImageForCrop || undefined}
-              onClose={() => {
-                setIsCropModalVisible(false);
-                setSelectedImageForCrop(null);
-              }}
-              onApply={(payload) => handleCropApply(payload, setFieldValue)}
-              aspectRatio={16 / 9}
-              lockAspectRatio={true}
-            />
+ 
           </>
         );
       }}
