@@ -10,7 +10,7 @@ import {
   Alert,
   StyleSheet,
 } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
@@ -21,6 +21,8 @@ import {
   Image as ImageIcon,
   Video as VideoIcon,
   ChevronLeft,
+  Copy,
+  Layers,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -32,6 +34,10 @@ const { width } = Dimensions.get('window');
 const ITEM_SIZE = width / 3;
 const MAX_SELECTION = 10;
 
+// define where the camera is used
+type FunctionParam = 'post' | 'profile' | 'project';
+// type MultipleSelection = boolean;
+
 export default React.memo(function CameraScreen() {
   const insets = useSafeAreaInsets();
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
@@ -39,11 +45,16 @@ export default React.memo(function CameraScreen() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [photos, setPhotos] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMultiSelect, setIsMultiSelect] = useState(true);
   const preserveSelectionRef = useRef(false);
-
+  const { functionParam, multipleSelection } = useLocalSearchParams<{
+    functionParam: FunctionParam;
+    multipleSelection?: string;
+  }>();
   // Clear previous data when screen mounts
   useEffect(() => {
     clearMedia();
+    setIsMultiSelect(false); // Default to single selection
   }, []);
 
   useEffect(() => {
@@ -275,6 +286,12 @@ export default React.memo(function CameraScreen() {
     if (isSelected) {
       setSelectedMedia(selectedMedia.filter((m) => m.id !== media.id));
     } else {
+      // If not in multi-select mode, only allow one selection
+      if (!isMultiSelect) {
+        setSelectedMedia([media]);
+        return;
+      }
+
       if (selectedMedia.length >= MAX_SELECTION) {
         Alert.alert('Maximum Reached', `You can select up to ${MAX_SELECTION} items`);
         return;
@@ -400,6 +417,32 @@ export default React.memo(function CameraScreen() {
             <VideoIcon size={48} color="#ffffff" />
           </View>
         )}
+
+        {/* Multi-select toggle button */}
+        {multipleSelection === 'true' && (
+          <TouchableOpacity
+            onPress={() => {
+              setIsMultiSelect(!isMultiSelect);
+              // If switching to single mode, keep only the last selected item
+              if (isMultiSelect && selectedMedia.length > 1) {
+                const lastItem = selectedMedia[selectedMedia.length - 1];
+                setSelectedMedia([lastItem]);
+              }
+            }}
+            style={{
+              position: 'absolute',
+              right: 12,
+              bottom: 12,
+              backgroundColor: isMultiSelect ? 'rgb(0, 140, 255)' : 'rgba(0,0,0,0.6)',
+              borderRadius: 20,
+              padding: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+            }}>
+            <Layers size={12} color="#ffffff" />
+          </TouchableOpacity>
+        )}
       </View>
     );
   };
@@ -430,7 +473,10 @@ export default React.memo(function CameraScreen() {
                   return;
                 }
                 preserveSelectionRef.current = true;
-                router.push('/(protected)/camera/edit' as any);
+                router.push({
+                  pathname: '/(protected)/camera/edit' as any,
+                  params: { functionParam },
+                });
               }}
               disabled={selectedMedia.length === 0}
               className="p-2">

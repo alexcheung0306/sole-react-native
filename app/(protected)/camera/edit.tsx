@@ -8,7 +8,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
 import {
   X,
@@ -59,13 +59,16 @@ const BouncyButton = ({ onPress, children, className, style }: any) => {
 
 const { width, height } = Dimensions.get('window');
 
+// define where the camera is used, passed from camera index
+type FunctionParam = 'post' | 'profile' | 'project';
+
 export default function PreviewScreen() {
   const insets = useSafeAreaInsets();
   const { selectedMedia, setSelectedMedia, removeMedia } = useCreatePostContext();
   const [currentIndex, setCurrentIndex] = useState(0);
   // Default to 1:1 as requested
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<number>(1);
-
+  const { functionParam } = useLocalSearchParams<{ functionParam: FunctionParam }>();
   // Calculate center crop for a given aspect ratio
   const calculateCenterCrop = (media: MediaItem, targetRatio: number) => {
     const naturalWidth = media.cropData?.naturalWidth ?? media.width;

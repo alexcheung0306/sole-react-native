@@ -1,11 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Animated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  useAppTabContext,
-  UserTab,
-  ClientTab,
-} from '~/context/AppTabContext';
+import { useAppTabContext, UserTab, ClientTab } from '~/context/AppTabContext';
 import { useUser } from '@clerk/clerk-expo';
 import { useRouter, usePathname } from 'expo-router';
 import {
@@ -81,8 +77,8 @@ export default function AppTabBar() {
         setActiveTab('home');
       } else if (pathname?.includes('/explore')) {
         setActiveTab('explore');
-      // } else if (pathname?.includes('/camera')) {
-      //   setActiveTab('camera');
+        // } else if (pathname?.includes('/camera')) {
+        //   setActiveTab('camera');
       } else if (pathname?.includes('/job')) {
         setActiveTab('job');
       } else if (pathname?.includes('/user/')) {
@@ -121,7 +117,10 @@ export default function AppTabBar() {
   };
 
   const handleUserCameraPress = () => {
-    router.push('/(protected)/camera' as any);
+    router.push({
+      pathname: '/(protected)/camera' as any,
+      params: { functionParam: 'post', multipleSelection: 'true' },
+    });
   };
 
   const handleUserJobPress = () => {
@@ -274,7 +273,7 @@ export default function AppTabBar() {
                   justifyContent: 'center',
                   paddingVertical: 4,
                 }}>
-                <Icon  color={active ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)'} size={24} />
+                <Icon color={active ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)'} size={24} />
                 <Text
                   style={{
                     color: active ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)',
@@ -292,8 +291,11 @@ export default function AppTabBar() {
           <AccountDropDownMenu
             color={activeTab === profileTab ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)'}
             focused={activeTab === profileTab}
-            onPress={profilePressHandler} profileLabel={profileLabel} activeTab={activeTab} profileTab={profileTab} />
-
+            onPress={profilePressHandler}
+            profileLabel={profileLabel}
+            activeTab={activeTab}
+            profileTab={profileTab}
+          />
         </Animated.View>
       </View>
     </View>
