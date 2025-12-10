@@ -7,7 +7,7 @@ import { useSoleUserContext } from '@/context/SoleUserContext';
 import { createProject, updateProject } from '@/api/apiservice/project_api';
 import { FormModal } from '@/components/custom/form-modal';
 import { PrimaryButton } from '../custom/primary-button';
-import { useCreatePostContext } from '@/context/CreatePostContext';
+import { useCameraContext } from '@/context/CreatePostContext';
 import { router } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 
@@ -41,7 +41,7 @@ export default function ProjectInfoFormModal({
   const { soleUserId } = useSoleUserContext();
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
-  const { selectedMedia, clearMedia } = useCreatePostContext();
+  const { selectedMedia, clearMedia } = useCameraContext();
   const isFocused = useIsFocused();
   const [isWaitingForCamera, setIsWaitingForCamera] = useState(false);
 

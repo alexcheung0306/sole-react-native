@@ -18,7 +18,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPost, CreatePostRequest, PostMedia } from '~/api/apiservice/post_api';
 import { useSoleUserContext } from '~/context/SoleUserContext';
 import { useUser } from '@clerk/clerk-expo';
-import { useCreatePostContext, MediaItem } from '~/context/CreatePostContext';
+import { useCameraContext, MediaItem } from '~/context/CreatePostContext';
 import * as MediaLibrary from 'expo-media-library';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { useAppTabContext } from '~/context/AppTabContext';
@@ -48,14 +48,15 @@ export default function CaptionScreen() {
   const { soleUserId } = useSoleUserContext();
   const {setActiveTab} = useAppTabContext();
   const queryClient = useQueryClient();
+
+  const [caption, setCaption] = useState('');
+  const [location, setLocation] = useState('');
+  const [taggedUsers, setTaggedUsers] = useState<string[]>([]);
+
   const {
     selectedMedia,
-    caption,
-    setCaption,
-    location,
-    setLocation,
     resetPostData
-  } = useCreatePostContext();
+  } = useCameraContext();
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const firstMediaUri = selectedMedia[0]?.uri;
@@ -67,7 +68,6 @@ export default function CaptionScreen() {
     },
     onSuccess: () => {
       console.log('Post created successfully');
-
       // Invalidate queries to refresh feeds
       queryClient.invalidateQueries({ queryKey: ['profilePagePosts'] });
       queryClient.invalidateQueries({ queryKey: ['homePagePosts'] });

@@ -23,7 +23,7 @@ import {
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCreatePostContext, MediaItem } from '~/context/CreatePostContext';
+import { useCameraContext, MediaItem } from '~/context/CreatePostContext';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { CollapsibleHeader } from '~/components/CollapsibleHeader';
 import MainMedia from '~/components/camera/MainMedia';
@@ -40,7 +40,7 @@ type FunctionParam = 'post' | 'profile' | 'project';
 export default React.memo(function CameraScreen() {
   const insets = useSafeAreaInsets();
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
-  const { selectedMedia, setSelectedMedia, clearMedia } = useCreatePostContext();
+  const { selectedMedia, setSelectedMedia, clearMedia } = useCameraContext();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [photos, setPhotos] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);

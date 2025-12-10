@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import { Video, ResizeMode } from 'expo-av';
-import { MediaItem, useCreatePostContext } from '~/context/CreatePostContext';
+import { MediaItem, useCameraContext } from '~/context/CreatePostContext';
 import { EditableImage } from '~/components/camera/EditableImage';
 
 export default function MainMedia({
@@ -12,7 +12,7 @@ export default function MainMedia({
   width: number;
   selectedAspectRatio: number;
 }) {
-  const { selectedMedia, setSelectedMedia } = useCreatePostContext();
+  const { selectedMedia, setSelectedMedia } = useCameraContext();
   if (selectedMedia.length === 0 || !selectedMedia[currentIndex]) {
     return null;
   }

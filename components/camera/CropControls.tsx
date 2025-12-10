@@ -1,7 +1,7 @@
 import { Layers, Trash2 } from 'lucide-react-native';
 import { View, TouchableOpacity, Alert } from 'react-native';
 import { AspectRatioWheel } from './AspectRatioWheel';
-import { MediaItem, useCreatePostContext } from '~/context/CreatePostContext';
+import { MediaItem, useCameraContext } from '~/context/CreatePostContext';
 import { router } from 'expo-router';
 
 export default function CropControls({
@@ -21,7 +21,7 @@ export default function CropControls({
   setIsMultiSelect: (isMultiSelect: boolean) => void;
   isMultiSelect: boolean;
 }) {
-  const { selectedMedia, setSelectedMedia, removeMedia } = useCreatePostContext();
+  const { selectedMedia, setSelectedMedia, removeMedia } = useCameraContext();
 
   const calculateCenterCrop = (media: MediaItem, targetRatio: number) => {
     const naturalWidth = media.cropData?.naturalWidth ?? media.width;

@@ -21,7 +21,7 @@ export interface MediaItem {
   };
 }
 
-interface CreatePostContextType {
+interface CameraContextType {
   selectedMedia: MediaItem[];
   setSelectedMedia: (media: MediaItem[]) => void;
   addMedia: (media: MediaItem) => void;
@@ -29,23 +29,14 @@ interface CreatePostContextType {
   clearMedia: () => void;
   selectedAspectRatio: 'free' | '1:1' | '4:5' | '16:9';
   setSelectedAspectRatio: (ratio: 'free' | '1:1' | '4:5' | '16:9') => void;
-  caption: string;
-  setCaption: (caption: string) => void;
-  location: string;
-  setLocation: (location: string) => void;
-  taggedUsers: string[];
-  setTaggedUsers: (users: string[]) => void;
   resetPostData: () => void;
 }
 
-const CreatePostContext = createContext<CreatePostContextType | undefined>(undefined);
+const CameraContext = createContext<CameraContextType | undefined>(undefined);
 
-export function CreatePostProvider({ children }: { children: ReactNode }) {
+export function CameraProvider({ children }: { children: ReactNode }) {
   const [selectedMedia, setSelectedMedia] = useState<MediaItem[]>([]);
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<'free' | '1:1' | '4:5' | '16:9'>('free');
-  const [caption, setCaption] = useState('');
-  const [location, setLocation] = useState('');
-  const [taggedUsers, setTaggedUsers] = useState<string[]>([]);
 
   const addMedia = useCallback((media: MediaItem) => {
     setSelectedMedia((prev) => [...prev, media]);
@@ -61,9 +52,6 @@ export function CreatePostProvider({ children }: { children: ReactNode }) {
 
   const resetPostData = useCallback(() => {
     setSelectedMedia([]);
-    setCaption('');
-    setLocation('');
-    setTaggedUsers([]);
     setSelectedAspectRatio('free');
   }, []);
 
@@ -76,12 +64,6 @@ export function CreatePostProvider({ children }: { children: ReactNode }) {
       clearMedia,
       selectedAspectRatio,
       setSelectedAspectRatio,
-      caption,
-      setCaption,
-      location,
-      setLocation,
-      taggedUsers,
-      setTaggedUsers,
       resetPostData,
     }),
     [
@@ -91,27 +73,21 @@ export function CreatePostProvider({ children }: { children: ReactNode }) {
       clearMedia,
       selectedAspectRatio,
       setSelectedAspectRatio,
-      caption,
-      location,
-      taggedUsers,
-      setCaption,
-      setLocation,
-      setTaggedUsers,
       resetPostData,
     ]
   );
 
   return (
-    <CreatePostContext.Provider value={value}>
+    <CameraContext.Provider value={value}>
       {children}
-    </CreatePostContext.Provider>
+    </CameraContext.Provider>
   );
 }
 
-export function useCreatePostContext() {
-  const context = useContext(CreatePostContext);
+export function useCameraContext() {
+  const context = useContext(CameraContext);
   if (context === undefined) {
-    throw new Error('useCreatePostContext must be used within a CreatePostProvider');
+    throw new Error('useCameraContext must be used within a CameraProvider');
   }
   return context;
 }
