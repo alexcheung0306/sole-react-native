@@ -638,7 +638,7 @@ const CameraContent = ({
 
     if (functionParam === 'post') {
       router.push('/(protected)/camera/caption' as any);
-    } else if (functionParam === 'project') {
+    } else if (functionParam === 'project' || functionParam === 'userProfile') {
       // Apply crop if available
       if (selectedMedia.length > 0) {
         const media = selectedMedia[0];

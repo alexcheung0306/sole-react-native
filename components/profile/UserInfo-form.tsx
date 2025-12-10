@@ -1,22 +1,24 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   TextInput,
   Alert,
+  ScrollView,
 } from 'react-native';
-import { X, Camera, User as UserIcon } from 'lucide-react-native';
+import { X, Camera, User as UserIcon, Plus } from 'lucide-react-native';
 import { Image as ExpoImage } from 'expo-image';
-import * as ImagePicker from 'expo-image-picker';
-import { Formik } from 'formik';
+import { Formik, useFormikContext } from 'formik';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useUser } from '@clerk/clerk-expo';
+import { useIsFocused } from '@react-navigation/native';
 import { CategorySelector } from './CategorySelector';
 import { FormModal } from '../custom/form-modal';
 import { updateUserInfoBySoleUserId } from '~/api/apiservice/userInfo_api';
 import { updateSoleUserByClerkId, getSoleUserByClerkId } from '~/api/apiservice';
+import { useCameraContext } from '~/context/CameraContext';
 import {
   validateUsername,
   validateName,
@@ -36,12 +38,68 @@ export interface ProfileFormValues {
   category: string[];
 }
 
+// Helper component to handle effects that need Formik context
+function UserInfoFormEffects({
+  isFocused,
+  isWaitingForCamera,
+  selectedMedia,
+  setIsWaitingForCamera,
+  isModalOpen,
+  userInfo,
+  user,
+  setSelectedCategories,
+}: {
+  isFocused: boolean;
+  isWaitingForCamera: boolean;
+  selectedMedia: any[];
+  setIsWaitingForCamera: (value: boolean) => void;
+  isModalOpen: boolean;
+  userInfo: any;
+  user: any;
+  setSelectedCategories: (categories: string[]) => void;
+}) {
+  const { values, setFieldValue } = useFormikContext<ProfileFormValues>();
+
+  // Effect to update profilePic when selectedMedia changes (returned from camera)
+  useEffect(() => {
+    if (isFocused && isWaitingForCamera && selectedMedia.length > 0) {
+      const mediaItem = selectedMedia[0];
+      console.log('Setting profilePic to:', mediaItem.uri);
+      setFieldValue('profilePic', mediaItem.uri);
+      setIsWaitingForCamera(false); // Reset flag
+    }
+  }, [isFocused, isWaitingForCamera, selectedMedia, setFieldValue]);
+
+  // Sync Formik values when modal opens to ensure initial values are set
+  useEffect(() => {
+    if (isModalOpen) {
+      const currentProfilePic = userInfo?.profilePic || user?.imageUrl || null;
+      if (currentProfilePic && currentProfilePic !== values.profilePic) {
+        console.log('Syncing profilePic on modal open:', currentProfilePic);
+        setFieldValue('profilePic', currentProfilePic);
+      }
+    }
+  }, [isModalOpen, userInfo?.profilePic, user?.imageUrl, values.profilePic, setFieldValue]);
+
+  // Sync selectedCategories with Formik values when modal opens
+  useEffect(() => {
+    if (values.category && values.category.length > 0) {
+      setSelectedCategories(values.category);
+    }
+  }, [values.category, setSelectedCategories]);
+
+  return null;
+}
+
 export const UserInfoForm = React.memo(function UserInfoForm({ userProfileData, isLoading = false }: UserInfoFormProps) {
   const [showCategorySelector, setShowCategorySelector] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isWaitingForCamera, setIsWaitingForCamera] = useState(false);
   const queryClient = useQueryClient();
   const router = useRouter();
   const { user } = useUser();
+  const { selectedMedia, clearMedia } = useCameraContext();
+  const isFocused = useIsFocused();
 
   const userInfo = userProfileData?.userInfo;
   const soleUser = userProfileData?.soleUser;
@@ -68,7 +126,7 @@ export const UserInfoForm = React.memo(function UserInfoForm({ userProfileData, 
   // Compute initial values using useMemo to prevent recalculation on every render
   const initialValues = useMemo((): ProfileFormValues => {
     const values = {
-      profilePic: userInfo?.profilePic || '',
+      profilePic: userInfo?.profilePic || user?.imageUrl || null,
       username: soleUser?.username || '',
       name: userInfo?.name || '',
       bio: userInfo?.bio || '',
@@ -82,11 +140,13 @@ export const UserInfoForm = React.memo(function UserInfoForm({ userProfileData, 
       console.log('=== UserInfoForm Initial Values ===');
       console.log('soleUser:', soleUser);
       console.log('userInfo:', userInfo);
+      console.log('user?.imageUrl:', user?.imageUrl);
       console.log('Computed initialValues:', values);
+      console.log('profilePic value:', values.profilePic);
     }
 
     return values;
-  }, [soleUser, userInfo]);
+  }, [soleUser, userInfo, user?.imageUrl]);
 
   // Log soleUser only in development and only when it changes
   React.useEffect(() => {
@@ -198,33 +258,6 @@ export const UserInfoForm = React.memo(function UserInfoForm({ userProfileData, 
     }
   };
 
-  const pickImage = async (setFieldValue: any) => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permission needed',
-          'Please grant photo library access to change profile picture'
-        );
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        console.log('Image selected:', result.assets[0].uri);
-        setFieldValue('profilePic', result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image');
-    }
-  };
 
   // Don't render if data not loaded
   if (!userInfo) return null;
@@ -247,20 +280,26 @@ export const UserInfoForm = React.memo(function UserInfoForm({ userProfileData, 
         submitForm,
         isSubmitting,
       }) => {
-        // Sync selectedCategories with Formik values when modal opens
-        React.useEffect(() => {
-          if (values.category && values.category.length > 0) {
-            setSelectedCategories(values.category);
-          }
-        }, []);
-
+        // Effects are now handled in UserInfoFormEffects component
         // Validate all fields
         const usernameError = validateUsername(values.username);
         const nameError = validateName(values.name);
         const bioError = validateBio(values.bio);
         const hasErrors = !!(usernameError || nameError || bioError);
 
+        console.log('values.profilePic', values.profilePic);
         return (
+          <>
+            <UserInfoFormEffects
+              isFocused={isFocused}
+              isWaitingForCamera={isWaitingForCamera}
+              selectedMedia={selectedMedia}
+              setIsWaitingForCamera={setIsWaitingForCamera}
+              isModalOpen={isModalOpen}
+              userInfo={userInfo}
+              user={user}
+              setSelectedCategories={setSelectedCategories}
+            />
           <FormModal
             open={isModalOpen}
             onOpenChange={setIsModalOpen}
@@ -278,25 +317,34 @@ export const UserInfoForm = React.memo(function UserInfoForm({ userProfileData, 
             {(close) => (
               <>
                 {/* Profile Picture */}
-                <View className="items-center py-6">
+                <View className="mb-4">
+                  <Text className="mb-2 text-white">Profile Picture</Text>
                   <TouchableOpacity
-                    onPress={() => pickImage(setFieldValue)}
-                    className="relative">
-                    {values.profilePic ? (
+                    onPress={() => {
+                      clearMedia(); // Clear previous selection to ensure we wait for new one
+                      setIsWaitingForCamera(true); // Signal that we are waiting for a return
+                      router.push({
+                        pathname: '/(protected)/camera' as any,
+                        params: {
+                          functionParam: 'userProfile',
+                          multipleSelection: 'false',
+                          aspectRatio: '1:1',
+                        },
+                      });
+                    }}
+                    className="h-24 w-24 self-center overflow-hidden rounded-full border-2 border-white/20 bg-zinc-800">
+                    {values.profilePic && values.profilePic.trim() ? (
                       <ExpoImage
                         source={{ uri: values.profilePic }}
-                        className="h-24 w-24 rounded-full border-2 border-white/20"
+                        className="h-full w-full"
+                        contentFit="cover"
                       />
                     ) : (
-                      <View className="h-24 w-24 items-center justify-center rounded-full border-2 border-white/20 bg-zinc-800">
-                        <UserIcon size={32} color="#9ca3af" />
+                      <View className="h-full w-full items-center justify-center">
+                        <UserIcon size={32} color="#6b7280" />
                       </View>
                     )}
-                    <View className="absolute bottom-0 right-0 rounded-full bg-blue-500 p-2">
-                      <Camera size={16} color="#ffffff" />
-                    </View>
                   </TouchableOpacity>
-                  <Text className="mt-2 text-sm text-gray-400">Tap to change photo</Text>
                 </View>
 
                 {/* Form Fields */}
@@ -418,6 +466,7 @@ export const UserInfoForm = React.memo(function UserInfoForm({ userProfileData, 
               </>
             )}
           </FormModal>
+          </>
         );
       }}
     </Formik>
