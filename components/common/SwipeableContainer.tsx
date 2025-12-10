@@ -33,10 +33,12 @@ export default function SwipeableContainer({
   const onIndexChangeRef = useRef(onIndexChange);
   const isAnimating = useSharedValue(false);
   const childrenLength = useSharedValue(children.length);
-
   // For swipe transition effects
   const isSwiping = useSharedValue(false);
   const swipeOffset = useSharedValue(0); // Distance from center position
+  // Track if we should fail the gesture (for nested containers at edges)
+  const shouldFailGesture = useSharedValue(false);
+  const shouldLogGesture = false;
 
   // Update children length when it changes
   useEffect(() => {
@@ -91,8 +93,12 @@ export default function SwipeableContainer({
     }
   }, [activeIndex, children.length]);
 
-  // Track if we should fail the gesture (for nested containers at edges)
-  const shouldFailGesture = useSharedValue(false);
+  // Logging function
+  const logGesture = React.useCallback((event: string, data: any) => {
+    if (shouldLogGesture) {
+      console.log(`[SwipeableContainer] ${event}:`, data);
+    }
+  }, []);
 
   const panGesture = Gesture.Pan()
     .minDistance(10)
@@ -106,6 +112,11 @@ export default function SwipeableContainer({
       startX.value = translateX.value;
       isSwiping.value = true;
       swipeOffset.value = 0;
+      runOnJS(logGesture)('onStart', {
+        currentIndex: currentIndex.value,
+        startX: startX.value,
+        translateX: translateX.value,
+      });
     })
     .onUpdate((e) => {
       'worklet';
@@ -128,20 +139,33 @@ export default function SwipeableContainer({
           translateX.value = startX.value;
           // Still track swipe offset for visual effects
           swipeOffset.value = 0; // No offset when blocked
+          runOnJS(logGesture)('onUpdate (blocked at edge)', {
+            currentIndex: currentIdx,
+            translationX: e.translationX,
+            translationY: e.translationY,
+            atLeftEdge,
+            atRightEdge,
+          });
           return;
         }
 
         // If shouldFailAtEdges is true, check if we're at an edge trying to swipe beyond
         if (shouldFailAtEdges) {
           // At first index and swiping right, or at last index and swiping left
-          if ((currentIdx === 0 && e.translationX > 30) ||
-              (currentIdx === len - 1 && e.translationX < -30)) {
+          if (
+            (currentIdx === 0 && e.translationX > 30) ||
+            (currentIdx === len - 1 && e.translationX < -30)
+          ) {
             // Mark gesture to fail - don't handle it, let parent take over
             shouldFailGesture.value = true;
+            runOnJS(logGesture)('onUpdate (should fail)', {
+              currentIndex: currentIdx,
+              translationX: e.translationX,
+            });
             return;
           }
         }
-        
+
         const newPos = startX.value + e.translationX;
         const minTranslateX = -(len - 1) * SCREEN_WIDTH;
         const maxTranslateX = 0;
@@ -150,17 +174,29 @@ export default function SwipeableContainer({
 
         // Track swipe offset for visual effects
         swipeOffset.value = e.translationX;
+
+        runOnJS(logGesture)('onUpdate', {
+          currentIndex: currentIdx,
+          translationX: e.translationX,
+          translationY: e.translationY,
+          velocityX: e.velocityX,
+          velocityY: e.velocityY,
+          translateX: translateX.value,
+          swipeOffset: swipeOffset.value,
+        });
       }
     })
     .onEnd((e) => {
       'worklet';
       isGestureActive.value = false;
-      isSwiping.value = false;
-      swipeOffset.value = 0;
 
       // Safety check for children length
       const len = childrenLength.value;
-      if (len === 0) return;
+      if (len === 0) {
+        isSwiping.value = false;
+        swipeOffset.value = 0;
+        return;
+      }
 
       // If gesture was marked to fail (at edge in nested container), snap back immediately
       if (shouldFailGesture.value) {
@@ -171,12 +207,31 @@ export default function SwipeableContainer({
           stiffness: 90,
           mass: 0.8,
         });
+        // Animate swipeOffset back smoothly
+        swipeOffset.value = withSpring(
+          0,
+          {
+            damping: 20,
+            stiffness: 90,
+            mass: 0.8,
+          },
+          (finished) => {
+            'worklet';
+            if (finished) {
+              isSwiping.value = false;
+            }
+          }
+        );
+        runOnJS(logGesture)('onEnd (gesture failed)', {
+          currentIndex: currentIdx,
+          translationX: e.translationX,
+          translationY: e.translationY,
+        });
         return; // Don't process further - let parent handle
       }
 
       // Only process swipe if horizontal movement was clearly dominant (2:1 ratio)
       if (Math.abs(e.translationX) > Math.abs(e.translationY) * 2) {
-        
         const threshold = SCREEN_WIDTH * 0.2; // Lower threshold for gentler feel
         const velocity = e.velocityX;
         const currentPos = translateX.value;
@@ -203,7 +258,36 @@ export default function SwipeableContainer({
           mass: 0.8,
         });
 
+        // Animate swipeOffset back smoothly to restore size
+        swipeOffset.value = withSpring(
+          0,
+          {
+            damping: 20,
+            stiffness: 90,
+            mass: 0.8,
+          },
+          (finished) => {
+            'worklet';
+            if (finished) {
+              isSwiping.value = false;
+            }
+          }
+        );
+
         currentIndex.value = targetIndex;
+
+        runOnJS(logGesture)('onEnd', {
+          currentIndex: currentIndex.value,
+          targetIndex,
+          translationX: e.translationX,
+          translationY: e.translationY,
+          velocityX: e.velocityX,
+          velocityY: e.velocityY,
+          threshold,
+          exceededThreshold: Math.abs(e.translationX) > threshold,
+          exceededVelocity: Math.abs(velocity) > 300,
+        });
+
         // Always call onIndexChange when gesture ends with a valid target
         // The callback will check if the tab actually needs to change
         if (targetIndex >= 0 && targetIndex < len) {
@@ -215,6 +299,27 @@ export default function SwipeableContainer({
           damping: 20,
           stiffness: 90,
           mass: 0.8,
+        });
+        // Animate swipeOffset back smoothly to restore size
+        swipeOffset.value = withSpring(
+          0,
+          {
+            damping: 20,
+            stiffness: 90,
+            mass: 0.8,
+          },
+          (finished) => {
+            'worklet';
+            if (finished) {
+              isSwiping.value = false;
+            }
+          }
+        );
+        runOnJS(logGesture)('onEnd (vertical gesture, snapping back)', {
+          currentIndex: currentIndex.value,
+          translationX: e.translationX,
+          translationY: e.translationY,
+          ratio: Math.abs(e.translationX) / Math.abs(e.translationY),
         });
       }
     });
@@ -229,28 +334,13 @@ export default function SwipeableContainer({
     const isActive = isSwiping.value;
 
     // Scale down during swipe (shrink effect)
-    const scale = interpolate(
-      swipeProgress,
-      [0, 0.3, 1],
-      [1, 0.95, 0.9],
-      Extrapolate.CLAMP
-    );
+    const scale = interpolate(swipeProgress, [0, 0.3, 1], [1, 0.95, 0.9], Extrapolate.CLAMP);
 
     // Border radius increases during swipe (phone-like rounded corners)
-    const borderRadius = interpolate(
-      swipeProgress,
-      [0, 0.5, 1],
-      [0, 20, 30],
-      Extrapolate.CLAMP
-    );
+    const borderRadius = interpolate(swipeProgress, [0, 0.5, 1], [0, 20, 30], Extrapolate.CLAMP);
 
     // Shadow opacity increases during swipe
-    const shadowOpacity = interpolate(
-      swipeProgress,
-      [0, 0.2, 1],
-      [0, 0.3, 0.6],
-      Extrapolate.CLAMP
-    );
+    const shadowOpacity = interpolate(swipeProgress, [0, 0.2, 1], [0, 0.3, 0.6], Extrapolate.CLAMP);
 
     return {
       transform: [{ scale: isActive ? scale : 1 }],
@@ -272,9 +362,7 @@ export default function SwipeableContainer({
   }
 
   // If shouldFailAtEdges, wrap in Simultaneous to allow parent gesture to also work
-  const finalGesture = shouldFailAtEdges
-    ? Gesture.Simultaneous(panGesture)
-    : panGesture;
+  const finalGesture = shouldFailAtEdges ? Gesture.Simultaneous(panGesture) : panGesture;
 
   return (
     <View style={{ flex: 1, backgroundColor: '#000000' }}>
@@ -308,4 +396,3 @@ export default function SwipeableContainer({
     </View>
   );
 }
-
