@@ -134,34 +134,20 @@ export function ImageCarousel({ media }: ImageCarouselProps) {
           overflow: 'visible',
           position: 'relative',
         }}>
-
-          
         <MediaZoom2
-          children={<Image source={{ uri: media[0].mediaUrl }} style={{ width: SCREEN_WIDTH, height: singleImageHeight }} resizeMode="contain" />}
+          children={
+            <Image
+              source={{ uri: media[0].mediaUrl }}
+              style={{ width: SCREEN_WIDTH, height: singleImageHeight }}
+              resizeMode="contain"
+            />
+          }
           width={SCREEN_WIDTH}
           height={singleImageHeight}
           resetOnRelease={true}
           minScale={1}
           maxScale={3}
         />
-
-        {/* <ZoomableView
-          maxZoom={1.5}
-          minZoom={0.5}
-          zoomStep={0.5}
-          initialZoom={1}
-          bindToBorders={true}
-          onZoomAfter={logOutZoomState}
-          style={{
-            padding: 10,
-            backgroundColor: 'red',
-          }}>
-          <Image
-            source={{ uri: media[0].mediaUrl }}
-            style={{ width: SCREEN_WIDTH, height: singleImageHeight }}
-            resizeMode="contain"
-          />
-        </ZoomableView> */}
       </View>
     );
   }
@@ -170,12 +156,18 @@ export function ImageCarousel({ media }: ImageCarouselProps) {
   return (
     <View
       style={{
-        width: SCREEN_WIDTH,
-        height: currentHeight,
         position: 'relative',
         overflow: 'visible',
+        zIndex: 50, // keep zoomed media above surrounding UI (e.g., like/comment buttons)
+        elevation: 50,
       }}>
       <FlatList
+        style={{
+          width: SCREEN_WIDTH,
+          height: currentHeight,
+          overflow: 'visible',
+          position: 'relative',
+        }}
         ref={listRef}
         data={media}
         horizontal
@@ -187,39 +179,20 @@ export function ImageCarousel({ media }: ImageCarouselProps) {
           // All items use currentHeight for consistent paging
           const itemHeight = imageHeights[index] || currentHeight;
           return (
-            <View
-              style={{
-                width: SCREEN_WIDTH,
-                // Remove justifyContent and alignItems to allow free movement
-                overflow: 'visible',
-                position: 'relative',
-              }}>
-              <MediaZoom2
-                children={<Image source={{ uri: item.mediaUrl }} style={{ width: SCREEN_WIDTH, height: itemHeight }} resizeMode="contain" />}
-                width={SCREEN_WIDTH}
-                height={itemHeight}
-                resetOnRelease={true}
-                minScale={1}
-                maxScale={3}
-              />
-              {/* <ZoomableView
-                maxZoom={1.5}
-                minZoom={0.5}
-                zoomStep={0.5}
-                initialZoom={1}
-                bindToBorders={true}
-                onZoomAfter={logOutZoomState}
-                style={{
-                  padding: 10,
-                  backgroundColor: 'red',
-                }}>
+            <MediaZoom2
+              children={
                 <Image
                   source={{ uri: item.mediaUrl }}
                   style={{ width: SCREEN_WIDTH, height: itemHeight }}
                   resizeMode="contain"
                 />
-              </ZoomableView> */}
-            </View>
+              }
+              width={SCREEN_WIDTH}
+              height={itemHeight}
+              resetOnRelease={true}
+              minScale={1}
+              maxScale={3}
+            />
           );
         }}
       />

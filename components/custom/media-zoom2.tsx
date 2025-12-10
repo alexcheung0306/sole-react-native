@@ -402,9 +402,17 @@ export function MediaZoom2({
     };
   });
 
+  const wrapperAnimatedStyle = useAnimatedStyle(() => {
+    const activeZ = isZoomActive.value ? 2000 : 10;
+    return {
+      zIndex: activeZ,
+      elevation: activeZ,
+    };
+  });
+
   return (
-    <View style={[styles.wrapper, { width, height }]}>
-       <Animated.View 
+    <Animated.View style={[styles.wrapper, { width, height }, wrapperAnimatedStyle]}>
+       <Animated.View
         style={[styles.backdrop, StyleSheet.absoluteFill, backdropStyle]} 
         pointerEvents="none" 
       />
@@ -416,7 +424,7 @@ export function MediaZoom2({
           </Animated.View>
         </Animated.View>
       </GestureDetector>
-    </View>
+    </Animated.View>
   );
 }
 
