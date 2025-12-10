@@ -2,26 +2,21 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
-  FlatList,
   Animated,
   TouchableOpacity,
   Dimensions,
   ActivityIndicator,
   Alert,
-  StyleSheet,
 } from 'react-native';
-import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
 import {
   Camera,
-  X,
-  Check,
   Image as ImageIcon,
   Video as VideoIcon,
   ChevronLeft,
-  Copy,
   Layers,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -306,104 +301,6 @@ export default React.memo(function CameraScreen() {
     return index >= 0 ? index + 1 : null;
   };
 
-  const renderMediaItem = ({ item, index }: { item: MediaItem; index: number }) => {
-    // Camera option in first position
-    if (index === 0 && item.id === 'camera') {
-      return (
-        <TouchableOpacity
-          style={{ width: ITEM_SIZE, height: ITEM_SIZE }}
-          className="items-center justify-center border-b border-r border-gray-900 bg-gray-800"
-          onPress={openCamera}
-          activeOpacity={0.8}>
-          <Camera size={40} color="#ffffff" />
-          <Text className="mt-2 text-xs font-medium text-white">Camera</Text>
-        </TouchableOpacity>
-      );
-    }
-
-    const isSelected = selectedMedia.some((m) => m.id === item.id);
-    const selectionNumber = getSelectionNumber(item.id);
-
-    return (
-      <View
-        style={{ width: ITEM_SIZE, height: ITEM_SIZE }}
-        className="relative border-b border-r border-gray-900">
-        <TouchableOpacity
-          style={{ width: '100%', height: '100%' }}
-          onPress={() => {
-            if (isMultiSelect) {
-              // In multi-select mode:
-              // 1. Set preview
-              setManualPreview(item);
-              // 2. Select (add) if not already selected
-              // 3. DO NOT deselect if already selected (let the number tap handle that)
-              if (!isSelected) {
-                if (selectedMedia.length >= MAX_SELECTION) {
-                  Alert.alert('Maximum Reached', `You can select up to ${MAX_SELECTION} items`);
-                } else {
-                  setSelectedMedia([...selectedMedia, item]);
-                }
-              }
-            } else {
-              // In single mode, selecting sets preview automatically via selection
-              toggleSelection(item);
-            }
-          }}
-          activeOpacity={0.9}>
-          <ExpoImage
-            source={{ uri: item.uri }}
-            style={{ width: ITEM_SIZE, height: ITEM_SIZE }}
-            contentFit="cover"
-          />
-
-          {/* Video indicator */}
-          {item.mediaType === 'video' && (
-            <View className="absolute left-2 top-2 flex-row items-center rounded bg-black/70 px-2 py-1">
-              <VideoIcon size={12} color="#ffffff" />
-              <Text className="ml-1 text-xs text-white">
-                {item.duration ? `${Math.floor(item.duration)}s` : ''}
-              </Text>
-            </View>
-          )}
-
-          {/* Selection overlay */}
-          {isSelected && (
-            <View className="absolute inset-0 border-2 border-blue-500 bg-blue-500/30" />
-          )}
-        </TouchableOpacity>
-
-        {/* Selection number / Touch target */}
-        <TouchableOpacity
-          onPress={() => {
-            if (isMultiSelect) {
-              toggleSelection(item);
-            } else {
-              // In single mode, pressing number also toggles selection (standard behavior)
-              toggleSelection(item);
-            }
-          }}
-          style={{
-            position: 'absolute',
-            right: 2,
-            top: 2,
-            width: 40, // Larger hit slop area
-            height: 40,
-            alignItems: 'flex-end', // Align circle to top-right visually
-            justifyContent: 'flex-start',
-          }}>
-          {isMultiSelect &&
-            (isSelected && selectionNumber ? (
-              <View className="h-6 w-6 items-center justify-center rounded-full bg-blue-500">
-                <Text className="text-xs font-bold text-white">{selectionNumber}</Text>
-              </View>
-            ) : (
-              <View className="h-6 w-6 rounded-full border-2 border-white bg-white/80" />
-            ))}
-        </TouchableOpacity>
-      </View>
-    );
-  };
-
   if (hasPermission === null) {
     return (
       <View className="flex-1 items-center justify-center bg-black">
@@ -442,51 +339,6 @@ export default React.memo(function CameraScreen() {
       : photos.length > 0
         ? photos[0]
         : null);
-
-  const renderPreview = () => {
-    if (!previewItem) return null;
-
-    return (
-      <View style={{ width, height: width }} className="relative bg-black">
-        <ExpoImage
-          source={{ uri: previewItem.uri }}
-          style={{ width, height: width }}
-          contentFit="cover"
-        />
-        {previewItem.mediaType === 'video' && (
-          <View className="absolute inset-0 items-center justify-center bg-black/30">
-            <VideoIcon size={48} color="#ffffff" />
-          </View>
-        )}
-
-        {/* Multi-select toggle button */}
-        {multipleSelection === 'true' && (
-          <TouchableOpacity
-            onPress={() => {
-              setIsMultiSelect(!isMultiSelect);
-              // If switching to single mode, keep only the last selected item
-              if (isMultiSelect && selectedMedia.length > 1) {
-                const lastItem = selectedMedia[selectedMedia.length - 1];
-                setSelectedMedia([lastItem]);
-              }
-            }}
-            style={{
-              position: 'absolute',
-              right: 12,
-              bottom: 12,
-              backgroundColor: isMultiSelect ? 'rgb(0, 140, 255)' : 'rgba(0,0,0,0.6)',
-              borderRadius: 20,
-              padding: 8,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 6,
-            }}>
-            <Layers size={12} color="#ffffff" />
-          </TouchableOpacity>
-        )}
-      </View>
-    );
-  };
 
   return (
     <>
@@ -533,7 +385,6 @@ export default React.memo(function CameraScreen() {
           }
         />
 
-        {/* Gallery Grid */}
         {isLoading ? (
           <View
             className="flex-1 items-center justify-center"
@@ -553,12 +404,157 @@ export default React.memo(function CameraScreen() {
               paddingTop: insets.top + 50,
               paddingBottom: insets.bottom + 72,
             }}
-            ListHeaderComponent={renderPreview}
-            renderItem={renderMediaItem}
+
+            // Preview item
+            ListHeaderComponent={() => {
+              {
+                if (!previewItem) return null;
+
+                return (
+                  <View style={{ width, height: width }} className="relative bg-black">
+                    <ExpoImage
+                      source={{ uri: previewItem.uri }}
+                      style={{ width, height: width }}
+                      contentFit="cover"
+                    />
+                    {previewItem.mediaType === 'video' && (
+                      <View className="absolute inset-0 items-center justify-center bg-black/30">
+                        <VideoIcon size={48} color="#ffffff" />
+                      </View>
+                    )}
+
+                    {/* Multi-select toggle button */}
+                    {multipleSelection === 'true' && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          setIsMultiSelect(!isMultiSelect);
+                          // If switching to single mode, keep only the last selected item
+                          if (isMultiSelect && selectedMedia.length > 1) {
+                            const lastItem = selectedMedia[selectedMedia.length - 1];
+                            setSelectedMedia([lastItem]);
+                          }
+                        }}
+                        style={{
+                          position: 'absolute',
+                          right: 12,
+                          bottom: 12,
+                          backgroundColor: isMultiSelect ? 'rgb(0, 140, 255)' : 'rgba(0,0,0,0.6)',
+                          borderRadius: 20,
+                          padding: 8,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 6,
+                        }}>
+                        <Layers size={12} color="#ffffff" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                );
+              }
+            }}
+
+
+            // Gallery grid items
+            renderItem={({ item, index }) => {
+              // Camera option in first position
+              if (index === 0 && item.id === 'camera') {
+                return (
+                  <TouchableOpacity
+                    style={{ width: ITEM_SIZE, height: ITEM_SIZE }}
+                    className="items-center justify-center border-b border-r border-gray-900 bg-gray-800"
+                    onPress={openCamera}
+                    activeOpacity={0.8}>
+                    <Camera size={40} color="#ffffff" />
+                    <Text className="mt-2 text-xs font-medium text-white">Camera</Text>
+                  </TouchableOpacity>
+                );
+              }
+              const isSelected = selectedMedia.some((m) => m.id === item.id);
+              const selectionNumber = getSelectionNumber(item.id);
+              return (
+                <View
+                  style={{ width: ITEM_SIZE, height: ITEM_SIZE }}
+                  className="relative border-b border-r border-gray-900">
+                  <TouchableOpacity
+                    style={{ width: '100%', height: '100%' }}
+                    onPress={() => {
+                      if (isMultiSelect) {
+                        // In multi-select mode:
+                        // 1. Set preview
+                        setManualPreview(item);
+                        // 2. Select (add) if not already selected
+                        // 3. DO NOT deselect if already selected (let the number tap handle that)
+                        if (!isSelected) {
+                          if (selectedMedia.length >= MAX_SELECTION) {
+                            Alert.alert(
+                              'Maximum Reached',
+                              `You can select up to ${MAX_SELECTION} items`
+                            );
+                          } else {
+                            setSelectedMedia([...selectedMedia, item]);
+                          }
+                        }
+                      } else {
+                        // In single mode, selecting sets preview automatically via selection
+                        toggleSelection(item);
+                      }
+                    }}
+                    activeOpacity={0.9}>
+                    <ExpoImage
+                      source={{ uri: item.uri }}
+                      style={{ width: ITEM_SIZE, height: ITEM_SIZE }}
+                      contentFit="cover"
+                    />
+
+                    {/* Video indicator */}
+                    {item.mediaType === 'video' && (
+                      <View className="absolute left-2 top-2 flex-row items-center rounded bg-black/70 px-2 py-1">
+                        <VideoIcon size={12} color="#ffffff" />
+                        <Text className="ml-1 text-xs text-white">
+                          {item.duration ? `${Math.floor(item.duration)}s` : ''}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Selection overlay */}
+                    {isSelected && (
+                      <View className="absolute inset-0 border-2 border-blue-500 bg-blue-500/30" />
+                    )}
+                  </TouchableOpacity>
+
+                  {/* Selection number / Touch target */}
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (isMultiSelect) {
+                        toggleSelection(item);
+                      } else {
+                        // In single mode, pressing number also toggles selection (standard behavior)
+                        toggleSelection(item);
+                      }
+                    }}
+                    style={{
+                      position: 'absolute',
+                      right: 2,
+                      top: 2,
+                      width: 40, // Larger hit slop area
+                      height: 40,
+                      alignItems: 'flex-end', // Align circle to top-right visually
+                      justifyContent: 'flex-start',
+                    }}>
+                    {isMultiSelect &&
+                      (isSelected && selectionNumber ? (
+                        <View className="h-6 w-6 items-center justify-center rounded-full bg-blue-500">
+                          <Text className="text-xs font-bold text-white">{selectionNumber}</Text>
+                        </View>
+                      ) : (
+                        <View className="h-6 w-6 rounded-full border-2 border-white bg-white/80" />
+                      ))}
+                  </TouchableOpacity>
+                </View>
+              );
+            }}
           />
         )}
-
-        {/* Bottom Selection Info */}
       </View>
     </>
   );
