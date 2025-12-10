@@ -519,7 +519,7 @@ const CameraHeader = ({
             // If switching to single mode, keep only the last selected item
             if (isMultiSelect && selectedMedia.length > 1) {
               const lastItem = selectedMedia[selectedMedia.length - 1];
-              setSelectedMedia([lastItem]);
+              // setSelectedMedia([lastItem]);
               setCurrentIndex(0);
             }
           }}

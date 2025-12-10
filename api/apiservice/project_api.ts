@@ -1,9 +1,20 @@
 // project data
 
-import { compressImage } from "@/utils/image-compression"
-
 import { API_BASE_URL, fetchWithTimeout } from "../apiservice"
 import { ServerMaintenanceError } from "~/lib/errors"
+
+// Helper to prepare image for FormData in React Native
+const prepareImageForUpload = (uri: string) => {
+  if (!uri) return null;
+  const filename = uri.split('/').pop();
+  const match = /\.(\w+)$/.exec(filename || '');
+  const type = match ? `image/${match[1]}` : `image/jpeg`;
+  return {
+    uri,
+    name: filename || 'image.jpg',
+    type,
+  } as any; // Cast to any to satisfy FormData requirements
+};
 
 //talent search api (talent)
 //http://localhost:8080/api/project/search?isPrivate=false&status=Published&pageNo=1&pageSize=2&orderBy=id&orderSeq=dec
@@ -101,12 +112,13 @@ export const getProjectByID = async (projectid: number): Promise<any> => {
   }
 }
 
-export const createProject = async (soleUserId: string, values) => {
+export const createProject = async (soleUserId: string, values: any) => {
   const formData = new FormData()
   if (values.projectImage) {
-    const compressedImage = await compressImage(values?.projectImage)
-
-    formData.append("projectImage", compressedImage)
+    const imageFile = prepareImageForUpload(values.projectImage)
+    if (imageFile) {
+      formData.append("projectImage", imageFile)
+    }
   }
   formData.append("soleUserId", soleUserId)
   formData.append("bucket", "projects")
@@ -120,7 +132,7 @@ export const createProject = async (soleUserId: string, values) => {
     "isPrivate",
     values.isPrivate !== undefined ? values.isPrivate.toString() : "true"
   )
-  for (const [key, value] of formData.entries()) {
+  for (const [key, value] of Object.entries(formData)) {
     console.log(key, value) // Log FormData entries for debugging
   }
   try {
@@ -142,12 +154,28 @@ export const createProject = async (soleUserId: string, values) => {
 
 export const updateProject = async (
   projectId: number,
-  soleUserId,
+  soleUserId: string,
   values: any
 ) => {
   const formData = new FormData()
   if (values.projectImage) {
-    formData.append("projectImage", values.projectImage)
+    // If it's a remote URL (http/https), we might skip uploading or handle differently
+    // But for local file URIs (file://), we need to format it as a file
+    if (values.projectImage.startsWith('file://') || values.projectImage.startsWith('content://')) {
+      const imageFile = prepareImageForUpload(values.projectImage);
+      if (imageFile) {
+        formData.append("projectImage", imageFile);
+      }
+    } else {
+        // Assume it's already a URL string or not a new file upload
+        // If the backend expects a file, sending a string URL might fail or be ignored depending on logic.
+        // If we want to keep existing image, we might not need to send this field at all, 
+        // or send it as a separate field if API supports it.
+        // For now, if it's not a file URI, we append it as string (legacy behavior) 
+        // OR we skip it if backend only updates image when file is provided.
+        // Given the log shows "file://", we are mostly concerned with that case.
+        formData.append("projectImage", values.projectImage)
+    }
   }
   formData.append("soleUserId", soleUserId)
   formData.append("bucket", "projects")
@@ -166,7 +194,7 @@ export const updateProject = async (
   // Log FormData entries for debugging - check all fields are present
   console.log('[UpdateProject] FormData entries:')
   const formDataEntries: { [key: string]: any } = {}
-  for (const [key, value] of formData.entries()) {
+  for (const [key, value] of Object.entries(formData)) {
     console.log(`  ${key}:`, value, `(type: ${typeof value})`)
     formDataEntries[key] = value
   }

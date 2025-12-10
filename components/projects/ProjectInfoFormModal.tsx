@@ -5,12 +5,9 @@ import { Formik } from 'formik';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSoleUserContext } from '@/context/SoleUserContext';
 import { createProject, updateProject } from '@/api/apiservice/project_api';
-import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
 import { FormModal } from '@/components/custom/form-modal';
 import { PrimaryButton } from '../custom/primary-button';
-import { ImageCropModal } from '@/components/camera/ImageCropModal';
-import { type MediaItem, useCreatePostContext } from '@/context/CreatePostContext';
+import { useCreatePostContext } from '@/context/CreatePostContext';
 import { router } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 
@@ -62,22 +59,7 @@ export default function ProjectInfoFormModal({
   }, [initValues]);
 
   // To solve the Formik update issue, we can lift the state of the image or use a ref.
-  // Let's use a state for the NEW image selected from camera to override initialValues.
-  const [newProjectImage, setNewProjectImage] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Only process when we're focused AND waiting AND have media
-    // Note: isOpen might be false if the modal closed, but form state should persist if component is mounted
-    if (isWaitingForCamera && selectedMedia.length > 0) {
-      const mediaItem = selectedMedia[0];
-      // Use originalUri if available, or uri. Note: Edit screen updates context but not crop file.
-      // If we want the crop, we need to handle it. For now, we take what's in context.
-      setNewProjectImage(mediaItem.uri);
-      setIsWaitingForCamera(false); // Reset flag
-      // We don't clear media here to avoid flicker if it's used elsewhere, but ideally we should?
-      // clearMedia();
-    }
-  }, [isWaitingForCamera, selectedMedia]); // Removed isFocused to ensure it runs even if focus transition is subtle
+  // We'll update the form field directly inside Formik when selectedMedia changes.
 
   // React Query mutations
   const projectMutation = useMutation({
@@ -145,87 +127,7 @@ export default function ProjectInfoFormModal({
       Alert.alert('Error', 'Failed to save project changes');
     }
   };
-
-  // const pickImage = async (setFieldValue: any) => {
-  //   try {
-  //     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  //     if (status !== 'granted') {
-  //       Alert.alert(
-  //         'Permission needed',
-  //         'Please grant photo library access to change project image'
-  //       );
-  //       return;
-  //     }
-
-  //     const result = await ImagePicker.launchImageLibraryAsync({
-  //       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-  //       allowsEditing: false, // We'll use our custom cropper
-  //       quality: 1.0, // Use full quality for cropping
-  //     });
-
-  //     if (!result.canceled && result.assets[0]) {
-  //       const asset = result.assets[0];
-  //       console.log('Image selected:', asset.uri);
-
-  //       // Get image dimensions
-  //       Image.getSize(
-  //         asset.uri,
-  //         (width, height) => {
-  //           const mediaItem: MediaItem = {
-  //             id: `project-image-${Date.now()}`,
-  //             uri: asset.uri,
-  //             mediaType: 'photo',
-  //             width,
-  //             height,
-  //             aspectRatio: '16:9',
-  //           };
-  //           setSelectedImageForCrop(mediaItem);
-  //           setIsCropModalVisible(true);
-  //         },
-  //         (error) => {
-  //           console.error('Error getting image size:', error);
-  //           // Fallback: use default dimensions
-  //           const mediaItem: MediaItem = {
-  //             id: `project-image-${Date.now()}`,
-  //             uri: asset.uri,
-  //             mediaType: 'photo',
-  //             width: asset.width || 1920,
-  //             height: asset.height || 1080,
-  //             aspectRatio: '16:9',
-  //           };
-  //           setSelectedImageForCrop(mediaItem);
-  //           setIsCropModalVisible(true);
-  //         }
-  //       );
-  //     }
-  //   } catch (error) {
-  //     console.error('Error picking image:', error);
-  //     Alert.alert('Error', 'Failed to pick image');
-  //   }
-  // };
-
-  // const handleCropApply = (payload: {
-  //   uri: string;
-  //   width: number;
-  //   height: number;
-  //   cropData: {
-  //     x: number;
-  //     y: number;
-  //     width: number;
-  //     height: number;
-  //     zoom: number;
-  //     naturalWidth?: number;
-  //     naturalHeight?: number;
-  //   };
-  // }, setFieldValue?: any) => {
-  //   console.log('Cropped image:', payload.uri);
-  //   if (setFieldValue) {
-  //     setFieldValue('projectImage', payload.uri);
-  //   }
-  //   setIsCropModalVisible(false);
-  //   setSelectedImageForCrop(null);
-  // };
-
+ 
   const modalTitle = method === 'POST' ? 'Create New Project' : 'Edit Project';
   const projectId = initValues?.id;
 
@@ -247,14 +149,15 @@ export default function ProjectInfoFormModal({
         submitForm,
         isSubmitting,
       }) => {
-        // Effect to update projectImage when newProjectImage changes (returned from camera)
+        // Effect to update projectImage when selectedMedia changes (returned from camera)
         useEffect(() => {
-          if (newProjectImage) {
-            console.log('Setting projectImage to:', newProjectImage);
-            setFieldValue('projectImage', newProjectImage);
-            setNewProjectImage(null); // Reset after setting
+          if (isFocused && isWaitingForCamera && selectedMedia.length > 0) {
+            const mediaItem = selectedMedia[0];
+            console.log('Setting projectImage to:', mediaItem.uri);
+            setFieldValue('projectImage', mediaItem.uri);
+            setIsWaitingForCamera(false); // Reset flag
           }
-        }, [newProjectImage]); // Removed setFieldValue from dependency array to avoid loops
+        }, [isFocused, isWaitingForCamera, selectedMedia]); // Removed setFieldValue from dependency array to avoid loops
 
         // Validate required fields
         const projectNameError = !values.projectName?.trim();
@@ -313,6 +216,7 @@ export default function ProjectInfoFormModal({
                     <TouchableOpacity
                       className="aspect-video w-full overflow-hidden rounded-xl border border-white/10 bg-gray-800/60"
                       onPress={() => {
+                        clearMedia(); // Clear previous selection to ensure we wait for new one
                         setIsWaitingForCamera(true); // Signal that we are waiting for a return
                         router.push({
                           pathname: '/(protected)/camera' as any,
@@ -320,7 +224,11 @@ export default function ProjectInfoFormModal({
                         });
                       }}>
                       {values.projectImage ? (
-                        <Image source={{ uri: values.projectImage }} className="h-full w-full" />
+                        <Image
+                          key={values.projectImage}
+                          source={{ uri: values.projectImage }}
+                          className="h-full w-full"
+                        />
                       ) : (
                         <View className="flex-1 items-center justify-center">
                           <Plus color="#6b7280" size={32} />
