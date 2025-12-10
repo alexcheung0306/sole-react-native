@@ -33,6 +33,7 @@ export function ImageCarousel({ media }: ImageCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageHeights, setImageHeights] = useState<{ [key: number]: number }>({});
   const [currentHeight, setCurrentHeight] = useState<number>(SCREEN_WIDTH); // Default to square
+  const [isZooming, setIsZooming] = useState(false);
   const listRef = useRef<FlatList<MediaItem>>(null);
 
   const logOutZoomState = React.useCallback(
@@ -192,59 +193,64 @@ export function ImageCarousel({ media }: ImageCarouselProps) {
               resetOnRelease={true}
               minScale={1}
               maxScale={3}
+              onZoomActiveChange={setIsZooming}
             />
           );
         }}
       />
 
-      {/* Navigation Arrows */}
-      {media.length > 1 && currentIndex > 0 && (
-        <TouchableOpacity
-          onPress={handlePrevious}
-          className="absolute left-2 h-6 w-6 items-center justify-center rounded-full bg-black/50"
-          style={{
-            top: '50%',
-            transform: [{ translateY: -12 }], // Half of button height (24px / 2 = 12px)
-          }}
-          activeOpacity={0.7}>
-          <ChevronLeft size={12} color="#ffffff" />
-        </TouchableOpacity>
+      {!isZooming && (
+        <>
+          {/* Navigation Arrows */}
+          {media.length > 1 && currentIndex > 0 && (
+            <TouchableOpacity
+              onPress={handlePrevious}
+              className="absolute left-2 h-6 w-6 items-center justify-center rounded-full bg-black/50"
+              style={{
+                top: '50%',
+                transform: [{ translateY: -12 }], // Half of button height (24px / 2 = 12px)
+              }}
+              activeOpacity={0.7}>
+              <ChevronLeft size={12} color="#ffffff" />
+            </TouchableOpacity>
+          )}
+
+          {media.length > 1 && currentIndex < media.length - 1 && (
+            <TouchableOpacity
+              onPress={handleNext}
+              className="absolute right-2 h-6 w-6 items-center justify-center rounded-full bg-black/50"
+              style={{
+                top: '50%',
+                transform: [{ translateY: -12 }], // Half of button height (24px / 2 = 12px)
+              }}
+              activeOpacity={0.7}>
+              <ChevronRight size={12} color="#ffffff" />
+            </TouchableOpacity>
+          )}
+
+          {/* Image Counter & Indicators */}
+          <View className="absolute bottom-3 left-0 right-0 items-center">
+            {/* Dot Indicators */}
+            <View className="mb-2 flex-row gap-1">
+              {media.map((_, index) => (
+                <View
+                  key={index}
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    index === currentIndex ? 'bg-white' : 'bg-white/40'
+                  }`}
+                />
+              ))}
+            </View>
+
+            {/* Counter */}
+            <View className="rounded-full bg-black/60 px-3 py-1">
+              <Text className="text-xs font-semibold text-white">
+                {currentIndex + 1} / {media.length}
+              </Text>
+            </View>
+          </View>
+        </>
       )}
-
-      {media.length > 1 && currentIndex < media.length - 1 && (
-        <TouchableOpacity
-          onPress={handleNext}
-          className="absolute right-2 h-6 w-6 items-center justify-center rounded-full bg-black/50"
-          style={{
-            top: '50%',
-            transform: [{ translateY: -12 }], // Half of button height (24px / 2 = 12px)
-          }}
-          activeOpacity={0.7}>
-          <ChevronRight size={12} color="#ffffff" />
-        </TouchableOpacity>
-      )}
-
-      {/* Image Counter & Indicators */}
-      <View className="absolute bottom-3 left-0 right-0 items-center">
-        {/* Dot Indicators */}
-        <View className="mb-2 flex-row gap-1">
-          {media.map((_, index) => (
-            <View
-              key={index}
-              className={`h-1.5 w-1.5 rounded-full ${
-                index === currentIndex ? 'bg-white' : 'bg-white/40'
-              }`}
-            />
-          ))}
-        </View>
-
-        {/* Counter */}
-        <View className="rounded-full bg-black/60 px-3 py-1">
-          <Text className="text-xs font-semibold text-white">
-            {currentIndex + 1} / {media.length}
-          </Text>
-        </View>
-      </View>
     </View>
   );
 }

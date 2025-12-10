@@ -17,6 +17,7 @@ interface MediaZoom2Props {
   resetOnRelease?: boolean;
   minScale?: number;
   maxScale?: number;
+  onZoomActiveChange?: (active: boolean) => void;
 }
 
 export function MediaZoom2({
@@ -26,6 +27,7 @@ export function MediaZoom2({
   resetOnRelease = false,
   minScale = 1,
   maxScale = 5,
+  onZoomActiveChange,
 }: MediaZoom2Props) {
   const pinchSensitivity = 1.0; 
 
@@ -90,6 +92,9 @@ export function MediaZoom2({
     isZoomActive.value = false;
     backdropOpacity.value = withTiming(0);
     hasResetOnEnd.value = false;
+    if (onZoomActiveChange) {
+      runOnJS(onZoomActiveChange)(false);
+    }
   }, []);
 
   // Shared pan-end handler so we can call it from pinch end when no fingers remain
@@ -123,6 +128,9 @@ export function MediaZoom2({
       });
 
       isZoomActive.value = true
+      if (onZoomActiveChange) {
+        runOnJS(onZoomActiveChange)(true);
+      }
 
       // Cancel any ongoing springs
       cancelAnimation(scale);
@@ -166,6 +174,9 @@ export function MediaZoom2({
         const scaleChange = Math.abs(e.scale - 1);
         if (scaleChange > 0.05) { // 5% threshold
            isZoomActive.value = true;
+           if (onZoomActiveChange) {
+             runOnJS(onZoomActiveChange)(true);
+           }
            backdropOpacity.value = withTiming(1);
            
            // Re-anchor origin to current focal point to prevent jump upon activation
@@ -403,7 +414,7 @@ export function MediaZoom2({
   });
 
   const wrapperAnimatedStyle = useAnimatedStyle(() => {
-    const activeZ = isZoomActive.value ? 2000 : 10;
+    const activeZ = isZoomActive.value ? 20000 : 10;
     return {
       zIndex: activeZ,
       elevation: activeZ,
