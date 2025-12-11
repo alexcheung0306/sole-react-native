@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
-import { View, Text, Modal, TouchableOpacity, TouchableWithoutFeedback, Platform } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, Modal, TouchableOpacity, TouchableWithoutFeedback, ScrollView, StyleSheet } from 'react-native';
 import { FormControl, FormControlLabel, FormControlLabelText } from '@/components/ui/form-control';
-import { Picker } from 'react-native-wheel-pick';
 
 interface RangeWheelPickerInputProps {
     title: string;
@@ -45,11 +44,32 @@ export function RangeWheelPickerInput({
     // Temporary state for the modal
     const [tempMin, setTempMin] = useState(currentMin);
     const [tempMax, setTempMax] = useState(currentMax);
+    
+    // Refs for ScrollViews
+    const minScrollRef = useRef<ScrollView>(null);
+    const maxScrollRef = useRef<ScrollView>(null);
 
     const rangeOptions = Array.from({ length: Math.floor((sliderMax - sliderMin) / sliderStep) + 1 }, (_, i) => {
         const val = String(sliderMin + i * sliderStep);
         return { value: val, label: val };
     });
+    
+    // Scroll to selected value when modal opens
+    useEffect(() => {
+        if (modalVisible) {
+            const minIndex = rangeOptions.findIndex(opt => Number(opt.value) === tempMin);
+            const maxIndex = rangeOptions.findIndex(opt => Number(opt.value) === tempMax);
+            
+            setTimeout(() => {
+                if (minScrollRef.current && minIndex >= 0) {
+                    minScrollRef.current.scrollTo({ y: minIndex * 50, animated: false });
+                }
+                if (maxScrollRef.current && maxIndex >= 0) {
+                    maxScrollRef.current.scrollTo({ y: maxIndex * 50, animated: false });
+                }
+            }, 100);
+        }
+    }, [modalVisible]);
 
     const handleOpen = () => {
         setTempMin(currentMin);
@@ -114,25 +134,95 @@ export function RangeWheelPickerInput({
                                 <View className="flex-row justify-center items-center py-8">
                                     <View className="flex-1 items-center">
                                         <Text className="text-white/60 mb-2 font-medium">Min</Text>
-                                        <Picker
-                                            style={{ backgroundColor: 'transparent', width: 130, height: 215 }}
-                                            selectedValue={String(tempMin)}
-                                            pickerData={rangeOptions}
-                                            onValueChange={(value: any) => setTempMin(Number(value))}
-                                            textColor="white"
-                                            textSize={22}
-                                        />
+                                        <View style={styles.pickerContainer}>
+                                            <ScrollView
+                                                ref={minScrollRef}
+                                                showsVerticalScrollIndicator={false}
+                                                snapToInterval={50}
+                                                decelerationRate="fast"
+                                                contentContainerStyle={styles.pickerContent}
+                                                onMomentumScrollEnd={(e) => {
+                                                    const y = e.nativeEvent.contentOffset.y;
+                                                    const index = Math.round(y / 50);
+                                                    const clampedIndex = Math.max(0, Math.min(index, rangeOptions.length - 1));
+                                                    const newValue = Number(rangeOptions[clampedIndex].value);
+                                                    setTempMin(newValue);
+                                                    // Snap to exact position
+                                                    minScrollRef.current?.scrollTo({ y: clampedIndex * 50, animated: true });
+                                                }}
+                                                onScrollEndDrag={(e) => {
+                                                    const y = e.nativeEvent.contentOffset.y;
+                                                    const index = Math.round(y / 50);
+                                                    const clampedIndex = Math.max(0, Math.min(index, rangeOptions.length - 1));
+                                                    minScrollRef.current?.scrollTo({ y: clampedIndex * 50, animated: true });
+                                                }}
+                                            >
+                                                {rangeOptions.map((option, index) => {
+                                                    const isSelected = Number(option.value) === tempMin;
+                                                    return (
+                                                        <TouchableOpacity
+                                                            key={option.value}
+                                                            style={styles.pickerItem}
+                                                            onPress={() => {
+                                                                setTempMin(Number(option.value));
+                                                                minScrollRef.current?.scrollTo({ y: index * 50, animated: true });
+                                                            }}
+                                                        >
+                                                            <Text style={[styles.pickerText, isSelected && styles.pickerTextSelected]}>
+                                                                {option.label}
+                                                            </Text>
+                                                        </TouchableOpacity>
+                                                    );
+                                                })}
+                                            </ScrollView>
+                                            <View style={styles.pickerIndicator} />
+                                        </View>
                                     </View>
                                     <View className="flex-1 items-center">
                                         <Text className="text-white/60 mb-2 font-medium">Max</Text>
-                                        <Picker
-                                            style={{ backgroundColor: 'transparent', width: 130, height: 215 }}
-                                            selectedValue={String(tempMax)}
-                                            pickerData={rangeOptions}
-                                            onValueChange={(value: any) => setTempMax(Number(value))}
-                                            textColor="white"
-                                            textSize={22}
-                                        />
+                                        <View style={styles.pickerContainer}>
+                                            <ScrollView
+                                                ref={maxScrollRef}
+                                                showsVerticalScrollIndicator={false}
+                                                snapToInterval={50}
+                                                decelerationRate="fast"
+                                                contentContainerStyle={styles.pickerContent}
+                                                onMomentumScrollEnd={(e) => {
+                                                    const y = e.nativeEvent.contentOffset.y;
+                                                    const index = Math.round(y / 50);
+                                                    const clampedIndex = Math.max(0, Math.min(index, rangeOptions.length - 1));
+                                                    const newValue = Number(rangeOptions[clampedIndex].value);
+                                                    setTempMax(newValue);
+                                                    // Snap to exact position
+                                                    maxScrollRef.current?.scrollTo({ y: clampedIndex * 50, animated: true });
+                                                }}
+                                                onScrollEndDrag={(e) => {
+                                                    const y = e.nativeEvent.contentOffset.y;
+                                                    const index = Math.round(y / 50);
+                                                    const clampedIndex = Math.max(0, Math.min(index, rangeOptions.length - 1));
+                                                    maxScrollRef.current?.scrollTo({ y: clampedIndex * 50, animated: true });
+                                                }}
+                                            >
+                                                {rangeOptions.map((option, index) => {
+                                                    const isSelected = Number(option.value) === tempMax;
+                                                    return (
+                                                        <TouchableOpacity
+                                                            key={option.value}
+                                                            style={styles.pickerItem}
+                                                            onPress={() => {
+                                                                setTempMax(Number(option.value));
+                                                                maxScrollRef.current?.scrollTo({ y: index * 50, animated: true });
+                                                            }}
+                                                        >
+                                                            <Text style={[styles.pickerText, isSelected && styles.pickerTextSelected]}>
+                                                                {option.label}
+                                                            </Text>
+                                                        </TouchableOpacity>
+                                                    );
+                                                })}
+                                            </ScrollView>
+                                            <View style={styles.pickerIndicator} />
+                                        </View>
                                     </View>
                                 </View>
                             </View>
@@ -143,3 +233,42 @@ export function RangeWheelPickerInput({
         </FormControl>
     );
 }
+
+const styles = StyleSheet.create({
+    pickerContainer: {
+        width: 130,
+        height: 215,
+        backgroundColor: 'transparent',
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    pickerContent: {
+        paddingVertical: 82.5, // Center the selected item (215 / 2 - 50 / 2)
+    },
+    pickerItem: {
+        height: 50,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    pickerText: {
+        fontSize: 22,
+        color: 'rgba(255, 255, 255, 0.5)',
+        textAlign: 'center',
+    },
+    pickerTextSelected: {
+        color: '#ffffff',
+        fontWeight: 'bold',
+    },
+    pickerIndicator: {
+        position: 'absolute',
+        top: '50%',
+        left: 0,
+        right: 0,
+        height: 50,
+        marginTop: -25,
+        borderTopWidth: 1,
+        borderBottomWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        pointerEvents: 'none',
+    },
+});

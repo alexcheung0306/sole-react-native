@@ -44,7 +44,6 @@ export function RoleRequirementsInputs({
       />
 
       {/* Age Range */}
-      {/* Age Range */}
       <RangeWheelPickerInput
         title="Required age range for this role"
         values={values}
@@ -61,7 +60,6 @@ export function RoleRequirementsInputs({
         sliderMax={99}
       />
 
-      {/* Height Range */}
       {/* Height Range */}
       <RangeWheelPickerInput
         title="Required height range for this role"
