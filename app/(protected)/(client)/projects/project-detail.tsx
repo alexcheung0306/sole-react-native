@@ -243,6 +243,7 @@ export default function ProjectDetail({
             <SwipeableContainer 
               activeIndex={currentTabIndex} 
               onIndexChange={handleIndexChange}
+              shrink={false}
             >
               {tabs.map((tab) => {
                 if (tab.id === 'project-information') {

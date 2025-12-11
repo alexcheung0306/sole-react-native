@@ -317,6 +317,7 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
             <SwipeableContainer 
               activeIndex={currentTabIndex} 
               onIndexChange={handleIndexChange}
+              shrink={false}
             >
               {/* ---------------------------------------Job Information--------------------------------------- */}
               <View className="gap-0 px-2">

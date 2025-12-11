@@ -18,6 +18,7 @@ type SwipeableContainerProps = {
   activeIndex: number;
   onIndexChange: (index: number) => void;
   shouldFailAtEdges?: boolean; // If true, gesture fails at edges to allow parent to handle
+  shrink?: boolean; // If true, applies shrink transition effect when swiping (default: true)
 };
 
 export default function SwipeableContainer({
@@ -25,6 +26,7 @@ export default function SwipeableContainer({
   activeIndex,
   onIndexChange,
   shouldFailAtEdges = false,
+  shrink = true,
 }: SwipeableContainerProps) {
   const translateX = useSharedValue(-activeIndex * SCREEN_WIDTH);
   const currentIndex = useSharedValue(activeIndex);
@@ -39,6 +41,13 @@ export default function SwipeableContainer({
   // Track if we should fail the gesture (for nested containers at edges)
   const shouldFailGesture = useSharedValue(false);
   const shouldLogGesture = false;
+  // Store shrink prop in shared value so it can be accessed in worklets
+  const shrinkEnabled = useSharedValue(shrink);
+  
+  // Update shrink value when prop changes
+  useEffect(() => {
+    shrinkEnabled.value = shrink;
+  }, [shrink]);
 
   // Update children length when it changes
   useEffect(() => {
@@ -345,6 +354,23 @@ export default function SwipeableContainer({
   const createSwipeEffectStyle = useAnimatedStyle(() => {
     const swipeProgress = Math.abs(swipeOffset.value) / SCREEN_WIDTH;
     const isActive = isSwiping.value;
+    const shouldShrink = shrinkEnabled.value;
+
+    // If shrink is disabled, return no effects
+    if (!shouldShrink) {
+      return {
+        transform: [{ scale: 1 }],
+        borderRadius: 0,
+        shadowColor: '#ffffff',
+        shadowOffset: {
+          width: 0,
+          height: 0,
+        },
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        elevation: 0,
+      };
+    }
 
     // Scale down during swipe (shrink effect)
     const scale = interpolate(swipeProgress, [0, 0.3, 1], [1, 0.95, 0.9], Extrapolate.CLAMP);
