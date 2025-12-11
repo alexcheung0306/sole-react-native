@@ -43,6 +43,8 @@ export default function SwipeableContainer({
   const shouldLogGesture = false;
   // Store shrink prop in shared value so it can be accessed in worklets
   const shrinkEnabled = useSharedValue(shrink);
+  // Track if we've committed to a horizontal gesture - once committed, continue even if vertical movement increases
+  const isHorizontalGestureCommitted = useSharedValue(false);
   
   // Update shrink value when prop changes
   useEffect(() => {
@@ -110,9 +112,9 @@ export default function SwipeableContainer({
   }, []);
 
   const panGesture = Gesture.Pan()
-    .minDistance(30) // Increased minimum distance to avoid small movements
-    .activeOffsetX([-120, 120]) // Very high threshold - only activate for clear swipes
-    .failOffsetY([-30, 30]) // More permissive for vertical movement
+    .minDistance(20) // Lower minimum distance for more sensitive horizontal detection
+    .activeOffsetX([-60, 60]) // Lower threshold - activate horizontal gestures sooner
+    .failOffsetY([-50, 50]) // Higher threshold - allow more vertical movement before failing
     .onStart(() => {
       'worklet';
       shouldFailGesture.value = false;
@@ -121,6 +123,7 @@ export default function SwipeableContainer({
       startX.value = translateX.value;
       isSwiping.value = true;
       swipeOffset.value = 0;
+      isHorizontalGestureCommitted.value = false; // Reset on new gesture
       runOnJS(logGesture)('onStart', {
         currentIndex: currentIndex.value,
         startX: startX.value,
@@ -133,17 +136,24 @@ export default function SwipeableContainer({
       const len = childrenLength.value;
       if (len === 0) return;
 
-      // Only update if horizontal movement is clearly dominant (2:1 ratio)
-      // AND the movement is significant enough to be a swipe (not a scroll)
-      // This allows horizontal ScrollViews to work for small movements
-      const isHorizontalDominant = Math.abs(e.translationX) > Math.abs(e.translationY) * 2;
+      // Check if horizontal movement is dominant (1.5:1 ratio - more sensitive to horizontal)
+      const isHorizontalDominant = Math.abs(e.translationX) > Math.abs(e.translationY) * 1.5;
       
-      // Only process if movement is very significant (large distance OR high velocity)
-      // Small, slow movements are likely scrolling - let ScrollView handle them
-      // Increased thresholds to give ScrollView priority
-      const isSignificantSwipe = Math.abs(e.translationX) > 100 || Math.abs(e.velocityX) > 600;
+      // Check if movement is significant (lowered thresholds for more sensitive horizontal)
+      const isSignificantSwipe = Math.abs(e.translationX) > 60 || Math.abs(e.velocityX) > 400;
       
-      if (isHorizontalDominant && isSignificantSwipe) {
+      // If we've already committed to a horizontal gesture, continue updating as long as there's horizontal movement
+      // This prevents pausing when the gesture becomes more vertical during an active horizontal scroll
+      const shouldUpdate = isHorizontalGestureCommitted.value 
+        ? Math.abs(e.translationX) > 0 // Continue if there's any horizontal movement
+        : (isHorizontalDominant && isSignificantSwipe); // Initial check: must be horizontal and significant
+      
+      // Commit to horizontal gesture if conditions are met
+      if (!isHorizontalGestureCommitted.value && isHorizontalDominant && isSignificantSwipe) {
+        isHorizontalGestureCommitted.value = true;
+      }
+      
+      if (shouldUpdate) {
         const currentIdx = currentIndex.value;
 
         // Check if we're trying to swipe beyond boundaries (hard boundary lock)
@@ -206,6 +216,7 @@ export default function SwipeableContainer({
     .onEnd((e) => {
       'worklet';
       isGestureActive.value = false;
+      isHorizontalGestureCommitted.value = false; // Reset for next gesture
 
       // Safety check for children length
       const len = childrenLength.value;
@@ -247,13 +258,16 @@ export default function SwipeableContainer({
         return; // Don't process further - let parent handle
       }
 
-      // Only process swipe if horizontal movement was clearly dominant (2:1 ratio)
-      // AND the movement is significant enough to be a swipe (not a scroll)
-      const isHorizontalDominant = Math.abs(e.translationX) > Math.abs(e.translationY) * 2;
-      // Increased thresholds to give ScrollView priority
-      const isSignificantSwipe = Math.abs(e.translationX) > 100 || Math.abs(e.velocityX) > 600;
+      // Check if horizontal movement was dominant (1.5:1 ratio - more sensitive to horizontal)
+      const isHorizontalDominant = Math.abs(e.translationX) > Math.abs(e.translationY) * 1.5;
+      // Lowered thresholds for more sensitive horizontal detection
+      const isSignificantSwipe = Math.abs(e.translationX) > 60 || Math.abs(e.velocityX) > 400;
       
-      if (isHorizontalDominant && isSignificantSwipe) {
+      // Process if we've committed to horizontal gesture OR if it's currently horizontal dominant
+      // This ensures we complete horizontal swipes even if they end with more vertical movement
+      const shouldProcessSwipe = isHorizontalGestureCommitted.value || (isHorizontalDominant && isSignificantSwipe);
+      
+      if (shouldProcessSwipe && Math.abs(e.translationX) > 0) {
         const threshold = SCREEN_WIDTH * 0.2; // Lower threshold for gentler feel
         const velocity = e.velocityX;
         const currentPos = translateX.value;

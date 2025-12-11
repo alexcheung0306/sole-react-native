@@ -1,9 +1,17 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Calendar, Clock } from 'lucide-react-native';
-import DatePicker from 'react-native-date-picker';
 import { parseDateTime, formatDateTime, formatDisplayDateTime } from '@/lib/datetime';
 import { GlassOverlay } from '@/components/custom/GlassView';
+
+// Import DatePicker with error handling
+let DatePicker: any = null;
+try {
+  const datePickerModule = require('react-native-date-picker');
+  DatePicker = datePickerModule.default || datePickerModule;
+} catch (error) {
+  console.warn('react-native-date-picker not available:', error);
+}
 
 interface DateTimePickerInputProps {
   value: string;
@@ -39,6 +47,7 @@ export function DateTimePickerInput({
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [pickerInitialDate, setPickerInitialDate] = useState<Date>(new Date());
   const [internalError, setInternalError] = useState<string>('');
+  const [isNativeModuleAvailable, setIsNativeModuleAvailable] = useState(!!DatePicker);
 
   const error = externalError || internalError;
   const setError = (err: string) => {
@@ -48,33 +57,52 @@ export function DateTimePickerInput({
     }
   };
 
-  const openDateTimePicker = () => {
-    // Parse existing value or use defaultValue or tomorrow as default
-    let initialDate = new Date();
-    if (value) {
-      const parsed = parseDateTime(value);
-      if (parsed && !isNaN(parsed.getTime())) {
-        initialDate = parsed;
-      } else {
-        initialDate.setDate(initialDate.getDate() + 1);
-        initialDate.setHours(12, 0, 0, 0);
-      }
-    } else if (defaultValue) {
-      const parsed = parseDateTime(defaultValue);
-      if (parsed && !isNaN(parsed.getTime())) {
-        initialDate = parsed;
-      } else {
-        initialDate.setDate(initialDate.getDate() + 1);
-        initialDate.setHours(12, 0, 0, 0);
-      }
-    } else {
-      initialDate.setDate(initialDate.getDate() + 1);
-      initialDate.setHours(12, 0, 0, 0);
+  // Check if native module is available
+  useEffect(() => {
+    if (!DatePicker) {
+      setIsNativeModuleAvailable(false);
+      setError('Date picker native module not available. Please rebuild the app.');
     }
-    setPickerInitialDate(initialDate);
-    setSelectedDate(null);
-    setShowDatePicker(true);
-    setError('');
+  }, []);
+
+  const openDateTimePicker = () => {
+    if (!isNativeModuleAvailable) {
+      setError('Date picker native module not available. Please rebuild the app with: npx expo prebuild && npx expo run:ios');
+      return;
+    }
+
+    try {
+      // Parse existing value or use defaultValue or tomorrow as default
+      let initialDate = new Date();
+      if (value) {
+        const parsed = parseDateTime(value);
+        if (parsed && !isNaN(parsed.getTime())) {
+          initialDate = parsed;
+        } else {
+          initialDate.setDate(initialDate.getDate() + 1);
+          initialDate.setHours(12, 0, 0, 0);
+        }
+      } else if (defaultValue) {
+        const parsed = parseDateTime(defaultValue);
+        if (parsed && !isNaN(parsed.getTime())) {
+          initialDate = parsed;
+        } else {
+          initialDate.setDate(initialDate.getDate() + 1);
+          initialDate.setHours(12, 0, 0, 0);
+        }
+      } else {
+        initialDate.setDate(initialDate.getDate() + 1);
+        initialDate.setHours(12, 0, 0, 0);
+      }
+      setPickerInitialDate(initialDate);
+      setSelectedDate(null);
+      setShowDatePicker(true);
+      setError('');
+    } catch (error: any) {
+      console.error('Error opening date picker:', error);
+      setError('Failed to open date picker. Please rebuild the app.');
+      setIsNativeModuleAvailable(false);
+    }
   };
 
   const handleDateChange = (date: Date) => {
@@ -158,8 +186,9 @@ export function DateTimePickerInput({
     <View className="gap-2">
       <Text className="text-sm font-semibold text-white">{label}</Text>
       <TouchableOpacity
-        activeOpacity={0.7}
+        activeOpacity={isNativeModuleAvailable ? 0.7 : 1}
         onPress={openDateTimePicker}
+        disabled={!isNativeModuleAvailable}
         style={{ overflow: 'hidden' }}>
         <View
           style={{
@@ -198,36 +227,45 @@ export function DateTimePickerInput({
           Default: {defaultDateLabel}
         </Text>
       )}
+      {!isNativeModuleAvailable && (
+        <Text className="text-xs text-yellow-400">
+          Date picker unavailable - please rebuild app
+        </Text>
+      )}
 
       {/* Date Picker - Step 1: Select Date */}
-      <DatePicker
-        modal
-        open={showDatePicker}
-        date={pickerInitialDate}
-        mode="date"
-        minimumDate={minDate}
-        onConfirm={handleDateConfirm}
-        onCancel={handlePickerCancel}
-        onDateChange={handleDateChange}
-        theme="dark"
-        locale="en"
-        title={`Select ${label}`}
-      />
+      {showDatePicker && DatePicker && (
+        <DatePicker
+          modal
+          open={showDatePicker}
+          date={pickerInitialDate}
+          mode="date"
+          minimumDate={minDate}
+          onConfirm={handleDateConfirm}
+          onCancel={handlePickerCancel}
+          onDateChange={handleDateChange}
+          theme="dark"
+          locale="en"
+          title={`Select ${label}`}
+        />
+      )}
 
       {/* Time Picker - Step 2: Select Time */}
-      <DatePicker
-        modal
-        open={showTimePicker}
-        date={pickerInitialDate}
-        mode="time"
-        onConfirm={handleTimeConfirm}
-        onCancel={handlePickerCancel}
-        onDateChange={handleDateChange}
-        minuteInterval={5}
-        theme="dark"
-        locale="en"
-        title={`Select ${label} Time`}
-      />
+      {showTimePicker && DatePicker && (
+        <DatePicker
+          modal
+          open={showTimePicker}
+          date={pickerInitialDate}
+          mode="time"
+          onConfirm={handleTimeConfirm}
+          onCancel={handlePickerCancel}
+          onDateChange={handleDateChange}
+          minuteInterval={5}
+          theme="dark"
+          locale="en"
+          title={`Select ${label} Time`}
+        />
+      )}
     </View>
   );
 }

@@ -81,8 +81,8 @@ export default function ClientTalents() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#3b82f6"
-              colors={['#3b82f6']}
+              tintColor="rgb(255, 255, 255)"
+              colors={['rgb(255, 255, 255)']}
             />
           }
           contentContainerStyle={{

@@ -40,6 +40,7 @@ export default React.memo(function UserHome() {
     isError,
     error,
     refetch,
+    isRefetching,
   } = useInfiniteQuery({
     queryKey: ['homePagePosts', soleUserId],
     queryFn: async ({ pageParam = 0 }) => {
@@ -245,11 +246,11 @@ export default React.memo(function UserHome() {
           }}
           refreshControl={
             <RefreshControl
-              refreshing={false}
+              refreshing={isRefetching}
               onRefresh={() => refetch()}
-              tintColor="#3b82f6"
-              colors={['#3b82f6']}
-              progressViewOffset={insets.top + 72}
+              tintColor="rgb(255, 255, 255)"
+              colors={['rgb(255, 255, 255)']}
+              progressViewOffset={insets.top + 60}
             />
           }
           showsVerticalScrollIndicator={false}
