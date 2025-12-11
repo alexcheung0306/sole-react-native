@@ -222,6 +222,32 @@ export function ProjectContractsTab({
     },
   });
 
+  const deleteContractMutation = useMutation({
+    mutationFn: async (contractId: number) => {
+      // Since DELETE endpoint doesn't exist, we'll cancel the contract instead
+      return updateJobContractsStatusById({ contractStatus: 'Cancelled' }, contractId);
+    },
+    onSuccess: (_, contractId) => {
+      queryClient.invalidateQueries({ queryKey: ['project-contracts-search', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['manageContracts'] });
+      queryClient.invalidateQueries({ queryKey: ['myContracts'] });
+      refetchContracts();
+      // Remove from selected contracts if it was selected
+      setSelectedContracts((prev) => {
+        const next = new Set(prev);
+        next.delete(String(contractId));
+        return next;
+      });
+    },
+    onError: (error) => {
+      console.error('Error cancelling/deleting contract:', error);
+    },
+  });
+
+  const handleDeleteContract = (contractId: number) => {
+    deleteContractMutation.mutate(contractId);
+  };
+
   // Prepare table rows
   const tableRows = useMemo(() => {
     return contracts.map((contractWithProfile: any) => {
@@ -294,7 +320,9 @@ export function ProjectContractsTab({
               <View>
                 <Text style={styles.batchModeTitle}>Batch Update Conditions</Text>
                 <Text style={styles.batchModeSubtitle}>
-                  Enable multi-select for batch operations
+                  { selectedContractIds.length > 0
+                    ? `Proceed (${selectedContractIds.length})`
+                    : 'Enable multi-select for batch operations'}
                 </Text>
               </View>
 
@@ -329,6 +357,7 @@ export function ProjectContractsTab({
           tableRows={tableRows}
           handleSelectAll={handleSelectAll}
           setSelectedContracts={setSelectedContracts}
+          onDeleteContract={handleDeleteContract}
         />
 
         {totalPages > 1 && (

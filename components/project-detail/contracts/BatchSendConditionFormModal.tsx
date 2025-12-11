@@ -1,6 +1,7 @@
 import { Formik } from 'formik';
 import { useMemo, useState } from 'react';
 import { View, TouchableOpacity, ScrollView, TextInput, Text, StyleSheet } from 'react-native';
+import { ChevronRight } from 'lucide-react-native';
 import { FormModal } from '~/components/custom/form-modal';
 import { DateTimePickerInput } from '~/components/form-components/DateTimePickerInput';
 import { RoleScheduleListInputs } from '~/components/form-components/role-form/RoleScheduleListInputs';
@@ -129,9 +130,7 @@ export default function BatchSendConditionFormModal({
         <TouchableOpacity
           style={styles.batchSendButton}
           onPress={() => setShowBatchConditionsModal(true)}>
-          <Text style={styles.batchSendButtonText}>
-            Proceed ({selectedContractIds.length})
-          </Text>
+          <ChevronRight size={16} color="#ffffff" />
         </TouchableOpacity>
       </View>
       <Formik
@@ -528,13 +527,13 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
   },
   batchActionsContainer: {
-    marginBottom: 16,
+    marginBottom: 0,
   },
   batchSendButton: {
     backgroundColor: '#3b82f6',
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
     alignItems: 'center',
   },
   batchSendButtonText: {

@@ -166,6 +166,9 @@ export default function ProjectDetail({ scrollHandler }: { scrollHandler: (event
       queryClient.invalidateQueries({ queryKey: ['project-detail', projectId, soleUserId] });
       queryClient.invalidateQueries({ queryKey: ['projectRoles', projectId] });
       queryClient.invalidateQueries({ queryKey: ['projectContracts', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-contracts-search', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['manageContracts'] });
+      queryClient.invalidateQueries({ queryKey: ['myContracts'] });
       queryClient.invalidateQueries({ queryKey: ['project-announcements', projectId] });
 
       await Promise.all([refetchProject(), refetchRoles(), refetchContracts()]);

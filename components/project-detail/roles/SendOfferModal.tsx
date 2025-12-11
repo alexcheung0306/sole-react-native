@@ -70,7 +70,7 @@ export function SendOfferModal({ applicant, projectData, roleWithSchedules, onSu
     jobApplicantId: jobApplicant?.id,
     projectName: projectData?.projectName || projectData?.title || role?.roleTitle || 'Untitled Project',
     roleTitle: role?.roleTitle || 'Untitled Role',
-    contractStatus: 'offered',
+    contractStatus: 'Pending',
     activityScheduleLists: initialActivityScheduleLists,
     remarks: '',
     conditions: [
@@ -239,6 +239,7 @@ export function SendOfferModal({ applicant, projectData, roleWithSchedules, onSu
             id: undefined,
             paymentDate: paymentDateISO,
             schedules: transformedSchedules,
+            conditionStatus: 'Pending',
           };
         }),
       };
@@ -246,7 +247,7 @@ export function SendOfferModal({ applicant, projectData, roleWithSchedules, onSu
       // Build the payload matching the web version structure
       const payload = {
         ...transformedValues,
-        contractStatus: 'offered',
+        contractStatus: 'Pending',
       };
 
       // Create the job contract first
