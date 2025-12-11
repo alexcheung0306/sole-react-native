@@ -15,7 +15,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
-import { ChevronLeft, ChevronRight, X, Filter } from "lucide-react-native";
+import { ChevronLeft, X, Filter } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getStatusColor } from "@/utils/get-status-color";
 import { getUserProfileByUsername } from "@/api/apiservice/soleUser_api";
@@ -36,11 +36,8 @@ export default function RoleCandidatesSwipeScreen() {
   const [statusFilterSelection, setStatusFilterSelection] = useState<string[]>([]);
   const [exhausted, setExhausted] = useState(false);
   const [showSendOfferModal, setShowSendOfferModal] = useState(false);
-  
-  // Debug: Track modal state changes
-  useEffect(() => {
-    console.log('[Swipe] showSendOfferModal changed:', showSendOfferModal);
-  }, [showSendOfferModal]);
+  // Track swiped away candidates to remove them from the array
+  const [swipedCandidateIds, setSwipedCandidateIds] = useState<Set<number>>(new Set());
   const toggleStatusFilter = useCallback((id: string) => {
     setStatusFilterSelection((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
@@ -187,12 +184,26 @@ export default function RoleCandidatesSwipeScreen() {
   const orderedCandidates = stableCandidates.length > 0 ? stableCandidates : applyInitialOrder(candidates);
 
   const swipeCandidates = useMemo(() => {
-    if (!statusFilterSelection.length) return orderedCandidates;
-    return orderedCandidates.filter((c: any) => {
-      const status = c?.jobApplicant?.applicationStatus || 'applied';
-      return statusFilterSelection.includes(status);
-    });
-  }, [orderedCandidates, statusFilterSelection]);
+    let filtered = orderedCandidates;
+    
+    // Filter by status if status filter is applied
+    if (statusFilterSelection.length) {
+      filtered = filtered.filter((c: any) => {
+        const status = c?.jobApplicant?.applicationStatus || 'applied';
+        return statusFilterSelection.includes(status);
+      });
+    }
+    
+    // Remove swiped away candidates
+    if (swipedCandidateIds.size > 0) {
+      filtered = filtered.filter((c: any) => {
+        const candidateId = c?.jobApplicant?.id;
+        return candidateId && !swipedCandidateIds.has(candidateId);
+      });
+    }
+    
+    return filtered;
+  }, [orderedCandidates, statusFilterSelection, swipedCandidateIds]);
 
   // Fetch project data
   const { data: projectData } = useQuery({
@@ -228,12 +239,6 @@ export default function RoleCandidatesSwipeScreen() {
   }, [rolesWithSchedules, roleId]);
 
   const currentProcess = process || 'applied';
-  
-  // Debug: Log current process
-  useEffect(() => {
-    console.log('[Swipe] Current process:', currentProcess);
-    console.log('[Swipe] Process param:', process);
-  }, [currentProcess, process]);
 
   // Current candidate (the one on top) from filtered list
   const currentCandidate = currentIndex >= 0 && currentIndex < swipeCandidates.length ? swipeCandidates[currentIndex] : null;
@@ -290,12 +295,7 @@ export default function RoleCandidatesSwipeScreen() {
 
   // Get available actions
   const getAvailableActions = useMemo(() => {
-    console.log('[Swipe] getAvailableActions - currentProcess:', currentProcess);
-    console.log('[Swipe] getAvailableActions - applicant status:', applicant?.applicationStatus);
-    console.log('[Swipe] getAvailableActions - applicant process:', applicant?.applicationProcess);
-    
     if (currentProcess === 'shortlisted') {
-      console.log('[Swipe] Returning send offer action');
       return ['send offer'];
     }
     if (currentProcess === 'offered') {
@@ -315,7 +315,6 @@ export default function RoleCandidatesSwipeScreen() {
     if (applicant?.applicationStatus === 'applied' || applicant?.applicationProcess === 'applied') {
       return ['shortlisted'];
     }
-    console.log('[Swipe] No actions available, returning empty array');
     return [];
   }, [currentProcess, sessionActivities, applicant?.applicationStatus, applicant?.applicationProcess]);
 
@@ -411,6 +410,24 @@ export default function RoleCandidatesSwipeScreen() {
     }
   }, [swipeCandidates.length]);
 
+  // Reset swiped candidates when filters change or when navigating to a new process
+  useEffect(() => {
+    setSwipedCandidateIds(new Set());
+  }, [statusFilterSelection, process]);
+
+  // Adjust index if current index is out of bounds after filtering
+  useEffect(() => {
+    if (swipeCandidates.length > 0 && currentIndex >= swipeCandidates.length) {
+      const newIndex = Math.max(0, swipeCandidates.length - 1);
+      setCurrentIndex(newIndex);
+      currentIndexShared.value = newIndex;
+    } else if (swipeCandidates.length === 0 && currentIndex > 0) {
+      setCurrentIndex(0);
+      currentIndexShared.value = 0;
+      setExhausted(true);
+    }
+  }, [swipeCandidates.length, currentIndex, currentIndexShared]);
+
   // Refs
   const availableActionsRef = useRef<string[]>([]);
   const currentApplicantRef = useRef<any>(null);
@@ -428,14 +445,7 @@ export default function RoleCandidatesSwipeScreen() {
     availableActionsCount.value = getAvailableActions.length;
     availableActionsRef.current = getAvailableActions;
     availableActionsShared.value = getAvailableActions;
-    // Debug log to verify actions are set correctly
-    console.log('[Swipe] Updated available actions:', {
-      process: currentProcess,
-      actions: getAvailableActions,
-      count: getAvailableActions.length,
-      availableActionsCountValue: availableActionsCount.value
-    });
-  }, [getAvailableActions, availableActionsCount, availableActionsShared, currentProcess]);
+  }, [getAvailableActions, availableActionsCount, availableActionsShared]);
 
   useEffect(() => {
     if (currentCandidate) {
@@ -529,7 +539,7 @@ export default function RoleCandidatesSwipeScreen() {
     queryClientRef.current = queryClient;
   }, [updateApplicantMutation.mutate, queryClient]);
 
-  // Handle card swipe completion - move to next card
+  // Handle card swipe completion - move to next card and mark as swiped
   const handleCardSwipeComplete = useCallback(() => {
     // Prevent multiple calls
     if (isMovingToNextRef.current) {
@@ -540,14 +550,24 @@ export default function RoleCandidatesSwipeScreen() {
 
     // Use a function to get the latest state
     setCurrentIndex((prevIndex) => {
-      const nextIndex = prevIndex + 1;
+      // Get current candidate from currentApplicantRef to avoid closure issues
+      const currentApplicant = currentApplicantRef.current;
+      if (currentApplicant?.id) {
+        setSwipedCandidateIds((prev) => {
+          const newSet = new Set(prev);
+          newSet.add(currentApplicant.id);
+          return newSet;
+        });
+      }
 
-      // Use stable candidates - they don't change during swipe session
-      if (nextIndex >= swipeCandidates.length) {
-        // No more candidates - stop advancing and show exhausted state
-        setExhausted(true);
+      // After marking as swiped, the array will be filtered
+      // So we stay at the same index (next candidate moves up)
+      const nextIndex = prevIndex;
+
+      // Check bounds - ensure we don't go negative
+      if (nextIndex < 0) {
         isMovingToNextRef.current = false;
-        return swipeCandidates.length; // point past last to trigger empty view
+        return 0;
       }
 
       // Update the shared value
@@ -558,31 +578,7 @@ export default function RoleCandidatesSwipeScreen() {
 
       return nextIndex;
     });
-  }, [swipeCandidates.length, router, currentIndexShared]);
-
-  // Navigate to previous candidate (circular)
-  const handlePreviousCandidate = useCallback(() => {
-    if (swipeCandidates.length === 0) return;
-    
-    setCurrentIndex((prevIndex) => {
-      const newIndex = prevIndex <= 0 ? swipeCandidates.length - 1 : prevIndex - 1;
-      currentIndexShared.value = newIndex;
-      setExhausted(false);
-      return newIndex;
-    });
-  }, [swipeCandidates.length, currentIndexShared]);
-
-  // Navigate to next candidate (circular)
-  const handleNextCandidate = useCallback(() => {
-    if (swipeCandidates.length === 0) return;
-    
-    setCurrentIndex((prevIndex) => {
-      const newIndex = prevIndex >= swipeCandidates.length - 1 ? 0 : prevIndex + 1;
-      currentIndexShared.value = newIndex;
-      setExhausted(false);
-      return newIndex;
-    });
-  }, [swipeCandidates.length, currentIndexShared]);
+  }, [currentIndexShared]);
 
   useEffect(() => {
     handleNextCandidateRef.current = handleCardSwipeComplete;
@@ -591,25 +587,17 @@ export default function RoleCandidatesSwipeScreen() {
   // Execute swipe actions
   const executeSwipeRightAction = useCallback((actionIndex: number) => {
     const actions = availableActionsRef.current;
-    console.log('[Swipe] executeSwipeRightAction called:', { actionIndex, actions, actionsLength: actions.length });
     if (actionIndex >= 0 && actionIndex < actions.length) {
       const action = actions[actionIndex];
-      console.log('[Swipe] Action detected:', action, 'Type:', typeof action, 'Exact match:', action === 'send offer');
       
       // Handle "send offer" action - open modal instead of executing
-      // Check this first, before applicantId validation
       if (action === 'send offer') {
-        console.log('[Swipe] Opening send offer modal');
         setShowSendOfferModal(true);
         return;
       }
 
       const applicantId = currentApplicantRef.current?.id;
-      console.log('[Swipe] Applicant ID:', applicantId);
-      if (!applicantId) {
-        console.log('[Swipe] No applicant ID, returning early');
-        return;
-      }
+      if (!applicantId) return;
 
       const isSessionAction = sessionActivities.includes(action);
       const status =
@@ -790,29 +778,9 @@ export default function RoleCandidatesSwipeScreen() {
           <TouchableOpacity onPress={() => router.back()} className="p-2">
             <ChevronLeft size={24} color="#fff" />
           </TouchableOpacity>
-          <View className="flex-1 flex-row items-center justify-center gap-4">
-            <TouchableOpacity 
-              onPress={handlePreviousCandidate} 
-              className="p-2"
-              disabled={swipeCandidates.length === 0}>
-              <ChevronLeft 
-                size={20} 
-                color={swipeCandidates.length === 0 ? "#666" : "#fff"} 
-              />
-            </TouchableOpacity>
-            <Text className="text-lg font-semibold text-white">
-              {swipeCandidates.length ? displayIndex + 1 : 0} / {swipeCandidates.length}
-            </Text>
-            <TouchableOpacity 
-              onPress={handleNextCandidate} 
-              className="p-2"
-              disabled={swipeCandidates.length === 0}>
-              <ChevronRight 
-                size={20} 
-                color={swipeCandidates.length === 0 ? "#666" : "#fff"} 
-              />
-            </TouchableOpacity>
-          </View>
+          <Text className="flex-1 text-center text-lg font-semibold text-white">
+            {swipeCandidates.length ? displayIndex + 1 : 0} / {swipeCandidates.length}
+          </Text>
           <TouchableOpacity onPress={() => setShowStatusDrawer(true)} className="p-2">
             <Filter size={22} color="#fff" />
           </TouchableOpacity>
@@ -863,29 +831,14 @@ export default function RoleCandidatesSwipeScreen() {
             )}
 
             {/* Action Gradients (Right) - Full Screen */}
-            {currentCandidate && getAvailableActions.length > 0 && getAvailableActions.map((action, index) => {
-              if (__DEV__) {
-                console.log('[Swipe] Rendering ActionRow:', { action, index, totalCount: getAvailableActions.length });
-              }
-              return (
-                <ActionRow
-                  key={action}
-                  action={action}
-                  index={index}
-                  actionCount={getAvailableActions.length}
-                />
-              );
-            })}
-            {/* Debug: Show action count in dev mode */}
-            {__DEV__ && currentCandidate && (
-              <View style={{ position: 'absolute', top: 100, right: 20, backgroundColor: 'rgba(255,0,0,0.7)', padding: 10, zIndex: 10000 }}>
-                <Text style={{ color: 'white', fontSize: 12 }}>
-                  Actions: {getAvailableActions.length}
-                  {'\n'}Process: {currentProcess}
-                  {'\n'}Actions: {JSON.stringify(getAvailableActions)}
-                </Text>
-              </View>
-            )}
+            {currentCandidate && getAvailableActions.map((action, index) => (
+              <ActionRow
+                key={action}
+                action={action}
+                index={index}
+                actionCount={getAvailableActions.length}
+              />
+            ))}
 
             {/* Card Stack Container */}
             <View className="flex-1" style={{ paddingHorizontal: 20 }}>

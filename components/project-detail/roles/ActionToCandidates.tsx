@@ -5,6 +5,7 @@ import {
   FileSignature,
 } from 'lucide-react-native';
 import { getStatusColorObject } from '@/utils/get-status-color';
+import { SendOfferModal } from './SendOfferModal';
 
 interface ActionToCandidatesProps {
   applicant: any;
@@ -33,7 +34,7 @@ export function ActionToCandidates({
     // TODO: Navigate to contract detail page when route is created
   };
 
-  // If status is "shortlisted" - show message (send offer is handled via swipe action)
+  // If status is "shortlisted" - show offer options
   if (applicationStatus === 'shortlisted') {
     return (
       <View className="gap-4">
@@ -44,8 +45,17 @@ export function ActionToCandidates({
             <Text className="text-xl font-bold text-white">Send Offer</Text>
           </View>
           <Text className="text-sm text-white/60">
-            This candidate has been shortlisted. Swipe right to send an offer.
+            This candidate has been shortlisted and is ready to receive an offer
           </Text>
+        </View>
+
+        <View className="px-4 pb-4">
+          <SendOfferModal
+            applicant={applicant}
+            projectData={projectData}
+            roleWithSchedules={roleWithSchedules || applicant?.jobApplicant?.roleWithSchedules || (roleId ? { role: { id: roleId } } : null)}
+            onSuccess={onOfferSuccess}
+          />
         </View>
       </View>
     );

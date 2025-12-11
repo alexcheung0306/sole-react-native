@@ -112,9 +112,6 @@ export default function SwipeCard({
   // This ensures the card returns to center if modal is closed without submitting
   const prevShowModalRef = useRef(showSendOfferModal);
   useEffect(() => {
-    if (isTopCard) {
-      console.log('[SwipeCard] Modal state changed:', { showSendOfferModal, isTopCard, prev: prevShowModalRef.current });
-    }
     if (isTopCard && prevShowModalRef.current && !showSendOfferModal) {
       // Modal was just closed - reset card position
       translateX.value = withTiming(0, { duration: 200 });
@@ -484,21 +481,21 @@ export default function SwipeCard({
       {/* Send Offer Modal */}
       {isTopCard && (
         <SendOfferModal
-            applicant={candidate}
-            projectData={projectData || { id: projectId }}
-            roleWithSchedules={roleWithSchedules || candidate?.jobApplicant?.roleWithSchedules || (roleId ? { role: { id: roleId } } : null)}
-            open={showSendOfferModal}
-            onOpenChange={(isOpen) => {
-              if (!isOpen && onSendOfferModalClose) {
-                onSendOfferModalClose();
-              }
-            }}
-            onSuccess={() => {
-              if (onSendOfferSuccess) {
-                onSendOfferSuccess();
-              }
-            }}
-          />
+          applicant={candidate}
+          projectData={projectData || { id: projectId }}
+          roleWithSchedules={roleWithSchedules || candidate?.jobApplicant?.roleWithSchedules || (roleId ? { role: { id: roleId } } : null)}
+          open={showSendOfferModal}
+          onOpenChange={(isOpen) => {
+            if (!isOpen && onSendOfferModalClose) {
+              onSendOfferModalClose();
+            }
+          }}
+          onSuccess={() => {
+            if (onSendOfferSuccess) {
+              onSendOfferSuccess();
+            }
+          }}
+        />
       )}
     </Animated.View>
   );
