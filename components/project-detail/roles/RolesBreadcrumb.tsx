@@ -60,11 +60,11 @@ export function RolesBreadcrumb({
           return (
             <View
               key={`role-${role.id}-${index}`}
-              className={`min-w-[160px] flex-row items-center rounded-2xl border overflow-hidden ${
+              className={`min-w-[160px] flex-row items-center overflow-hidden rounded-2xl border ${
                 isActive ? 'border-white bg-zinc-700' : 'border-white/20 bg-zinc-800/60'
               }`}>
-              <TouchableOpacity 
-                className="flex-1 py-4 pl-2 pr-1" 
+              <TouchableOpacity
+                className="flex-1 py-4 pl-2 pr-1"
                 activeOpacity={1}
                 onPress={() => setCurrentRole(index)}>
                 <View className="flex-row items-center gap-2">
@@ -75,16 +75,20 @@ export function RolesBreadcrumb({
                     numberOfLines={1}>
                     {role.roleTitle || 'Untitled role'}
                   </Text>
-                  {jobActivitiesCount < 1 && <AlertCircle size={14} color="#ef4444" />}
                 </View>
                 <Text className={`mt-1 text-xs ${isActive ? 'text-white' : 'text-white'}`}>
-                  ID: {role.id || 'N/A'} • {totalActivitiesCount} activities • {role.talentNumbers || 1} talent(s) required
+                  ID: {role.id || 'N/A'} • {totalActivitiesCount} activities •{' '}
+                  {role.talentNumbers || 1} talent(s) required
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                className="px-2 py-4 flex-shrink-0" 
+              <TouchableOpacity
+                className="flex-shrink-0 px-2 py-4"
                 onPress={() => handleRolePress(index)}>
-                <InfoIcon size={16} color={isActive ? '#ffffff' : '#a1a1aa'} />
+                {jobActivitiesCount < 1 ? (
+                  <AlertCircle size={16} color="#ef4444" />
+                ) : (
+                  <InfoIcon size={16} color={isActive ? '#ffffff' : '#a1a1aa'} />
+                )}
               </TouchableOpacity>
             </View>
           );

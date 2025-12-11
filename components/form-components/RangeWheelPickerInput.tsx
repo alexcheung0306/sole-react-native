@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { FormControl, FormControlLabel, FormControlLabelText } from '@/components/ui/form-control';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -35,7 +35,7 @@ interface RangeWheelPickerInputProps {
     sliderMax?: number;
 }
 
-const WheelItem = ({ 
+const WheelItem = memo(({ 
     item, 
     index, 
     translateY, 
@@ -47,37 +47,31 @@ const WheelItem = ({
     onPress: (index: number) => void;
 }) => {
     const animatedStyle = useAnimatedStyle(() => {
+        'worklet';
         const itemCenterY = translateY.value + (index * ITEM_HEIGHT) + (ITEM_HEIGHT / 2);
         const containerCenterY = CONTAINER_HEIGHT / 2;
         const distanceFromCenter = Math.abs(itemCenterY - containerCenterY);
 
+        // Simplified interpolation - reduce calculations for better performance
         const scale = interpolate(
             distanceFromCenter,
-            [0, ITEM_HEIGHT, ITEM_HEIGHT * 2],
-            [1.1, 0.9, 0.8],
+            [0, ITEM_HEIGHT * 1.5],
+            [1.1, 0.85],
             Extrapolation.CLAMP
         );
 
         const opacity = interpolate(
             distanceFromCenter,
-            [0, ITEM_HEIGHT, ITEM_HEIGHT * 2],
-            [1, 0.5, 0.3],
+            [0, ITEM_HEIGHT * 1.5],
+            [1, 0.4],
             Extrapolation.CLAMP
         );
         
-        const rotateX = interpolate(
-             (itemCenterY - containerCenterY),
-             [-CONTAINER_HEIGHT/2, 0, CONTAINER_HEIGHT/2],
-             [45, 0, -45],
-             Extrapolation.CLAMP
-        );
-
+        // Remove expensive rotateX and perspective transforms for better performance
         return {
             transform: [
                 { translateY: translateY.value + (index * ITEM_HEIGHT) },
-                { scale },
-                { perspective: 1000 },
-                { rotateX: `${rotateX}deg` }
+                { scale }
             ],
             opacity
         };
@@ -92,15 +86,22 @@ const WheelItem = ({
             </Animated.View>
         </TouchableOpacity>
     );
-};
+}, (prevProps, nextProps) => {
+    // Custom comparison - only re-render if item or index changes
+    return prevProps.item.value === nextProps.item.value && 
+           prevProps.index === nextProps.index;
+});
+
+WheelItem.displayName = 'WheelItem';
 
 interface WheelPickerProps {
     value: string | number;
     options: Array<{ value: string; label: string }>;
     onChange: (value: number) => void;
+    isVisible?: boolean;
 }
 
-const WheelPicker = ({ value, options, onChange }: WheelPickerProps) => {
+const WheelPicker = memo(({ value, options, onChange, isVisible = true }: WheelPickerProps) => {
     const translateY = useSharedValue(0);
     const context = useSharedValue(0);
 
@@ -111,8 +112,10 @@ const WheelPicker = ({ value, options, onChange }: WheelPickerProps) => {
     }, [value, options, translateY]);
 
     useEffect(() => {
-        initializePosition();
-    }, [initializePosition]);
+        if (isVisible) {
+            initializePosition();
+        }
+    }, [isVisible, initializePosition]);
 
     const updateValue = (index: number) => {
         const clampedIndex = Math.max(0, Math.min(index, options.length - 1));
@@ -228,7 +231,9 @@ const WheelPicker = ({ value, options, onChange }: WheelPickerProps) => {
             <View style={styles.pickerIndicator} pointerEvents="none" />
         </View>
     );
-};
+});
+
+WheelPicker.displayName = 'WheelPicker';
 
 export function RangeWheelPickerInput({
     title,
@@ -256,10 +261,12 @@ export function RangeWheelPickerInput({
     const [tempMin, setTempMin] = useState(currentMin);
     const [tempMax, setTempMax] = useState(currentMax);
 
-    const rangeOptions = Array.from({ length: Math.floor((sliderMax - sliderMin) / sliderStep) + 1 }, (_, i) => {
-        const val = String(sliderMin + i * sliderStep);
-        return { value: val, label: val };
-    });
+    const rangeOptions = useMemo(() => {
+        return Array.from({ length: Math.floor((sliderMax - sliderMin) / sliderStep) + 1 }, (_, i) => {
+            const val = String(sliderMin + i * sliderStep);
+            return { value: val, label: val };
+        });
+    }, [sliderMin, sliderMax, sliderStep]);
 
     const handleOpen = () => {
         setTempMin(currentMin);
@@ -317,7 +324,8 @@ export function RangeWheelPickerInput({
                         <WheelPicker 
                             value={tempMin} 
                             options={rangeOptions} 
-                            onChange={setTempMin} 
+                            onChange={setTempMin}
+                            isVisible={showDrawer}
                         />
                     </View>
                     <View className="flex-1 items-center">
@@ -325,7 +333,8 @@ export function RangeWheelPickerInput({
                         <WheelPicker 
                             value={tempMax} 
                             options={rangeOptions} 
-                            onChange={setTempMax} 
+                            onChange={setTempMax}
+                            isVisible={showDrawer}
                         />
                     </View>
                 </View>

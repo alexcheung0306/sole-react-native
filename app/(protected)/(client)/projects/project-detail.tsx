@@ -1,5 +1,13 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+  Dimensions,
+} from 'react-native';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useQueryClient } from '@tanstack/react-query';
@@ -27,11 +35,7 @@ const STATUS_COLORS: Record<string, string> = {
   Completed: '#3b82f6',
 };
 
-export default function ProjectDetail({
-  scrollHandler,
-}: {
-  scrollHandler: (event: any) => void;
-}) {
+export default function ProjectDetail({ scrollHandler }: { scrollHandler: (event: any) => void }) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id } = useLocalSearchParams();
@@ -41,7 +45,7 @@ export default function ProjectDetail({
   // Local state for tab and role selection (not in context)
   const [currentTab, setCurrentTab] = useState('project-information');
   const [currentRole, setCurrentRole] = useState(0);
-  
+
   // Animation for ManageCandidates transition
   const manageCandidatesTranslateX = useSharedValue(0);
   const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -92,29 +96,38 @@ export default function ProjectDetail({
   }, [projectData, roleCount, jobContractsData]);
 
   // Convert tab ID to index for SwipeableContainer
-  const getTabIndex = useCallback((tabId: string) => {
-    if (!tabs || tabs.length === 0) return 0;
-    const index = tabs.findIndex((tab) => tab.id === tabId);
-    return index >= 0 ? index : 0;
-  }, [tabs]);
+  const getTabIndex = useCallback(
+    (tabId: string) => {
+      if (!tabs || tabs.length === 0) return 0;
+      const index = tabs.findIndex((tab) => tab.id === tabId);
+      return index >= 0 ? index : 0;
+    },
+    [tabs]
+  );
 
   // Convert index to tab ID
-  const getTabId = useCallback((index: number) => {
-    if (!tabs || tabs.length === 0) return 'project-information';
-    return tabs[index]?.id || 'project-information';
-  }, [tabs]);
+  const getTabId = useCallback(
+    (index: number) => {
+      if (!tabs || tabs.length === 0) return 'project-information';
+      return tabs[index]?.id || 'project-information';
+    },
+    [tabs]
+  );
 
   const currentTabIndex = useMemo(() => {
     return getTabIndex(currentTab);
   }, [getTabIndex, currentTab]);
 
   // Handle swipe index change
-  const handleIndexChange = useCallback((index: number) => {
-    const newTabId = getTabId(index);
-    if (newTabId && newTabId !== currentTab) {
-      setCurrentTab(newTabId);
-    }
-  }, [getTabId, currentTab]);
+  const handleIndexChange = useCallback(
+    (index: number) => {
+      const newTabId = getTabId(index);
+      if (newTabId && newTabId !== currentTab) {
+        setCurrentTab(newTabId);
+      }
+    },
+    [getTabId, currentTab]
+  );
 
   const isInitialLoading = projectLoading;
 
@@ -155,11 +168,7 @@ export default function ProjectDetail({
       queryClient.invalidateQueries({ queryKey: ['projectContracts', projectId] });
       queryClient.invalidateQueries({ queryKey: ['project-announcements', projectId] });
 
-      await Promise.all([
-        refetchProject(),
-        refetchRoles(),
-        refetchContracts(),
-      ]);
+      await Promise.all([refetchProject(), refetchRoles(), refetchContracts()]);
     } catch (error) {
       console.error('Error refreshing project data:', error);
     } finally {
@@ -255,13 +264,23 @@ export default function ProjectDetail({
                 showCount={true}
               />
             </View>
-
+            {/* Publish Project Button - Only show when project is Draft */}
+            {project?.status === 'Draft' && (
+              <PublishProjectButton
+                key={`publish-button-${roleCount}-${jobNotReadyCount}`}
+                projectData={project}
+                isDisable={isPublishButtonDisabled}
+                onSuccess={() => {
+                  // Navigate back to projects list after successful publish
+                  router.back();
+                }}
+              />
+            )}
             {/* Swipeable Tab Content */}
-            <SwipeableContainer 
-              activeIndex={currentTabIndex} 
+            <SwipeableContainer
+              activeIndex={currentTabIndex}
               onIndexChange={handleIndexChange}
-              shrink={false}
-            >
+              shrink={false}>
               {tabs.map((tab) => {
                 if (tab.id === 'project-information') {
                   return (
@@ -273,8 +292,8 @@ export default function ProjectDetail({
                         projectStatus={project?.status}
                         rolesWithSchedules={rolesWithSchedules}
                       />
-                      <ProjectAnnouncementsList 
-                        projectId={projectId} 
+                      <ProjectAnnouncementsList
+                        projectId={projectId}
                         viewerSoleUserId={soleUserId || ''}
                       />
                     </View>
@@ -331,13 +350,13 @@ export default function ProjectDetail({
                               manageCandidatesAnimatedStyle,
                             ]}>
                             {rolesWithSchedules.map((roleWithSchedule, index) => (
-                              <View 
-                                key={`manage-candidates-${roleWithSchedule?.role?.id || index}`} 
+                              <View
+                                key={`manage-candidates-${roleWithSchedule?.role?.id || index}`}
                                 style={{ width: SCREEN_WIDTH }}
                                 className="px-2">
-                                <ManageCandidates 
-                                  projectData={project} 
-                                  roleWithSchedules={roleWithSchedule} 
+                                <ManageCandidates
+                                  projectData={project}
+                                  roleWithSchedules={roleWithSchedule}
                                 />
                               </View>
                             ))}
@@ -365,19 +384,6 @@ export default function ProjectDetail({
                 return <View key={tab.id} />;
               })}
             </SwipeableContainer>
-
-            {/* Publish Project Button - Only show when project is Draft */}
-            {project?.status === 'Draft' && (
-              <PublishProjectButton
-                key={`publish-button-${roleCount}-${jobNotReadyCount}`}
-                projectData={project}
-                isDisable={isPublishButtonDisabled}
-                onSuccess={() => {
-                  // Navigate back to projects list after successful publish
-                  router.back();
-                }}
-              />
-            )}
           </View>
         </ScrollView>
       </View>

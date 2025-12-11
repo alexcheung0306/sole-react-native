@@ -1,22 +1,24 @@
 import React, { useMemo, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  FlatList,
-  TextInput,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
+import { Formik } from 'formik';
 
 import {
   searchJobContracts,
   updateJobContractsStatusById,
+  createBatchContractConditions,
 } from '@/api/apiservice/jobContracts_api';
 import PaginationControl from '~/components/projects/PaginationControl';
 import FilterSearch from '~/components/custom/filter-search';
 import CollapseDrawer from '~/components/custom/collapse-drawer';
+import { FormModal } from '@/components/custom/form-modal';
+import { RoleScheduleListInputs } from '@/components/form-components/role-form/RoleScheduleListInputs';
+import { DateTimePickerInput } from '@/components/form-components/DateTimePickerInput';
+import { SingleWheelPickerInput } from '@/components/form-components/SingleWheelPickerInput';
+import { RangeWheelPickerInput } from '@/components/form-components/RangeWheelPickerInput';
+import BatchSendConditionFormModal from './BatchSendConditionFormModal';
+import ContractsTable from './ContractsTable';
 
 type ProjectContractsTabProps = {
   projectId: number;
@@ -40,6 +42,41 @@ const contractStatusOptions = [
   { id: 'Cancelled', label: 'Cancelled', color: '#ef4444' },
 ];
 
+const paymentBasisOptions = [
+  { value: 'Hourly Rate', label: 'Hourly Rate' },
+  { value: 'On Project', label: 'Project Rate' },
+];
+
+const currencyOptions = [{ value: 'HKD', label: 'HKD' }];
+
+// Helper function to get primary condition (latest condition)
+const getPrimaryCondition = (conditions: any[]) => {
+  if (!conditions || conditions.length === 0) return null;
+  if (conditions.length === 1) return conditions[0];
+  const sortedConditions = [...conditions].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+  return sortedConditions[0];
+};
+
+const getLatestConditionStatus = (conditions: any[]) => {
+  if (!conditions || conditions.length === 0) return 'No Status';
+  const latestCondition = getPrimaryCondition(conditions);
+  return latestCondition?.conditionStatus || 'No Status';
+};
+
+const formatCurrency = (amount: number, currency: string) => {
+  const validCurrency = currency && currency.length === 3 ? currency : 'USD';
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: validCurrency,
+    }).format(amount || 0);
+  } catch (error) {
+    return `$${(amount || 0).toFixed(2)}`;
+  }
+};
+
 export function ProjectContractsTab({
   projectId,
   initialContracts = [],
@@ -55,10 +92,12 @@ export function ProjectContractsTab({
   const [page, setPage] = useState(0);
   const [searchTrigger, setSearchTrigger] = useState(0);
   const [pageSize] = useState(10);
-  const [selectedContracts, setSelectedContracts] = useState<Set<number>>(new Set());
+  const [viewMode, setViewMode] = useState<'view' | 'select'>('view');
+  const [selectedContracts, setSelectedContracts] = useState<Set<string>>(new Set());
   const [batchStatus, setBatchStatus] = useState('Activated');
   const [batchRemarks, setBatchRemarks] = useState('');
   const [showBatchDrawer, setShowBatchDrawer] = useState(false);
+  const [showBatchConditionsModal, setShowBatchConditionsModal] = useState(false);
 
   const handleSearch = () => {
     setPage(0);
@@ -117,7 +156,24 @@ export function ProjectContractsTab({
 
   const totalPages = contractsResponse?.totalPages ?? 1;
 
-  const toggleContractSelection = (contractId: number) => {
+  // Get selectable (non-disabled) contract IDs
+  const disabledContractIds = useMemo(() => {
+    return contracts
+      .filter((contract: any) => {
+        const contractData = contract?.jobContract ?? contract;
+        return (
+          contractData?.contractStatus !== 'Pending' && contractData?.contractStatus !== 'Activated'
+        );
+      })
+      .map((contract: any) => {
+        const contractData = contract?.jobContract ?? contract;
+        return contractData?.id?.toString();
+      });
+  }, [contracts]);
+
+  const toggleContractSelection = (contractId: string) => {
+    if (disabledContractIds.includes(contractId)) return;
+
     setSelectedContracts((prev) => {
       const next = new Set(prev);
       if (next.has(contractId)) {
@@ -129,70 +185,74 @@ export function ProjectContractsTab({
     });
   };
 
-  const batchUpdateMutation = useMutation({
-    mutationFn: async ({
-      contractIds,
-      status,
-      remarks,
-    }: {
+  const handleSelectAll = () => {
+    const selectableIds = contracts
+      .filter((contract: any) => {
+        const contractData = contract?.jobContract ?? contract;
+        return !disabledContractIds.includes(contractData?.id?.toString());
+      })
+      .map((contract: any) => {
+        const contractData = contract?.jobContract ?? contract;
+        return contractData?.id?.toString();
+      });
+
+    if (selectedContracts.size === selectableIds.length) {
+      setSelectedContracts(new Set());
+    } else {
+      setSelectedContracts(new Set(selectableIds));
+    }
+  };
+
+  const batchCreateConditionsMutation = useMutation({
+    mutationFn: async (batchRequest: {
       contractIds: number[];
-      status: string;
+      conditionData: any;
       remarks?: string;
-    }) => {
-      await Promise.all(
-        contractIds.map((id) =>
-          updateJobContractsStatusById(
-            {
-              contractStatus: status,
-              remarks,
-            },
-            id
-          )
-        )
-      );
-    },
+    }) => createBatchContractConditions(batchRequest),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-contracts-search', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['manageContracts'] });
+      queryClient.invalidateQueries({ queryKey: ['myContracts'] });
       refetchContracts();
       setSelectedContracts(new Set());
-      setBatchRemarks('');
+      setShowBatchConditionsModal(false);
+    },
+    onError: (error) => {
+      console.error('Error batch creating contract conditions:', error);
     },
   });
 
-  const renderContract = ({ item }: { item: any }) => {
-    const contract = item?.jobContract ?? item;
-    const talentName = contract?.talentName || item?.talentProfile?.fullName || 'Unnamed talent';
-    const isSelected = selectedContracts.has(contract?.id);
+  // Prepare table rows
+  const tableRows = useMemo(() => {
+    return contracts.map((contractWithProfile: any) => {
+      const contract = contractWithProfile?.jobContract ?? contractWithProfile;
+      const latestCondition = getPrimaryCondition(contract?.conditions || []);
+      const talentName =
+        contractWithProfile?.userInfo?.name ||
+        contractWithProfile?.talentInfo?.talentName ||
+        contractWithProfile?.username ||
+        contract?.talentName ||
+        'N/A';
 
-    return (
-      <TouchableOpacity
-        style={[styles.contractCard, isSelected && styles.contractCardSelected]}
-        onPress={() =>
-          router.push({
-            pathname: '/(protected)/(client)/projects/contract-detail',
-            params: { id: contract?.id?.toString() },
-          })
-        }
-        onLongPress={() => toggleContractSelection(contract?.id)}
-      >
-        <View style={{ flex: 1 }}>
-          <Text style={styles.contractTitle}>Contract #{contract?.id}</Text>
-          <Text style={styles.contractMeta}>Talent: {talentName}</Text>
-          <Text style={styles.contractMeta}>Role: {contract?.roleTitle || '—'}</Text>
-          <Text style={styles.contractMeta}>Status: {contract?.contractStatus}</Text>
-          <Text style={styles.contractMeta}>
-            Updated: {contract?.updatedAt ? new Date(contract.updatedAt).toLocaleDateString() : 'N/A'}
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={[styles.selectionBadge, isSelected && styles.selectionBadgeActive]}
-          onPress={() => toggleContractSelection(contract?.id)}
-        >
-          <Text style={styles.selectionBadgeText}>{isSelected ? 'Selected' : 'Select'}</Text>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    );
-  };
+      return {
+        key: contract?.id?.toString(),
+        contract,
+        contractWithProfile,
+        talentName,
+        latestCondition,
+        paymentAmount: latestCondition
+          ? `${formatCurrency(latestCondition.paymentAmount, latestCondition.paymentCurrency)} (${latestCondition.paymentBasis})`
+          : 'No Amount',
+        latestConditionStatus: getLatestConditionStatus(contract?.conditions || []),
+        lastUpdate:
+          contract?.updatedAt || contract?.createdAt
+            ? new Date(contract?.updatedAt || contract?.createdAt).toLocaleDateString()
+            : 'N/A',
+      };
+    });
+  }, [contracts]);
+
+  const selectedContractIds = Array.from(selectedContracts).filter((id) => !isNaN(Number(id)));
 
   return (
     <View style={styles.wrapper}>
@@ -201,92 +261,9 @@ export function ProjectContractsTab({
           <View>
             <Text style={styles.sectionTitle}>Contract directory</Text>
             <Text style={styles.sectionSubtitle}>
-              Search, filter, and review contract statuses before onboarding talents.
+              {contracts.length} contract{contracts.length !== 1 ? 's' : ''}
             </Text>
           </View>
-          <TouchableOpacity
-            style={[styles.secondaryButton, { opacity: selectedContracts.size ? 1 : 0.4 }]}
-            onPress={() => {
-              if (selectedContracts.size) {
-                setShowBatchDrawer(true);
-              }
-            }}
-          >
-            <Text style={styles.secondaryButtonText}>
-              Batch update ({selectedContracts.size || 0})
-            </Text>
-          </TouchableOpacity>
-          
-          <CollapseDrawer
-            showDrawer={showBatchDrawer}
-            setShowDrawer={setShowBatchDrawer}
-            title="Batch update contracts">
-            <View style={styles.drawerContent}>
-              <Text style={styles.drawerSubtitle}>
-                Update the status or leave notes for the selected contracts.
-              </Text>
-              <View style={styles.batchStatusList}>
-                {contractStatusOptions.map((option) => {
-                  const isActive = batchStatus === option.id;
-                  return (
-                    <TouchableOpacity
-                      key={`batch-status-${option.id}`}
-                      style={[styles.batchStatusChip, isActive && styles.batchStatusChipActive]}
-                      onPress={() => setBatchStatus(option.id)}
-                    >
-                      <Text
-                        style={[styles.batchStatusChipText, isActive && styles.batchStatusChipTextActive]}
-                      >
-                        {option.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-              <TextInput
-                value={batchRemarks}
-                onChangeText={setBatchRemarks}
-                placeholder="Remarks (optional)"
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                style={[styles.input, styles.multilineInput]}
-                multiline
-              />
-              <View style={styles.drawerActions}>
-                <TouchableOpacity
-                  style={[styles.secondaryButton, { flex: 1 }]}
-                  onPress={() => {
-                    setBatchRemarks('');
-                    setShowBatchDrawer(false);
-                  }}
-                >
-                  <Text style={styles.secondaryButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.primaryButton, { flex: 1 }]}
-                  onPress={() => {
-                    if (!selectedContracts.size) {
-                      return;
-                    }
-                    batchUpdateMutation.mutate(
-                      {
-                        contractIds: Array.from(selectedContracts),
-                        status: batchStatus,
-                        remarks: batchRemarks.trim() || undefined,
-                      },
-                      {
-                        onSuccess: () => setShowBatchDrawer(false),
-                      }
-                    );
-                  }}
-                  disabled={batchUpdateMutation.isPending}
-                >
-                  <Text style={styles.primaryButtonText}>
-                    {batchUpdateMutation.isPending ? 'Updating...' : 'Apply changes'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </CollapseDrawer>
         </View>
 
         <FilterSearch
@@ -301,20 +278,57 @@ export function ProjectContractsTab({
           statusOptions={contractStatusOptions}
         />
 
-        <FlatList
-          data={contracts}
-          keyExtractor={(item) => `contract-${item?.jobContract?.id ?? item?.id}`}
-          renderItem={renderContract}
-          scrollEnabled={false}
-          contentContainerStyle={{ gap: 12, paddingTop: 8 }}
-          ListEmptyComponent={() => (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyStateTitle}>No contracts found</Text>
-              <Text style={styles.emptyStateSubtitle}>
-                Adjust your filters or create new contracts to see them listed here.
-              </Text>
+        {/* Batch Update Mode Toggle */}
+        <View style={styles.batchModeContainer}>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={[styles.batchModeToggle, viewMode === 'select' && styles.batchModeToggleActive]}
+            onPress={() => {
+              const newMode = viewMode === 'select' ? 'view' : 'select';
+              setViewMode(newMode);
+              if (newMode === 'view') {
+                setSelectedContracts(new Set());
+              }
+            }}>
+            <View style={styles.batchModeToggleContent}>
+              <View>
+                <Text style={styles.batchModeTitle}>Batch Update Conditions</Text>
+                <Text style={styles.batchModeSubtitle}>
+                  Enable multi-select for batch operations
+                </Text>
+              </View>
+
+              {viewMode === 'select' && selectedContractIds.length > 0 ? (
+                // Batch Send Condition Form Modal
+                <BatchSendConditionFormModal
+                  contracts={contracts}
+                  selectedContractIds={selectedContractIds}
+                  batchCreateConditionsMutation={batchCreateConditionsMutation}
+                  getPrimaryCondition={getPrimaryCondition}
+                  formatCurrency={formatCurrency}
+                />
+              ) : (
+                // Toggle Switch
+                <View
+                  style={[
+                    styles.batchModeSwitch,
+                    viewMode === 'select' && styles.batchModeSwitchActive,
+                  ]}>
+                  {viewMode === 'select' && <View style={styles.batchModeSwitchDot} />}
+                </View>
+              )}
             </View>
-          )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Contracts Table */}
+        <ContractsTable
+          viewMode={viewMode}
+          selectedContracts={selectedContracts}
+          disabledContractIds={disabledContractIds}
+          tableRows={tableRows}
+          handleSelectAll={handleSelectAll}
+          setSelectedContracts={setSelectedContracts}
         />
 
         {totalPages > 1 && (
@@ -354,77 +368,156 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#f9fafb',
   },
+  sectionTitleSmall: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#f9fafb',
+    marginBottom: 12,
+  },
   sectionSubtitle: {
     color: 'rgba(148, 163, 184, 0.7)',
     fontSize: 14,
     marginTop: 4,
   },
-  primaryButton: {
+  batchModeContainer: {
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  batchModeToggle: {
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    backgroundColor: 'rgba(17, 24, 39, 0.85)',
+    padding: 16,
+  },
+  batchModeToggleActive: {
+    borderColor: '#3b82f6',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+  },
+  batchModeToggleContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  batchModeTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#f9fafb',
+  },
+  batchModeSubtitle: {
+    fontSize: 12,
+    color: 'rgba(148, 163, 184, 0.7)',
+    marginTop: 4,
+  },
+  batchModeSwitch: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(148, 163, 184, 0.4)',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  batchModeSwitchActive: {
+    borderColor: '#3b82f6',
+    backgroundColor: '#3b82f6',
+  },
+  batchModeSwitchDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
+    alignSelf: 'flex-end',
+  },
+  batchActionsContainer: {
+    marginBottom: 16,
+  },
+  batchSendButton: {
     backgroundColor: '#3b82f6',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
   },
-  primaryButtonText: {
+  batchSendButtonText: {
     color: '#ffffff',
     fontWeight: '600',
-    textAlign: 'center',
+    fontSize: 14,
   },
-  secondaryButton: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(148,163,184,0.5)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+  tableContainer: {
+    marginTop: 16,
   },
-  secondaryButtonText: {
-    color: '#e2e8f0',
-    fontWeight: '600',
-  },
-  contractCard: {
+  tableHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: 16,
-    borderRadius: 14,
-    backgroundColor: 'rgba(17, 24, 39, 0.85)',
-    borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.2)',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(17, 24, 39, 0.5)',
+    minWidth: 800,
   },
-  contractCardSelected: {
-    borderColor: '#3b82f6',
+  tableHeaderCell: {
+    color: 'rgba(148, 163, 184, 0.9)',
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    paddingHorizontal: 8,
+  },
+  checkboxHeader: {
+    width: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    minWidth: 800,
+  },
+  tableRowSelected: {
     backgroundColor: 'rgba(59, 130, 246, 0.15)',
   },
-  contractTitle: {
-    color: '#f9fafb',
-    fontSize: 16,
-    fontWeight: '600',
+  tableRowDisabled: {
+    opacity: 0.5,
   },
-  contractMeta: {
-    color: 'rgba(148,163,184,0.7)',
-    fontSize: 12,
-    marginTop: 4,
-  },
-  selectionBadge: {
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.4)',
-  },
-  selectionBadgeActive: {
-    borderColor: '#3b82f6',
-    backgroundColor: 'rgba(59, 130, 246, 0.2)',
-  },
-  selectionBadgeText: {
+  tableCell: {
     color: '#e5e7eb',
+    fontSize: 13,
+    paddingHorizontal: 8,
+  },
+  checkboxCell: {
+    width: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: 'rgba(148, 163, 184, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    borderColor: '#3b82f6',
+    backgroundColor: '#3b82f6',
+  },
+  checkboxDisabled: {
+    opacity: 0.3,
+  },
+  checkmark: {
+    color: '#ffffff',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   emptyState: {
     paddingVertical: 32,
     alignItems: 'center',
     gap: 6,
+    minWidth: 800,
   },
   emptyStateTitle: {
     color: '#e5e7eb',
@@ -441,11 +534,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 24,
     gap: 16,
-  },
-  drawerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#f9fafb',
   },
   drawerSubtitle: {
     color: 'rgba(148, 163, 184, 0.7)',
@@ -483,14 +571,229 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     color: '#f9fafb',
     backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    fontSize: 14,
   },
   multilineInput: {
     minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  textArea: {
+    minHeight: 80,
     textAlignVertical: 'top',
   },
   drawerActions: {
     flexDirection: 'row',
     gap: 12,
     marginTop: 8,
+  },
+  primaryButton: {
+    backgroundColor: '#3b82f6',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  primaryButtonText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  secondaryButton: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(148,163,184,0.5)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  secondaryButtonText: {
+    color: '#e2e8f0',
+    fontWeight: '600',
+  },
+  modalContent: {
+    flex: 1,
+  },
+  modalContentInner: {
+    padding: 16,
+    gap: 20,
+  },
+  selectedContractsSection: {
+    marginBottom: 8,
+  },
+  selectedContractsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  badge: {
+    backgroundColor: '#3b82f6',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  badgeText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  selectedContractsList: {
+    maxHeight: 200,
+  },
+  emptyContractsCard: {
+    padding: 24,
+    alignItems: 'center',
+    backgroundColor: 'rgba(17, 24, 39, 0.5)',
+    borderRadius: 12,
+  },
+  emptyContractsText: {
+    color: '#e5e7eb',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  emptyContractsSubtext: {
+    color: 'rgba(148, 163, 184, 0.7)',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  contractCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+    marginBottom: 8,
+  },
+  contractCardContent: {
+    flex: 1,
+  },
+  contractCardTitle: {
+    color: '#f9fafb',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  contractCardMeta: {
+    color: 'rgba(148, 163, 184, 0.8)',
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  contractCardStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  statusBadge: {
+    backgroundColor: '#10b981',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  statusBadgeText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  contractCardPayment: {
+    color: 'rgba(148, 163, 184, 0.7)',
+    fontSize: 11,
+  },
+  contractCardId: {
+    color: 'rgba(148, 163, 184, 0.5)',
+    fontSize: 11,
+  },
+  formSection: {
+    gap: 16,
+  },
+  formCard: {
+    backgroundColor: 'rgba(17, 24, 39, 0.5)',
+    borderRadius: 12,
+    padding: 16,
+    gap: 16,
+  },
+  formCardTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#f9fafb',
+    marginBottom: 4,
+  },
+  formRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  formField: {
+    flex: 1,
+    marginBottom: 8,
+  },
+  label: {
+    color: '#e5e7eb',
+    fontSize: 13,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  required: {
+    color: '#ef4444',
+  },
+  calculationCard: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+    gap: 8,
+  },
+  calculationTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3b82f6',
+    marginBottom: 4,
+  },
+  calculationRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  calculationLabel: {
+    color: 'rgba(148, 163, 184, 0.8)',
+    fontSize: 13,
+  },
+  calculationValue: {
+    color: '#3b82f6',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  calculationTotal: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  calculationTotalLabel: {
+    color: '#e5e7eb',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  calculationTotalValue: {
+    color: '#10b981',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  submitButton: {
+    backgroundColor: '#3b82f6',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  submitButtonDisabled: {
+    opacity: 0.5,
+  },
+  submitButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
