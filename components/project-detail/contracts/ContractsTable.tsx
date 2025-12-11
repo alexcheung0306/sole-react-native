@@ -243,14 +243,14 @@ export default function ContractsTable({
               </TouchableOpacity>
 
               {/* Dev Delete Button */}
-              {__DEV__ && onDeleteContract && (
+              {/* {__DEV__ && onDeleteContract && (
                 <TouchableOpacity
                   onPress={handleDelete}
                   className="absolute top-2 right-2 rounded-lg bg-red-500/20 p-2 border border-red-500/50"
                   activeOpacity={0.7}>
                   <Trash2 size={16} color="#ef4444" />
                 </TouchableOpacity>
-              )}
+              )} */}
             </View>
             );
           })}

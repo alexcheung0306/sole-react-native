@@ -6,6 +6,7 @@ import { FormModal } from '~/components/custom/form-modal';
 import { DateTimePickerInput } from '~/components/form-components/DateTimePickerInput';
 import { RoleScheduleListInputs } from '~/components/form-components/role-form/RoleScheduleListInputs';
 import { SingleWheelPickerInput } from '~/components/form-components/SingleWheelPickerInput';
+import { parseDateTime } from '@/lib/datetime';
 
 export default function BatchSendConditionFormModal({
   contracts,
@@ -93,12 +94,76 @@ export default function BatchSendConditionFormModal({
         values.activityScheduleLists
           ?.filter((activity: any) => activity.type === 'job')
           ?.flatMap((activity: any) =>
-            activity.schedules.map((schedule: any) => ({
-              location: schedule.location || '',
-              fromTime: schedule.fromTime ? new Date(schedule.fromTime).toISOString() : null,
-              toTime: schedule.toTime ? new Date(schedule.toTime).toISOString() : null,
-            }))
+            activity.schedules
+              .filter((schedule: any) => schedule.fromTime && schedule.toTime)
+              .map((schedule: any) => {
+                let fromTime = null;
+                let toTime = null;
+
+                // Parse and convert fromTime to ISO format
+                if (schedule.fromTime) {
+                  try {
+                    const fromDate = parseDateTime(String(schedule.fromTime));
+                    if (fromDate && !isNaN(fromDate.getTime())) {
+                      fromTime = fromDate.toISOString();
+                    } else {
+                      const date = new Date(schedule.fromTime);
+                      if (!isNaN(date.getTime())) {
+                        fromTime = date.toISOString();
+                      }
+                    }
+                  } catch (e) {
+                    // Skip invalid date
+                  }
+                }
+
+                // Parse and convert toTime to ISO format
+                if (schedule.toTime) {
+                  try {
+                    const toDate = parseDateTime(String(schedule.toTime));
+                    if (toDate && !isNaN(toDate.getTime())) {
+                      toTime = toDate.toISOString();
+                    } else {
+                      const date = new Date(schedule.toTime);
+                      if (!isNaN(date.getTime())) {
+                        toTime = date.toISOString();
+                      }
+                    }
+                  } catch (e) {
+                    // Skip invalid date
+                  }
+                }
+
+                // Only include schedule if both times are valid
+                if (fromTime && toTime) {
+                  return {
+                    location: schedule.location || '',
+                    fromTime: fromTime,
+                    toTime: toTime,
+                  };
+                }
+                return null;
+              })
+              .filter((schedule: any) => schedule !== null)
           ) || [];
+
+      // Convert paymentDate to ISO format
+      let paymentDateISO = null;
+      if (values.paymentDate) {
+        try {
+          const paymentDateParsed = parseDateTime(String(values.paymentDate));
+          if (paymentDateParsed && !isNaN(paymentDateParsed.getTime())) {
+            paymentDateISO = paymentDateParsed.toISOString();
+          } else {
+            const date = new Date(values.paymentDate);
+            if (!isNaN(date.getTime())) {
+              paymentDateISO = date.toISOString();
+            }
+          }
+        } catch (e) {
+          // Keep as null if parsing fails
+        }
+      }
 
       const conditionData = {
         usageRights: values.usageRights,
@@ -107,7 +172,7 @@ export default function BatchSendConditionFormModal({
         paymentAmountOt: values.paymentAmountOt || 0,
         paymentAdditional: values.paymentAdditional || 0,
         paymentCurrency: values.paymentCurrency,
-        paymentDate: values.paymentDate || null,
+        paymentDate: paymentDateISO,
         termsAndConditions: values.termsAndConditions,
         schedules: schedules,
       };
