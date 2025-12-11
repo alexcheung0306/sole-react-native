@@ -17,22 +17,16 @@ import CollapseDrawer from '@/components/custom/collapse-drawer';
 
 const ITEM_HEIGHT = 50;
 const CONTAINER_HEIGHT = 215;
+const VISIBLE_ITEMS = 5;
 const CENTER_OFFSET = (CONTAINER_HEIGHT - ITEM_HEIGHT) / 2;
 
-interface RangeWheelPickerInputProps {
+interface SingleWheelPickerInputProps {
     title: string;
-    values: any;
-    setFieldValue: (field: string, value: any) => void;
-    minDefaultValue?: string;
-    maxDefaultValue?: string;
-    rangeName: string;
-    rangeMinName: string;
-    rangeMaxName: string;
-    maxDigits?: number;
-    sliderLabel: string;
-    sliderStep?: number;
-    sliderMin?: number;
-    sliderMax?: number;
+    value: string | null;
+    onChange: (value: string) => void;
+    options: Array<{ value: string; label: string }>;
+    placeholder?: string;
+    error?: string;
 }
 
 const WheelItem = ({ 
@@ -47,6 +41,7 @@ const WheelItem = ({
     onPress: (index: number) => void;
 }) => {
     const animatedStyle = useAnimatedStyle(() => {
+        // Calculate the center Y position of this item based on translation
         const itemCenterY = translateY.value + (index * ITEM_HEIGHT) + (ITEM_HEIGHT / 2);
         const containerCenterY = CONTAINER_HEIGHT / 2;
         const distanceFromCenter = Math.abs(itemCenterY - containerCenterY);
@@ -65,6 +60,7 @@ const WheelItem = ({
             Extrapolation.CLAMP
         );
         
+        // Optional: slight rotation for 3D effect
         const rotateX = interpolate(
              (itemCenterY - containerCenterY),
              [-CONTAINER_HEIGHT/2, 0, CONTAINER_HEIGHT/2],
@@ -94,31 +90,54 @@ const WheelItem = ({
     );
 };
 
-interface WheelPickerProps {
-    value: string | number;
-    options: Array<{ value: string; label: string }>;
-    onChange: (value: number) => void;
-}
-
-const WheelPicker = ({ value, options, onChange }: WheelPickerProps) => {
+export function SingleWheelPickerInput({
+    title,
+    value,
+    onChange,
+    options,
+    placeholder = 'Select an option',
+    error,
+}: SingleWheelPickerInputProps) {
+    const [showDrawer, setShowDrawer] = useState(false);
+    const [tempValue, setTempValue] = useState(value || options[0]?.value || '');
+    
+    // Shared values
     const translateY = useSharedValue(0);
     const context = useSharedValue(0);
 
+    // Initialize position based on current value
     const initializePosition = useCallback(() => {
-        const index = options.findIndex(opt => Number(opt.value) === Number(value));
+        const initialValue = value || options[0]?.value || '';
+        const index = options.findIndex(opt => opt.value === initialValue);
         const safeIndex = index >= 0 ? index : 0;
         translateY.value = CENTER_OFFSET - (safeIndex * ITEM_HEIGHT);
+        setTempValue(initialValue);
     }, [value, options, translateY]);
 
     useEffect(() => {
-        initializePosition();
-    }, [initializePosition]);
+        if (showDrawer) {
+            initializePosition();
+        }
+    }, [showDrawer, initializePosition]);
 
-    const updateValue = (index: number) => {
+    const handleOpen = () => {
+        setShowDrawer(true);
+    };
+
+    const handleClose = () => {
+        setShowDrawer(false);
+    };
+
+    const handleDone = () => {
+        onChange(tempValue);
+        setShowDrawer(false);
+    };
+
+    const updateTempValue = (index: number) => {
         const clampedIndex = Math.max(0, Math.min(index, options.length - 1));
-        const newValue = Number(options[clampedIndex]?.value);
-        if (!isNaN(newValue)) {
-            onChange(newValue);
+        const newValue = options[clampedIndex]?.value;
+        if (newValue !== undefined) {
+            setTempValue(newValue);
         }
     };
 
@@ -131,7 +150,7 @@ const WheelPicker = ({ value, options, onChange }: WheelPickerProps) => {
             stiffness: 150,
             mass: 0.5
         });
-        runOnJS(updateValue)(clampedIndex);
+        runOnJS(updateTempValue)(clampedIndex);
     };
 
     const gesture = Gesture.Pan()
@@ -140,15 +159,20 @@ const WheelPicker = ({ value, options, onChange }: WheelPickerProps) => {
             context.value = translateY.value;
         })
         .onUpdate((e) => {
+            // Apply translation directly from gesture
             let newTranslateY = context.value + e.translationY;
             
+            // Calculate boundaries
             const minTranslateY = CENTER_OFFSET - ((options.length - 1) * ITEM_HEIGHT);
             const maxTranslateY = CENTER_OFFSET;
             
+            // Apply rubber banding effect when overscrolling
             if (newTranslateY > maxTranslateY) {
+                // Dragging down past the top item
                 const overscroll = newTranslateY - maxTranslateY;
                 newTranslateY = maxTranslateY + Math.pow(overscroll, 0.8);
             } else if (newTranslateY < minTranslateY) {
+                // Dragging up past the bottom item
                 const overscroll = minTranslateY - newTranslateY;
                 newTranslateY = minTranslateY - Math.pow(overscroll, 0.8);
             }
@@ -157,9 +181,11 @@ const WheelPicker = ({ value, options, onChange }: WheelPickerProps) => {
         })
         .onEnd((e) => {
             const velocity = e.velocityY;
+            
             const minTranslateY = CENTER_OFFSET - ((options.length - 1) * ITEM_HEIGHT);
             const maxTranslateY = CENTER_OFFSET;
 
+            // If we are currently out of bounds, snap back immediately
             if (translateY.value > maxTranslateY || translateY.value < minTranslateY) {
                 const targetY = translateY.value > maxTranslateY ? maxTranslateY : minTranslateY;
                 const clampedIndex = translateY.value > maxTranslateY ? 0 : options.length - 1;
@@ -170,16 +196,24 @@ const WheelPicker = ({ value, options, onChange }: WheelPickerProps) => {
                     mass: 0.5,
                     velocity: velocity
                 });
-                runOnJS(updateValue)(clampedIndex);
+                runOnJS(updateTempValue)(clampedIndex);
                 return;
             }
             
+            // Calculate projected position with decay
+            const projectedPosition = translateY.value + velocity * 0.2;
+            const rawIndex = Math.round((CENTER_OFFSET - projectedPosition) / ITEM_HEIGHT);
+            const clampedIndex = Math.max(0, Math.min(rawIndex, options.length - 1));
+            const targetY = CENTER_OFFSET - (clampedIndex * ITEM_HEIGHT);
+
+            // Use withDecay for smooth momentum if velocity is high enough
             if (Math.abs(velocity) > 500) {
                  translateY.value = withDecay({
                     velocity: velocity,
                     clamp: [minTranslateY, maxTranslateY],
                 }, (finished) => {
                     if (finished) {
+                        // After decay, snap to nearest
                          const finalIndex = Math.round((CENTER_OFFSET - translateY.value) / ITEM_HEIGHT);
                          const finalClampedIndex = Math.max(0, Math.min(finalIndex, options.length - 1));
                          const finalTargetY = CENTER_OFFSET - (finalClampedIndex * ITEM_HEIGHT);
@@ -189,96 +223,28 @@ const WheelPicker = ({ value, options, onChange }: WheelPickerProps) => {
                             stiffness: 150,
                             mass: 0.5
                          });
-                         runOnJS(updateValue)(finalClampedIndex);
+                         runOnJS(updateTempValue)(finalClampedIndex);
                     }
                 });
             } else {
-                const projectedPosition = translateY.value + velocity * 0.2;
-                const rawIndex = Math.round((CENTER_OFFSET - projectedPosition) / ITEM_HEIGHT);
-                const clampedIndex = Math.max(0, Math.min(rawIndex, options.length - 1));
-                const targetY = CENTER_OFFSET - (clampedIndex * ITEM_HEIGHT);
-
                  translateY.value = withSpring(targetY, {
                     damping: 15,
                     stiffness: 150,
                     mass: 0.5,
                     velocity: velocity 
                 });
-                runOnJS(updateValue)(clampedIndex);
+                runOnJS(updateTempValue)(clampedIndex);
             }
         });
 
-    return (
-        <View style={styles.pickerContainer}>
-            <GestureHandlerRootView style={{ flex: 1 }}>
-                <GestureDetector gesture={gesture}>
-                    <Animated.View style={styles.gestureArea}>
-                        {options.map((option, index) => (
-                            <WheelItem
-                                key={option.value}
-                                item={option}
-                                index={index}
-                                translateY={translateY}
-                                onPress={scrollTo}
-                            />
-                        ))}
-                    </Animated.View>
-                </GestureDetector>
-            </GestureHandlerRootView>
-            <View style={styles.pickerIndicator} pointerEvents="none" />
-        </View>
-    );
-};
-
-export function RangeWheelPickerInput({
-    title,
-    values,
-    setFieldValue,
-    minDefaultValue = '15',
-    maxDefaultValue = '30',
-    rangeMinName,
-    rangeMaxName,
-    sliderLabel,
-    sliderStep = 1,
-    sliderMin = 1,
-    sliderMax = 99,
-}: RangeWheelPickerInputProps) {
-    const [showDrawer, setShowDrawer] = useState(false);
-
-    const currentMin = values[rangeMinName] !== undefined && values[rangeMinName] !== null
-        ? Number(values[rangeMinName])
-        : Number(minDefaultValue);
-
-    const currentMax = values[rangeMaxName] !== undefined && values[rangeMaxName] !== null
-        ? Number(values[rangeMaxName])
-        : Number(maxDefaultValue);
-
-    const [tempMin, setTempMin] = useState(currentMin);
-    const [tempMax, setTempMax] = useState(currentMax);
-
-    const rangeOptions = Array.from({ length: Math.floor((sliderMax - sliderMin) / sliderStep) + 1 }, (_, i) => {
-        const val = String(sliderMin + i * sliderStep);
-        return { value: val, label: val };
-    });
-
-    const handleOpen = () => {
-        setTempMin(currentMin);
-        setTempMax(currentMax);
-        setShowDrawer(true);
+    const handleItemPress = (index: number) => {
+        scrollTo(index);
     };
 
-    const handleClose = () => {
-        setShowDrawer(false);
-    };
-
-    const handleDone = () => {
-        setFieldValue(rangeMinName, tempMin);
-        setFieldValue(rangeMaxName, tempMax);
-        setShowDrawer(false);
-    };
+    const selectedLabel = value ? options.find(opt => opt.value === value)?.label || value : placeholder;
 
     return (
-        <FormControl className="mb-4">
+        <FormControl className="mb-3">
             <FormControlLabel>
                 <FormControlLabelText className="text-white">{title}</FormControlLabelText>
             </FormControlLabel>
@@ -286,20 +252,19 @@ export function RangeWheelPickerInput({
             <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={handleOpen}
-                className="mt-3 gap-4 rounded-lg border border-white/10 bg-zinc-800 p-4"
+                className="mt-3 flex-row items-center justify-between rounded-2xl border border-white/20 bg-zinc-600 p-3"
             >
-                <View className="flex-row items-center justify-between">
-                    <View>
-                        <Text className="mb-2 text-sm text-white/80">{sliderLabel}</Text>
-                        <Text className="text-xl font-bold text-white">
-                            {currentMin} - {currentMax}
-                        </Text>
-                    </View>
-                    <Text className="text-white/60">Edit</Text>
-                </View>
+                <Text className={`flex-1 text-sm font-semibold ${value ? 'text-white' : 'text-white/60'}`}>
+                    {selectedLabel}
+                </Text>
+                <Text className="text-white/60">▼</Text>
             </TouchableOpacity>
 
-            <CollapseDrawer showDrawer={showDrawer} setShowDrawer={setShowDrawer} title={sliderLabel} autoHeight>
+            {error && (
+                <Text className="mt-1 text-xs text-red-400">{error}</Text>
+            )}
+
+            <CollapseDrawer showDrawer={showDrawer} setShowDrawer={setShowDrawer} title={title} autoHeight>
                 {/* Header */}
                 <View className="flex-row justify-between items-center px-4 pb-4 border-b border-white/10">
                     <TouchableOpacity onPress={handleClose}>
@@ -310,23 +275,25 @@ export function RangeWheelPickerInput({
                     </TouchableOpacity>
                 </View>
 
-                {/* Pickers */}
-                <View className="flex-row justify-center items-center py-8">
-                    <View className="flex-1 items-center">
-                        <Text className="text-white/60 mb-2 font-medium">Min</Text>
-                        <WheelPicker 
-                            value={tempMin} 
-                            options={rangeOptions} 
-                            onChange={setTempMin} 
-                        />
-                    </View>
-                    <View className="flex-1 items-center">
-                        <Text className="text-white/60 mb-2 font-medium">Max</Text>
-                        <WheelPicker 
-                            value={tempMax} 
-                            options={rangeOptions} 
-                            onChange={setTempMax} 
-                        />
+                {/* Picker */}
+                <View className="items-center py-8">
+                    <View style={styles.pickerContainer}>
+                        <GestureHandlerRootView style={{ flex: 1 }}>
+                            <GestureDetector gesture={gesture}>
+                                <Animated.View style={styles.gestureArea}>
+                                    {options.map((option, index) => (
+                                        <WheelItem
+                                            key={option.value}
+                                            item={option}
+                                            index={index}
+                                            translateY={translateY}
+                                            onPress={handleItemPress}
+                                        />
+                                    ))}
+                                </Animated.View>
+                            </GestureDetector>
+                        </GestureHandlerRootView>
+                        <View style={styles.pickerIndicator} pointerEvents="none" />
                     </View>
                 </View>
             </CollapseDrawer>
@@ -336,7 +303,7 @@ export function RangeWheelPickerInput({
 
 const styles = StyleSheet.create({
     pickerContainer: {
-        width: 130,
+        width: 200,
         height: 215,
         backgroundColor: 'transparent',
         position: 'relative',

@@ -9,15 +9,6 @@ import { Plus, Trash2 } from 'lucide-react-native';
 import { Input, InputField } from '@/components/ui/input';
 import { Textarea, TextareaInput } from '@/components/ui/textarea';
 import { Button, ButtonText, ButtonIcon } from '@/components/ui/button';
-import {
-  Actionsheet,
-  ActionsheetBackdrop,
-  ActionsheetContent,
-  ActionsheetDragIndicatorWrapper,
-  ActionsheetDragIndicator,
-  ActionsheetItem,
-  ActionsheetItemText,
-} from '@/components/ui/actionsheet';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import {
   validateActivityTitle,
@@ -27,8 +18,7 @@ import {
   ScheduleObject,
 } from '@/lib/validations/role-validation';
 import { activityTypes } from '@/components/form-components/options-to-use';
-import { SingleSelectCard } from '@/components/form-components/SingleSelectCard';
-import { ActivityTypeSelector } from '~/components/form-components/role-form/ActivityTypeSelector';
+import { SingleWheelPickerInput } from '@/components/form-components/SingleWheelPickerInput';
 import { LocationMapPickerInput } from '@/components/form-components/LocationMapPickerInput';
 import { DateTimePickerInput } from '@/components/form-components/DateTimePickerInput';
 import { parseDateTime, formatDateTime, formatDisplayDateTime } from '@/lib/datetime';
@@ -87,28 +77,8 @@ export function RoleScheduleListInputs({
     });
   };
 
-  // Use internal state if not provided by parent
-  const [internalShowTypePicker, setInternalShowTypePicker] = useState(false);
-  const [internalSelectedActivityIndex, setInternalSelectedActivityIndex] = useState<number | null>(
-    null
-  );
-
-  const actualShowTypePicker =
-    setShowTypePicker !== undefined ? showTypePicker : internalShowTypePicker;
-  const actualSelectedActivityIndex =
-    setSelectedActivityIndex !== undefined ? selectedActivityIndex : internalSelectedActivityIndex;
-  const actualSetShowTypePicker = setShowTypePicker || setInternalShowTypePicker;
-  const actualSetSelectedActivityIndex =
-    setSelectedActivityIndex || setInternalSelectedActivityIndex;
-
-  // Removed custom date/time picker state - now using DateTimePickerInput component
-
-  // Set up callback for activity type selection (if needed for legacy support)
-  useEffect(() => {
-    if (setActivityTypeSelectCallback && onActivityTypeSelect) {
-      setActivityTypeSelectCallback(onActivityTypeSelect);
-    }
-  }, [setActivityTypeSelectCallback, onActivityTypeSelect]);
+  // Legacy props kept for compatibility but no longer used with wheel picker
+  // Activity type selection is now handled by SingleWheelPickerInput component
 
 
   const isFieldTouched = (fieldname: string) => {
@@ -381,48 +351,25 @@ export function RoleScheduleListInputs({
                               </View>
                             </View>
                           ) : (
-                            <SingleSelectCard
-                              label="Activity Type"
-                              selectedItem={
-                                activity.type
-                                  ? activityTypes.find((t) => t.key === activity.type)?.label ||
-                                  activity.type
-                                  : null
-                              }
-                              onItemChange={(label) => {
+                            <SingleWheelPickerInput
+                              title="Activity Type"
+                              value={activity.type || null}
+                              onChange={(typeKey) => {
                                 const currentActivities = [...getActivities()];
                                 if (currentActivities[activityIndex]) {
-                                  const typeKey =
-                                    activityTypes.find((t) => t.label === label)?.key || label;
                                   currentActivities[activityIndex].type = typeKey;
                                   setFieldValue('activityScheduleLists', currentActivities);
                                   handleFieldBlur(`activityScheduleLists.${activityIndex}.type`);
                                 }
                               }}
-                              fieldName={`activityScheduleLists.${activityIndex}.type`}
-                              setFieldValue={(field, value) => {
-                                // This won't be called directly, but kept for compatibility
-                              }}
-                              selectorComponent={ActivityTypeSelector}
+                              options={getAvailableActivityTypes(activityIndex).map((type) => ({
+                                value: type.key,
+                                label: type.label,
+                              }))}
                               placeholder="Select activity type"
-                              selectorProps={{
-                                availableTypes: getAvailableActivityTypes(activityIndex),
-                                onSaveKey: (typeKey: string | null) => {
-                                  const currentActivities = [...getActivities()];
-                                  if (currentActivities[activityIndex]) {
-                                    currentActivities[activityIndex].type = typeKey || '';
-                                    setFieldValue('activityScheduleLists', currentActivities);
-                                    handleFieldBlur(`activityScheduleLists.${activityIndex}.type`);
-                                  }
-                                },
-                              }}
+                              error={isTypeTouched ? validateActivityType(activity.type) || undefined : undefined}
                             />
                           )}
-                          {isTypeTouched && validateActivityType(activity.type) ? (
-                            <Text className="mt-1 text-xs text-red-400">
-                              {validateActivityType(activity.type)}
-                            </Text>
-                          ) : null}
                         </View>
 
                         {/* Schedules */}
@@ -577,42 +524,7 @@ export function RoleScheduleListInputs({
         )}
       </View>
 
-      {/* Activity Type Picker - Only render if managed internally */}
-      {setShowTypePicker === undefined && (
-        <Actionsheet
-          isOpen={actualShowTypePicker}
-          onClose={() => {
-            actualSetShowTypePicker(false);
-            actualSetSelectedActivityIndex(null);
-          }}>
-          <ActionsheetBackdrop
-            onPress={() => {
-              actualSetShowTypePicker(false);
-              actualSetSelectedActivityIndex(null);
-            }}
-          />
-          <ActionsheetContent>
-            <ActionsheetDragIndicatorWrapper>
-              <ActionsheetDragIndicator />
-            </ActionsheetDragIndicatorWrapper>
-            {actualSelectedActivityIndex !== null &&
-              getAvailableActivityTypes(actualSelectedActivityIndex).map((type) => (
-                <ActionsheetItem
-                  key={type.key}
-                  onPress={() => {
-                    const updated = [...getActivities()];
-                    updated[actualSelectedActivityIndex].type = type.key;
-                    setFieldValue('activityScheduleLists', updated);
-                    handleFieldBlur(`activityScheduleLists.${actualSelectedActivityIndex}.type`);
-                    actualSetShowTypePicker(false);
-                    actualSetSelectedActivityIndex(null);
-                  }}>
-                  <ActionsheetItemText>{type.label}</ActionsheetItemText>
-                </ActionsheetItem>
-              ))}
-          </ActionsheetContent>
-        </Actionsheet>
-      )}
+      {/* Activity Type Picker is now handled by SingleWheelPickerInput - no separate modal needed */}
 
       {/* Date/Time picker is now handled by DateTimePickerInput component - no custom modal needed */}
 
