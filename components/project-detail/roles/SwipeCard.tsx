@@ -17,6 +17,7 @@ import { getStatusColor } from "@/utils/get-status-color";
 import TalentProfile from "~/components/talent-profile/TalentProfile";
 import { ApplicationDetail } from "~/components/project-detail/roles/ApplicationDetail";
 import { ActionToCandidates } from "~/components/project-detail/roles/ActionToCandidates";
+import { SendOfferModal } from "~/components/project-detail/roles/SendOfferModal";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 100;
@@ -50,8 +51,12 @@ interface SwipeCardProps {
   rejectGradientOpacity: SharedValue<number>;
   rightActionOpacities: SharedValue<number[]>;
   availableActionsCount: SharedValue<number>;
+  availableActionsShared: SharedValue<string[]>;
   currentIndexShared: SharedValue<number>;
   currentProcessShared: SharedValue<string>;
+  showSendOfferModal?: boolean;
+  onSendOfferModalClose?: () => void;
+  onSendOfferSuccess?: () => void;
 }
 
 export default function SwipeCard({
@@ -82,8 +87,12 @@ export default function SwipeCard({
   rejectGradientOpacity,
   rightActionOpacities,
   availableActionsCount,
+  availableActionsShared,
   currentIndexShared,
   currentProcessShared,
+  showSendOfferModal = false,
+  onSendOfferModalClose,
+  onSendOfferSuccess,
 }: SwipeCardProps) {
   // Animation values for this card
   const translateX = useSharedValue(0);
@@ -98,6 +107,23 @@ export default function SwipeCard({
       opacity.value = 1;
     }
   }, [isTopCard, translateX, translateY, opacity]);
+
+  // Reset card position when modal closes (without submitting)
+  // This ensures the card returns to center if modal is closed without submitting
+  const prevShowModalRef = useRef(showSendOfferModal);
+  useEffect(() => {
+    if (isTopCard) {
+      console.log('[SwipeCard] Modal state changed:', { showSendOfferModal, isTopCard, prev: prevShowModalRef.current });
+    }
+    if (isTopCard && prevShowModalRef.current && !showSendOfferModal) {
+      // Modal was just closed - reset card position
+      translateX.value = withTiming(0, { duration: 200 });
+      translateY.value = withTiming(0, { duration: 200 });
+      rejectGradientOpacity.value = withTiming(0, { duration: 150 });
+      rightActionOpacities.value = withTiming([0, 0, 0, 0, 0], { duration: 150 });
+    }
+    prevShowModalRef.current = showSendOfferModal;
+  }, [isTopCard, showSendOfferModal, translateX, translateY, rejectGradientOpacity, rightActionOpacities]);
 
   // Animated style for this card
   const cardAnimatedStyle = useAnimatedStyle(() => {
@@ -247,22 +273,37 @@ export default function SwipeCard({
           actionIndex < actionCount;
 
         if (isHighlighted) {
+          // Check if this is the "send offer" action
+          const actions = availableActionsShared.value;
+          const isSendOffer = actions && actions.length > actionIndex && actions[actionIndex] === 'send offer';
+
           runOnJS(onSwipeAction)(actionIndex);
-          if (onSwipeStartExit) {
-            runOnJS(onSwipeStartExit)();
-          }
-          // Advance to next card immediately while this one animates out
-          runOnJS(onSwipeComplete)();
-          translateX.value = withSpring(SCREEN_WIDTH, { damping: 20, stiffness: 200 }, () => {
-            'worklet';
-            if (onExitAnimationEnd) {
-              runOnJS(onExitAnimationEnd)(index);
+          
+          if (isSendOffer) {
+            // For "send offer", don't slide out - just reset position and open modal
+            translateX.value = withTiming(0, { duration: 200 });
+            translateY.value = withTiming(0, { duration: 200 });
+            rejectGradientOpacity.value = withTiming(0, { duration: 150 });
+            rightActionOpacities.value = withTiming([0, 0, 0, 0, 0], { duration: 150 });
+            runOnJS(onHighlightAction)(null);
+          } else {
+            // For other actions, slide out as normal
+            if (onSwipeStartExit) {
+              runOnJS(onSwipeStartExit)();
             }
-          });
-          opacity.value = withTiming(0, { duration: 150 });
-          // Immediately hide gradients
-          rejectGradientOpacity.value = 0;
-          rightActionOpacities.value = [0, 0, 0, 0, 0];
+            // Advance to next card immediately while this one animates out
+            runOnJS(onSwipeComplete)();
+            translateX.value = withSpring(SCREEN_WIDTH, { damping: 20, stiffness: 200 }, () => {
+              'worklet';
+              if (onExitAnimationEnd) {
+                runOnJS(onExitAnimationEnd)(index);
+              }
+            });
+            opacity.value = withTiming(0, { duration: 150 });
+            // Immediately hide gradients
+            rejectGradientOpacity.value = 0;
+            rightActionOpacities.value = [0, 0, 0, 0, 0];
+          }
         } else {
           translateX.value = withTiming(0, { duration: 200 });
           rightActionOpacities.value = withTiming([0, 0, 0, 0, 0], { duration: 150 });
@@ -439,6 +480,26 @@ export default function SwipeCard({
             </ScrollView>
           </GestureDetector>
       </View>
+
+      {/* Send Offer Modal */}
+      {isTopCard && (
+        <SendOfferModal
+            applicant={candidate}
+            projectData={projectData || { id: projectId }}
+            roleWithSchedules={roleWithSchedules || candidate?.jobApplicant?.roleWithSchedules || (roleId ? { role: { id: roleId } } : null)}
+            open={showSendOfferModal}
+            onOpenChange={(isOpen) => {
+              if (!isOpen && onSendOfferModalClose) {
+                onSendOfferModalClose();
+              }
+            }}
+            onSuccess={() => {
+              if (onSendOfferSuccess) {
+                onSendOfferSuccess();
+              }
+            }}
+          />
+      )}
     </Animated.View>
   );
 }

@@ -16,6 +16,8 @@ type SendOfferModalProps = {
   projectData: any;
   roleWithSchedules: any;
   onSuccess?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
 const toNumber = (value: string) => {
@@ -23,7 +25,7 @@ const toNumber = (value: string) => {
   return Number.isFinite(num) ? num : 0;
 };
 
-export function SendOfferModal({ applicant, projectData, roleWithSchedules, onSuccess }: SendOfferModalProps) {
+export function SendOfferModal({ applicant, projectData, roleWithSchedules, onSuccess, open, onOpenChange }: SendOfferModalProps) {
   const queryClient = useQueryClient();
   const { soleUserId: currentUserSoleUserId } = useSoleUserContext();
   const jobApplicant = applicant?.jobApplicant || applicant || {};
@@ -297,7 +299,10 @@ export function SendOfferModal({ applicant, projectData, roleWithSchedules, onSu
       queryClient.invalidateQueries({ queryKey: ['role-process-counts'] });
       queryClient.invalidateQueries({ queryKey: ['role-process-counts', role?.id] });
       
-      // Close swipe screen after successful submission
+      // Close modal and trigger success callback
+      if (onOpenChange) {
+        onOpenChange(false);
+      }
       if (onSuccess) {
         onSuccess();
       }
@@ -363,11 +368,14 @@ export function SendOfferModal({ applicant, projectData, roleWithSchedules, onSu
 
         return (
           <FormModal
-            trigger={({ open }) => (
+            open={open}
+            onOpenChange={onOpenChange}
+            trigger={open === undefined ? ({ open }) => (
               <PrimaryButton className="w-full bg-blue-500" onPress={open}>
                 Send Offer
               </PrimaryButton>
-            )}
+            ) : undefined}
+            showTrigger={open === undefined}
             title="Send Offer"
             submitButtonText="Send"
             isSubmitting={offerMutation.isPending}

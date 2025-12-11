@@ -35,6 +35,12 @@ export default function RoleCandidatesSwipeScreen() {
   const [showStatusDrawer, setShowStatusDrawer] = useState(false);
   const [statusFilterSelection, setStatusFilterSelection] = useState<string[]>([]);
   const [exhausted, setExhausted] = useState(false);
+  const [showSendOfferModal, setShowSendOfferModal] = useState(false);
+  
+  // Debug: Track modal state changes
+  useEffect(() => {
+    console.log('[Swipe] showSendOfferModal changed:', showSendOfferModal);
+  }, [showSendOfferModal]);
   const toggleStatusFilter = useCallback((id: string) => {
     setStatusFilterSelection((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
@@ -222,6 +228,12 @@ export default function RoleCandidatesSwipeScreen() {
   }, [rolesWithSchedules, roleId]);
 
   const currentProcess = process || 'applied';
+  
+  // Debug: Log current process
+  useEffect(() => {
+    console.log('[Swipe] Current process:', currentProcess);
+    console.log('[Swipe] Process param:', process);
+  }, [currentProcess, process]);
 
   // Current candidate (the one on top) from filtered list
   const currentCandidate = currentIndex >= 0 && currentIndex < swipeCandidates.length ? swipeCandidates[currentIndex] : null;
@@ -278,7 +290,15 @@ export default function RoleCandidatesSwipeScreen() {
 
   // Get available actions
   const getAvailableActions = useMemo(() => {
-    if (currentProcess === 'shortlisted' || currentProcess === 'offered') {
+    console.log('[Swipe] getAvailableActions - currentProcess:', currentProcess);
+    console.log('[Swipe] getAvailableActions - applicant status:', applicant?.applicationStatus);
+    console.log('[Swipe] getAvailableActions - applicant process:', applicant?.applicationProcess);
+    
+    if (currentProcess === 'shortlisted') {
+      console.log('[Swipe] Returning send offer action');
+      return ['send offer'];
+    }
+    if (currentProcess === 'offered') {
       return [];
     }
     if (currentProcess === 'applied') {
@@ -295,6 +315,7 @@ export default function RoleCandidatesSwipeScreen() {
     if (applicant?.applicationStatus === 'applied' || applicant?.applicationProcess === 'applied') {
       return ['shortlisted'];
     }
+    console.log('[Swipe] No actions available, returning empty array');
     return [];
   }, [currentProcess, sessionActivities, applicant?.applicationStatus, applicant?.applicationProcess]);
 
@@ -367,6 +388,7 @@ export default function RoleCandidatesSwipeScreen() {
   const rejectGradientOpacity = useSharedValue(0);
   const rightActionOpacities = useSharedValue([0, 0, 0, 0, 0]);
   const availableActionsCount = useSharedValue(0);
+  const availableActionsShared = useSharedValue<string[]>([]);
 
   // Shared values for worklet-safe access
   const currentIndexShared = useSharedValue(currentIndex);
@@ -405,7 +427,15 @@ export default function RoleCandidatesSwipeScreen() {
   useEffect(() => {
     availableActionsCount.value = getAvailableActions.length;
     availableActionsRef.current = getAvailableActions;
-  }, [getAvailableActions, availableActionsCount]);
+    availableActionsShared.value = getAvailableActions;
+    // Debug log to verify actions are set correctly
+    console.log('[Swipe] Updated available actions:', {
+      process: currentProcess,
+      actions: getAvailableActions,
+      count: getAvailableActions.length,
+      availableActionsCountValue: availableActionsCount.value
+    });
+  }, [getAvailableActions, availableActionsCount, availableActionsShared, currentProcess]);
 
   useEffect(() => {
     if (currentCandidate) {
@@ -561,10 +591,25 @@ export default function RoleCandidatesSwipeScreen() {
   // Execute swipe actions
   const executeSwipeRightAction = useCallback((actionIndex: number) => {
     const actions = availableActionsRef.current;
+    console.log('[Swipe] executeSwipeRightAction called:', { actionIndex, actions, actionsLength: actions.length });
     if (actionIndex >= 0 && actionIndex < actions.length) {
       const action = actions[actionIndex];
+      console.log('[Swipe] Action detected:', action, 'Type:', typeof action, 'Exact match:', action === 'send offer');
+      
+      // Handle "send offer" action - open modal instead of executing
+      // Check this first, before applicantId validation
+      if (action === 'send offer') {
+        console.log('[Swipe] Opening send offer modal');
+        setShowSendOfferModal(true);
+        return;
+      }
+
       const applicantId = currentApplicantRef.current?.id;
-      if (!applicantId) return;
+      console.log('[Swipe] Applicant ID:', applicantId);
+      if (!applicantId) {
+        console.log('[Swipe] No applicant ID, returning early');
+        return;
+      }
 
       const isSessionAction = sessionActivities.includes(action);
       const status =
@@ -582,7 +627,7 @@ export default function RoleCandidatesSwipeScreen() {
       });
 
     }
-  }, []);
+  }, [sessionActivities, applicant]);
 
   const executeSwipeLeftReject = useCallback(() => {
     const applicantId = currentApplicantRef.current?.id;
@@ -594,6 +639,17 @@ export default function RoleCandidatesSwipeScreen() {
       process: 'rejected',
     });
   }, []);
+
+  // Handle send offer modal close
+  const handleSendOfferModalClose = useCallback(() => {
+    setShowSendOfferModal(false);
+  }, []);
+
+  // Handle send offer success - slide card out
+  const handleSendOfferSuccess = useCallback(() => {
+    setShowSendOfferModal(false);
+    handleCardSwipeComplete();
+  }, [handleCardSwipeComplete]);
 
   // Animated style for cards below (stacked effect)
   const getStackedCardStyle = useCallback((index: number) => {
@@ -636,11 +692,13 @@ export default function RoleCandidatesSwipeScreen() {
 
   const getActionColor = (action: string): [string, string] => {
     if (action === 'shortlisted') return ['rgba(34, 197, 94, 1)', 'rgba(34, 197, 94, 0)'];
+    if (action === 'send offer') return ['rgba(16, 185, 129, 1)', 'rgba(16, 185, 129, 0)'];
     return ['rgba(59, 130, 246, 1)', 'rgba(59, 130, 246, 0)'];
   };
 
   const getActionLabel = (action: string) => {
     if (action === 'shortlisted') return 'Shortlist';
+    if (action === 'send offer') return 'Send Offer';
     return action;
   };
 
@@ -805,14 +863,29 @@ export default function RoleCandidatesSwipeScreen() {
             )}
 
             {/* Action Gradients (Right) - Full Screen */}
-            {currentCandidate && getAvailableActions.map((action, index) => (
-              <ActionRow
-                key={action}
-                action={action}
-                index={index}
-                actionCount={getAvailableActions.length}
-              />
-            ))}
+            {currentCandidate && getAvailableActions.length > 0 && getAvailableActions.map((action, index) => {
+              if (__DEV__) {
+                console.log('[Swipe] Rendering ActionRow:', { action, index, totalCount: getAvailableActions.length });
+              }
+              return (
+                <ActionRow
+                  key={action}
+                  action={action}
+                  index={index}
+                  actionCount={getAvailableActions.length}
+                />
+              );
+            })}
+            {/* Debug: Show action count in dev mode */}
+            {__DEV__ && currentCandidate && (
+              <View style={{ position: 'absolute', top: 100, right: 20, backgroundColor: 'rgba(255,0,0,0.7)', padding: 10, zIndex: 10000 }}>
+                <Text style={{ color: 'white', fontSize: 12 }}>
+                  Actions: {getAvailableActions.length}
+                  {'\n'}Process: {currentProcess}
+                  {'\n'}Actions: {JSON.stringify(getAvailableActions)}
+                </Text>
+              </View>
+            )}
 
             {/* Card Stack Container */}
             <View className="flex-1" style={{ paddingHorizontal: 20 }}>
@@ -866,9 +939,13 @@ export default function RoleCandidatesSwipeScreen() {
                       rejectGradientOpacity={rejectGradientOpacity}
                       rightActionOpacities={rightActionOpacities}
                       availableActionsCount={availableActionsCount}
+                      availableActionsShared={availableActionsShared}
                       currentIndexShared={currentIndexShared}
                       currentProcessShared={currentProcessShared}
                       isExiting={isExiting}
+                      showSendOfferModal={isTopCard ? showSendOfferModal : false}
+                      onSendOfferModalClose={handleSendOfferModalClose}
+                      onSendOfferSuccess={handleSendOfferSuccess}
                     />
                   );
                 })}
