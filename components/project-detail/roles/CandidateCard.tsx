@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { Image } from 'expo-image';
 import { getStatusColor } from '@/utils/get-status-color';
 
 type CandidateCardProps = {
@@ -54,8 +55,10 @@ export const CandidateCard = memo(function CandidateCard({
         {imageUri ? (
           <Image
             source={{ uri: imageUri }}
-            className="w-full h-full"
-            resizeMode="cover"
+            style={{ width: '100%', height: '100%' }}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={100}
           />
         ) : (
           <View className="w-full h-full items-center justify-center">

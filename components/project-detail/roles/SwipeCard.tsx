@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Dimensions, Text, View, ActivityIndicator, ScrollView, Image } from "react-native";
+import { Dimensions, Text, View, ActivityIndicator, ScrollView } from "react-native";
+import { Image } from "expo-image";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   useSharedValue,
@@ -361,7 +362,10 @@ export default function SwipeCard({
                     source={{
                       uri: talentProfileData?.userInfo?.profilePic || candidate?.comcardFirstPic || undefined,
                     }}
-                    className="h-20 w-20 rounded-full bg-zinc-700"
+                    style={{ width: 80, height: 80, borderRadius: 40 }}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={100}
                   />
                   <View className="flex-1">
                     <Text className="text-lg font-semibold text-white">

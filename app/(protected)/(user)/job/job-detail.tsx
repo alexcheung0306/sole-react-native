@@ -154,31 +154,9 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
     }
   }, [rolesWithSchedules.length, currentRole]);
 
-  if (isInitialLoading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-[#0a0a0a] px-6">
-        <ActivityIndicator size="large" color="#3b82f6" />
-        <Text className="mt-3 text-sm text-zinc-400">Fetching job details…</Text>
-      </View>
-    );
-  }
-
-  if (projectError || !projectData) {
-    return (
-      <View className="flex-1 items-center justify-center bg-[#0a0a0a] px-6">
-        <Text className="text-lg font-semibold text-rose-400">We couldn't load this job.</Text>
-        <TouchableOpacity
-          className="mt-5 rounded-xl bg-blue-500 px-5 py-3"
-          activeOpacity={0.85}
-          onPress={() => router.back()}>
-          <Text className="text-sm font-semibold text-white">Return to jobs</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
+  // Calculate derived values (safe defaults for loading states)
   const project = projectData?.project || projectData;
-  const statusTint = STATUS_COLORS[project?.status] || STATUS_COLORS.Draft;
+  const statusTint = project ? (STATUS_COLORS[project?.status] || STATUS_COLORS.Draft) : STATUS_COLORS.Draft;
   const roleCount = rolesWithSchedules.length;
   const contractsCount = contractsData?.length || 0;
 
@@ -207,6 +185,7 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
     []
   );
 
+  // All hooks must be called before any conditional returns
   const tabs = useMemo(() => [
     { id: 'job-information', label: 'Details' },
     { id: 'job-roles', label: 'Roles', count: roleCount },
@@ -241,6 +220,29 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
   const application = applicationsData?.find(
     (app: any) => app.roleId === rolesWithSchedules[currentRole]?.role?.id
   );
+
+  if (isInitialLoading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-[#0a0a0a] px-6">
+        <ActivityIndicator size="large" color="#3b82f6" />
+        <Text className="mt-3 text-sm text-zinc-400">Fetching job details…</Text>
+      </View>
+    );
+  }
+
+  if (projectError || !projectData) {
+    return (
+      <View className="flex-1 items-center justify-center bg-[#0a0a0a] px-6">
+        <Text className="text-lg font-semibold text-rose-400">We couldn't load this job.</Text>
+        <TouchableOpacity
+          className="mt-5 rounded-xl bg-blue-500 px-5 py-3"
+          activeOpacity={0.85}
+          onPress={() => router.back()}>
+          <Text className="text-sm font-semibold text-white">Return to jobs</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <>

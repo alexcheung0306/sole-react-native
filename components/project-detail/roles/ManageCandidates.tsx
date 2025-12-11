@@ -1,7 +1,8 @@
 import React, { useMemo, useState, useCallback, memo, useEffect } from 'react';
 import { View, Text, ScrollView, FlatList, TouchableOpacity, Dimensions, Alert, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { Image } from 'expo-image';
 import { getApplicationProcessCounts, searchApplicants, getRoleApplicantsByRoleId, updateApplicantProcessById } from '@/api/apiservice/applicant_api';
 import FilterSearch from '@/components/custom/filter-search';
 import PaginationControl from '@/components/projects/PaginationControl';
@@ -251,6 +252,8 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
     queryFn: () => getApplicationProcessCounts(roleWithSchedules?.role?.id),
     enabled: Boolean(roleWithSchedules?.role?.id),
     staleTime: 1000 * 60 * 5,
+    refetchOnMount: false, // Don't refetch on mount, only when focused
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
   const {
@@ -266,7 +269,29 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
     ],
     queryFn: () => searchApplicants(candidateQueryString),
     enabled: Boolean(roleWithSchedules?.role?.id),
+    staleTime: 1000 * 60 * 5, // 5 minutes - cache data for 5 minutes
+    placeholderData: (previousData) => previousData, // Keep previous data visible while fetching new data
+    refetchOnMount: false, // Don't refetch on mount, only when focused
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
+
+  // Refetch queries when ManageCandidates comes into focus
+  // This ensures fresh data after returning from swipe screen
+  // React Query will only refetch if queries are stale (respects staleTime)
+  useFocusEffect(
+    useCallback(() => {
+      if (roleWithSchedules?.role?.id) {
+        queryClient.refetchQueries({ 
+          queryKey: ['role-candidates', roleWithSchedules.role.id],
+          type: 'active' // Only refetch active queries
+        });
+        queryClient.refetchQueries({ 
+          queryKey: ['role-process-counts', roleWithSchedules.role.id],
+          type: 'active' // Only refetch active queries
+        });
+      }
+    }, [queryClient, roleWithSchedules?.role?.id])
+  );
 
   const candidateResults = useMemo(() => {
     if (!candidatesResponse) {
@@ -312,6 +337,27 @@ export function ManageCandidates({ projectData, roleWithSchedules }: ManageCandi
   }, [candidateResults, currentProcess, processSegments]);
 
   const candidateTotalPages = candidatesResponse?.totalPages ?? 1;
+
+  // Prefetch images for all candidates when data is available
+  useEffect(() => {
+    if (filteredCandidates && filteredCandidates.length > 0) {
+      const imageUris = filteredCandidates
+        .map((candidate: any) => {
+          const imageUri = candidate?.comcardFirstPic || candidate?.userInfo?.profilePic;
+          return imageUri || null;
+        })
+        .filter((uri: string | null): uri is string => Boolean(uri));
+
+      // Prefetch images in the background
+      imageUris.forEach((uri: string) => {
+        Image.prefetch(uri, {
+          cachePolicy: 'memory-disk',
+        }).catch(() => {
+          // Silently fail if prefetch fails
+        });
+      });
+    }
+  }, [filteredCandidates]);
 
   const handleCandidateSearch = useCallback(() => {
     setCandidatePage(0);

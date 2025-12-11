@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Dimensions, Text, View, ActivityIndicator, TouchableOpacity, Alert } from "react-native";
+import { Image } from "expo-image";
 import { useSoleUserContext } from "~/context/SoleUserContext";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { searchApplicants, updateApplicantProcessById } from "@/api/apiservice/applicant_api";
@@ -48,6 +49,7 @@ export default function RoleCandidatesSwipeScreen() {
   // This prevents the array from changing during swipe session
   const [stableCandidates, setStableCandidates] = useState<any[]>([]);
   const stableCandidatesInitializedRef = useRef(false);
+  const previousFilterRef = useRef<string>('');
 
   const { projectId, roleId, process, initialIndex, initialApplicantId } = useLocalSearchParams<{
     projectId?: string;
@@ -131,6 +133,16 @@ export default function RoleCandidatesSwipeScreen() {
       setCurrentIndex(0);
       stableCandidatesInitializedRef.current = false;
       queryClient.invalidateQueries({ queryKey: ['swipe-role-candidates'] });
+      // Mark ManageCandidates queries as stale when entering swipe screen
+      // They will refetch when ManageCandidates comes back into focus
+      queryClient.invalidateQueries({ 
+        queryKey: ['role-candidates'],
+        refetchType: 'none'
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['role-process-counts'],
+        refetchType: 'none'
+      });
       return undefined;
     }, [queryClient])
   );
@@ -145,6 +157,23 @@ export default function RoleCandidatesSwipeScreen() {
       stableCandidatesInitializedRef.current = true;
     }
   }, [candidates, applyInitialOrder]); // depend on candidates array and reorder fn
+
+  // Reset stable candidates when filter changes to get fresh data
+  // This ensures swiped candidates don't reappear when changing filters
+  useEffect(() => {
+    const currentFilter = statusFilterSelection.sort().join(',');
+    const previousFilter = previousFilterRef.current;
+    
+    // Only reset if filter actually changed
+    if (currentFilter !== previousFilter) {
+      previousFilterRef.current = currentFilter;
+      // Reset stable candidates and refetch to get updated candidate statuses
+      setStableCandidates([]);
+      stableCandidatesInitializedRef.current = false;
+      // Invalidate and refetch to get updated candidate statuses from backend
+      queryClient.invalidateQueries({ queryKey: ['swipe-role-candidates', roleId, candidateQueryString] });
+    }
+  }, [statusFilterSelection, queryClient, roleId, candidateQueryString]);
 
   // Use stable candidates for the swipe session
   // Fall back to candidates if stableCandidates is not set yet (during initial load)
@@ -295,6 +324,45 @@ export default function RoleCandidatesSwipeScreen() {
     refetchOnWindowFocus: false,
   });
 
+  // Prefetch images for current and upcoming candidates (current, second, third)
+  // This ensures smooth image loading when swiping
+  useEffect(() => {
+    const candidatesToPrefetch = [
+      currentCandidate,
+      secondCandidate,
+      currentIndex + 2 < swipeCandidates.length ? swipeCandidates[currentIndex + 2] : null,
+    ].filter(Boolean);
+
+    candidatesToPrefetch.forEach((candidate: any) => {
+      if (!candidate) return;
+      
+      // Get image URIs from both candidate data and talent profile data
+      const imageUris = [
+        candidate?.comcardFirstPic,
+        candidate?.userInfo?.profilePic,
+      ].filter(Boolean);
+
+      // Also check talent profile data if available
+      const candidateUsername = candidate?.username || candidate?.userInfo?.username;
+      if (candidateUsername === username && currentTalentProfileData?.userInfo?.profilePic) {
+        imageUris.push(currentTalentProfileData.userInfo.profilePic);
+      }
+      if (candidateUsername === secondUsername && secondTalentProfileData?.userInfo?.profilePic) {
+        imageUris.push(secondTalentProfileData.userInfo.profilePic);
+      }
+
+      // Prefetch each unique image URI
+      const uniqueUris = Array.from(new Set(imageUris));
+      uniqueUris.forEach((uri: string) => {
+        Image.prefetch(uri, {
+          cachePolicy: 'memory-disk',
+        }).catch(() => {
+          // Silently fail if prefetch fails
+        });
+      });
+    });
+  }, [currentCandidate, secondCandidate, currentIndex, swipeCandidates, currentTalentProfileData, secondTalentProfileData, username, secondUsername]);
+
   // Gradient opacity values (shared across all cards)
   const rejectGradientOpacity = useSharedValue(0);
   const rightActionOpacities = useSharedValue([0, 0, 0, 0, 0]);
@@ -410,13 +478,16 @@ export default function RoleCandidatesSwipeScreen() {
       return updateApplicantProcessById(updateValues, applicantId);
     },
     onSuccess: () => {
-      // Don't move to next card here - let the animation completion handle it
-      // Invalidate queries after a delay to ensure the card has animated away
-      // and we've moved to the next index
-      setTimeout(() => {
-        queryClientRef.current?.invalidateQueries({ queryKey: ['role-candidates'] });
-        queryClientRef.current?.invalidateQueries({ queryKey: ['role-process-counts'] });
-      }, 1500); // Delay to ensure swipe animation and index update complete
+      // Mark queries as stale without immediate refetch
+      // This allows ManageCandidates to refetch only when it comes into focus
+      queryClientRef.current?.invalidateQueries({ 
+        queryKey: ['role-candidates'],
+        refetchType: 'none' // Mark as stale but don't refetch immediately
+      });
+      queryClientRef.current?.invalidateQueries({ 
+        queryKey: ['role-process-counts'],
+        refetchType: 'none' // Mark as stale but don't refetch immediately
+      });
     },
     onError: (error) => {
       Alert.alert('Error', 'Failed to execute action. Please try again.', [{ text: 'OK' }]);
