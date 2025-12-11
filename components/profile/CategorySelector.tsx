@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  Modal,
-  ScrollView,
-  TouchableOpacity,
-  Pressable,
-} from 'react-native';
+import { View, Text, Modal, ScrollView, TouchableOpacity, Pressable } from 'react-native';
 import { X, Check } from 'lucide-react-native';
+import { talentCategory } from '@/components/form-components/options-to-use';
 
 interface CategorySelectorProps {
   visible: boolean;
@@ -17,24 +11,6 @@ interface CategorySelectorProps {
   maxSelections?: number;
 }
 
-const AVAILABLE_CATEGORIES = [
-  'Actor',
-  'Model',
-  'Photographer',
-  'Director',
-  'Producer',
-  'Cinematographer',
-  'Editor',
-  'Makeup Artist',
-  'Stylist',
-  'Choreographer',
-  'Writer',
-  'Production Designer',
-  'Costume Designer',
-  'Sound Engineer',
-  'Composer',
-];
-
 export function CategorySelector({
   visible,
   onClose,
@@ -42,7 +18,8 @@ export function CategorySelector({
   onSave,
   maxSelections = 5,
 }: CategorySelectorProps) {
-  const [tempSelectedCategories, setTempSelectedCategories] = useState<string[]>(selectedCategories);
+  const [tempSelectedCategories, setTempSelectedCategories] =
+    useState<string[]>(selectedCategories);
 
   // Reset temp selection when modal opens
   React.useEffect(() => {
@@ -76,27 +53,26 @@ export function CategorySelector({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
+      onRequestClose={onClose}>
       <View className="flex-1 bg-black">
         {/* Header */}
-        <View className="flex-row items-center justify-between px-4 pt-12 pb-3 border-b border-gray-800">
+        <View className="flex-row items-center justify-between border-b border-gray-800 px-4 pb-3 pt-12">
           <TouchableOpacity onPress={onClose} className="p-2">
             <X size={24} color="#ffffff" />
           </TouchableOpacity>
-          <Text className="text-white font-semibold text-lg">
+          <Text className="text-lg font-semibold text-white">
             Select Categories ({tempSelectedCategories.length}/{maxSelections})
           </Text>
           <TouchableOpacity onPress={handleSave} className="p-2">
-            <Text className="text-gray-300 font-semibold">Done</Text>
+            <Text className="font-semibold text-gray-300">Done</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView className="flex-1 px-4 py-4" showsVerticalScrollIndicator={false}>
           {/* Selected Count Warning */}
           {tempSelectedCategories.length >= maxSelections && (
-            <View className="bg-yellow-500/20 border border-yellow-500 rounded-lg p-3 mb-4">
-              <Text className="text-yellow-500 text-sm">
+            <View className="mb-4 rounded-lg border border-yellow-500 bg-yellow-500/20 p-3">
+              <Text className="text-sm text-yellow-500">
                 Maximum {maxSelections} categories allowed. Deselect one to choose another.
               </Text>
             </View>
@@ -106,54 +82,86 @@ export function CategorySelector({
           {tempSelectedCategories.length > 0 && (
             <TouchableOpacity
               onPress={handleClearAll}
-              className="bg-red-500/20 border border-red-500 rounded-lg p-3 mb-4"
-            >
-              <Text className="text-red-400 text-center font-medium">Clear All</Text>
+              className="mb-4 rounded-lg border border-red-500 bg-red-500/20 p-3">
+              <Text className="text-center font-medium text-red-400">Clear All</Text>
             </TouchableOpacity>
           )}
 
-          {/* Category List */}
-          <View className="gap-2">
-            {AVAILABLE_CATEGORIES.map((category) => {
-              const isSelected = tempSelectedCategories.includes(category);
-              const isDisabled = !isSelected && tempSelectedCategories.length >= maxSelections;
+          {/* Front Of Camera Personnel Section */}
+          <View className="mb-6">
+            <Text className="mb-3 text-lg font-semibold text-white">Front Of Camera Personnel</Text>
+            <View className="gap-2">
+              {talentCategory.frontOfCameraPersonnel.map((category) => {
+                const isSelected = tempSelectedCategories.includes(category.label);
+                const isDisabled = !isSelected && tempSelectedCategories.length >= maxSelections;
 
-              return (
-                <TouchableOpacity
-                  key={category}
-                  onPress={() => !isDisabled && toggleCategory(category)}
-                  disabled={isDisabled}
-                  className={`flex-row items-center justify-between p-4 rounded-lg border ${
-                    isSelected
-                      ? 'bg-gray-500/20 border-gray-400'
-                      : isDisabled
-                      ? 'bg-zinc-900/50 border-white/10'
-                      : 'bg-zinc-900/70 border-white/10'
-                  }`}
-                >
-                  <Text
-                    className={`text-base font-medium ${
-                      isSelected
-                        ? 'text-gray-300'
-                        : isDisabled
-                        ? 'text-gray-600'
-                        : 'text-white'
-                    }`}
-                  >
-                    {category}
-                  </Text>
-                  {isSelected && (
-                    <View className="bg-gray-500 rounded-full p-1">
-                      <Check size={16} color="#ffffff" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
+                return (
+                  <TouchableOpacity
+                    key={category.key}
+                    onPress={() => !isDisabled && toggleCategory(category.label)}
+                    disabled={isDisabled}
+                    activeOpacity={1}
+                    className={`flex-row items-center justify-between rounded-lg border p-4 ${
+                      isDisabled
+                        ? 'border-white/10 bg-zinc-900/50'
+                        : 'border-white/10 bg-zinc-900/70'
+                    }`}>
+                    <Text
+                      className={`text-base font-medium ${
+                        isDisabled ? 'text-gray-600' : 'text-white'
+                      }`}>
+                      {category.label}
+                    </Text>
+                    {isSelected && (
+                      <View className="rounded-full bg-gray-500 p-1">
+                        <Check size={16} color="#ffffff" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Behind The Scenes Personnel Section */}
+          <View className="mb-6">
+            <Text className="mb-3 text-lg font-semibold text-white">
+              Behind The Scenes Personnel
+            </Text>
+            <View className="gap-2">
+              {talentCategory.behindTheScenesPersonnel.map((category) => {
+                const isSelected = tempSelectedCategories.includes(category.label);
+                const isDisabled = !isSelected && tempSelectedCategories.length >= maxSelections;
+
+                return (
+                  <TouchableOpacity
+                    key={category.key}
+                    onPress={() => !isDisabled && toggleCategory(category.label)}
+                    disabled={isDisabled}
+                    activeOpacity={1}
+                    className={`flex-row items-center justify-between rounded-lg border p-4 ${
+                      isDisabled
+                        ? 'border-white/10 bg-zinc-900/50'
+                        : 'border-white/10 bg-zinc-900/70'
+                    }`}>
+                    <Text
+                      className={`text-base font-medium ${
+                        isDisabled ? 'text-gray-600' : 'text-white'
+                      }`}>
+                      {category.label}
+                    </Text>
+                    {isSelected && (
+                      <View className="rounded-full bg-gray-500 p-1">
+                        <Check size={16} color="#ffffff" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         </ScrollView>
       </View>
     </Modal>
   );
 }
-

@@ -8,13 +8,13 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import { X, Camera, User as UserIcon, Plus } from 'lucide-react-native';
+import { Camera, User as UserIcon, Plus } from 'lucide-react-native';
 import { Formik, useFormikContext } from 'formik';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useUser } from '@clerk/clerk-expo';
 import { useIsFocused } from '@react-navigation/native';
-import { CategorySelector } from './CategorySelector';
+import { CategoriesCard } from '@/components/form-components/CategoriesCard';
 import { FormModal } from '../custom/form-modal';
 import { updateUserInfoBySoleUserId } from '~/api/apiservice/userInfo_api';
 import { updateSoleUserByClerkId, getSoleUserByClerkId } from '~/api/apiservice';
@@ -143,7 +143,6 @@ function UserInfoFormEffects({
 }
 
 export const UserInfoForm = React.memo(function UserInfoForm({ userProfileData, isLoading = false }: UserInfoFormProps) {
-  const [showCategorySelector, setShowCategorySelector] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isWaitingForCamera, setIsWaitingForCamera] = useState(false);
   const queryClient = useQueryClient();
@@ -470,51 +469,14 @@ export const UserInfoForm = React.memo(function UserInfoForm({ userProfileData, 
                     </View>
 
                     {/* Categories */}
-                    <View className="mb-6">
-                      <Text className="mb-2 text-white">
-                        Categories (Max 5)
-                      </Text>
-                      <View className="mb-2 flex-row flex-wrap">
-                        {selectedCategories.map((cat, index) => (
-                          <View
-                            key={index}
-                            className="mb-2 mr-2 flex-row items-center rounded-full border border-blue-500 bg-blue-500/20 px-3 py-1">
-                            <Text className="mr-1 text-xs text-blue-400">{cat}</Text>
-                            <TouchableOpacity
-                              onPress={() => {
-                                const newCategories = selectedCategories.filter(
-                                  (_, i) => i !== index
-                                );
-                                setSelectedCategories(newCategories);
-                                setFieldValue('category', newCategories);
-                              }}>
-                              <X size={14} color="#60a5fa" />
-                            </TouchableOpacity>
-                          </View>
-                        ))}
-                      </View>
-                      <TouchableOpacity
-                        onPress={() => setShowCategorySelector(true)}
-                        className="items-center rounded-lg border border-white/20 bg-zinc-800 px-4 py-3">
-                        <Text className="font-medium text-blue-500">
-                          {selectedCategories.length === 0 ? 'Add Categories' : 'Edit Categories'}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
+                    <CategoriesCard
+                      values={values}
+                      setFieldValue={setFieldValue}
+                      selectedCategories={selectedCategories}
+                      setSelecedCategories={setSelectedCategories}
+                      maxSelections={5}
+                    />
                   </View>
-
-                  {/* Category Selector Modal */}
-                  <CategorySelector
-                    visible={showCategorySelector}
-                    onClose={() => setShowCategorySelector(false)}
-                    selectedCategories={selectedCategories}
-                    onSave={(categories) => {
-                      setSelectedCategories(categories);
-                      setFieldValue('category', categories);
-                      setShowCategorySelector(false);
-                    }}
-                    maxSelections={5}
-                  />
                 </>
               )}
             </FormModal>

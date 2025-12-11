@@ -33,13 +33,17 @@ export function MultiSelectCard({
 }: MultiSelectCardProps) {
   const [showSelector, setShowSelector] = useState(false);
 
-  // Normalize to array for display
+  // Normalize to array for display and remove duplicates
   const itemsArray = Array.isArray(selectedItems) ? selectedItems : Array.from(selectedItems);
-  const hasItems = itemsArray.length > 0;
+  const uniqueItemsArray = Array.from(new Set(itemsArray));
+  const hasItems = uniqueItemsArray.length > 0;
 
   const handleSave = (items: string[] | Set<string>) => {
     onItemsChange(items);
-    const valueString = Array.isArray(items) ? items.join(',') : Array.from(items).join(',') || emptyValue || '';
+    const itemsArray = Array.isArray(items) ? items : Array.from(items);
+    // Remove duplicates to prevent key conflicts
+    const uniqueItems = Array.from(new Set(itemsArray));
+    const valueString = uniqueItems.join(',') || emptyValue || '';
     setFieldValue(fieldName, valueString);
     setShowSelector(false);
   };
@@ -78,7 +82,7 @@ export function MultiSelectCard({
         {/* Selected Items */}
         {hasItems && (
           <View className="mb-3 flex-row flex-wrap gap-2">
-            {itemsArray.map((item) => (
+            {uniqueItemsArray.map((item) => (
               <View
                 key={item}
                 className="mb-2 flex-row items-center gap-2 rounded-full border border-white bg-white/10 px-3 py-1.5">
