@@ -109,7 +109,7 @@ export default function CollapseDrawer({
         });
       } else {
         cancelAnimation(translateY);
-        translateY.value = withSpring(0, { damping: 20, stiffness: 100 });
+        translateY.value = withTiming(0, { duration: 300 });
       }
     });
 

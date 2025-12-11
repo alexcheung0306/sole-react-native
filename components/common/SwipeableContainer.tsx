@@ -9,7 +9,7 @@ import Animated, {
   interpolate,
   Extrapolate,
 } from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -101,9 +101,9 @@ export default function SwipeableContainer({
   }, []);
 
   const panGesture = Gesture.Pan()
-    .minDistance(10)
-    .activeOffsetX([-15, 15])
-    .failOffsetY([-10, 10])
+    .minDistance(30) // Increased minimum distance to avoid small movements
+    .activeOffsetX([-120, 120]) // Very high threshold - only activate for clear swipes
+    .failOffsetY([-30, 30]) // More permissive for vertical movement
     .onStart(() => {
       'worklet';
       shouldFailGesture.value = false;
@@ -125,8 +125,16 @@ export default function SwipeableContainer({
       if (len === 0) return;
 
       // Only update if horizontal movement is clearly dominant (2:1 ratio)
-      // This allows vertical scrolling to work when movement is more vertical
-      if (Math.abs(e.translationX) > Math.abs(e.translationY) * 2) {
+      // AND the movement is significant enough to be a swipe (not a scroll)
+      // This allows horizontal ScrollViews to work for small movements
+      const isHorizontalDominant = Math.abs(e.translationX) > Math.abs(e.translationY) * 2;
+      
+      // Only process if movement is very significant (large distance OR high velocity)
+      // Small, slow movements are likely scrolling - let ScrollView handle them
+      // Increased thresholds to give ScrollView priority
+      const isSignificantSwipe = Math.abs(e.translationX) > 100 || Math.abs(e.velocityX) > 600;
+      
+      if (isHorizontalDominant && isSignificantSwipe) {
         const currentIdx = currentIndex.value;
 
         // Check if we're trying to swipe beyond boundaries (hard boundary lock)
@@ -231,7 +239,12 @@ export default function SwipeableContainer({
       }
 
       // Only process swipe if horizontal movement was clearly dominant (2:1 ratio)
-      if (Math.abs(e.translationX) > Math.abs(e.translationY) * 2) {
+      // AND the movement is significant enough to be a swipe (not a scroll)
+      const isHorizontalDominant = Math.abs(e.translationX) > Math.abs(e.translationY) * 2;
+      // Increased thresholds to give ScrollView priority
+      const isSignificantSwipe = Math.abs(e.translationX) > 100 || Math.abs(e.velocityX) > 600;
+      
+      if (isHorizontalDominant && isSignificantSwipe) {
         const threshold = SCREEN_WIDTH * 0.2; // Lower threshold for gentler feel
         const velocity = e.velocityX;
         const currentPos = translateX.value;
@@ -361,8 +374,9 @@ export default function SwipeableContainer({
     return <View style={{ flex: 1, backgroundColor: '#000000' }} />;
   }
 
-  // If shouldFailAtEdges, wrap in Simultaneous to allow parent gesture to also work
-  const finalGesture = shouldFailAtEdges ? Gesture.Simultaneous(panGesture) : panGesture;
+  // Use Race gesture to allow ScrollView to win for small movements
+  // Only activate tab swipe for large, clear swipes
+  const finalGesture = panGesture;
 
   return (
     <View style={{ flex: 1, backgroundColor: '#000000' }}>

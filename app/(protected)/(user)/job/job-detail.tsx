@@ -17,7 +17,7 @@ import { getProjectByID } from '~/api/apiservice/project_api';
 import { getRolesByProjectId } from '~/api/apiservice/role_api';
 import { getJobApplicantsByProjectIdAndSoleUserId } from '~/api/apiservice/applicant_api';
 import { getJobContractsWithProfileByProjectIdAndTalentId } from '~/api/apiservice/jobContracts_api';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ProjectInformationCard } from '~/components/project-detail/details/ProjectInformationCard';
 import { ProjectAnnouncementsList } from '~/components/project-detail/details/ProjectAnnouncementsList';
 import { CustomTabs } from '@/components/custom/custom-tabs';
@@ -25,6 +25,7 @@ import { JobContractsTab } from '~/components/job-detail/contracts/JobContractsT
 import { JobRolesBreadcrumb } from '~/components/job-detail/roles/JobRolesBreadcrumb';
 import { JobApplicationDetail } from '~/components/job-detail/roles/JobApplicationDetail';
 import { JobApplyFormModal } from '~/components/job-detail/roles/JobApplyFormModal';
+import SwipeableContainer from '@/components/common/SwipeableContainer';
 
 const STATUS_COLORS: Record<string, string> = {
   Draft: '#6b7280',
@@ -206,11 +207,36 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
     []
   );
 
-  const tabs = [
+  const tabs = useMemo(() => [
     { id: 'job-information', label: 'Details' },
     { id: 'job-roles', label: 'Roles', count: roleCount },
     { id: 'job-contracts', label: 'Contracts', count: contractsCount },
-  ];
+  ], [roleCount, contractsCount]);
+
+  // Convert tab ID to index for SwipeableContainer
+  const getTabIndex = useCallback((tabId: string) => {
+    if (!tabs || tabs.length === 0) return 0;
+    const index = tabs.findIndex((tab) => tab.id === tabId);
+    return index >= 0 ? index : 0;
+  }, [tabs]);
+
+  // Convert index to tab ID
+  const getTabId = useCallback((index: number) => {
+    if (!tabs || tabs.length === 0) return 'job-information';
+    return tabs[index]?.id || 'job-information';
+  }, [tabs]);
+
+  const currentTabIndex = useMemo(() => {
+    return getTabIndex(currentTab);
+  }, [getTabIndex, currentTab]);
+
+  // Handle swipe index change
+  const handleIndexChange = useCallback((index: number) => {
+    const newTabId = getTabId(index);
+    if (newTabId && newTabId !== currentTab) {
+      setCurrentTab(newTabId);
+    }
+  }, [getTabId, currentTab]);
 
   const application = applicationsData?.find(
     (app: any) => app.roleId === rolesWithSchedules[currentRole]?.role?.id
@@ -287,8 +313,12 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
               />
             </View>
 
-            {/* ---------------------------------------Job Information--------------------------------------- */}
-            {currentTab === 'job-information' && (
+            {/* Swipeable Tab Content */}
+            <SwipeableContainer 
+              activeIndex={currentTabIndex} 
+              onIndexChange={handleIndexChange}
+            >
+              {/* ---------------------------------------Job Information--------------------------------------- */}
               <View className="gap-0 px-2">
                 <ProjectInformationCard project={project} soleUserId={soleUserId || ''} />
                 <View className="mt-4">
@@ -312,10 +342,8 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
                   )}
                 </View>
               </View>
-            )}
 
-            {/* ---------------------------------------Job Roles--------------------------------------- */}
-            {currentTab === 'job-roles' && (
+              {/* ---------------------------------------Job Roles--------------------------------------- */}
               <View className="gap-4">
                 {rolesLoading ? (
                   <View className="items-center justify-center py-20">
@@ -362,16 +390,14 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
                   </>
                 )}
               </View>
-            )}
 
-            {/* ---------------------------------------Job Contracts--------------------------------------- */}
-            {currentTab === 'job-contracts' && (
+              {/* ---------------------------------------Job Contracts--------------------------------------- */}
               <JobContractsTab 
                 contracts={contractsData || []} 
                 isLoading={contractsLoading}
                 highlightedContractId={contractIdParam || undefined}
               />
-            )}
+            </SwipeableContainer>
           </View>
         </ScrollView>
       </View>

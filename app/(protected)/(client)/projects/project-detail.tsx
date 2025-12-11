@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
@@ -17,6 +17,7 @@ import { RoleForm } from '~/components/form-components/role-form/RoleForm';
 import { RolesBreadcrumb } from '~/components/project-detail/roles/RolesBreadcrumb';
 import { ManageCandidates } from '~/components/project-detail/roles/ManageCandidates';
 import { PublishProjectButton } from '~/components/project-detail/PublishProjectButton';
+import SwipeableContainer from '@/components/common/SwipeableContainer';
 
 const STATUS_COLORS: Record<string, string> = {
   Draft: '#6b7280',
@@ -84,6 +85,31 @@ export default function ProjectDetail({
 
     return baseTabs;
   }, [projectData, roleCount, jobContractsData]);
+
+  // Convert tab ID to index for SwipeableContainer
+  const getTabIndex = useCallback((tabId: string) => {
+    if (!tabs || tabs.length === 0) return 0;
+    const index = tabs.findIndex((tab) => tab.id === tabId);
+    return index >= 0 ? index : 0;
+  }, [tabs]);
+
+  // Convert index to tab ID
+  const getTabId = useCallback((index: number) => {
+    if (!tabs || tabs.length === 0) return 'project-information';
+    return tabs[index]?.id || 'project-information';
+  }, [tabs]);
+
+  const currentTabIndex = useMemo(() => {
+    return getTabIndex(currentTab);
+  }, [getTabIndex, currentTab]);
+
+  // Handle swipe index change
+  const handleIndexChange = useCallback((index: number) => {
+    const newTabId = getTabId(index);
+    if (newTabId && newTabId !== currentTab) {
+      setCurrentTab(newTabId);
+    }
+  }, [getTabId, currentTab]);
 
   const isInitialLoading = projectLoading;
 
@@ -213,88 +239,98 @@ export default function ProjectDetail({
               />
             </View>
 
-            {/* ---------------------------------------Project Information--------------------------------------- */}
-            {currentTab === 'project-information' && (
-              <View className="gap-2 px-2">
-                <ProjectInformationCard project={project} soleUserId={soleUserId || ''} />
-                <CreateProjectAnnouncementDrawer
-                  projectId={projectId}
-                  soleUserId={soleUserId || ''}
-                  projectStatus={project?.status}
-                  rolesWithSchedules={rolesWithSchedules}
-                />
-                <ProjectAnnouncementsList 
-                  projectId={projectId} 
-                  viewerSoleUserId={soleUserId || ''}
-                />
-              </View>
-            )}
-
-            {/* ---------------------------------------Project Roles--------------------------------------- */}
-            {currentTab === 'project-roles' && (
-              <View className="gap-4">
-                <View className="px-2">
-                  {project?.status === 'Draft' && rolesWithSchedules.length < 5 && (
-                    <RoleForm
-                      projectId={projectId}
-                      method="POST"
-                      roleId={null}
-                      fetchedValues={null}
-                      isDisabled={rolesWithSchedules.length >= 5}
-                      refetchRoles={refetchRoles}
-                    />
-                  )}
-                </View>
-
-                {rolesWithSchedules.length === 0 ? (
-                  <View className="px-2">
-                    <View className="items-center gap-3 rounded-2xl border border-white/10 bg-zinc-800 p-8">
-                      <Text className="text-lg font-semibold text-white">No roles yet</Text>
-                      <Text className="text-center text-sm text-white/70">
-                        {project?.status === 'Draft'
-                          ? 'Create your first role to get started.'
-                          : 'No roles have been created for this project.'}
-                      </Text>
+            {/* Swipeable Tab Content */}
+            <SwipeableContainer 
+              activeIndex={currentTabIndex} 
+              onIndexChange={handleIndexChange}
+            >
+              {tabs.map((tab) => {
+                if (tab.id === 'project-information') {
+                  return (
+                    <View key={tab.id} className="gap-2 px-2">
+                      <ProjectInformationCard project={project} soleUserId={soleUserId || ''} />
+                      <CreateProjectAnnouncementDrawer
+                        projectId={projectId}
+                        soleUserId={soleUserId || ''}
+                        projectStatus={project?.status}
+                        rolesWithSchedules={rolesWithSchedules}
+                      />
+                      <ProjectAnnouncementsList 
+                        projectId={projectId} 
+                        viewerSoleUserId={soleUserId || ''}
+                      />
                     </View>
-                  </View>
-                ) : (
-                  <RolesBreadcrumb
-                    projectData={project}
-                    rolesWithSchedules={rolesWithSchedules}
-                    currentRole={currentRole}
-                    setCurrentRole={setCurrentRole}
-                    countJobActivities={countJobActivities}
-                    projectId={projectId}
-                    refetchRoles={refetchRoles}
-                  />
-                )}
-
-                {/* Manage Candidates - Only show for Published projects with roles */}
-                {project?.status === 'Published' && rolesWithSchedules.length > 0 && (
-                  <View className="mt-6 border-t border-white/10 pt-6 px-2">
-                    <ManageCandidates 
-                      projectData={project} 
-                      roleWithSchedules={rolesWithSchedules[currentRole]} 
-                    />
-
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* ---------------------------------------Project Contracts--------------------------------------- */}
-            {currentTab === 'project-contracts' && (
-              <ProjectContractsTab
-                projectId={projectId}
-                initialContracts={
-                  Array.isArray(jobContractsData)
-                    ? jobContractsData
-                    : (jobContractsData?.content ?? jobContractsData?.data ?? [])
+                  );
                 }
-                isLoadingInitial={jobContractsLoading}
-                refetchContracts={refetchContracts}
-              />
-            )}
+                if (tab.id === 'project-roles') {
+                  return (
+                    <View key={tab.id} className="gap-4">
+                      <View className="px-2">
+                        {project?.status === 'Draft' && rolesWithSchedules.length < 5 && (
+                          <RoleForm
+                            projectId={projectId}
+                            method="POST"
+                            roleId={null}
+                            fetchedValues={null}
+                            isDisabled={rolesWithSchedules.length >= 5}
+                            refetchRoles={refetchRoles}
+                          />
+                        )}
+                      </View>
+
+                      {rolesWithSchedules.length === 0 ? (
+                        <View className="px-2">
+                          <View className="items-center gap-3 rounded-2xl border border-white/10 bg-zinc-800 p-8">
+                            <Text className="text-lg font-semibold text-white">No roles yet</Text>
+                            <Text className="text-center text-sm text-white/70">
+                              {project?.status === 'Draft'
+                                ? 'Create your first role to get started.'
+                                : 'No roles have been created for this project.'}
+                            </Text>
+                          </View>
+                        </View>
+                      ) : (
+                        <RolesBreadcrumb
+                          projectData={project}
+                          rolesWithSchedules={rolesWithSchedules}
+                          currentRole={currentRole}
+                          setCurrentRole={setCurrentRole}
+                          countJobActivities={countJobActivities}
+                          projectId={projectId}
+                          refetchRoles={refetchRoles}
+                        />
+                      )}
+
+                      {/* Manage Candidates - Only show for Published projects with roles */}
+                      {project?.status === 'Published' && rolesWithSchedules.length > 0 && (
+                        <View className="mt-6 border-t border-white/10 pt-6 px-2">
+                          <ManageCandidates 
+                            projectData={project} 
+                            roleWithSchedules={rolesWithSchedules[currentRole]} 
+                          />
+                        </View>
+                      )}
+                    </View>
+                  );
+                }
+                if (tab.id === 'project-contracts') {
+                  return (
+                    <ProjectContractsTab
+                      key={tab.id}
+                      projectId={projectId}
+                      initialContracts={
+                        Array.isArray(jobContractsData)
+                          ? jobContractsData
+                          : (jobContractsData?.content ?? jobContractsData?.data ?? [])
+                      }
+                      isLoadingInitial={jobContractsLoading}
+                      refetchContracts={refetchContracts}
+                    />
+                  );
+                }
+                return <View key={tab.id} />;
+              })}
+            </SwipeableContainer>
 
             {/* Publish Project Button - Only show when project is Draft */}
             {project?.status === 'Draft' && (
