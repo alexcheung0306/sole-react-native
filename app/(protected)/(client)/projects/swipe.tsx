@@ -15,7 +15,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
-import { ChevronLeft, X, Filter } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, X, Filter } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getStatusColor } from "@/utils/get-status-color";
 import { getUserProfileByUsername } from "@/api/apiservice/soleUser_api";
@@ -530,6 +530,30 @@ export default function RoleCandidatesSwipeScreen() {
     });
   }, [swipeCandidates.length, router, currentIndexShared]);
 
+  // Navigate to previous candidate (circular)
+  const handlePreviousCandidate = useCallback(() => {
+    if (swipeCandidates.length === 0) return;
+    
+    setCurrentIndex((prevIndex) => {
+      const newIndex = prevIndex <= 0 ? swipeCandidates.length - 1 : prevIndex - 1;
+      currentIndexShared.value = newIndex;
+      setExhausted(false);
+      return newIndex;
+    });
+  }, [swipeCandidates.length, currentIndexShared]);
+
+  // Navigate to next candidate (circular)
+  const handleNextCandidate = useCallback(() => {
+    if (swipeCandidates.length === 0) return;
+    
+    setCurrentIndex((prevIndex) => {
+      const newIndex = prevIndex >= swipeCandidates.length - 1 ? 0 : prevIndex + 1;
+      currentIndexShared.value = newIndex;
+      setExhausted(false);
+      return newIndex;
+    });
+  }, [swipeCandidates.length, currentIndexShared]);
+
   useEffect(() => {
     handleNextCandidateRef.current = handleCardSwipeComplete;
   }, [handleCardSwipeComplete]);
@@ -708,9 +732,29 @@ export default function RoleCandidatesSwipeScreen() {
           <TouchableOpacity onPress={() => router.back()} className="p-2">
             <ChevronLeft size={24} color="#fff" />
           </TouchableOpacity>
-          <Text className="flex-1 text-center text-lg font-semibold text-white">
-            {swipeCandidates.length ? displayIndex + 1 : 0} / {swipeCandidates.length}
-          </Text>
+          <View className="flex-1 flex-row items-center justify-center gap-4">
+            <TouchableOpacity 
+              onPress={handlePreviousCandidate} 
+              className="p-2"
+              disabled={swipeCandidates.length === 0}>
+              <ChevronLeft 
+                size={20} 
+                color={swipeCandidates.length === 0 ? "#666" : "#fff"} 
+              />
+            </TouchableOpacity>
+            <Text className="text-lg font-semibold text-white">
+              {swipeCandidates.length ? displayIndex + 1 : 0} / {swipeCandidates.length}
+            </Text>
+            <TouchableOpacity 
+              onPress={handleNextCandidate} 
+              className="p-2"
+              disabled={swipeCandidates.length === 0}>
+              <ChevronRight 
+                size={20} 
+                color={swipeCandidates.length === 0 ? "#666" : "#fff"} 
+              />
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity onPress={() => setShowStatusDrawer(true)} className="p-2">
             <Filter size={22} color="#fff" />
           </TouchableOpacity>
