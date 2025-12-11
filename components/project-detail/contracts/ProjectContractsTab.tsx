@@ -147,6 +147,8 @@ export function ProjectContractsTab({
     enabled: Boolean(projectId),
   });
 
+  console.log('contractsResponse', contractsResponse);
+
   const contracts = useMemo(() => {
     if (contractsResponse) {
       return contractsResponse?.content ?? contractsResponse?.data ?? [];

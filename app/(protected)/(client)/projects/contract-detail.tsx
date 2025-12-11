@@ -13,12 +13,14 @@ import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { useQuery } from '@tanstack/react-query';
 import { getJobContractsById } from '@/api/apiservice/jobContracts_api';
 import { formatDateTime } from '@/utils/time-converts';
-import { ChevronLeft, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { CollapsibleHeader } from '@/components/CollapsibleHeader';
 import AlterContractStatusModal from '@/components/projects/AlterContractStatusModal';
-import CollapseDrawer from '@/components/custom/collapse-drawer';
 import { getUserInfoWithUsernameBySoleUserId } from '@/api/apiservice/userInfo_api';
 import { getRoleById } from '@/api/apiservice/role_api';
+import ContractClientInfo from '~/components/project-detail/contracts/ContractClientInfo';
+import ContractTalentInfo from '~/components/project-detail/contracts/ContractTalentInfo';
+import ContractConditionDetail from '~/components/project-detail/contracts/ContractConditionDetail';
 
 export default function ContractDetailPage({
   scrollHandler,
@@ -30,7 +32,6 @@ export default function ContractDetailPage({
   const { id } = useLocalSearchParams();
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   const contractId = parseInt(id as string);
-  const [selectedConditionId, setSelectedConditionId] = useState<number | null>(null);
 
   const {
     data: contractData,
@@ -261,274 +262,29 @@ export default function ContractDetailPage({
           </View>
 
           {/* Client Information */}
-          <View className="bg-zinc-800/60 rounded-xl p-5 mb-4 border border-white/10">
-            <Text className="text-lg font-bold text-white mb-4">Client Information</Text>
-            <View className="flex-row items-start gap-4">
-              <Image
-                source={{
-                  uri:
-                    clientData?.profilePic ||
-                    clientData?.imageUrl ||
-                    'https://via.placeholder.com/80',
-                }}
-                className="w-16 h-16 rounded-full"
-              />
-              <View className="flex-1">
-                <Text className="text-white text-base font-semibold mb-1">
-                  {clientData?.name || 'Client'}
-                </Text>
-                <Text className="text-blue-400 text-sm mb-3">
-                  @{clientData?.username || 'username'}
-                </Text>
-                <View className="gap-2">
-                  <View>
-                    <Text className="text-gray-400 text-xs font-medium mb-1">Email:</Text>
-                    <Text className="text-white text-sm break-words">
-                      {clientData?.email || 'Not specified'}
-                    </Text>
-                  </View>
-                  {clientData?.company && (
-                    <View>
-                      <Text className="text-gray-400 text-xs font-medium mb-1">Company:</Text>
-                      <Text className="text-white text-sm break-words">
-                        {clientData.company}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-            </View>
-          </View>
+          <ContractClientInfo clientData={clientData} />
 
           {/* Talent Information */}
-          <View className="bg-zinc-800/60 rounded-xl p-5 mb-4 border border-white/10">
-            <Text className="text-lg font-bold text-white mb-4">Talent Information</Text>
-            {talentData ? (
-              <View className="flex-row items-start gap-4">
-                <Image
-                  source={{
-                    uri:
-                      talentData?.profilePic ||
-                      talentData?.imageUrl ||
-                      contractData?.comcardFirstPic ||
-                      'https://via.placeholder.com/80',
-                  }}
-                  className="w-16 h-16 rounded-full"
-                />
-                <View className="flex-1">
-                  <Text className="text-white text-base font-semibold mb-1">
-                    {talentData?.name || talentName || 'Talent'}
-                  </Text>
-                  <Text className="text-blue-400 text-sm mb-3">
-                    @{talentData?.username || 'username'}
-                  </Text>
-                  <View>
-                    <Text className="text-gray-400 text-xs font-medium mb-1">Email:</Text>
-                    <Text className="text-white text-sm break-words">
-                      {talentData?.email || 'Not specified'}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            ) : (
-              <View className="flex-row items-start gap-4">
-                <View className="w-16 h-16 bg-zinc-700 rounded-full items-center justify-center">
-                  <Text className="text-gray-400 text-2xl">👤</Text>
-                </View>
-                <View className="flex-1">
-                  <Text className="text-yellow-400 text-xs bg-yellow-400/10 px-2 py-1 rounded self-start">
-                    Profile information is not available for this user
-                  </Text>
-                </View>
-              </View>
-            )}
-          </View>
+          <ContractTalentInfo
+            talentData={talentData}
+            talentName={talentName}
+            contractData={contractData}
+          />
 
           {/* Latest Condition Card */}
           {latestCondition && (
             <View className="mb-4">
               <Text className="text-lg font-bold text-white mb-3">Latest Condition</Text>
-              <TouchableOpacity
-                className="bg-zinc-800/60 rounded-xl p-4 border border-white/10"
-                onPress={() => setSelectedConditionId(latestCondition.id)}>
-                <View className="flex-row items-center justify-between mb-2">
-                  <View className="flex-1">
-                    <Text className="text-white font-semibold text-sm mb-1">
-                      {formatDateTime(latestCondition.createdAt)}
-                    </Text>
-                    <View
-                      className="px-2 py-1 rounded self-start"
-                      style={{
-                        backgroundColor: getStatusColor(latestCondition.conditionStatus) + '33',
-                      }}>
-                      <Text
-                        style={{ color: getStatusColor(latestCondition.conditionStatus) }}
-                        className="text-xs font-semibold">
-                        {latestCondition.conditionStatus}
-                      </Text>
-                    </View>
-                  </View>
-                  <ChevronDown color="#9ca3af" size={20} />
-                </View>
-              </TouchableOpacity>
-
-              {/* Condition Detail Drawer */}
-              <CollapseDrawer
-                showDrawer={selectedConditionId === latestCondition.id}
-                setShowDrawer={(show) => !show && setSelectedConditionId(null)}
-                title="Condition Details">
-                <View className="px-4 pb-4 gap-4">
-                  <View>
-                    <Text className="text-gray-400 text-xs font-medium mb-1">Usage Rights:</Text>
-                    <Text className="text-white text-sm">
-                      {latestCondition.usageRights || 'No usage rights specified'}
-                    </Text>
-                  </View>
-
-                  {/* Schedules */}
-                  {latestCondition.schedules && latestCondition.schedules.length > 0 && (
-                    <View className="mt-4 pt-4 border-t border-white/10">
-                      <Text className="text-white font-medium mb-3">
-                        Job Schedules ({latestCondition.schedules.length})
-                      </Text>
-                      <View className="gap-3">
-                        {latestCondition.schedules.map((schedule: any, idx: number) => (
-                          <View
-                            key={schedule.id || idx}
-                            className="bg-white/5 border border-white/10 rounded-lg p-3">
-                            <View className="gap-2">
-                              <View>
-                                <Text className="text-gray-400 text-xs font-medium">Location:</Text>
-                                <Text className="text-white text-sm">
-                                  {schedule.location || 'Not specified'}
-                                </Text>
-                              </View>
-                              <View className="flex-row gap-4">
-                                <View className="flex-1">
-                                  <Text className="text-gray-400 text-xs font-medium">From:</Text>
-                                  <Text className="text-white text-sm">
-                                    {formatDateTime(schedule.fromTime)}
-                                  </Text>
-                                </View>
-                                <View className="flex-1">
-                                  <Text className="text-gray-400 text-xs font-medium">To:</Text>
-                                  <Text className="text-white text-sm">
-                                    {formatDateTime(schedule.toTime)}
-                                  </Text>
-                                </View>
-                              </View>
-                            </View>
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-                  )}
-
-                  {/* Payment Details */}
-                  <View className="mt-4 pt-4 border-t border-white/10">
-                    <Text className="text-white font-medium mb-3">Payment Details</Text>
-                    <View className="gap-2">
-                      {latestCondition.schedules && (
-                        <View className="flex-row justify-between">
-                          <Text className="text-gray-400 text-sm">Total Job Hours:</Text>
-                          <Text className="text-white font-semibold text-sm">
-                            {calculateTotalHours(latestCondition.schedules).toFixed(1)} hours
-                          </Text>
-                        </View>
-                      )}
-                      <View className="flex-row justify-between">
-                        <Text className="text-gray-400 text-sm">Payment Amount:</Text>
-                        <Text className="text-green-400 font-semibold text-sm">
-                          {formatCurrency(
-                            latestCondition.paymentAmount,
-                            latestCondition.paymentCurrency
-                          )}
-                        </Text>
-                      </View>
-                      {latestCondition.paymentAmountOt > 0 && (
-                        <View className="flex-row justify-between">
-                          <Text className="text-gray-400 text-sm">Overtime Per Hour:</Text>
-                          <Text className="text-yellow-400 text-sm">
-                            {formatCurrency(
-                              latestCondition.paymentAmountOt,
-                              latestCondition.paymentCurrency
-                            )}
-                          </Text>
-                        </View>
-                      )}
-                      {latestCondition.paymentAdditional > 0 && (
-                        <View className="flex-row justify-between">
-                          <Text className="text-gray-400 text-sm">Additional:</Text>
-                          <Text className="text-green-400 text-sm">
-                            {formatCurrency(
-                              latestCondition.paymentAdditional,
-                              latestCondition.paymentCurrency
-                            )}
-                          </Text>
-                        </View>
-                      )}
-                      <View className="flex-row justify-between">
-                        <Text className="text-gray-400 text-sm">Basis:</Text>
-                        <Text className="text-white text-sm">
-                          {latestCondition.paymentBasis}
-                        </Text>
-                      </View>
-                      <View className="flex-row justify-between">
-                        <Text className="text-gray-400 text-sm">Currency:</Text>
-                        <Text className="text-white text-sm">
-                          {latestCondition.paymentCurrency}
-                        </Text>
-                      </View>
-                      <View className="mt-2 pt-2 border-t border-white/10">
-                        <View className="flex-row justify-between">
-                          <Text className="text-white font-semibold text-sm">
-                            Estimated Total Payment:
-                          </Text>
-                          <Text className="text-green-400 font-bold text-base">
-                            {formatCurrency(
-                              calculateEstimatedTotal(latestCondition),
-                              latestCondition.paymentCurrency
-                            )}
-                          </Text>
-                        </View>
-                      </View>
-                      {latestCondition.paymentDate && (
-                        <View className="flex-row justify-between mt-2">
-                          <Text className="text-gray-400 text-sm">Payment Date:</Text>
-                          <Text className="text-white text-sm">
-                            {new Date(latestCondition.paymentDate).toLocaleDateString()}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-
-                  {/* Terms & Conditions */}
-                  <View className="mt-4 pt-4 border-t border-white/10">
-                    <Text className="text-white font-medium mb-2">Terms & Conditions</Text>
-                    <View className="bg-white/5 border border-white/10 rounded-lg p-3">
-                      <Text className="text-white/90 text-sm leading-relaxed">
-                        {latestCondition.termsAndConditions || 'No terms specified'}
-                      </Text>
-                    </View>
-                    <Text className="text-white font-medium mb-2 mt-4">Usage Rights</Text>
-                    <View className="bg-white/5 border border-white/10 rounded-lg p-3">
-                      <Text className="text-white/90 text-sm leading-relaxed">
-                        {latestCondition.usageRights || 'No usage rights specified'}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View className="mt-2 pt-2 border-t border-white/10">
-                    <Text className="text-gray-400 text-xs">
-                      Created: {formatDateTime(latestCondition.createdAt)}
-                    </Text>
-                    <Text className="text-gray-400 text-xs">
-                      Updated: {formatDateTime(latestCondition.updatedAt)}
-                    </Text>
-                  </View>
-                </View>
-              </CollapseDrawer>
+              <ContractConditionDetail
+                condition={latestCondition}
+                isLatest={true}
+                contractId={contractId}
+                clientId={String(contract?.clientId || '')}
+                getStatusColor={getStatusColor}
+                formatCurrency={formatCurrency}
+                calculateTotalHours={calculateTotalHours}
+                calculateEstimatedTotal={calculateEstimatedTotal}
+              />
             </View>
           )}
 
@@ -540,98 +296,19 @@ export default function ContractDetailPage({
               </Text>
               <View className="gap-2">
                 {pastConditions.map((condition: any) => (
-                  <TouchableOpacity
+                  <ContractConditionDetail
                     key={condition.id}
-                    className="bg-zinc-800/60 rounded-xl p-4 border border-white/10"
-                    onPress={() =>
-                      setSelectedConditionId(
-                        selectedConditionId === condition.id ? null : condition.id
-                      )
-                    }>
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-1">
-                        <Text className="text-white font-semibold text-sm mb-1">
-                          {formatDateTime(condition.createdAt)}
-                        </Text>
-                        <View
-                          className="px-2 py-1 rounded self-start"
-                          style={{
-                            backgroundColor: getStatusColor(condition.conditionStatus) + '33',
-                          }}>
-                          <Text
-                            style={{ color: getStatusColor(condition.conditionStatus) }}
-                            className="text-xs font-semibold">
-                            {condition.conditionStatus}
-                          </Text>
-                        </View>
-                      </View>
-                      {selectedConditionId === condition.id ? (
-                        <ChevronUp color="#9ca3af" size={20} />
-                      ) : (
-                        <ChevronDown color="#9ca3af" size={20} />
-                      )}
-                    </View>
-                  </TouchableOpacity>
+                    condition={condition}
+                    isLatest={false}
+                    contractId={contractId}
+                    clientId={String(contract?.clientId || '')}
+                    getStatusColor={getStatusColor}
+                    formatCurrency={formatCurrency}
+                    calculateTotalHours={calculateTotalHours}
+                    calculateEstimatedTotal={calculateEstimatedTotal}
+                  />
                 ))}
               </View>
-
-              {/* Past Condition Detail Drawer */}
-              {pastConditions.map((condition: any) => (
-                <CollapseDrawer
-                  key={condition.id}
-                  showDrawer={selectedConditionId === condition.id}
-                  setShowDrawer={(show) => !show && setSelectedConditionId(null)}
-                  title="Condition Details">
-                  <View className="px-4 pb-4 gap-4">
-                    <View>
-                      <Text className="text-gray-400 text-xs font-medium mb-1">Usage Rights:</Text>
-                      <Text className="text-white text-sm">
-                        {condition.usageRights || 'No usage rights specified'}
-                      </Text>
-                    </View>
-
-                    {/* Payment Details */}
-                    <View className="mt-4 pt-4 border-t border-white/10">
-                      <Text className="text-white font-medium mb-3">Payment Details</Text>
-                      <View className="gap-2">
-                        <View className="flex-row justify-between">
-                          <Text className="text-gray-400 text-sm">Payment Amount:</Text>
-                          <Text className="text-green-400 font-semibold text-sm">
-                            {formatCurrency(condition.paymentAmount, condition.paymentCurrency)}
-                          </Text>
-                        </View>
-                        <View className="flex-row justify-between">
-                          <Text className="text-gray-400 text-sm">Basis:</Text>
-                          <Text className="text-white text-sm">{condition.paymentBasis}</Text>
-                        </View>
-                        <View className="flex-row justify-between">
-                          <Text className="text-gray-400 text-sm">Currency:</Text>
-                          <Text className="text-white text-sm">{condition.paymentCurrency}</Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    {/* Terms & Conditions */}
-                    <View className="mt-4 pt-4 border-t border-white/10">
-                      <Text className="text-white font-medium mb-2">Terms & Conditions</Text>
-                      <View className="bg-white/5 border border-white/10 rounded-lg p-3">
-                        <Text className="text-white/90 text-sm leading-relaxed">
-                          {condition.termsAndConditions || 'No terms specified'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View className="mt-2 pt-2 border-t border-white/10">
-                      <Text className="text-gray-400 text-xs">
-                        Created: {formatDateTime(condition.createdAt)}
-                      </Text>
-                      <Text className="text-gray-400 text-xs">
-                        Updated: {formatDateTime(condition.updatedAt)}
-                      </Text>
-                    </View>
-                  </View>
-                </CollapseDrawer>
-              ))}
             </View>
           )}
 

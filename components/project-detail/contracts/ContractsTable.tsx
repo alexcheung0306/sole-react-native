@@ -115,6 +115,8 @@ export default function ContractsTable({
             const conditionStatusColor = getStatusColor(row.latestConditionStatus);
             const comcardFirstPic = row.contractWithProfile?.comcardFirstPic;
 
+            console.log('comcardFirstPic', comcardFirstPic);
+
             const handleDelete = () => {
               Alert.alert(
                 'Cancel/Delete Contract',
@@ -168,7 +170,7 @@ export default function ContractsTable({
                 <View className="items-center gap-2">
                   {/* Comcard First Pic */}
                   {comcardFirstPic ? (
-                    <View className="h-24 w-24 overflow-hidden rounded-xl border border-zinc-700/50 bg-zinc-700/50">
+                    <View className="h-32 w-24 overflow-hidden rounded-xl bg-zinc-700">
                       <Image
                         key={row.key}
                         source={{ uri: comcardFirstPic }}
@@ -177,7 +179,7 @@ export default function ContractsTable({
                       />
                     </View>
                   ) : (
-                    <View className="h-24 w-24 items-center justify-center rounded-xl border border-zinc-700/50 bg-zinc-700/30">
+                    <View className="h-32 w-24 items-center justify-center rounded-xl bg-zinc-700/30">
                       <Text className="text-xs text-white/30">No Image</Text>
                     </View>
                   )}
@@ -192,8 +194,9 @@ export default function ContractsTable({
                     <View
                       className="rounded-md px-2 py-0.5"
                       style={{ backgroundColor: `${statusColor}20` }}>
+                        
                       <Text className="text-xs font-semibold" style={{ color: statusColor }}>
-                       Contract Status: {contractStatus}
+                       Contract : {contractStatus}
                       </Text>
                     </View>
                     <View
@@ -202,7 +205,7 @@ export default function ContractsTable({
                       <Text
                         className="text-xs font-semibold"
                         style={{ color: conditionStatusColor }}>
-                        Condition Status: {row.latestConditionStatus}
+                        Condition : {row.latestConditionStatus}
                       </Text>
                     </View>
                   </View>
