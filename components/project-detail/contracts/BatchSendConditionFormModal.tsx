@@ -1,6 +1,6 @@
 import { Formik } from 'formik';
 import { useMemo, useState } from 'react';
-import { View, TouchableOpacity, ScrollView, TextInput, Text, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, ScrollView, TextInput, Text } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import { FormModal } from '~/components/custom/form-modal';
 import { DateTimePickerInput } from '~/components/form-components/DateTimePickerInput';
@@ -191,9 +191,9 @@ export default function BatchSendConditionFormModal({
   return (
     <>
       {/* Batch Send Button */}
-      <View style={styles.batchActionsContainer}>
+      <View className="mb-0">
         <TouchableOpacity
-          style={styles.batchSendButton}
+          className="bg-blue-500 rounded-xl px-3.5 py-1 items-center"
           onPress={() => setShowBatchConditionsModal(true)}>
           <ChevronRight size={16} color="#ffffff" />
         </TouchableOpacity>
@@ -215,29 +215,29 @@ export default function BatchSendConditionFormModal({
               onSubmit={submitForm}
               showTrigger={false}>
               <ScrollView
-                style={styles.modalContent}
+                className="flex-1"
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled">
-                <View style={styles.modalContentInner}>
+                <View className="p-4 gap-5">
                   {/* Selected Contracts Display */}
-                  <View style={styles.selectedContractsSection}>
-                    <View style={styles.selectedContractsHeader}>
-                      <Text style={styles.sectionTitleSmall}>Selected Contracts</Text>
-                      <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{selectedContractIds.length} selected</Text>
+                  <View className="mb-2">
+                    <View className="flex-row justify-between items-center mb-3">
+                      <Text className="text-base font-semibold text-gray-50">Selected Contracts</Text>
+                      <View className="bg-blue-500 rounded-xl px-2.5 py-1">
+                        <Text className="text-white text-xs font-semibold">{selectedContractIds.length} selected</Text>
                       </View>
                     </View>
 
                     {selectedContractIds.length === 0 ? (
-                      <View style={styles.emptyContractsCard}>
-                        <Text style={styles.emptyContractsText}>No contracts selected</Text>
-                        <Text style={styles.emptyContractsSubtext}>
+                      <View className="p-6 items-center bg-zinc-800/50 rounded-xl">
+                        <Text className="text-gray-200 text-sm font-semibold mb-1">No contracts selected</Text>
+                        <Text className="text-slate-400/70 text-xs text-center">
                           Enable "Batch Update Conditions" mode and select contracts from the table
                         </Text>
                       </View>
                     ) : (
                       <ScrollView
-                        style={styles.selectedContractsList}
+                        className="max-h-[200px]"
                         showsVerticalScrollIndicator={false}>
                         {selectedContractsData.map((contractWithProfile: any) => {
                           const contract = contractWithProfile?.jobContract ?? contractWithProfile;
@@ -249,20 +249,20 @@ export default function BatchSendConditionFormModal({
                             'Unknown User';
 
                           return (
-                            <View key={contract?.id} style={styles.contractCard}>
-                              <View style={styles.contractCardContent}>
-                                <Text style={styles.contractCardTitle}>{talentName}</Text>
-                                <Text style={styles.contractCardMeta}>
+                            <View key={contract?.id} className="flex-row justify-between items-start p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 mb-2">
+                              <View className="flex-1">
+                                <Text className="text-gray-50 text-sm font-semibold mb-1">{talentName}</Text>
+                                <Text className="text-slate-400/80 text-xs mb-2">
                                   {contract?.roleTitle || 'N/A'} • #{contract?.roleId}
                                 </Text>
-                                <View style={styles.contractCardStatusRow}>
-                                  <View style={styles.statusBadge}>
-                                    <Text style={styles.statusBadgeText}>
+                                <View className="flex-row items-center gap-2 flex-wrap">
+                                  <View className="bg-green-500 rounded-md px-2 py-0.5">
+                                    <Text className="text-white text-[11px] font-semibold">
                                       {contract?.contractStatus}
                                     </Text>
                                   </View>
                                   {latestCondition && (
-                                    <Text style={styles.contractCardPayment}>
+                                    <Text className="text-slate-400/70 text-[11px]">
                                       Current:{' '}
                                       {formatCurrency(
                                         latestCondition.paymentAmount,
@@ -273,7 +273,7 @@ export default function BatchSendConditionFormModal({
                                   )}
                                 </View>
                               </View>
-                              <Text style={styles.contractCardId}>ID: #{contract?.id}</Text>
+                              <Text className="text-slate-400/50 text-[11px]">ID: #{contract?.id}</Text>
                             </View>
                           );
                         })}
@@ -282,15 +282,15 @@ export default function BatchSendConditionFormModal({
                   </View>
 
                   {/* Form Fields */}
-                  <View style={styles.formSection}>
-                    <Text style={styles.sectionTitleSmall}>New Contract Conditions</Text>
+                  <View className="gap-4">
+                    <Text className="text-base font-semibold text-gray-50 mb-3">New Contract Conditions</Text>
 
                     {/* Payment Details */}
-                    <View style={styles.formCard}>
-                      <Text style={styles.formCardTitle}>Payment Details</Text>
+                    <View className="bg-zinc-800/50 rounded-xl p-4 gap-4">
+                      <Text className="text-sm font-semibold text-gray-50 mb-1">Payment Details</Text>
 
-                      <View style={styles.formRow}>
-                        <View style={styles.formField}>
+                      <View className="flex-row gap-3">
+                        <View className="flex-1 mb-2">
                           <SingleWheelPickerInput
                             title="Payment Basis"
                             value={values.paymentBasis}
@@ -300,7 +300,7 @@ export default function BatchSendConditionFormModal({
                           />
                         </View>
 
-                        <View style={styles.formField}>
+                        <View className="flex-1 mb-2">
                           <SingleWheelPickerInput
                             title="Currency"
                             value={values.paymentCurrency}
@@ -311,12 +311,12 @@ export default function BatchSendConditionFormModal({
                         </View>
                       </View>
 
-                      <View style={styles.formField}>
-                        <Text style={styles.label}>
+                      <View className="flex-1 mb-2">
+                        <Text className="text-gray-200 text-[13px] font-medium mb-2">
                           {values.paymentBasis === 'Hourly Rate'
                             ? 'Hourly Rate (HKD)'
                             : 'Project Rate (HKD)'}
-                          <Text style={styles.required}> *</Text>
+                          <Text className="text-red-500"> *</Text>
                         </Text>
                         <TextInput
                           value={values.paymentAmount ? String(values.paymentAmount) : ''}
@@ -326,12 +326,12 @@ export default function BatchSendConditionFormModal({
                           keyboardType="numeric"
                           placeholder="Enter payment"
                           placeholderTextColor="rgba(255,255,255,0.4)"
-                          style={styles.input}
+                          className="rounded-xl border border-slate-400/40 px-3.5 py-3 text-gray-50 bg-slate-900/65 text-sm"
                         />
                       </View>
 
-                      <View style={styles.formField}>
-                        <Text style={styles.label}>Overtime Payment/Hour (HKD)</Text>
+                      <View className="flex-1 mb-2">
+                        <Text className="text-gray-200 text-[13px] font-medium mb-2">Overtime Payment/Hour (HKD)</Text>
                         <TextInput
                           value={values.paymentAmountOt ? String(values.paymentAmountOt) : ''}
                           onChangeText={(text) =>
@@ -340,12 +340,12 @@ export default function BatchSendConditionFormModal({
                           keyboardType="numeric"
                           placeholder="Optional"
                           placeholderTextColor="rgba(255,255,255,0.4)"
-                          style={styles.input}
+                          className="rounded-xl border border-slate-400/40 px-3.5 py-3 text-gray-50 bg-slate-900/65 text-sm"
                         />
                       </View>
 
-                      <View style={styles.formField}>
-                        <Text style={styles.label}>Additional Payment (HKD)</Text>
+                      <View className="flex-1 mb-2">
+                        <Text className="text-gray-200 text-[13px] font-medium mb-2">Additional Payment (HKD)</Text>
                         <TextInput
                           value={values.paymentAdditional ? String(values.paymentAdditional) : ''}
                           onChangeText={(text) =>
@@ -354,11 +354,11 @@ export default function BatchSendConditionFormModal({
                           keyboardType="numeric"
                           placeholder="Optional"
                           placeholderTextColor="rgba(255,255,255,0.4)"
-                          style={styles.input}
+                          className="rounded-xl border border-slate-400/40 px-3.5 py-3 text-gray-50 bg-slate-900/65 text-sm"
                         />
                       </View>
 
-                      <View style={styles.formField}>
+                      <View className="flex-1 mb-2">
                         <DateTimePickerInput
                           value={values.paymentDate || ''}
                           onChange={(value) => setFieldValue('paymentDate', value)}
@@ -370,8 +370,8 @@ export default function BatchSendConditionFormModal({
                     </View>
 
                     {/* Schedule & Activities */}
-                    <View style={styles.formCard}>
-                      <Text style={styles.formCardTitle}>Schedule & Activities</Text>
+                    <View className="bg-zinc-800/50 rounded-xl p-4 gap-4">
+                      <Text className="text-sm font-semibold text-gray-50 mb-1">Schedule & Activities</Text>
                       <RoleScheduleListInputs
                         values={values}
                         setFieldValue={setFieldValue}
@@ -390,40 +390,40 @@ export default function BatchSendConditionFormModal({
 
                     {/* Payment Calculation Display */}
                     {totalWorkingHours > 0 && (
-                      <View style={styles.calculationCard}>
-                        <Text style={styles.calculationTitle}>Payment Calculation</Text>
-                        <View style={styles.calculationRow}>
-                          <Text style={styles.calculationLabel}>Total Working Hours:</Text>
-                          <Text style={styles.calculationValue}>
+                      <View className="bg-blue-500/10 rounded-xl p-4 border border-blue-500/30 gap-2">
+                        <Text className="text-sm font-semibold text-blue-500 mb-1">Payment Calculation</Text>
+                        <View className="flex-row justify-between items-center">
+                          <Text className="text-slate-400/80 text-[13px]">Total Working Hours:</Text>
+                          <Text className="text-blue-500 text-[13px] font-semibold">
                             {totalWorkingHours.toFixed(2)} hours
                           </Text>
                         </View>
                         {values.paymentAmount > 0 && (
                           <>
-                            <View style={styles.calculationRow}>
-                              <Text style={styles.calculationLabel}>Payment Rate:</Text>
-                              <Text style={styles.calculationValue}>
+                            <View className="flex-row justify-between items-center">
+                              <Text className="text-slate-400/80 text-[13px]">Payment Rate:</Text>
+                              <Text className="text-blue-500 text-[13px] font-semibold">
                                 ${values.paymentAmount} {values.paymentCurrency}/hour
                               </Text>
                             </View>
-                            <View style={styles.calculationRow}>
-                              <Text style={styles.calculationLabel}>Base Payment:</Text>
-                              <Text style={styles.calculationValue}>
+                            <View className="flex-row justify-between items-center">
+                              <Text className="text-slate-400/80 text-[13px]">Base Payment:</Text>
+                              <Text className="text-blue-500 text-[13px] font-semibold">
                                 ${(values.paymentAmount * totalWorkingHours).toFixed(2)}{' '}
                                 {values.paymentCurrency}
                               </Text>
                             </View>
                             {values.paymentAdditional > 0 && (
-                              <View style={styles.calculationRow}>
-                                <Text style={styles.calculationLabel}>Additional Payment:</Text>
-                                <Text style={styles.calculationValue}>
+                              <View className="flex-row justify-between items-center">
+                                <Text className="text-slate-400/80 text-[13px]">Additional Payment:</Text>
+                                <Text className="text-blue-500 text-[13px] font-semibold">
                                   ${values.paymentAdditional.toFixed(2)} {values.paymentCurrency}
                                 </Text>
                               </View>
                             )}
-                            <View style={[styles.calculationRow, styles.calculationTotal]}>
-                              <Text style={styles.calculationTotalLabel}>Estimated Total:</Text>
-                              <Text style={styles.calculationTotalValue}>
+                            <View className="flex-row justify-between items-center mt-2 pt-2 border-t border-blue-500/30">
+                              <Text className="text-gray-200 text-[15px] font-semibold">Estimated Total:</Text>
+                              <Text className="text-green-500 text-lg font-bold">
                                 $
                                 {(
                                   values.paymentAmount * totalWorkingHours +
@@ -438,43 +438,46 @@ export default function BatchSendConditionFormModal({
                     )}
 
                     {/* Terms & Conditions */}
-                    <View style={styles.formCard}>
-                      <Text style={styles.formCardTitle}>Terms & Conditions</Text>
+                    <View className="bg-zinc-800/50 rounded-xl p-4 gap-4">
+                      <Text className="text-sm font-semibold text-gray-50 mb-1">Terms & Conditions</Text>
 
-                      <View style={styles.formField}>
-                        <Text style={styles.label}>Usage Rights</Text>
+                      <View className="flex-1 mb-2">
+                        <Text className="text-gray-200 text-[13px] font-medium mb-2">Usage Rights</Text>
                         <TextInput
                           value={values.usageRights}
                           onChangeText={(text) => setFieldValue('usageRights', text)}
                           placeholder="Optional"
                           placeholderTextColor="rgba(255,255,255,0.4)"
-                          style={[styles.input, styles.textArea]}
+                          className="rounded-xl border border-slate-400/40 px-3.5 py-3 text-gray-50 bg-slate-900/65 text-sm min-h-[80px]"
+                          style={{ textAlignVertical: 'top' }}
                           multiline
                           numberOfLines={3}
                         />
                       </View>
 
-                      <View style={styles.formField}>
-                        <Text style={styles.label}>Terms and Conditions</Text>
+                      <View className="flex-1 mb-2">
+                        <Text className="text-gray-200 text-[13px] font-medium mb-2">Terms and Conditions</Text>
                         <TextInput
                           value={values.termsAndConditions}
                           onChangeText={(text) => setFieldValue('termsAndConditions', text)}
                           placeholder="Optional"
                           placeholderTextColor="rgba(255,255,255,0.4)"
-                          style={[styles.input, styles.textArea]}
+                          className="rounded-xl border border-slate-400/40 px-3.5 py-3 text-gray-50 bg-slate-900/65 text-sm min-h-[80px]"
+                          style={{ textAlignVertical: 'top' }}
                           multiline
                           numberOfLines={4}
                         />
                       </View>
 
-                      <View style={styles.formField}>
-                        <Text style={styles.label}>Remarks</Text>
+                      <View className="flex-1 mb-2">
+                        <Text className="text-gray-200 text-[13px] font-medium mb-2">Remarks</Text>
                         <TextInput
                           value={values.remarks}
                           onChangeText={(text) => setFieldValue('remarks', text)}
                           placeholder="Optional"
                           placeholderTextColor="rgba(255,255,255,0.4)"
-                          style={[styles.input, styles.textArea]}
+                          className="rounded-xl border border-slate-400/40 px-3.5 py-3 text-gray-50 bg-slate-900/65 text-sm min-h-[80px]"
+                          style={{ textAlignVertical: 'top' }}
                           multiline
                           numberOfLines={3}
                         />
@@ -483,15 +486,15 @@ export default function BatchSendConditionFormModal({
 
                     {/* Submit Button */}
                     <TouchableOpacity
-                      style={[
-                        styles.submitButton,
-                        batchCreateConditionsMutation.isPending && styles.submitButtonDisabled,
-                      ]}
+                      activeOpacity={1}
+                      className={`bg-blue-500 rounded-xl py-3.5 items-center mt-2 ${
+                        batchCreateConditionsMutation.isPending ? 'opacity-50' : ''
+                      }`}
                       onPress={submitForm}
                       disabled={
                         batchCreateConditionsMutation.isPending || selectedContractIds.length === 0
                       }>
-                      <Text style={styles.submitButtonText}>
+                      <Text className="text-white text-[15px] font-semibold">
                         {batchCreateConditionsMutation.isPending
                           ? 'Creating Conditions...'
                           : `Create Conditions for ${selectedContractIds.length} Contract${selectedContractIds.length !== 1 ? 's' : ''}`}
@@ -507,455 +510,3 @@ export default function BatchSendConditionFormModal({
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  wrapper: {
-    gap: 20,
-  },
-  sectionCard: {
-    backgroundColor: 'rgba(17, 17, 17, 0.9)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    padding: 20,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#f9fafb',
-  },
-  sectionTitleSmall: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#f9fafb',
-    marginBottom: 12,
-  },
-  sectionSubtitle: {
-    color: 'rgba(148, 163, 184, 0.7)',
-    fontSize: 14,
-    marginTop: 4,
-  },
-  batchModeContainer: {
-    marginTop: 16,
-    marginBottom: 16,
-  },
-  batchModeToggle: {
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    backgroundColor: 'rgba(17, 24, 39, 0.85)',
-    padding: 16,
-  },
-  batchModeToggleActive: {
-    borderColor: '#3b82f6',
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-  },
-  batchModeToggleContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  batchModeTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#f9fafb',
-  },
-  batchModeSubtitle: {
-    fontSize: 12,
-    color: 'rgba(148, 163, 184, 0.7)',
-    marginTop: 4,
-  },
-  batchModeSwitch: {
-    width: 44,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(148, 163, 184, 0.4)',
-    justifyContent: 'center',
-    paddingHorizontal: 2,
-  },
-  batchModeSwitchActive: {
-    borderColor: '#3b82f6',
-    backgroundColor: '#3b82f6',
-  },
-  batchModeSwitchDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#ffffff',
-    alignSelf: 'flex-end',
-  },
-  batchActionsContainer: {
-    marginBottom: 0,
-  },
-  batchSendButton: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 4,
-    alignItems: 'center',
-  },
-  batchSendButtonText: {
-    color: '#ffffff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  tableContainer: {
-    marginTop: 16,
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-    backgroundColor: 'rgba(17, 24, 39, 0.5)',
-    minWidth: 800,
-  },
-  tableHeaderCell: {
-    color: 'rgba(148, 163, 184, 0.9)',
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    paddingHorizontal: 8,
-  },
-  checkboxHeader: {
-    width: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-    minWidth: 800,
-  },
-  tableRowSelected: {
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
-  },
-  tableRowDisabled: {
-    opacity: 0.5,
-  },
-  tableCell: {
-    color: '#e5e7eb',
-    fontSize: 13,
-    paddingHorizontal: 8,
-  },
-  checkboxCell: {
-    width: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: 'rgba(148, 163, 184, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: {
-    borderColor: '#3b82f6',
-    backgroundColor: '#3b82f6',
-  },
-  checkboxDisabled: {
-    opacity: 0.3,
-  },
-  checkmark: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  emptyState: {
-    paddingVertical: 32,
-    alignItems: 'center',
-    gap: 6,
-    minWidth: 800,
-  },
-  emptyStateTitle: {
-    color: '#e5e7eb',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  emptyStateSubtitle: {
-    color: 'rgba(148, 163, 184, 0.7)',
-    fontSize: 13,
-    textAlign: 'center',
-    paddingHorizontal: 16,
-  },
-  drawerContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-    gap: 16,
-  },
-  drawerSubtitle: {
-    color: 'rgba(148, 163, 184, 0.7)',
-    fontSize: 14,
-  },
-  batchStatusList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  batchStatusChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(148,163,184,0.3)',
-  },
-  batchStatusChipActive: {
-    borderColor: '#3b82f6',
-    backgroundColor: 'rgba(59,130,246,0.15)',
-  },
-  batchStatusChipText: {
-    color: '#e5e7eb',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  batchStatusChipTextActive: {
-    color: '#bfdbfe',
-  },
-  input: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(148,163,184,0.4)',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: '#f9fafb',
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    fontSize: 14,
-  },
-  multilineInput: {
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  drawerActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
-  primaryButton: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  secondaryButton: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(148,163,184,0.5)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  secondaryButtonText: {
-    color: '#e2e8f0',
-    fontWeight: '600',
-  },
-  modalContent: {
-    flex: 1,
-  },
-  modalContentInner: {
-    padding: 16,
-    gap: 20,
-  },
-  selectedContractsSection: {
-    marginBottom: 8,
-  },
-  selectedContractsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  badge: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  badgeText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  selectedContractsList: {
-    maxHeight: 200,
-  },
-  emptyContractsCard: {
-    padding: 24,
-    alignItems: 'center',
-    backgroundColor: 'rgba(17, 24, 39, 0.5)',
-    borderRadius: 12,
-  },
-  emptyContractsText: {
-    color: '#e5e7eb',
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  emptyContractsSubtext: {
-    color: 'rgba(148, 163, 184, 0.7)',
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  contractCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.3)',
-    marginBottom: 8,
-  },
-  contractCardContent: {
-    flex: 1,
-  },
-  contractCardTitle: {
-    color: '#f9fafb',
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  contractCardMeta: {
-    color: 'rgba(148, 163, 184, 0.8)',
-    fontSize: 12,
-    marginBottom: 8,
-  },
-  contractCardStatusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  statusBadge: {
-    backgroundColor: '#10b981',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  statusBadgeText: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  contractCardPayment: {
-    color: 'rgba(148, 163, 184, 0.7)',
-    fontSize: 11,
-  },
-  contractCardId: {
-    color: 'rgba(148, 163, 184, 0.5)',
-    fontSize: 11,
-  },
-  formSection: {
-    gap: 16,
-  },
-  formCard: {
-    backgroundColor: 'rgba(17, 24, 39, 0.5)',
-    borderRadius: 12,
-    padding: 16,
-    gap: 16,
-  },
-  formCardTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#f9fafb',
-    marginBottom: 4,
-  },
-  formRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  formField: {
-    flex: 1,
-    marginBottom: 8,
-  },
-  label: {
-    color: '#e5e7eb',
-    fontSize: 13,
-    fontWeight: '500',
-    marginBottom: 8,
-  },
-  required: {
-    color: '#ef4444',
-  },
-  calculationCard: {
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.3)',
-    gap: 8,
-  },
-  calculationTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#3b82f6',
-    marginBottom: 4,
-  },
-  calculationRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  calculationLabel: {
-    color: 'rgba(148, 163, 184, 0.8)',
-    fontSize: 13,
-  },
-  calculationValue: {
-    color: '#3b82f6',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  calculationTotal: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(59, 130, 246, 0.3)',
-  },
-  calculationTotalLabel: {
-    color: '#e5e7eb',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  calculationTotalValue: {
-    color: '#10b981',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  submitButton: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  submitButtonDisabled: {
-    opacity: 0.5,
-  },
-  submitButtonText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-});

@@ -38,12 +38,13 @@ const STATUS_COLORS: Record<string, string> = {
 export default function ProjectDetail({ scrollHandler }: { scrollHandler: (event: any) => void }) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { id } = useLocalSearchParams();
+  const { id, tab, roleId } = useLocalSearchParams();
   const { soleUserId } = useSoleUserContext();
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   const queryClient = useQueryClient();
   // Local state for tab and role selection (not in context)
-  const [currentTab, setCurrentTab] = useState('project-information');
+  // Initialize from params if provided
+  const [currentTab, setCurrentTab] = useState((tab as string) || 'project-information');
   const [currentRole, setCurrentRole] = useState(0);
 
   // Animation for ManageCandidates transition
@@ -130,6 +131,19 @@ export default function ProjectDetail({ scrollHandler }: { scrollHandler: (event
   );
 
   const isInitialLoading = projectLoading;
+
+  // Handle roleId param - find the role index when roles are loaded
+  useEffect(() => {
+    if (roleId && rolesWithSchedules.length > 0) {
+      const targetRoleId = parseInt(roleId as string, 10);
+      const roleIndex = rolesWithSchedules.findIndex(
+        (roleWithSchedule) => roleWithSchedule?.role?.id === targetRoleId
+      );
+      if (roleIndex >= 0) {
+        setCurrentRole(roleIndex);
+      }
+    }
+  }, [roleId, rolesWithSchedules]);
 
   // Ensure currentRole is within bounds when roles data changes
   useEffect(() => {

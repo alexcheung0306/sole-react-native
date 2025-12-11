@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { Formik } from 'formik';
@@ -281,12 +281,12 @@ export function ProjectContractsTab({
   const selectedContractIds = Array.from(selectedContracts).filter((id) => !isNaN(Number(id)));
 
   return (
-    <View style={styles.wrapper}>
-      <View style={styles.sectionCard}>
-        <View style={styles.sectionHeader}>
+    <View className="">
+      <View className="border-white/8 rounded-2xl border bg-zinc-900/90 p-2">
+        <View className="mb-4 flex-row items-center justify-between">
           <View>
-            <Text style={styles.sectionTitle}>Contract directory</Text>
-            <Text style={styles.sectionSubtitle}>
+          <Text className="text-xl font-bold text-white">Contract directory</Text>
+          <Text className="mt-1 text-sm text-white/50">
               {contracts.length} contract{contracts.length !== 1 ? 's' : ''}
             </Text>
           </View>
@@ -305,10 +305,14 @@ export function ProjectContractsTab({
         />
 
         {/* Batch Update Mode Toggle */}
-        <View style={styles.batchModeContainer}>
+        <View className="">
           <TouchableOpacity
             activeOpacity={1}
-            style={[styles.batchModeToggle, viewMode === 'select' && styles.batchModeToggleActive]}
+            className={`rounded-xl border-2 p-4 ${
+              viewMode === 'select'
+                ? 'border-white bg-blue-500/10'
+                : 'border-zinc-400 bg-zinc-800/85'
+            }`}
             onPress={() => {
               const newMode = viewMode === 'select' ? 'view' : 'select';
               setViewMode(newMode);
@@ -316,11 +320,11 @@ export function ProjectContractsTab({
                 setSelectedContracts(new Set());
               }
             }}>
-            <View style={styles.batchModeToggleContent}>
+            <View className="flex-row items-center justify-between">
               <View>
-                <Text style={styles.batchModeTitle}>Batch Update Conditions</Text>
-                <Text style={styles.batchModeSubtitle}>
-                  { selectedContractIds.length > 0
+                <Text className="text-sm font-semibold text-white">Batch Update Conditions</Text>
+                <Text className="mt-1 text-xs text-white/50">
+                  {selectedContractIds.length > 0
                     ? `Proceed (${selectedContractIds.length})`
                     : 'Enable multi-select for batch operations'}
                 </Text>
@@ -338,11 +342,12 @@ export function ProjectContractsTab({
               ) : (
                 // Toggle Switch
                 <View
-                  style={[
-                    styles.batchModeSwitch,
-                    viewMode === 'select' && styles.batchModeSwitchActive,
-                  ]}>
-                  {viewMode === 'select' && <View style={styles.batchModeSwitchDot} />}
+                  className={`h-6 w-12 flex-row items-center rounded-xl border-2 px-0.5 ${
+                    viewMode === 'select'
+                      ? 'border-blue-500 bg-blue-500 justify-end'
+                      : 'border-slate-400/40 bg-transparent justify-start'
+                  }`}>
+                  <View className="h-4 w-4 rounded-full bg-white" />
                 </View>
               )}
             </View>
@@ -361,7 +366,7 @@ export function ProjectContractsTab({
         />
 
         {totalPages > 1 && (
-          <View style={{ marginTop: 12 }}>
+          <View className="mt-3">
             <PaginationControl
               currentPage={page}
               setCurrentPage={setPage}
@@ -374,455 +379,3 @@ export function ProjectContractsTab({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrapper: {
-    gap: 20,
-  },
-  sectionCard: {
-    backgroundColor: 'rgba(17, 17, 17, 0.9)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    padding: 20,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#f9fafb',
-  },
-  sectionTitleSmall: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#f9fafb',
-    marginBottom: 12,
-  },
-  sectionSubtitle: {
-    color: 'rgba(148, 163, 184, 0.7)',
-    fontSize: 14,
-    marginTop: 4,
-  },
-  batchModeContainer: {
-    marginTop: 16,
-    marginBottom: 16,
-  },
-  batchModeToggle: {
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    backgroundColor: 'rgba(17, 24, 39, 0.85)',
-    padding: 16,
-  },
-  batchModeToggleActive: {
-    borderColor: '#3b82f6',
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-  },
-  batchModeToggleContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  batchModeTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#f9fafb',
-  },
-  batchModeSubtitle: {
-    fontSize: 12,
-    color: 'rgba(148, 163, 184, 0.7)',
-    marginTop: 4,
-  },
-  batchModeSwitch: {
-    width: 44,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(148, 163, 184, 0.4)',
-    justifyContent: 'center',
-    paddingHorizontal: 2,
-  },
-  batchModeSwitchActive: {
-    borderColor: '#3b82f6',
-    backgroundColor: '#3b82f6',
-  },
-  batchModeSwitchDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#ffffff',
-    alignSelf: 'flex-end',
-  },
-  batchActionsContainer: {
-    marginBottom: 16,
-  },
-  batchSendButton: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  batchSendButtonText: {
-    color: '#ffffff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  tableContainer: {
-    marginTop: 16,
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-    backgroundColor: 'rgba(17, 24, 39, 0.5)',
-    minWidth: 800,
-  },
-  tableHeaderCell: {
-    color: 'rgba(148, 163, 184, 0.9)',
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    paddingHorizontal: 8,
-  },
-  checkboxHeader: {
-    width: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-    minWidth: 800,
-  },
-  tableRowSelected: {
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
-  },
-  tableRowDisabled: {
-    opacity: 0.5,
-  },
-  tableCell: {
-    color: '#e5e7eb',
-    fontSize: 13,
-    paddingHorizontal: 8,
-  },
-  checkboxCell: {
-    width: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: 'rgba(148, 163, 184, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: {
-    borderColor: '#3b82f6',
-    backgroundColor: '#3b82f6',
-  },
-  checkboxDisabled: {
-    opacity: 0.3,
-  },
-  checkmark: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  emptyState: {
-    paddingVertical: 32,
-    alignItems: 'center',
-    gap: 6,
-    minWidth: 800,
-  },
-  emptyStateTitle: {
-    color: '#e5e7eb',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  emptyStateSubtitle: {
-    color: 'rgba(148, 163, 184, 0.7)',
-    fontSize: 13,
-    textAlign: 'center',
-    paddingHorizontal: 16,
-  },
-  drawerContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-    gap: 16,
-  },
-  drawerSubtitle: {
-    color: 'rgba(148, 163, 184, 0.7)',
-    fontSize: 14,
-  },
-  batchStatusList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  batchStatusChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(148,163,184,0.3)',
-  },
-  batchStatusChipActive: {
-    borderColor: '#3b82f6',
-    backgroundColor: 'rgba(59,130,246,0.15)',
-  },
-  batchStatusChipText: {
-    color: '#e5e7eb',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  batchStatusChipTextActive: {
-    color: '#bfdbfe',
-  },
-  input: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(148,163,184,0.4)',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: '#f9fafb',
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    fontSize: 14,
-  },
-  multilineInput: {
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  drawerActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
-  primaryButton: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  secondaryButton: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(148,163,184,0.5)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  secondaryButtonText: {
-    color: '#e2e8f0',
-    fontWeight: '600',
-  },
-  modalContent: {
-    flex: 1,
-  },
-  modalContentInner: {
-    padding: 16,
-    gap: 20,
-  },
-  selectedContractsSection: {
-    marginBottom: 8,
-  },
-  selectedContractsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  badge: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  badgeText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  selectedContractsList: {
-    maxHeight: 200,
-  },
-  emptyContractsCard: {
-    padding: 24,
-    alignItems: 'center',
-    backgroundColor: 'rgba(17, 24, 39, 0.5)',
-    borderRadius: 12,
-  },
-  emptyContractsText: {
-    color: '#e5e7eb',
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  emptyContractsSubtext: {
-    color: 'rgba(148, 163, 184, 0.7)',
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  contractCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.3)',
-    marginBottom: 8,
-  },
-  contractCardContent: {
-    flex: 1,
-  },
-  contractCardTitle: {
-    color: '#f9fafb',
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  contractCardMeta: {
-    color: 'rgba(148, 163, 184, 0.8)',
-    fontSize: 12,
-    marginBottom: 8,
-  },
-  contractCardStatusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  statusBadge: {
-    backgroundColor: '#10b981',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  statusBadgeText: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  contractCardPayment: {
-    color: 'rgba(148, 163, 184, 0.7)',
-    fontSize: 11,
-  },
-  contractCardId: {
-    color: 'rgba(148, 163, 184, 0.5)',
-    fontSize: 11,
-  },
-  formSection: {
-    gap: 16,
-  },
-  formCard: {
-    backgroundColor: 'rgba(17, 24, 39, 0.5)',
-    borderRadius: 12,
-    padding: 16,
-    gap: 16,
-  },
-  formCardTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#f9fafb',
-    marginBottom: 4,
-  },
-  formRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  formField: {
-    flex: 1,
-    marginBottom: 8,
-  },
-  label: {
-    color: '#e5e7eb',
-    fontSize: 13,
-    fontWeight: '500',
-    marginBottom: 8,
-  },
-  required: {
-    color: '#ef4444',
-  },
-  calculationCard: {
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.3)',
-    gap: 8,
-  },
-  calculationTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#3b82f6',
-    marginBottom: 4,
-  },
-  calculationRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  calculationLabel: {
-    color: 'rgba(148, 163, 184, 0.8)',
-    fontSize: 13,
-  },
-  calculationValue: {
-    color: '#3b82f6',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  calculationTotal: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(59, 130, 246, 0.3)',
-  },
-  calculationTotalLabel: {
-    color: '#e5e7eb',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  calculationTotalValue: {
-    color: '#10b981',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  submitButton: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  submitButtonDisabled: {
-    opacity: 0.5,
-  },
-  submitButtonText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-});
