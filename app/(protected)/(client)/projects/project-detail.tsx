@@ -1,6 +1,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Dimensions } from 'react-native';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
@@ -40,6 +41,10 @@ export default function ProjectDetail({
   // Local state for tab and role selection (not in context)
   const [currentTab, setCurrentTab] = useState('project-information');
   const [currentRole, setCurrentRole] = useState(0);
+  
+  // Animation for ManageCandidates transition
+  const manageCandidatesTranslateX = useSharedValue(0);
+  const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
   const projectId = id ? parseInt(id as string, 10) : 0;
 
@@ -119,6 +124,18 @@ export default function ProjectDetail({
       setCurrentRole(0);
     }
   }, [rolesWithSchedules.length, currentRole]);
+
+  // Animate ManageCandidates transition when currentRole changes
+  useEffect(() => {
+    manageCandidatesTranslateX.value = withTiming(-currentRole * SCREEN_WIDTH, {
+      duration: 300,
+    });
+  }, [currentRole, rolesWithSchedules.length, SCREEN_WIDTH]);
+
+  // Animated style for ManageCandidates container
+  const manageCandidatesAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: manageCandidatesTranslateX.value }],
+  }));
 
   // Switch to project-information tab if user is on contracts tab when project is Draft
   useEffect(() => {
@@ -304,11 +321,27 @@ export default function ProjectDetail({
 
                       {/* Manage Candidates - Only show for Published projects with roles */}
                       {project?.status === 'Published' && rolesWithSchedules.length > 0 && (
-                        <View className="mt-6 border-t border-white/10 pt-6 px-2">
-                          <ManageCandidates 
-                            projectData={project} 
-                            roleWithSchedules={rolesWithSchedules[currentRole]} 
-                          />
+                        <View className="border-t border-white/10" style={{ overflow: 'hidden' }}>
+                          <Animated.View
+                            style={[
+                              {
+                                flexDirection: 'row',
+                                width: SCREEN_WIDTH * rolesWithSchedules.length,
+                              },
+                              manageCandidatesAnimatedStyle,
+                            ]}>
+                            {rolesWithSchedules.map((roleWithSchedule, index) => (
+                              <View 
+                                key={`manage-candidates-${roleWithSchedule?.role?.id || index}`} 
+                                style={{ width: SCREEN_WIDTH }}
+                                className="px-2">
+                                <ManageCandidates 
+                                  projectData={project} 
+                                  roleWithSchedules={roleWithSchedule} 
+                                />
+                              </View>
+                            ))}
+                          </Animated.View>
                         </View>
                       )}
                     </View>

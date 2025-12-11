@@ -70,7 +70,7 @@ export function RolesBreadcrumb({
                 <View className="flex-row items-center gap-2">
                   <Text
                     className={`flex-1 text-sm font-semibold ${
-                      isActive ? 'text-white' : 'text-white'
+                      isActive ? 'text-white' : 'text-white/80'
                     }`}
                     numberOfLines={1}>
                     {role.roleTitle || 'Untitled role'}
@@ -84,7 +84,7 @@ export function RolesBreadcrumb({
               <TouchableOpacity 
                 className="px-2 py-4 flex-shrink-0" 
                 onPress={() => handleRolePress(index)}>
-                <InfoIcon size={16} color="#a1a1aa" />
+                <InfoIcon size={16} color={isActive ? '#ffffff' : '#a1a1aa'} />
               </TouchableOpacity>
             </View>
           );

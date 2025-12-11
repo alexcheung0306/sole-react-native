@@ -50,14 +50,16 @@ const ProcessPills = memo(({
         const isActive = currentProcess === process;
         return (
           <TouchableOpacity
+          activeOpacity={1}
             key={`process-${process}`}
             className={`rounded-full border px-3.5 py-2 ${
-              isActive ? 'border-blue-500 bg-blue-500/20' : 'border-white/20 bg-zinc-700/70'
+              isActive ? 'border-white bg-zinc-700' : 'border-white/20 bg-zinc-800/60'
+
             }`}
             onPress={() => onProcessChange(process)}>
             <Text
               className={`text-xs font-semibold capitalize ${
-                isActive ? 'text-blue-200' : 'text-white/80'
+                isActive ? 'text-white' : 'text-white/80'
               }`}>
               {process} {count ? `(${count})` : ''}
             </Text>
