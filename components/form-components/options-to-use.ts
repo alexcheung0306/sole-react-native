@@ -146,3 +146,87 @@ export const talentCategory = {
     { key: "celebrity_guests", label: "Celebrity Guests" },
   ],
 }
+
+export const ethnicGroups = [
+  {
+    category: "African",
+    groups: [
+      { key: "african", label: "African" },
+      { key: "zulu", label: "Zulu (South Africa)" },
+      { key: "ashanti", label: "Ashanti (Ghana)" },
+      { key: "hausa", label: "Hausa (Nigeria, Niger)" },
+      { key: "berbers", label: "Berbers (North Africa)" },
+      { key: "amhara", label: "Amhara (Ethiopia)" },
+    ],
+  },
+  {
+    category: "Asian",
+    groups: [
+      { key: "han_chinese", label: "Han Chinese (China)" },
+      { key: "japanese", label: "Japanese (Japan)" },
+      { key: "koreans", label: "Koreans (North and South Korea)" },
+      { key: "indo_aryan", label: "Indo-Aryan (India, Pakistan, Bangladesh)" },
+      { key: "turkic", label: "Turkic Peoples (Central Asia, Turkey)" },
+      { key: "southeast_asian", label: "Southeast Asian" },
+    ],
+  },
+  {
+    category: "European",
+    groups: [
+      { key: "european", label: "European" },
+      { key: "germans", label: "Germans (Germany)" },
+      { key: "italians", label: "Italians (Italy)" },
+      { key: "slavs", label: "Slavs (Eastern Europe)" },
+      { key: "celts", label: "Celts (Ireland, Scotland, Wales)" },
+      { key: "basques", label: "Basques (Spain, France)" },
+    ],
+  },
+  {
+    category: "Indigenous Peoples",
+    groups: [
+      { key: "native_americans", label: "Native Americans (United States)" },
+      { key: "first_nations", label: "First Nations (Canada)" },
+      {
+        key: "aboriginal_australians",
+        label: "Aboriginal Australians (Australia)",
+      },
+      { key: "maasai", label: "Maasai (Kenya, Tanzania)" },
+      { key: "sami", label: "Sami (Northern Europe)" },
+    ],
+  },
+  {
+    category: "Middle Eastern",
+    groups: [
+      { key: "arabs", label: "Arabs (Middle East and North Africa)" },
+      { key: "kurds", label: "Kurds (Iraq, Turkey, Syria, Iran)" },
+      { key: "persians", label: "Persians (Iran)" },
+      { key: "jews", label: "Jews (Israel, diaspora communities)" },
+      { key: "assyrians", label: "Assyrians (Iraq, Syria)" },
+    ],
+  },
+  {
+    category: "Pacific Islanders",
+    groups: [
+      { key: "polynesians", label: "Polynesians (Hawaii, Samoa, Tonga)" },
+      { key: "melanesians", label: "Melanesians (Fiji, Papua New Guinea)" },
+      { key: "micronesians", label: "Micronesians (Guam, Palau)" },
+    ],
+  },
+  {
+    category: "Latin American",
+    groups: [
+      {
+        key: "mestizos",
+        label: "Mestizos (mixed European and Indigenous ancestry)",
+      },
+      {
+        key: "indigenous_latin_american",
+        label: "Indigenous Peoples (various groups across Latin America)",
+      },
+      {
+        key: "afro_latinos",
+        label: "Afro-Latinos (people of African descent in Latin America)",
+      },
+    ],
+  },
+]

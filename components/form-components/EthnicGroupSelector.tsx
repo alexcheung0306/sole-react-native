@@ -1,12 +1,7 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  Modal,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, Modal, ScrollView, TouchableOpacity } from 'react-native';
 import { X, Check } from 'lucide-react-native';
+import { ethnicGroups } from './options-to-use';
 
 interface EthnicGroupSelectorProps {
   visible: boolean;
@@ -15,17 +10,6 @@ interface EthnicGroupSelectorProps {
   onSave: (groups: Set<string>) => void;
   maxSelections?: number;
 }
-
-const AVAILABLE_ETHNIC_GROUPS = [
-  'African',
-  'Asian',
-  'European',
-  'Indigenous Peoples',
-  'Middle Eastern',
-  'Pacific Islanders',
-  'Latin American',
-  'No Preference',
-];
 
 export function EthnicGroupSelector({
   visible,
@@ -43,15 +27,31 @@ export function EthnicGroupSelector({
     }
   }, [visible, selectedGroups]);
 
-  const toggleGroup = (group: string) => {
+  const toggleGroup = (groupLabel: string) => {
     const newGroups = new Set(tempSelectedGroups);
-    if (newGroups.has(group)) {
-      // Remove group
-      newGroups.delete(group);
+    if (groupLabel === 'No Preference') {
+      // If "No Preference" is selected, clear all and add only "No Preference"
+      // If it's already selected, clear it
+      if (newGroups.has('No Preference')) {
+        newGroups.clear();
+      } else {
+        newGroups.clear();
+        newGroups.add('No Preference');
+      }
     } else {
-      // Add group (if not at max)
-      if (newGroups.size < maxSelections) {
-        newGroups.add(group);
+      // If selecting a regular group, remove "No Preference" if it exists
+      if (newGroups.has('No Preference')) {
+        newGroups.clear();
+      }
+      
+      if (newGroups.has(groupLabel)) {
+        // Remove group
+        newGroups.delete(groupLabel);
+      } else {
+        // Add group (if not at max)
+        if (newGroups.size < maxSelections) {
+          newGroups.add(groupLabel);
+        }
       }
     }
     setTempSelectedGroups(newGroups);
@@ -74,23 +74,23 @@ export function EthnicGroupSelector({
     >
       <View className="flex-1 bg-black">
         {/* Header */}
-        <View className="flex-row items-center justify-between px-4 pt-12 pb-3 border-b border-gray-800">
+        <View className="flex-row items-center justify-between border-b border-gray-800 px-4 pb-3 pt-12">
           <TouchableOpacity onPress={onClose} className="p-2">
             <X size={24} color="#ffffff" />
           </TouchableOpacity>
-          <Text className="text-white font-semibold text-lg">
+          <Text className="text-lg font-semibold text-white">
             Select Ethnic Groups ({tempSelectedGroups.size}/{maxSelections})
           </Text>
           <TouchableOpacity onPress={handleSave} className="p-2">
-            <Text className="text-gray-300 font-semibold">Done</Text>
+            <Text className="font-semibold text-gray-300">Done</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView className="flex-1 px-4 py-4" showsVerticalScrollIndicator={false}>
           {/* Selected Count Warning */}
           {tempSelectedGroups.size >= maxSelections && (
-            <View className="bg-yellow-500/20 border border-yellow-500 rounded-lg p-3 mb-4">
-              <Text className="text-yellow-500 text-sm">
+            <View className="mb-4 rounded-lg border border-yellow-500 bg-yellow-500/20 p-3">
+              <Text className="text-sm text-yellow-500">
                 Maximum {maxSelections} groups allowed. Deselect one to choose another.
               </Text>
             </View>
@@ -100,51 +100,66 @@ export function EthnicGroupSelector({
           {tempSelectedGroups.size > 0 && (
             <TouchableOpacity
               onPress={handleClearAll}
-              className="bg-red-500/20 border border-red-500 rounded-lg p-3 mb-4"
-            >
-              <Text className="text-red-400 text-center font-medium">Clear All</Text>
+              className="mb-4 rounded-lg border border-red-500 bg-red-500/20 p-3">
+              <Text className="text-center font-medium text-red-400">Clear All</Text>
             </TouchableOpacity>
           )}
 
-          {/* Group List */}
-          <View className="gap-2">
-            {AVAILABLE_ETHNIC_GROUPS.map((group) => {
-              const isSelected = tempSelectedGroups.has(group);
-              const isDisabled = !isSelected && tempSelectedGroups.size >= maxSelections;
-
-              return (
-                <TouchableOpacity
-                  key={group}
-                  onPress={() => !isDisabled && toggleGroup(group)}
-                  disabled={isDisabled}
-                  className={`flex-row items-center justify-between p-4 rounded-lg border ${
-                    isSelected
-                      ? 'bg-gray-500/20 border-gray-400'
-                      : isDisabled
-                      ? 'bg-zinc-900/50 border-white/10'
-                      : 'bg-zinc-900/70 border-white/10'
-                  }`}
-                >
-                  <Text
-                    className={`text-base font-medium ${
-                      isSelected
-                        ? 'text-gray-300'
-                        : isDisabled
-                        ? 'text-gray-600'
-                        : 'text-white'
-                    }`}
-                  >
-                    {group}
-                  </Text>
-                  {isSelected && (
-                    <View className="bg-gray-500 rounded-full p-1">
-                      <Check size={16} color="#ffffff" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
+          {/* No Preference Option */}
+          <View className="mb-6">
+            <View className="gap-2">
+              <TouchableOpacity
+                onPress={() => toggleGroup('No Preference')}
+                activeOpacity={1}
+                className="flex-row items-center justify-between rounded-lg border border-white/10 bg-zinc-900/70 p-4">
+                <Text className="text-base font-medium text-white">No Preference</Text>
+                {tempSelectedGroups.has('No Preference') && (
+                  <View className="rounded-full bg-gray-500 p-1">
+                    <Check size={16} color="#ffffff" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
+
+          {/* Ethnic Groups by Category */}
+          {ethnicGroups.map((category) => (
+            <View key={category.category} className="mb-6">
+              <Text className="mb-3 text-lg font-semibold text-white">{category.category}</Text>
+              <View className="gap-2">
+                {category.groups.map((group) => {
+                  const isSelected = tempSelectedGroups.has(group.label);
+                  const hasNoPreference = tempSelectedGroups.has('No Preference');
+                  const isDisabled = hasNoPreference || (!isSelected && tempSelectedGroups.size >= maxSelections);
+
+                  return (
+                    <TouchableOpacity
+                      key={group.key}
+                      onPress={() => !isDisabled && toggleGroup(group.label)}
+                      disabled={isDisabled}
+                      activeOpacity={1}
+                      className={`flex-row items-center justify-between rounded-lg border p-4 ${
+                        isDisabled
+                          ? 'border-white/10 bg-zinc-900/50'
+                          : 'border-white/10 bg-zinc-900/70'
+                      }`}>
+                      <Text
+                        className={`text-base font-medium ${
+                          isDisabled ? 'text-gray-600' : 'text-white'
+                        }`}>
+                        {group.label}
+                      </Text>
+                      {isSelected && (
+                        <View className="rounded-full bg-gray-500 p-1">
+                          <Check size={16} color="#ffffff" />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          ))}
         </ScrollView>
       </View>
     </Modal>
