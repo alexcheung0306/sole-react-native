@@ -127,6 +127,8 @@ export default function RoleCandidatesSwipeScreen() {
     setStableCandidates([]);
     setCurrentIndex(0);
     stableCandidatesInitializedRef.current = false;
+    hasNavigatedBackRef.current = false; // Reset navigation guard when route params change
+    wasLastCardRef.current = false; // Reset last card tracking
   }, [roleId, process]);
 
   // On focus, ensure we refetch and reset local swipe state
@@ -135,6 +137,8 @@ export default function RoleCandidatesSwipeScreen() {
       setStableCandidates([]);
       setCurrentIndex(0);
       stableCandidatesInitializedRef.current = false;
+      hasNavigatedBackRef.current = false; // Reset navigation guard on focus
+      wasLastCardRef.current = false; // Reset last card tracking
       queryClient.invalidateQueries({ queryKey: ['swipe-role-candidates'] });
       // Mark ManageCandidates queries as stale when entering swipe screen
       // They will refetch when ManageCandidates comes back into focus
@@ -413,6 +417,8 @@ export default function RoleCandidatesSwipeScreen() {
   // Reset swiped candidates when filters change or when navigating to a new process
   useEffect(() => {
     setSwipedCandidateIds(new Set());
+    hasNavigatedBackRef.current = false; // Reset navigation guard when filters/process change
+    wasLastCardRef.current = false; // Reset last card tracking
   }, [statusFilterSelection, process]);
 
   // Adjust index if current index is out of bounds after filtering
@@ -433,6 +439,100 @@ export default function RoleCandidatesSwipeScreen() {
     }
   }, [swipeCandidates.length, currentIndex, currentIndexShared]);
 
+  // Update refs to track latest values
+  useEffect(() => {
+    swipeCandidatesLengthRef.current = swipeCandidates.length;
+  }, [swipeCandidates.length]);
+
+  useEffect(() => {
+    swipedCandidateIdsSizeRef.current = swipedCandidateIds.size;
+  }, [swipedCandidateIds.size]);
+
+  // Backup: Navigate back if array becomes empty after swiping last card
+  // This handles cases where the animation callback might not fire
+  useEffect(() => {
+    if (wasLastCardRef.current && swipeCandidates.length === 0 && swipedCandidateIds.size > 0 && !hasNavigatedBackRef.current) {
+      // Use a small delay to ensure animation has time to complete
+      const timeoutId = setTimeout(() => {
+        if (!hasNavigatedBackRef.current) {
+          hasNavigatedBackRef.current = true;
+          
+          // Invalidate queries to ensure fresh data when returning
+          queryClient.invalidateQueries({ 
+            queryKey: ['role-candidates'],
+            refetchType: 'none'
+          });
+          queryClient.invalidateQueries({ 
+            queryKey: ['role-process-counts'],
+            refetchType: 'none'
+          });
+          queryClient.invalidateQueries({ 
+            queryKey: ['swipe-role-candidates'],
+            refetchType: 'none'
+          });
+          
+          // Navigate back to project detail
+          if (projectId) {
+            router.push({
+              pathname: '/(protected)/(client)/projects/project-detail',
+              params: { id: projectId },
+            });
+          } else {
+            router.back();
+          }
+        }
+      }, 500); // Wait for animation to complete (spring animation is ~300-400ms)
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [swipeCandidates.length, swipedCandidateIds.size, queryClient, router, projectId]);
+
+  // Handle navigation back after slide out animation finishes
+  const handleExitAnimationEndWithNavigation = useCallback((finishedIndex: number) => {
+    // Clear exiting index
+    setExitingIndex((prevExitingIndex) => {
+      if (prevExitingIndex === finishedIndex) {
+        return null;
+      }
+      return prevExitingIndex;
+    });
+    
+    // Check if we were swiping the last card and now the array is empty
+    // Use requestAnimationFrame to ensure state updates have been processed
+    requestAnimationFrame(() => {
+      // Check if all candidates have been swiped out after animation completes
+      // Use refs to get the latest values (callback closure might be stale)
+      // Only navigate if we were on the last card, array is now empty, we've swiped candidates, and haven't navigated
+      if (wasLastCardRef.current && swipeCandidatesLengthRef.current === 0 && swipedCandidateIdsSizeRef.current > 0 && !hasNavigatedBackRef.current) {
+        hasNavigatedBackRef.current = true;
+        
+        // Invalidate queries to ensure fresh data when returning
+        queryClient.invalidateQueries({ 
+          queryKey: ['role-candidates'],
+          refetchType: 'none'
+        });
+        queryClient.invalidateQueries({ 
+          queryKey: ['role-process-counts'],
+          refetchType: 'none'
+        });
+        queryClient.invalidateQueries({ 
+          queryKey: ['swipe-role-candidates'],
+          refetchType: 'none'
+        });
+        
+        // Navigate back to project detail after animation completes
+        if (projectId) {
+          router.push({
+            pathname: '/(protected)/(client)/projects/project-detail',
+            params: { id: projectId },
+          });
+        } else {
+          router.back();
+        }
+      }
+    });
+  }, [queryClient, router, projectId]);
+
   // Refs
   const availableActionsRef = useRef<string[]>([]);
   const currentApplicantRef = useRef<any>(null);
@@ -444,6 +544,10 @@ export default function RoleCandidatesSwipeScreen() {
   const roleIdRef = useRef(roleId);
   const currentIndexRef = useRef(currentIndex);
   const isMovingToNextRef = useRef(false); // Guard to prevent multiple calls
+  const hasNavigatedBackRef = useRef(false); // Guard to prevent multiple navigations
+  const swipeCandidatesLengthRef = useRef(swipeCandidates.length);
+  const swipedCandidateIdsSizeRef = useRef(swipedCandidateIds.size);
+  const wasLastCardRef = useRef(false); // Track if we were swiping the last card
 
   // Update refs
   useEffect(() => {
@@ -556,6 +660,9 @@ export default function RoleCandidatesSwipeScreen() {
     // Get current candidate before marking as swiped
     const currentApplicant = currentApplicantRef.current;
     const currentIndexValue = currentIndexRef.current;
+    
+    // Check if this was the last card (before marking as swiped)
+    wasLastCardRef.current = swipeCandidatesLengthRef.current === 1;
     
     // Mark current candidate as swiped
     if (currentApplicant?.id) {
@@ -926,11 +1033,7 @@ export default function RoleCandidatesSwipeScreen() {
                       onSwipeComplete={handleCardSwipeComplete}
                       onOfferSuccess={() => router.back()}
                       onSwipeStartExit={() => setExitingIndex(currentIndex)}
-                      onExitAnimationEnd={(finishedIndex) => {
-                        if (exitingIndex === finishedIndex) {
-                          setExitingIndex(null);
-                        }
-                      }}
+                      onExitAnimationEnd={handleExitAnimationEndWithNavigation}
                       onSwipeAction={executeSwipeRightAction}
                       onSwipeReject={executeSwipeLeftReject}
                       onHighlightAction={setHighlightedAction}

@@ -77,7 +77,8 @@ export default function ContractsTable({
       {/* Select All Header (only in select mode) */}
       {viewMode === 'select' && tableRows.length > 0 && (
         <TouchableOpacity
-          className="mb-3 flex-row items-center gap-3 rounded-xl bg-gray-100 px-4 py-3"
+        activeOpacity={1}
+          className="mb-3 flex-row items-center gap-3 rounded-xl bg-zinc-800 px-4 py-3"
           onPress={handleSelectAll}>
           <View
             className={`h-5 w-5 items-center justify-center rounded border-2 ${
@@ -139,7 +140,7 @@ export default function ContractsTable({
             return (
               <View key={row.key} className="relative">
                 <TouchableOpacity
-                  activeOpacity={0.7}
+                  activeOpacity={1}
                   className={`flex-row gap-3 rounded-2xl border bg-zinc-800 p-4 ${
                     isSelected ? 'border-blue-500 bg-blue-500/10' : 'border-zinc-700/50'
                   }`}
