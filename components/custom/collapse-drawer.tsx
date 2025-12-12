@@ -38,7 +38,7 @@ export default function CollapseDrawer({
   title = '',
   children,
   height = 0.88,
-  autoHeight = true,
+  autoHeight = false,
 }: Props) {
   const { height: SCREEN_HEIGHT } = Dimensions.get('window');
   const insets = useSafeAreaInsets();

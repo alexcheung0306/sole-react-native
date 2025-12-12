@@ -131,7 +131,7 @@ export function ImageCarousel({ media }: ImageCarouselProps) {
       <View
         style={{
           width: SCREEN_WIDTH,
-          height: singleImageHeight,
+          height: 'auto',
           overflow: 'visible',
           position: 'relative',
         }}>
@@ -165,7 +165,7 @@ export function ImageCarousel({ media }: ImageCarouselProps) {
       <FlatList
         style={{
           width: SCREEN_WIDTH,
-          height: currentHeight,
+          height: 'auto',
           overflow: 'visible',
           position: 'relative',
         }}

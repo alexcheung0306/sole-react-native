@@ -54,6 +54,8 @@ export function MediaZoom2({
   const backdropOpacity = useSharedValue(0);
   // Prevent duplicate resets when both gestures fire end events
   const hasResetOnEnd = useSharedValue(false);
+  // Track if a reset animation is in progress to prevent gestures during reset
+  const isResetting = useSharedValue(false);
 
   const initialFocalX = useSharedValue(0);
   const initialFocalY = useSharedValue(0);
@@ -76,11 +78,76 @@ export function MediaZoom2({
     [debugLog]
   );
 
-  const reset = React.useCallback(() => {
+  const reset = React.useCallback((instant = false) => {
     'worklet';
-    scale.value = withSpring(1);
-    translateX.value = withSpring(0);
-    translateY.value = withSpring(0);
+    // Cancel any ongoing animations first
+    cancelAnimation(scale);
+    cancelAnimation(translateX);
+    cancelAnimation(translateY);
+    
+    // Immediately prevent all interactions before starting animations
+    isZoomActive.value = false;
+    hasResetOnEnd.value = false;
+    isPanning.value = false;
+    isPinching.value = false;
+    
+    if (onZoomActiveChange) {
+      runOnJS(onZoomActiveChange)(false);
+    }
+    
+    // if (!instant) {
+    //   // Instant reset without animation
+    //   isResetting.value = false;
+    //   scale.value = 1;
+    //   translateX.value = 0;
+    //   translateY.value = 0;
+    //   backdropOpacity.value = 0;
+    // } else {
+    //   // Mark that we're resetting to prevent gestures during animation
+    //   isResetting.value = true;
+      
+    //   // Smooth reset with gentle spring animation
+    //   // Using high damping and lower stiffness for a smooth, non-bouncy transition
+    //   const springConfig = {
+    //     damping: 20,
+    //     stiffness: 90,
+    //     mass: 0.5,
+    //   };
+      
+    //   // Use callback on scale animation to clear the resetting flag when it completes
+    //   // Scale is typically the longest animation, so when it's done, others are too
+    //   scale.value = withSpring(1, springConfig, (finished) => {
+    //     'worklet';
+    //     if (finished) {
+    //       isResetting.value = false;
+    //     }
+    //   });
+    //   translateX.value = withSpring(0, springConfig);
+    //   translateY.value = withSpring(0, springConfig);
+    //   backdropOpacity.value = withTiming(0, { duration: 250 });
+    // }
+
+    isResetting.value = true;
+      
+    // Smooth reset with gentle spring animation
+    // Using high damping and lower stiffness for a smooth, non-bouncy transition
+    const springConfig = {
+      damping: 20,
+      stiffness: 90,
+      mass: 0.5,
+    };
+    
+    // Use callback on scale animation to clear the resetting flag when it completes
+    // Scale is typically the longest animation, so when it's done, others are too
+    scale.value = withSpring(1, springConfig, (finished) => {
+      'worklet';
+      if (finished) {
+        isResetting.value = false;
+      }
+    });
+    translateX.value = withSpring(0, springConfig);
+    translateY.value = withSpring(0, springConfig);
+    backdropOpacity.value = withTiming(0, { duration: 250 });
 
     savedScale.value = 1;
     savedTranslateX.value = 0;
@@ -88,24 +155,17 @@ export function MediaZoom2({
 
     panOffsetX.value = 0;
     panOffsetY.value = 0;
-
-    isZoomActive.value = false;
-    backdropOpacity.value = withTiming(0);
-    hasResetOnEnd.value = false;
-    if (onZoomActiveChange) {
-      runOnJS(onZoomActiveChange)(false);
-    }
   }, []);
 
   // Shared pan-end handler so we can call it from pinch end when no fingers remain
   const handlePanEndReset = React.useCallback(
-    (payload: Record<string, any>) => {
+    (payload: Record<string, any>, instant = false) => {
       'worklet';
       if (hasResetOnEnd.value) {
         return;
       }
       hasResetOnEnd.value = true;
-      reset();
+      reset(instant);
       logGesture('pan.end', payload);
     },
     [reset, logGesture]
@@ -114,6 +174,10 @@ export function MediaZoom2({
   const pinchGesture = Gesture.Pinch()
     .onStart((e) => {
       'worklet';
+      // Prevent pinch if reset animation is in progress
+      if (isResetting.value) {
+        return;
+      }
       hasResetOnEnd.value = false;
       isPinching.value = true;
       // Don't set isZoomActive here; wait for actual scale change in onUpdate
@@ -256,30 +320,30 @@ export function MediaZoom2({
         return;
       }
 
-      // Always reset if resetOnRelease is true
-      if (resetOnRelease) {
-        // Only reset if we are NOT panning (i.e., we let go of everything)
-        // If we are still panning (isPanning is true), wait for pan to end.
-        // However, pinch end often fires before pan end if we lift all fingers at once.
-        // Let's check number of pointers in pan or overall state?
-        // Actually, if we lift all fingers, both pinch.onEnd and pan.onEnd will fire.
-        if (!isPanning.value) {
-          reset();
+      // If all fingers are released, smoothly reset if resetOnRelease is enabled
+      if (e.numberOfPointers === 0) {
+        // Cancel pan gesture immediately to prevent any delays
+        isPanning.value = false;
+        
+        if (resetOnRelease) {
+          // Smooth animated reset when all fingers are released
+          reset(true);
         }
-      }
-
-      // If all fingers are lifted and pan isn't active, treat this as a pan end
-      // so we consistently snap back.
-      if (e.numberOfPointers === 0 && !isPanning.value) {
-        handlePanEndReset({
-          velocityX: 0,
-          velocityY: 0,
+        
+        logGesture('pinch.end.allFingersReleased', {
+          scale: scale.value,
           translateX: translateX.value,
           translateY: translateY.value,
-          scale: scale.value,
-          reason: 'pinch.end.noPointers',
+          resetOnRelease,
         });
+        return;
       }
+
+      // Always reset if resetOnRelease is true (for cases where numberOfPointers might not be 0)
+      if (resetOnRelease && !isPanning.value) {
+        reset();
+      }
+
       logGesture('pinch.end', {
         pointers: e.numberOfPointers,
         scale: scale.value,
@@ -290,7 +354,8 @@ export function MediaZoom2({
     .onFinalize(() => {
       'worklet';
       // Fallback: if pinch is cancelled or ends without firing onEnd, ensure reset when no pan is active
-      if (!isPanning.value) {
+      if (!isPanning.value && resetOnRelease) {
+        isPanning.value = false;
         handlePanEndReset({
           velocityX: 0,
           velocityY: 0,
@@ -298,7 +363,7 @@ export function MediaZoom2({
           translateY: translateY.value,
           scale: scale.value,
           reason: 'pinch.finalize',
-        });
+        }, false);
       }
     });
 
@@ -307,6 +372,10 @@ export function MediaZoom2({
     .manualActivation(true)
     .onStart((e) => {
       'worklet';
+      // Prevent pan if reset animation is in progress
+      if (isResetting.value) {
+        return;
+      }
       hasResetOnEnd.value = false;
 
       // Note: We rely on onTouchesMove to prevent invalid activation.
@@ -337,6 +406,11 @@ export function MediaZoom2({
     // Add manual activation to selectively enable pan only when zoomed
     .onTouchesMove((e, state) => {
       'worklet';
+      // Prevent pan activation if reset animation is in progress
+      if (isResetting.value) {
+        state.fail();
+        return;
+      }
       if (scale.value > 1 || isZoomActive.value) {
         state.activate();
       } else if (e.allTouches.length < 2) {
@@ -345,6 +419,10 @@ export function MediaZoom2({
     })
     .onUpdate((e) => {
       'worklet';
+      // Prevent pan updates if reset animation is in progress
+      if (isResetting.value) {
+        return;
+      }
       // If we are pinching, we track the offset but don't apply translation here.
       if (isPinching.value) {
         panOffsetX.value = e.translationX;
@@ -364,6 +442,7 @@ export function MediaZoom2({
       savedTranslateY.value = translateY.value;
 
       // Reset to original position/scale when pan ends
+      // Always use smooth animated reset
       handlePanEndReset({
         velocityX: e.velocityX,
         velocityY: e.velocityY,
@@ -371,11 +450,14 @@ export function MediaZoom2({
         translateY: translateY.value,
         scale: scale.value,
         reason: 'pan.end',
-      });
+        numberOfPointers: e.numberOfPointers,
+      }, true);
     })
     .onFinalize((e) => {
       'worklet';
       // Fallback in case onEnd doesn't fire (e.g., cancellation)
+      isPanning.value = false;
+      // Always use smooth animated reset
       handlePanEndReset({
         velocityX: e?.velocityX ?? 0,
         velocityY: e?.velocityY ?? 0,
@@ -383,7 +465,8 @@ export function MediaZoom2({
         translateY: translateY.value,
         scale: scale.value,
         reason: 'pan.finalize',
-      });
+        numberOfPointers: e?.numberOfPointers ?? 0,
+      }, true);
     });
 
   // Activate pan ONLY when zoom is active or scale > 1, otherwise fail to let scrollview take over

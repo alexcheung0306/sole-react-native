@@ -121,8 +121,6 @@ export default React.memo(function UserHome() {
     });
   };
 
-
-
   // Transform backend response to component format with defensive null checks
   const transformPost = (backendPost: PostWithDetailsResponse) => {
     // DEFENSIVE CHECK: Handle missing soleUserInfo
@@ -192,14 +190,16 @@ export default React.memo(function UserHome() {
     <BottomSheetModalProvider>
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-black">
-        <CollapsibleHeader title={
-          <View className="pb-2">
-            <SoleLogo  />
-          </View>
-        }
-        animatedStyle={animatedHeaderStyle}
-        onHeightChange={handleHeightChange}
-        isDark={true} />
+        <CollapsibleHeader
+          title={
+            <View className="pb-2">
+              <SoleLogo />
+            </View>
+          }
+          animatedStyle={animatedHeaderStyle}
+          onHeightChange={handleHeightChange}
+          isDark={true}
+        />
 
         <Animated.FlatList
           data={posts}
@@ -218,7 +218,7 @@ export default React.memo(function UserHome() {
           onScroll={onScroll}
           scrollEventThrottle={16}
           contentContainerStyle={{
-            paddingTop: insets.top+60, // Increased for header space
+            paddingTop: insets.top + 70, // Increased for header space
             paddingBottom: insets.bottom + 80,
           }}
           onEndReached={() => {
