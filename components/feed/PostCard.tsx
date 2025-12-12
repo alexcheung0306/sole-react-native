@@ -15,9 +15,10 @@ interface PostCardProps {
   onAddComment: (postId: string, content: string) => void;
   comments: Comment[];
   onZoomChange?: (isZooming: boolean) => void;
+  onScaleChange?: (scale: number) => void;
 }
 
-export function PostCard({ post, onLike, onAddComment, comments, onZoomChange }: PostCardProps) {
+export function PostCard({ post, onLike, onAddComment, comments, onZoomChange, onScaleChange }: PostCardProps) {
   const router = useRouter();
   const commentSheetRef = useRef<BottomSheet>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -113,7 +114,7 @@ export function PostCard({ post, onLike, onAddComment, comments, onZoomChange }:
         </View>
 
         {/* Body: Image/Video */}
-        <ImageCarousel media={post.media} onZoomChange={onZoomChange} />
+        <ImageCarousel media={post.media} onZoomChange={onZoomChange} onScaleChange={onScaleChange} />
 
         {/* Footer: Actions & Caption */}
         <View className="px-4 py-3">

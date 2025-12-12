@@ -6,6 +6,7 @@ import Animated, {
   withTiming,
   withSpring,
   runOnJS,
+  cancelAnimation,
 } from 'react-native-reanimated';
 
 export const useScrollHeader = () => {
@@ -89,27 +90,57 @@ export const useScrollHeader = () => {
   }, []);
 
   const collapseHeader = useCallback(() => {
-    if (headerHeight > 0 && headerTranslateY.value !== -headerHeight) {
+    if (headerHeight > 0) {
+      // Cancel any ongoing animation
+      cancelAnimation(headerTranslateY);
       isAnimating.value = true;
       headerTranslateY.value = withTiming(-headerHeight, {
-        duration: 200,
-      }, () => {
-        isAnimating.value = false;
+        duration: 100, // Faster animation for zoom responsiveness
+      }, (finished) => {
+        if (finished) {
+          isAnimating.value = false;
+        }
       });
     }
   }, [headerHeight]);
 
   const showHeader = useCallback(() => {
-    if (headerTranslateY.value !== 0) {
-      isAnimating.value = true;
-      headerTranslateY.value = withSpring(0, {
-        damping: 35,
-        stiffness: 200,
-        mass: 1,
-      }, () => {
+    // Cancel any ongoing animation
+    cancelAnimation(headerTranslateY);
+    isAnimating.value = true;
+    headerTranslateY.value = withTiming(0, {
+      duration: 100, // Faster animation for zoom responsiveness
+    }, (finished) => {
+      if (finished) {
         isAnimating.value = false;
-      });
-    }
+      }
+    });
+  }, []);
+
+  // Set header position based on zoom scale (proportional translation)
+  // scale: minScale = start position, maxScale = fully collapsed
+  const setHeaderPositionByScale = useCallback((scale: number, startPosition: number, minScale: number = 1, maxScale: number = 3) => {
+    if (headerHeight <= 0) return;
+    
+    // Cancel any ongoing animation
+    cancelAnimation(headerTranslateY);
+    
+    // Normalize scale: minScale -> 0 (start position), maxScale -> 1 (fully collapsed)
+    const normalizedScale = Math.max(0, Math.min(1, (scale - minScale) / (maxScale - minScale)));
+    
+    // Calculate translateY: interpolate from startPosition to -headerHeight
+    const collapsedPosition = -headerHeight;
+    const targetTranslateY = startPosition + (collapsedPosition - startPosition) * normalizedScale;
+    
+    // Update header position smoothly but quickly
+    headerTranslateY.value = withTiming(targetTranslateY, {
+      duration: 50, // Very quick response to scale changes for smooth following
+    });
+  }, [headerHeight]);
+
+  // Get current header translateY value (for JS use)
+  const getHeaderTranslateY = useCallback(() => {
+    return headerTranslateY.value;
   }, []);
 
   // Get current collapsed state (for JS use)
@@ -128,5 +159,7 @@ export const useScrollHeader = () => {
     collapseHeader,
     showHeader,
     isHeaderCollapsed: getIsHeaderCollapsed,
+    setHeaderPositionByScale,
+    getHeaderTranslateY,
   };
 };

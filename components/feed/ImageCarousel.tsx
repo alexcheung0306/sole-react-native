@@ -22,11 +22,12 @@ interface MediaItem {
 interface ImageCarouselProps {
   media: MediaItem[];
   onZoomChange?: (isZooming: boolean) => void;
+  onScaleChange?: (scale: number) => void;
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export function ImageCarousel({ media, onZoomChange }: ImageCarouselProps) {
+export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarouselProps) {
   // const ZoomableView: any = ReactNativeZoomableView;
   // if (ZoomableView && !ZoomableView.displayName) {
   //   ZoomableView.displayName = 'ReactNativeZoomableView';
@@ -201,6 +202,7 @@ export function ImageCarousel({ media, onZoomChange }: ImageCarouselProps) {
               minScale={1}
               maxScale={3}
               onZoomActiveChange={handleZoomChange}
+              onScaleChange={onScaleChange}
             />
           );
         }}

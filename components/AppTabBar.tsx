@@ -1,9 +1,11 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Animated, Easing } from 'react-native';
+import { View, Text, TouchableOpacity, Animated as RNAnimated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTabContext, UserTab, ClientTab } from '~/context/AppTabContext';
 import { useUser } from '@clerk/clerk-expo';
 import { useRouter, usePathname } from 'expo-router';
+import Animated from 'react-native-reanimated';
+import { useScrollAppTabBar } from '~/hooks/useScrollAppTabBar';
 import {
   BriefcaseBusiness,
   Camera,
@@ -29,9 +31,10 @@ export default function AppTabBar() {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const { animatedTabBarStyle, handleHeightChange, collapseTabBar, showTabBar, setTabBarPositionByScale, getTabBarTranslateY } = useScrollAppTabBar();
 
   // Simple fade animation for mode transitions
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const fadeAnim = useRef(new RNAnimated.Value(1)).current;
   const prevModeRef = useRef<'user' | 'client' | null>(null);
 
   // Animate fade when mode changes
@@ -40,14 +43,14 @@ export default function AppTabBar() {
 
     if (currentMode && prevModeRef.current && prevModeRef.current !== currentMode) {
       // Mode changed - fade out then fade in
-      Animated.sequence([
-        Animated.timing(fadeAnim, {
+      RNAnimated.sequence([
+        RNAnimated.timing(fadeAnim, {
           toValue: 0,
           duration: 150,
           easing: Easing.out(Easing.ease),
           useNativeDriver: true,
         }),
-        Animated.timing(fadeAnim, {
+        RNAnimated.timing(fadeAnim, {
           toValue: 1,
           duration: 200,
           easing: Easing.in(Easing.ease),
@@ -65,6 +68,8 @@ export default function AppTabBar() {
   if (!isUserMode && !isClientMode) {
     return null;
   }
+
+  // Handlers are automatically exposed via the hook's useEffect
 
   // Sync active tab with pathname
   useEffect(() => {
@@ -232,16 +237,23 @@ export default function AppTabBar() {
   const profileLabel = isUserMode ? 'User' : 'Client';
 
   return (
-    <View
-      style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        overflow: 'hidden',
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(255, 255, 255, 0.3)',
-        zIndex: 10,
+    <Animated.View
+      style={[
+        {
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          overflow: 'hidden',
+          borderTopWidth: 1,
+          borderTopColor: 'rgba(255, 255, 255, 0.3)',
+          zIndex: 10,
+        },
+        animatedTabBarStyle,
+      ]}
+      onLayout={(event) => {
+        const { height } = event.nativeEvent.layout;
+        handleHeightChange(height);
       }}>
       {/* Glass effect overlay */}
       <GlassOverlay intensity={80} tint="dark" />
@@ -251,7 +263,7 @@ export default function AppTabBar() {
           paddingBottom: insets.bottom,
           paddingTop: 4,
         }}>
-        <Animated.View
+        <RNAnimated.View
           style={{
             flexDirection: 'row',
             justifyContent: 'space-around',
@@ -297,8 +309,8 @@ export default function AppTabBar() {
             activeTab={activeTab}
             profileTab={profileTab}
           />
-        </Animated.View>
+        </RNAnimated.View>
       </View>
-    </View>
+    </Animated.View>
   );
 }

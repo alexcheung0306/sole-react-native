@@ -18,6 +18,7 @@ interface MediaZoom2Props {
   minScale?: number;
   maxScale?: number;
   onZoomActiveChange?: (active: boolean) => void;
+  onScaleChange?: (scale: number) => void;
 }
 
 export function MediaZoom2({
@@ -28,6 +29,7 @@ export function MediaZoom2({
   minScale = 1,
   maxScale = 5,
   onZoomActiveChange,
+  onScaleChange,
 }: MediaZoom2Props) {
   const pinchSensitivity = 1.0;
   const isLogAvaliable =false;
@@ -150,6 +152,11 @@ export function MediaZoom2({
     translateY.value = withSpring(0, springConfig);
     backdropOpacity.value = withTiming(0, { duration: 250 });
 
+    // Notify scale reset
+    if (onScaleChange) {
+      runOnJS(onScaleChange)(1);
+    }
+
     savedScale.value = 1;
     savedTranslateX.value = 0;
     savedTranslateY.value = 0;
@@ -227,11 +234,18 @@ export function MediaZoom2({
     .onUpdate((e) => {
       'worklet';
 
+      // Always notify scale change FIRST to start header/tab bar animation early
+      // This makes the animation start as soon as pinch begins, even before zoom is "active"
+      if (onScaleChange) {
+        const currentScale = Math.max(minScale, Math.min(maxScale, savedScale.value * e.scale));
+        runOnJS(onScaleChange)(currentScale);
+      }
+
       if (!isZoomActive.value) {
-        // Enforce a threshold to distinguish "push" (parallel fingers) from "pinch" (zoom)
+        // Start animation earlier - use a smaller threshold (2%) to start header/tab bar animation sooner
         const scaleChange = Math.abs(e.scale - 1);
-        if (scaleChange > 0.05) {
-          // 5% threshold
+        if (scaleChange > 0.02) {
+          // 2% threshold - start animation earlier
           isZoomActive.value = true;
           if (onZoomActiveChange) {
             runOnJS(onZoomActiveChange)(true);
@@ -248,7 +262,7 @@ export function MediaZoom2({
           // effectively treating current e.scale as the baseline
           savedScale.value = scale.value / e.scale;
         } else {
-          // Wait until threshold is met
+          // Wait until threshold is met, but scale change was already notified above
           return;
         }
       }
@@ -288,6 +302,11 @@ export function MediaZoom2({
       scale.value = clampedScale;
       translateX.value = newTx;
       translateY.value = newTy;
+
+      // Notify scale change for proportional header/tab bar translation
+      if (onScaleChange) {
+        runOnJS(onScaleChange)(clampedScale);
+      }
 
       // Sync pan saved state so if we release one finger, pan takes over smoothly
       // This is crucial for avoiding jumps when transitioning from 2 fingers to 1 finger
