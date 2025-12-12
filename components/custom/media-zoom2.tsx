@@ -30,7 +30,8 @@ export function MediaZoom2({
   onZoomActiveChange,
 }: MediaZoom2Props) {
   const pinchSensitivity = 1.0;
-
+  const isLogAvaliable =false;
+  
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -72,7 +73,7 @@ export function MediaZoom2({
   const logGesture = React.useCallback(
     (label: string, payload: Record<string, any>) => {
       'worklet';
-      if (!__DEV__) return;
+      if (!__DEV__ || !isLogAvaliable) return;
       runOnJS(debugLog)(label, payload);
     },
     [debugLog]

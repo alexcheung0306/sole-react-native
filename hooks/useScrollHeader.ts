@@ -88,11 +88,45 @@ export const useScrollHeader = () => {
     lastScrollY.current = 0;
   }, []);
 
+  const collapseHeader = useCallback(() => {
+    if (headerHeight > 0 && headerTranslateY.value !== -headerHeight) {
+      isAnimating.value = true;
+      headerTranslateY.value = withTiming(-headerHeight, {
+        duration: 200,
+      }, () => {
+        isAnimating.value = false;
+      });
+    }
+  }, [headerHeight]);
+
+  const showHeader = useCallback(() => {
+    if (headerTranslateY.value !== 0) {
+      isAnimating.value = true;
+      headerTranslateY.value = withSpring(0, {
+        damping: 35,
+        stiffness: 200,
+        mass: 1,
+      }, () => {
+        isAnimating.value = false;
+      });
+    }
+  }, []);
+
+  // Get current collapsed state (for JS use)
+  // Header is considered collapsed if translateY is less than -half of header height
+  const getIsHeaderCollapsed = useCallback(() => {
+    // Access shared value directly - this will be called from JS thread
+    return headerTranslateY.value < -headerHeight / 2;
+  }, [headerHeight]);
+
   return {
     animatedHeaderStyle,
     scrollY,
     onScroll,
     handleHeightChange,
     resetHeader,
+    collapseHeader,
+    showHeader,
+    isHeaderCollapsed: getIsHeaderCollapsed,
   };
 };

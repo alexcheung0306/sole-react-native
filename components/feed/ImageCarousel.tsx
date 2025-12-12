@@ -8,7 +8,7 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from 'react-native';
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 // import { ReactNativeZoomableView } from '@openspacelabs/react-native-zoomable-view';
 import { MediaZoom2 } from '@/components/custom/media-zoom2';
@@ -21,11 +21,12 @@ interface MediaItem {
 
 interface ImageCarouselProps {
   media: MediaItem[];
+  onZoomChange?: (isZooming: boolean) => void;
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export function ImageCarousel({ media }: ImageCarouselProps) {
+export function ImageCarousel({ media, onZoomChange }: ImageCarouselProps) {
   // const ZoomableView: any = ReactNativeZoomableView;
   // if (ZoomableView && !ZoomableView.displayName) {
   //   ZoomableView.displayName = 'ReactNativeZoomableView';
@@ -35,6 +36,12 @@ export function ImageCarousel({ media }: ImageCarouselProps) {
   const [currentHeight, setCurrentHeight] = useState<number>(SCREEN_WIDTH); // Default to square
   const [isZooming, setIsZooming] = useState(false);
   const listRef = useRef<FlatList<MediaItem>>(null);
+
+  // Handle zoom state changes - update internal state and notify parent
+  const handleZoomChange = useCallback((isZooming: boolean) => {
+    setIsZooming(isZooming);
+    onZoomChange?.(isZooming);
+  }, [onZoomChange]);
 
   const logOutZoomState = React.useCallback(
     (_event: any, _gestureState: any, zoomState: { zoomLevel?: number }) => {
@@ -193,7 +200,7 @@ export function ImageCarousel({ media }: ImageCarouselProps) {
               resetOnRelease={true}
               minScale={1}
               maxScale={3}
-              onZoomActiveChange={setIsZooming}
+              onZoomActiveChange={handleZoomChange}
             />
           );
         }}

@@ -26,9 +26,11 @@ import {
 
 export default React.memo(function UserHome() {
   const insets = useSafeAreaInsets();
-  const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
+  const { animatedHeaderStyle, onScroll, handleHeightChange, collapseHeader, showHeader, isHeaderCollapsed } = useScrollHeader();
   const { soleUserId } = useSoleUserContext();
   const queryClient = useQueryClient();
+  const [isAnyImageZooming, setIsAnyImageZooming] = React.useState(false);
+  const headerStateBeforeZoom = React.useRef<boolean | null>(null); // null = not zooming, true = was collapsed, false = was open
 
   // Fetch posts from real API with infinite scroll
   const {
@@ -121,6 +123,29 @@ export default React.memo(function UserHome() {
     });
   };
 
+  // Handle zoom state changes - collapse header when any image is zooming
+  const handleZoomChange = React.useCallback((isZooming: boolean) => {
+    setIsAnyImageZooming((prev) => {
+      const wasZooming = prev;
+      const nowZooming = isZooming;
+      
+      if (!wasZooming && nowZooming) {
+        // Zoom just started - save current header state and collapse
+        headerStateBeforeZoom.current = isHeaderCollapsed();
+        collapseHeader();
+      } else if (wasZooming && !nowZooming) {
+        // Zoom just ended - restore header to previous state if it was open
+        if (headerStateBeforeZoom.current === false) {
+          // Header was open before zoom, restore it
+          showHeader();
+        }
+        headerStateBeforeZoom.current = null;
+      }
+      
+      return nowZooming;
+    });
+  }, [collapseHeader, showHeader, isHeaderCollapsed]);
+
   // Transform backend response to component format with defensive null checks
   const transformPost = (backendPost: PostWithDetailsResponse) => {
     // DEFENSIVE CHECK: Handle missing soleUserInfo
@@ -211,6 +236,7 @@ export default React.memo(function UserHome() {
                 onLike={handleLike}
                 onAddComment={handleAddComment}
                 comments={[]} // Comments will be fetched when sheet opens
+                onZoomChange={handleZoomChange}
               />
             );
           }}
