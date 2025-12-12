@@ -8,6 +8,7 @@ interface CollapsibleHeaderProps {
   title: string | React.ReactNode;
   headerRight?: React.ReactNode;
   headerLeft?: React.ReactNode;
+  secondHeader?: React.ReactNode;
   animatedStyle?: any; // Reanimated animated style
   onHeightChange?: (height: number) => void;
   backgroundColor?: string;
@@ -20,6 +21,7 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
   title,
   headerRight,
   headerLeft,
+  secondHeader = null,
   animatedStyle,
   onHeightChange,
   backgroundColor,
@@ -34,11 +36,14 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
   const defaultText = isDark ? '#fff' : '#000';
   const borderColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0,0,0,0.1)';
 
-  const handleLayout = useCallback((event: any) => {
-    const { height } = event.nativeEvent.layout;
-    // console.log('Header height:', height); // Debug: Remove after testing
-    onHeightChange?.(height);
-  }, [onHeightChange]);
+  const handleLayout = useCallback(
+    (event: any) => {
+      const { height } = event.nativeEvent.layout;
+      // console.log('Header height:', height); // Debug: Remove after testing
+      onHeightChange?.(height);
+    },
+    [onHeightChange]
+  );
 
   return (
     <Animated.View
@@ -52,11 +57,10 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
         },
         animatedStyle,
       ]}
-      onLayout={handleLayout}
-    >
+      onLayout={handleLayout}>
       {/* Glass effect overlay */}
       <GlassOverlay intensity={80} tint={isDark ? 'dark' : 'light'} />
-      
+
       {/* Border */}
       <View
         style={{
@@ -68,8 +72,8 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
           borderBottomColor: borderColor,
         }}
       />
-      <StatusBar 
-        barStyle={isDark ? "light-content" : "dark-content"} 
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor="transparent"
         translucent
       />
@@ -81,34 +85,40 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           minHeight: 56, // Increased min height for better proportions
-        }}
-      >
+          paddingBottom: secondHeader ? 8 : 16, // Reduce bottom padding when secondHeader exists
+        }}>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
           {headerLeft}
           {typeof title === 'string' ? (
             <Text
               style={{
-                paddingBottom: 16,
                 fontSize: 18,
                 fontWeight: '600',
                 color: textColor || defaultText,
                 marginLeft: headerLeft ? 8 : 0,
-              }}
-            >
+              }}>
               {title}
             </Text>
           ) : (
-            <View style={{ marginLeft: headerLeft ? 8 : 0, flex: 1, marginRight: headerRight ? 8 : 0 }}>
+            <View
+              style={{ marginLeft: headerLeft ? 8 : 0, flex: 1, marginRight: headerRight ? 8 : 0 }}>
               {title}
             </View>
           )}
         </View>
-        {headerRight && (
-          <View style={{ flex: 1, alignItems: 'flex-end' }}>
-            {headerRight}
-          </View>
-        )}
+        {headerRight && <View style={{ flex: 1, alignItems: 'flex-end' }}>{headerRight}</View>}
       </View>
+
+      {secondHeader && (
+        <View
+          style={{
+            paddingHorizontal: 0,
+            paddingBottom: 12,
+            backgroundColor: 'transparent',
+          }}>
+          {secondHeader}
+        </View>
+      )}
     </Animated.View>
   );
 };

@@ -233,13 +233,44 @@ export default function ProjectDetail({ scrollHandler }: { scrollHandler: (event
               <ChevronLeft color="#93c5fd" size={24} />
             </TouchableOpacity>
           }
+          secondHeader={
+            <View className="gap-2">
+              {/* Project Chips */}
+              <View className={`flex-row flex-wrap items-center gap-3 px-2`}>
+                <View
+                  className="rounded-full px-3 py-1"
+                  style={{ backgroundColor: `${statusTint}33` }}>
+                  <Text className="text-xs font-semibold text-white" style={{ color: statusTint }}>
+                    {project?.status || ''}
+                  </Text>
+                </View>
+                <View className="rounded-full border border-blue-500/40 bg-blue-500/15 px-3 py-1">
+                  <Text className="text-xs font-semibold text-white">
+                    Project #{project?.id ? String(project.id) : ''}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Tabs */}
+              <View className="px-2">
+                <CustomTabs
+                  tabs={tabs}
+                  value={currentTab}
+                  onValueChange={setCurrentTab}
+                  containerClassName="flex-row rounded-2xl border border-white/10 bg-zinc-700 p-1"
+                  showCount={true}
+                />
+              </View>
+            </View>
+          }
           animatedStyle={animatedHeaderStyle}
           onHeightChange={handleHeightChange}
           isDark={true}
         />
+
         <ScrollView
           className="flex-1"
-          onScroll={scrollHandler}
+          onScroll={onScroll}
           scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
@@ -250,37 +281,15 @@ export default function ProjectDetail({ scrollHandler }: { scrollHandler: (event
             />
           }
           contentContainerStyle={{
-            paddingTop: insets.top + 72,
+            // Base header (insets.top + 8) + main header (56) + secondHeader (chips ~40 + tabs ~60 + padding ~20 = ~120)
+            paddingTop: insets.top + 140, // Account for secondHeader (chips + tabs)
             paddingBottom: insets.bottom + 80,
             paddingHorizontal: 0,
           }}>
           <View className="gap-6">
-            {/* Project Chips */}
-            <View className={`flex-row flex-wrap items-center gap-3 px-2`}>
-              <View
-                className="rounded-full px-3 py-1"
-                style={{ backgroundColor: `${statusTint}33` }}>
-                <Text className="text-xs font-semibold text-white" style={{ color: statusTint }}>
-                  {project?.status || ''}
-                </Text>
-              </View>
-              <View className="rounded-full border border-blue-500/40 bg-blue-500/15 px-3 py-1">
-                <Text className="text-xs font-semibold text-white">
-                  Project #{project?.id ? String(project.id) : ''}
-                </Text>
-              </View>
-            </View>
+            {/* Project Header */}
+    
 
-            {/* Tabs */}
-            <View className="px-2">
-              <CustomTabs
-                tabs={tabs}
-                value={currentTab}
-                onValueChange={setCurrentTab}
-                containerClassName="flex-row rounded-2xl border border-white/10 bg-zinc-700 p-1"
-                showCount={true}
-              />
-            </View>
             {/* Publish Project Button - Only show when project is Draft */}
             {project?.status === 'Draft' && (
               <PublishProjectButton

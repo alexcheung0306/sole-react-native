@@ -258,13 +258,43 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
               <ChevronLeft color="#93c5fd" size={24} />
             </TouchableOpacity>
           }
+          secondHeader={
+            <View className="gap-2">
+              {/* Job Chips */}
+              <View className={`flex-row flex-wrap items-center gap-3 px-2`}>
+                <View
+                  className="rounded-full px-3 py-1"
+                  style={{ backgroundColor: `${statusTint}33` }}>
+                  <Text className="text-xs font-semibold text-white" style={{ color: statusTint }}>
+                    {project?.status || ''}
+                  </Text>
+                </View>
+                <View className="rounded-full border border-blue-500/40 bg-blue-500/15 px-3 py-1">
+                  <Text className="text-xs font-semibold text-white">
+                    Job #{project?.id ? String(project.id) : ''}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Tabs */}
+              <View className="px-2">
+                <CustomTabs
+                  tabs={tabs}
+                  value={currentTab}
+                  onValueChange={setCurrentTab}
+                  containerClassName="flex-row rounded-2xl border border-white/10 bg-zinc-700 p-1"
+                  showCount={true}
+                />
+              </View>
+            </View>
+          }
           animatedStyle={animatedHeaderStyle}
           onHeightChange={handleHeightChange}
           isDark={true}
         />
         <ScrollView
           className="flex-1"
-          onScroll={scrollHandler}
+          onScroll={onScroll}
           scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
@@ -275,44 +305,18 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
             />
           }
           contentContainerStyle={{
-            paddingTop: insets.top + 72,
+            // Base header (insets.top + 8) + main header (56) + secondHeader (chips ~40 + tabs ~60 + padding ~20 = ~120)
+            paddingTop: insets.top + 140, // Account for secondHeader (chips + tabs)
             paddingBottom: 28,
             paddingHorizontal: 0,
           }}>
           <View className="gap-6">
-            {/* Job Chips */}
-            <View className={`flex-row flex-wrap items-center gap-3 px-2`}>
-              <View
-                className="rounded-full px-3 py-1"
-                style={{ backgroundColor: `${statusTint}33` }}>
-                <Text className="text-xs font-semibold text-white" style={{ color: statusTint }}>
-                  {project?.status || ''}
-                </Text>
-              </View>
-              <View className="rounded-full border border-blue-500/40 bg-blue-500/15 px-3 py-1">
-                <Text className="text-xs font-semibold text-white">
-                  Job #{project?.id ? String(project.id) : ''}
-                </Text>
-              </View>
-            </View>
-
             {/* Title and Description */}
             <View className={`gap-2 px-2`}>
               <Text className="text-2xl font-bold text-white">{project?.projectName || ''}</Text>
               <Text className="text-sm text-white/80">
                 Browse job details, roles, and your contracts for this opportunity.
               </Text>
-            </View>
-
-            {/* Tabs */}
-            <View className="px-2">
-              <CustomTabs
-                tabs={tabs}
-                value={currentTab}
-                onValueChange={setCurrentTab}
-                containerClassName="flex-row rounded-2xl border border-white/10 bg-zinc-700 p-1"
-                showCount={true}
-              />
             </View>
 
             {/* Swipeable Tab Content */}
