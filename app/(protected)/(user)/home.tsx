@@ -13,7 +13,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CollapsibleHeader } from '../../../components/CollapsibleHeader';
 import { useScrollHeader } from '../../../hooks/useScrollHeader';
 import { PostCard } from '../../../components/feed/PostCard';
-import { getAppTabBarControl } from '~/hooks/useScrollAppTabBar';
 import { useSoleUserContext } from '~/context/SoleUserContext';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -27,14 +26,15 @@ import {
 
 export default React.memo(function UserHome() {
   const insets = useSafeAreaInsets();
-  const { animatedHeaderStyle, onScroll, handleHeightChange, collapseHeader, showHeader, isHeaderCollapsed, setHeaderPositionByScale, getHeaderTranslateY } = useScrollHeader();
+  const {
+    animatedHeaderStyle,
+    onScroll,
+    handleHeightChange,
+    handleZoomChange,
+    handleScaleChange,
+  } = useScrollHeader();
   const { soleUserId } = useSoleUserContext();
   const queryClient = useQueryClient();
-  const [isAnyImageZooming, setIsAnyImageZooming] = React.useState(false);
-  const headerStateBeforeZoom = React.useRef<boolean | null>(null); // null = not zooming, true = was collapsed, false = was open
-  const headerStartPosition = React.useRef<number>(0); // Track header position when zoom starts
-  const tabBarStartPosition = React.useRef<number>(0); // Track tab bar position when zoom starts
-  const isRestoring = React.useRef<boolean>(false); // Track if we're restoring positions after zoom ends
 
   // Fetch posts from real API with infinite scroll
   const {
@@ -127,92 +127,6 @@ export default React.memo(function UserHome() {
     });
   };
 
-  // Handle zoom state changes - track when zoom starts/ends
-  const handleZoomChange = React.useCallback((isZooming: boolean) => {
-    setIsAnyImageZooming((prev) => {
-      const wasZooming = prev;
-      const nowZooming = isZooming;
-      
-      if (!wasZooming && nowZooming) {
-        // Zoom just started - save current positions
-        headerStateBeforeZoom.current = isHeaderCollapsed();
-        headerStartPosition.current = getHeaderTranslateY();
-        
-        // Get tab bar start position
-        const tabBarControl = getAppTabBarControl();
-        if (tabBarControl) {
-          tabBarStartPosition.current = tabBarControl.getTabBarTranslateY();
-        }
-      } else if (wasZooming && !nowZooming) {
-        // Zoom just ended - set restore mode and restore header and tab bar to original positions
-        isRestoring.current = true;
-        
-        // Restore header to original position
-        if (headerStateBeforeZoom.current === false) {
-          // Header was open before zoom, restore it
-          showHeader();
-        } else {
-          // Header was collapsed, restore to its original collapsed position
-          setHeaderPositionByScale(1, headerStartPosition.current, 1, 2);
-        }
-        
-        // Restore tab bar to original position
-        const tabBarControl = getAppTabBarControl();
-        if (tabBarControl) {
-          // Restore tab bar to its original position
-          tabBarControl.showTabBar();
-        }
-        
-        headerStateBeforeZoom.current = null;
-      }
-      
-      return nowZooming;
-    });
-  }, [showHeader, isHeaderCollapsed, getHeaderTranslateY]);
-
-  // Handle scale changes - translate header and tab bar proportionally
-  const handleScaleChange = React.useCallback((scale: number) => {
-    // If we're restoring (zoom just ended), don't use scale-based translation
-    // Just ensure positions are at original when scale reaches 1
-    if (isRestoring.current) {
-      if (scale <= 1) {
-        // Scale has reached 1, ensure positions are restored and clear restore mode
-        if (headerStateBeforeZoom.current === false) {
-          showHeader();
-        }
-        const tabBarControl = getAppTabBarControl();
-        if (tabBarControl) {
-          tabBarControl.showTabBar();
-        }
-        isRestoring.current = false;
-      }
-      // During restore, don't do scale-based translation
-      return;
-    }
-    
-    // Update even if not "officially" zooming yet - this allows animation to start earlier
-    // If zoom hasn't started yet, initialize positions
-    if (!isAnyImageZooming && scale > 1) {
-      headerStartPosition.current = getHeaderTranslateY();
-      const tabBarControl = getAppTabBarControl();
-      if (tabBarControl) {
-        tabBarStartPosition.current = tabBarControl.getTabBarTranslateY();
-      }
-    }
-    
-    // Only do scale-based translation if we're actively zooming (not restoring)
-    if (isAnyImageZooming || scale > 1) {
-      // Update header position proportionally to scale
-      // minScale = 1, maxScale = 2 (fully collapsed at scale 2, which is 1/2 of the zoom range 1-3)
-      setHeaderPositionByScale(scale, headerStartPosition.current, 1, 2);
-      
-      // Update tab bar position proportionally to scale
-      const tabBarControl = getAppTabBarControl();
-      if (tabBarControl) {
-        tabBarControl.setTabBarPositionByScale(scale, tabBarStartPosition.current, 1, 2);
-      }
-    }
-  }, [isAnyImageZooming, setHeaderPositionByScale, getHeaderTranslateY, showHeader]);
 
   // Transform backend response to component format with defensive null checks
   const transformPost = (backendPost: PostWithDetailsResponse) => {

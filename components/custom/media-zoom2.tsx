@@ -234,13 +234,6 @@ export function MediaZoom2({
     .onUpdate((e) => {
       'worklet';
 
-      // Always notify scale change FIRST to start header/tab bar animation early
-      // This makes the animation start as soon as pinch begins, even before zoom is "active"
-      if (onScaleChange) {
-        const currentScale = Math.max(minScale, Math.min(maxScale, savedScale.value * e.scale));
-        runOnJS(onScaleChange)(currentScale);
-      }
-
       if (!isZoomActive.value) {
         // Start animation earlier - use a smaller threshold (2%) to start header/tab bar animation sooner
         const scaleChange = Math.abs(e.scale - 1);
@@ -261,9 +254,22 @@ export function MediaZoom2({
           // Adjust savedScale so the zoom starts smoothly from current scale (1)
           // effectively treating current e.scale as the baseline
           savedScale.value = scale.value / e.scale;
+          
+          // Notify scale change AFTER activation to ensure positions are initialized
+          // Use the actual scale value for accurate calculation
+          if (onScaleChange) {
+            const currentScale = Math.max(minScale, Math.min(maxScale, savedScale.value * e.scale));
+            runOnJS(onScaleChange)(currentScale);
+          }
         } else {
-          // Wait until threshold is met, but scale change was already notified above
+          // Wait until threshold is met - don't notify scale change yet to avoid lag
           return;
+        }
+      } else {
+        // Zoom is active - notify scale change for proportional header/tab bar translation
+        if (onScaleChange) {
+          const currentScale = Math.max(minScale, Math.min(maxScale, savedScale.value * e.scale));
+          runOnJS(onScaleChange)(currentScale);
         }
       }
 
@@ -303,10 +309,8 @@ export function MediaZoom2({
       translateX.value = newTx;
       translateY.value = newTy;
 
-      // Notify scale change for proportional header/tab bar translation
-      if (onScaleChange) {
-        runOnJS(onScaleChange)(clampedScale);
-      }
+      // Scale change notification is already handled above in the isZoomActive check
+      // No need to notify again here to avoid duplicate calls
 
       // Sync pan saved state so if we release one finger, pan takes over smoothly
       // This is crucial for avoiding jumps when transitioning from 2 fingers to 1 finger

@@ -8,6 +8,7 @@ import Animated, {
   runOnJS,
   cancelAnimation,
 } from 'react-native-reanimated';
+import { getAppTabBarControl } from './useScrollAppTabBar';
 
 export const useScrollHeader = () => {
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -150,6 +151,121 @@ export const useScrollHeader = () => {
     return headerTranslateY.value < -headerHeight / 2;
   }, [headerHeight]);
 
+  // Zoom handling state and refs
+  const [isAnyImageZooming, setIsAnyImageZooming] = useState(false);
+  const headerStateBeforeZoom = useRef<boolean | null>(null); // null = not zooming, true = was collapsed, false = was open
+  const headerStartPosition = useRef<number>(0); // Track header position when zoom starts
+  const tabBarStartPosition = useRef<number>(0); // Track tab bar position when zoom starts
+  const isRestoring = useRef<boolean>(false); // Track if we're restoring positions after zoom ends
+
+  // Handle zoom state changes - track when zoom starts/ends
+  const handleZoomChange = useCallback(
+    (isZooming: boolean) => {
+      setIsAnyImageZooming((prev) => {
+        const wasZooming = prev;
+        const nowZooming = isZooming;
+
+        if (!wasZooming && nowZooming) {
+          // Zoom just started - save current positions IMMEDIATELY
+          // This must happen synchronously before any scale changes to avoid lag
+          headerStateBeforeZoom.current = getIsHeaderCollapsed();
+          headerStartPosition.current = getHeaderTranslateY();
+
+          // Get tab bar start position
+          const tabBarControl = getAppTabBarControl();
+          if (tabBarControl) {
+            tabBarStartPosition.current = tabBarControl.getTabBarTranslateY();
+          }
+
+          // Clear restore flag if it was set
+          isRestoring.current = false;
+        } else if (wasZooming && !nowZooming) {
+          // Zoom just ended - set restore mode and restore header and tab bar to original positions
+          isRestoring.current = true;
+
+          // Restore header to original position
+          if (headerStateBeforeZoom.current === false) {
+            // Header was open before zoom, restore it
+            showHeader();
+          } else {
+            // Header was collapsed, restore to its original collapsed position
+            setHeaderPositionByScale(1, headerStartPosition.current, 1, 2);
+          }
+
+          // Restore tab bar to original position
+          const tabBarControl = getAppTabBarControl();
+          if (tabBarControl) {
+            // Restore tab bar to its original position
+            tabBarControl.showTabBar();
+          }
+
+          headerStateBeforeZoom.current = null;
+        }
+
+        return nowZooming;
+      });
+    },
+    [showHeader, getIsHeaderCollapsed, getHeaderTranslateY, setHeaderPositionByScale]
+  );
+
+  // Handle scale changes - collapse fully when scale > 1/3 of zoom range
+  const handleScaleChange = useCallback(
+    (scale: number) => {
+      // If we're restoring (zoom just ended), don't use scale-based translation
+      // Just ensure positions are at original when scale reaches 1
+      if (isRestoring.current) {
+        if (scale <= 1) {
+          // Scale has reached 1, ensure positions are restored and clear restore mode
+          if (headerStateBeforeZoom.current === false) {
+            showHeader();
+          }
+          const tabBarControl = getAppTabBarControl();
+          if (tabBarControl) {
+            tabBarControl.showTabBar();
+          }
+          isRestoring.current = false;
+        }
+        // During restore, don't do scale-based translation
+        return;
+      }
+
+      // Only do scale-based translation if we're actively zooming (not restoring)
+      // Positions should already be initialized in handleZoomChange when zoom starts
+      if (isAnyImageZooming) {
+        // Threshold: 1/5 of zoom range (1 to 3) = scale > 1.4
+        // minScale = 1, maxScale = 3, threshold = 1 + (3-1)/5 = 1.4
+        const threshold = 1 + (3 - 1) / 5; // 1.4
+        
+        if (scale > threshold) {
+          // Scale is over 1/5 of zoom range - fully collapse
+          collapseHeader();
+          
+          // Collapse tab bar
+          const tabBarControl = getAppTabBarControl();
+          if (tabBarControl) {
+            tabBarControl.collapseTabBar();
+          }
+        } else {
+          // Scale is at or below 1/5 of zoom range - restore to original position
+          if (headerStateBeforeZoom.current === false) {
+            // Header was open before zoom, restore it
+            showHeader();
+          } else {
+            // Header was collapsed, restore to its original collapsed position
+            setHeaderPositionByScale(1, headerStartPosition.current, 1, 2);
+          }
+          
+          // Restore tab bar to original position
+          const tabBarControl = getAppTabBarControl();
+          if (tabBarControl) {
+            tabBarControl.showTabBar();
+          }
+        }
+      }
+    },
+    [isAnyImageZooming, setHeaderPositionByScale, showHeader, collapseHeader]
+  );
+
   return {
     animatedHeaderStyle,
     scrollY,
@@ -161,5 +277,7 @@ export const useScrollHeader = () => {
     isHeaderCollapsed: getIsHeaderCollapsed,
     setHeaderPositionByScale,
     getHeaderTranslateY,
+    handleZoomChange,
+    handleScaleChange,
   };
 };

@@ -12,6 +12,7 @@ interface TabBarControl {
   setTabBarPositionByScale: (scale: number, startPosition: number, minScale: number, maxScale: number) => void;
   getTabBarTranslateY: () => number;
   showTabBar: () => void;
+  collapseTabBar: () => void;
 }
 
 let globalTabBarControlRef: TabBarControl | null = null;
@@ -100,12 +101,13 @@ export const useScrollAppTabBar = () => {
       setTabBarPositionByScale,
       getTabBarTranslateY,
       showTabBar,
+      collapseTabBar,
     });
     
     return () => {
       setAppTabBarControl(null);
     };
-  }, [setTabBarPositionByScale, getTabBarTranslateY, showTabBar, setTabBarControl]);
+  }, [setTabBarPositionByScale, getTabBarTranslateY, showTabBar, collapseTabBar, setTabBarControl]);
 
   return {
     animatedTabBarStyle,
