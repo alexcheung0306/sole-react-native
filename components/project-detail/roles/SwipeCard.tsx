@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Dimensions, Text, View, ActivityIndicator, ScrollView } from "react-native";
-import { Image } from "expo-image";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Dimensions, Text, View, ActivityIndicator, ScrollView } from 'react-native';
+import { Image } from 'expo-image';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -10,14 +10,14 @@ import Animated, {
   runOnJS,
   interpolate,
   SharedValue,
-} from "react-native-reanimated";
-import { GlassOverlay } from "@/components/custom/GlassView";
-import { CustomTabs } from "@/components/custom/custom-tabs";
-import { getStatusColor } from "@/utils/get-status-color";
-import TalentProfile from "~/components/talent-profile/TalentProfile";
-import { ApplicationDetail } from "~/components/project-detail/roles/ApplicationDetail";
-import { ActionToCandidates } from "~/components/project-detail/roles/ActionToCandidates";
-import { SendOfferModal } from "~/components/project-detail/roles/SendOfferModal";
+} from 'react-native-reanimated';
+import { GlassOverlay } from '@/components/custom/GlassView';
+import { CustomTabs } from '@/components/custom/custom-tabs';
+import { getStatusColor } from '@/utils/get-status-color';
+import TalentProfile from '~/components/talent-profile/TalentProfile';
+import { ApplicationDetail } from '~/components/project-detail/roles/ApplicationDetail';
+import { ActionToCandidates } from '~/components/project-detail/roles/ActionToCandidates';
+import { SendOfferModal } from '~/components/project-detail/roles/SendOfferModal';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 100;
@@ -120,7 +120,14 @@ export default function SwipeCard({
       rightActionOpacities.value = withTiming([0, 0, 0, 0, 0], { duration: 150 });
     }
     prevShowModalRef.current = showSendOfferModal;
-  }, [isTopCard, showSendOfferModal, translateX, translateY, rejectGradientOpacity, rightActionOpacities]);
+  }, [
+    isTopCard,
+    showSendOfferModal,
+    translateX,
+    translateY,
+    rejectGradientOpacity,
+    rightActionOpacities,
+  ]);
 
   // Animated style for this card
   const cardAnimatedStyle = useAnimatedStyle(() => {
@@ -199,7 +206,12 @@ export default function SwipeCard({
         }
 
         // When inside the action strip with enough drag, only highlight the hovered action
-        if (draggedToRightEdge && inRightActionArea && actionIndex >= 0 && actionIndex < actionCount) {
+        if (
+          draggedToRightEdge &&
+          inRightActionArea &&
+          actionIndex >= 0 &&
+          actionIndex < actionCount
+        ) {
           for (let i = 0; i < Math.min(actionCount, 5); i += 1) {
             opacities[i] = 0; // unlight others
           }
@@ -264,18 +276,16 @@ export default function SwipeCard({
           Math.min(actionCount - 1, 4)
         );
 
-        const isHighlighted =
-          draggedToRightEdge &&
-          actionIndex >= 0 &&
-          actionIndex < actionCount;
+        const isHighlighted = draggedToRightEdge && actionIndex >= 0 && actionIndex < actionCount;
 
         if (isHighlighted) {
           // Check if this is the "send offer" action
           const actions = availableActionsShared.value;
-          const isSendOffer = actions && actions.length > actionIndex && actions[actionIndex] === 'send offer';
+          const isSendOffer =
+            actions && actions.length > actionIndex && actions[actionIndex] === 'send offer';
 
           runOnJS(onSwipeAction)(actionIndex);
-          
+
           if (isSendOffer) {
             // For "send offer", don't slide out - just reset position and open modal
             translateX.value = withTiming(0, { duration: 200 });
@@ -387,95 +397,100 @@ export default function SwipeCard({
         {/* Glass effect overlay */}
         <GlassOverlay intensity={100} tint="dark" />
 
-          <GestureDetector gesture={panGesture}>
-            <ScrollView
-              className="flex-1"
-              showsVerticalScrollIndicator={false}
-              nestedScrollEnabled
-              scrollEventThrottle={16}>
-              {/* Candidate Header Card */}
-              <View className="mx-4 mt-4 rounded-2xl border border-white/10   p-4">
-                <View className="flex-row items-center gap-4">
-                  <Image
-                    source={{
-                      uri: talentProfileData?.userInfo?.profilePic || candidate?.comcardFirstPic || undefined,
-                    }}
-                    style={{ width: 80, height: 80, borderRadius: 40 }}
-                    contentFit="cover"
-                    cachePolicy="memory-disk"
-                    transition={100}
-                  />
-                  <View className="flex-1">
-                    <Text className="text-lg font-semibold text-white">
-                      {talentProfileData?.userInfo?.name || candidateUserInfo?.name || 'Unnamed candidate'}
+        <GestureDetector gesture={panGesture}>
+          <ScrollView
+            className="flex-1"
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+            scrollEventThrottle={16}>
+            {/* Candidate Header Card */}
+            <View className="mx-4 mt-4 rounded-2xl border border-white/10   p-4">
+              <View className="flex-row items-center gap-4">
+                <Image
+                  source={{
+                    uri:
+                      talentProfileData?.userInfo?.profilePic ||
+                      candidate?.comcardFirstPic ||
+                      undefined,
+                  }}
+                  style={{ width: 80, height: 80, borderRadius: 40 }}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={100}
+                />
+                <View className="flex-1">
+                  <Text className="text-lg font-semibold text-white">
+                    {talentProfileData?.userInfo?.name ||
+                      candidateUserInfo?.name ||
+                      'Unnamed candidate'}
+                  </Text>
+                  <Text className="text-sm text-white/60">@{candidateUsername}</Text>
+                  <View
+                    className="mt-2 self-start rounded-full border px-3 py-1.5"
+                    style={{
+                      backgroundColor: candidateStatusColor + '20',
+                      borderColor: candidateStatusColor + '60',
+                    }}>
+                    <Text
+                      className="text-xs font-bold uppercase tracking-wide"
+                      style={{ color: candidateStatusColor }}>
+                      {candidateApplicant?.applicationStatus || 'applied'}
                     </Text>
-                    <Text className="text-sm text-white/60">@{candidateUsername}</Text>
-                    <View
-                      className="mt-2 self-start rounded-full border px-3 py-1.5"
-                      style={{
-                        backgroundColor: candidateStatusColor + '20',
-                        borderColor: candidateStatusColor + '60',
-                      }}>
-                      <Text className="text-xs font-bold uppercase tracking-wide" style={{ color: candidateStatusColor }}>
-                        {candidateApplicant?.applicationStatus || 'applied'}
-                      </Text>
-                    </View>
                   </View>
                 </View>
               </View>
+            </View>
 
-              {/* Tabs */}
-              <View className="mt-4 px-4">
-                <CustomTabs tabs={tabs} value={currentTab} onValueChange={onTabChange} />
-              </View>
+            {/* Tabs */}
+            <View className="mt-4 px-4">
+              <CustomTabs tabs={tabs} value={currentTab} onValueChange={onTabChange} />
+            </View>
 
-              {/* Tab Content */}
-              <View className="px-4 pb-8">
-            {currentTab === 'talent-profile' && (
-                  <View>
-                {isLoadingProfile || profileToRender === undefined ? (
-                      <View className="py-8">
-                        <ActivityIndicator size="large" color="#3b82f6" />
-                      </View>
-                ) : !profileToRender || !profileToRender.talentInfo ? (
-                      <View className="py-8">
-                        <Text className="mb-2 text-center text-base font-semibold text-white">Profile Not Available</Text>
-                        <Text className="text-center text-sm text-white/60">
-                          {candidateUsername === 'unknown'
-                            ? "This user's profile information is not available."
-                            : 'Unable to load profile data for this user.'}
-                        </Text>
-                      </View>
-                    ) : (
-                      <TalentProfile
-                    userProfileData={profileToRender}
-                    talentLevel={parseInt(profileToRender?.talentLevel || '0')}
-                    talentInfo={profileToRender?.talentInfo}
-                        isOwnProfile={false}
-                        scrollEnabled={false}
-                      />
-                    )}
-                  </View>
-                )}
+            {/* Tab Content */}
+            <View className="px-4 pb-8">
+              {currentTab === 'talent-profile' && (
+                <View>
+                  {isLoadingProfile || profileToRender === undefined ? (
+                    <View className="py-8">
+                      <ActivityIndicator size="large" color="#3b82f6" />
+                    </View>
+                  ) : !profileToRender || !profileToRender.talentInfo ? (
+                    <View className="py-8">
+                      <Text className="mb-2 text-center text-base font-semibold text-white">
+                        Profile Not Available
+                      </Text>
+                      <Text className="text-center text-sm text-white/60">
+                        {candidateUsername === 'unknown'
+                          ? "This user's profile information is not available."
+                          : 'Unable to load profile data for this user.'}
+                      </Text>
+                    </View>
+                  ) : (
+                    <TalentProfile
+                      userProfileData={profileToRender}
+                      talentLevel={parseInt(profileToRender?.talentLevel || '0')}
+                      talentInfo={profileToRender?.talentInfo}
+                      isOwnProfile={false}
+                      scrollEnabled={false}
+                    />
+                  )}
+                </View>
+              )}
 
-                {currentTab === 'application' && (
-                  <ApplicationDetail
-                    applicant={candidateApplicant}
-                  />
-                )}
+              {currentTab === 'application' && <ApplicationDetail applicant={candidateApplicant} />}
 
-                {currentTab === 'actions' && (
-                  <ActionToCandidates
-                    applicant={candidate}
-                    projectData={projectData || { id: projectId }}
-                    roleId={roleId}
-                    roleWithSchedules={roleWithSchedules}
-                    onOfferSuccess={onOfferSuccess}
-                  />
-                )}
-              </View>
-            </ScrollView>
-          </GestureDetector>
+              {currentTab === 'actions' && (
+                <ActionToCandidates
+                  applicant={candidate}
+                  projectData={projectData || { id: projectId }}
+                  roleId={roleId}
+                  roleWithSchedules={roleWithSchedules}
+                  onOfferSuccess={onOfferSuccess}
+                />
+              )}
+            </View>
+          </ScrollView>
+        </GestureDetector>
       </View>
 
       {/* Send Offer Modal */}
@@ -483,7 +498,11 @@ export default function SwipeCard({
         <SendOfferModal
           applicant={candidate}
           projectData={projectData || { id: projectId }}
-          roleWithSchedules={roleWithSchedules || candidate?.jobApplicant?.roleWithSchedules || (roleId ? { role: { id: roleId } } : null)}
+          roleWithSchedules={
+            roleWithSchedules ||
+            candidate?.jobApplicant?.roleWithSchedules ||
+            (roleId ? { role: { id: roleId } } : null)
+          }
           open={showSendOfferModal}
           onOpenChange={(isOpen) => {
             if (!isOpen && onSendOfferModalClose) {
@@ -500,4 +519,3 @@ export default function SwipeCard({
     </Animated.View>
   );
 }
-

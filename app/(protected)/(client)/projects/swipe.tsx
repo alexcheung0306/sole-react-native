@@ -804,11 +804,26 @@ export default function RoleCandidatesSwipeScreen() {
     opacity: withTiming(rejectGradientOpacity.value > 0.3 ? 1 : rejectGradientOpacity.value * 2, { duration: 140 }),
   }));
 
-  const tabs = [
-    { id: 'talent-profile', label: 'Talent Profile' },
-    { id: 'application', label: 'Application Details' },
-    { id: 'actions', label: 'Actions' },
-  ];
+  const tabs = useMemo(() => {
+    const baseTabs = [
+      { id: 'talent-profile', label: 'Talent Profile' },
+      { id: 'application', label: 'Application' },
+    ];
+    
+    // Only show Actions tab when process is 'offered'
+    if (currentProcess === 'offered') {
+      baseTabs.push({ id: 'actions', label: 'Actions' });
+    }
+    
+    return baseTabs;
+  }, [currentProcess]);
+
+  // Reset to 'talent-profile' tab if current tab is 'actions' and it's no longer available
+  useEffect(() => {
+    if (currentTab === 'actions' && currentProcess !== 'offered') {
+      setCurrentTab('talent-profile');
+    }
+  }, [currentProcess, currentTab]);
 
   const getActionColor = (action: string): [string, string] => {
     if (action === 'shortlisted') return ['rgba(34, 197, 94, 1)', 'rgba(34, 197, 94, 0)'];
