@@ -15,7 +15,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
-import { ChevronLeft, X, Filter } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, X, Filter } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getStatusColor } from "@/utils/get-status-color";
 import { getUserProfileByUsername } from "@/api/apiservice/soleUser_api";
@@ -417,14 +417,19 @@ export default function RoleCandidatesSwipeScreen() {
 
   // Adjust index if current index is out of bounds after filtering
   useEffect(() => {
-    if (swipeCandidates.length > 0 && currentIndex >= swipeCandidates.length) {
+    if (swipeCandidates.length === 0) {
+      if (currentIndex !== 0) {
+        setCurrentIndex(0);
+        currentIndexShared.value = 0;
+      }
+      setExhausted(true);
+    } else if (currentIndex >= swipeCandidates.length) {
       const newIndex = Math.max(0, swipeCandidates.length - 1);
       setCurrentIndex(newIndex);
       currentIndexShared.value = newIndex;
-    } else if (swipeCandidates.length === 0 && currentIndex > 0) {
+    } else if (currentIndex < 0) {
       setCurrentIndex(0);
       currentIndexShared.value = 0;
-      setExhausted(true);
     }
   }, [swipeCandidates.length, currentIndex, currentIndexShared]);
 
@@ -548,37 +553,57 @@ export default function RoleCandidatesSwipeScreen() {
 
     isMovingToNextRef.current = true;
 
-    // Use a function to get the latest state
-    setCurrentIndex((prevIndex) => {
-      // Get current candidate from currentApplicantRef to avoid closure issues
-      const currentApplicant = currentApplicantRef.current;
-      if (currentApplicant?.id) {
-        setSwipedCandidateIds((prev) => {
-          const newSet = new Set(prev);
-          newSet.add(currentApplicant.id);
-          return newSet;
-        });
-      }
+    // Get current candidate before marking as swiped
+    const currentApplicant = currentApplicantRef.current;
+    const currentIndexValue = currentIndexRef.current;
+    
+    // Mark current candidate as swiped
+    if (currentApplicant?.id) {
+      setSwipedCandidateIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.add(currentApplicant.id);
+        return newSet;
+      });
+    }
 
-      // After marking as swiped, the array will be filtered
-      // So we stay at the same index (next candidate moves up)
-      const nextIndex = prevIndex;
+    // After marking as swiped, the array will be filtered
+    // The index adjustment useEffect will handle bounds checking
+    // We keep the same index since the next candidate will move up
+    const nextIndex = currentIndexValue;
+    
+    // Update the shared value
+    currentIndexShared.value = nextIndex;
+    
+    // Update state (the useEffect will adjust if needed)
+    setCurrentIndex(nextIndex);
 
-      // Check bounds - ensure we don't go negative
-      if (nextIndex < 0) {
-        isMovingToNextRef.current = false;
-        return 0;
-      }
-
-      // Update the shared value
-      currentIndexShared.value = nextIndex;
-
-      // Reset the guard immediately to allow the next swipe
-      isMovingToNextRef.current = false;
-
-      return nextIndex;
-    });
+    // Reset the guard immediately to allow the next swipe
+    isMovingToNextRef.current = false;
   }, [currentIndexShared]);
+
+  // Navigate to previous candidate (circular)
+  const handlePreviousCandidate = useCallback(() => {
+    if (swipeCandidates.length === 0) return;
+    
+    setCurrentIndex((prevIndex) => {
+      const newIndex = prevIndex <= 0 ? swipeCandidates.length - 1 : prevIndex - 1;
+      currentIndexShared.value = newIndex;
+      setExhausted(false);
+      return newIndex;
+    });
+  }, [swipeCandidates.length, currentIndexShared]);
+
+  // Navigate to next candidate (circular)
+  const handleNextCandidate = useCallback(() => {
+    if (swipeCandidates.length === 0) return;
+    
+    setCurrentIndex((prevIndex) => {
+      const newIndex = prevIndex >= swipeCandidates.length - 1 ? 0 : prevIndex + 1;
+      currentIndexShared.value = newIndex;
+      setExhausted(false);
+      return newIndex;
+    });
+  }, [swipeCandidates.length, currentIndexShared]);
 
   useEffect(() => {
     handleNextCandidateRef.current = handleCardSwipeComplete;
@@ -778,9 +803,29 @@ export default function RoleCandidatesSwipeScreen() {
           <TouchableOpacity onPress={() => router.back()} className="p-2">
             <ChevronLeft size={24} color="#fff" />
           </TouchableOpacity>
-          <Text className="flex-1 text-center text-lg font-semibold text-white">
-            {swipeCandidates.length ? displayIndex + 1 : 0} / {swipeCandidates.length}
-          </Text>
+          <View className="flex-1 flex-row items-center justify-center gap-4">
+            <TouchableOpacity 
+              onPress={handlePreviousCandidate} 
+              className="p-2"
+              disabled={swipeCandidates.length === 0}>
+              <ChevronLeft 
+                size={20} 
+                color={swipeCandidates.length === 0 ? "#666" : "#fff"} 
+              />
+            </TouchableOpacity>
+            <Text className="text-lg font-semibold text-white">
+              {swipeCandidates.length ? displayIndex + 1 : 0} / {swipeCandidates.length}
+            </Text>
+            <TouchableOpacity 
+              onPress={handleNextCandidate} 
+              className="p-2"
+              disabled={swipeCandidates.length === 0}>
+              <ChevronRight 
+                size={20} 
+                color={swipeCandidates.length === 0 ? "#666" : "#fff"} 
+              />
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity onPress={() => setShowStatusDrawer(true)} className="p-2">
             <Filter size={22} color="#fff" />
           </TouchableOpacity>
