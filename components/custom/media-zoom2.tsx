@@ -130,8 +130,9 @@ export function MediaZoom2({
       'worklet';
       if (finished) {
         isResetting.value = false;
-        // Now that animation is complete, fade out backdrop and set zoom inactive
-        backdropOpacity.value = withTiming(0, { duration: 250 });
+        // Now that animation is complete, set zoom inactive
+        // Backdrop will be hidden (opacity = 0) since isZoomActive is false
+        // Opacity automatically becomes 0 because scale is 1 and isZoomActive is false
         isZoomActive.value = false;
         if (onZoomActiveChange) {
           runOnJS(onZoomActiveChange)(false); // Z-index will drop now
@@ -191,7 +192,8 @@ export function MediaZoom2({
         if (onZoomActiveChange) {
           runOnJS(onZoomActiveChange)(true); // Notify immediately for instant z-index update
         }
-        backdropOpacity.value = withTiming(1);
+        // Backdrop opacity is now calculated from scale in useAnimatedStyle
+        // No need to set it here - it will automatically follow scale
       }
 
       logGesture('pinch.start', {
@@ -256,6 +258,9 @@ export function MediaZoom2({
         const currentScale = Math.max(minScale, Math.min(maxScale, savedScale.value * e.scale));
         runOnJS(onScaleChange)(currentScale);
       }
+
+      // Note: backdropOpacity is now calculated from scale in useAnimatedStyle
+      // This allows it to follow the scale animation during reset
 
       // If number of pointers changes (e.g. 2 -> 1), re-anchor origin to prevent jump
       // because the focal point (center of pointers) changes abruptly.
@@ -505,8 +510,25 @@ export function MediaZoom2({
   });
 
   const backdropStyle = useAnimatedStyle(() => {
+    // Backdrop is only visible when zoom is active
+    // Opacity is calculated directly from scale so it follows scale animations (including reset)
+    if (!isZoomActive.value) {
+      return { opacity: 0 };
+    }
+    
+    // Calculate opacity from current scale value
+    // This ensures opacity follows scale during reset animation
+    // Scale 1 = 0% opacity, Scale 2 = 80% opacity
+    const currentScale = Math.max(minScale, Math.min(maxScale, scale.value));
+    // Normalize scale: 0 at minScale (1), 1 at scale 2 (target for 80% opacity)
+    const targetScale = 2; // Scale at which we want 80% opacity
+    const normalizedScale = Math.min(1, (currentScale - minScale) / (targetScale - minScale));
+    // Use power of 1.5 to make opacity increase faster as scale increases
+    // Then multiply by 0.8 to cap at 80% opacity at scale 2
+    const opacity = Math.pow(normalizedScale, 1.5) * 0.8;
+    
     return {
-      opacity: backdropOpacity.value,
+      opacity,
     };
   });
 

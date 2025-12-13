@@ -56,14 +56,7 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
     };
   });
 
-  const logOutZoomState = React.useCallback(
-    (_event: any, _gestureState: any, zoomState: { zoomLevel?: number }) => {
-      if (__DEV__) {
-        console.log('Zoom level:', zoomState?.zoomLevel);
-      }
-    },
-    []
-  );
+
 
   if (!media || media.length === 0) {
     return null;
