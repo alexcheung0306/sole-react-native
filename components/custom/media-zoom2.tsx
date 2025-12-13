@@ -6,6 +6,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withTiming,
+  withDelay,
   runOnJS,
   cancelAnimation,
   useDerivedValue,
@@ -60,6 +61,9 @@ export function MediaZoom2({
   const hasResetOnEnd = useSharedValue(false);
   // Track if a reset animation is in progress to prevent gestures during reset
   const isResetting = useSharedValue(false);
+  // Cooldown period after pinch ends to prevent immediate re-pinch (in milliseconds)
+  const pinchCooldown = useSharedValue(0);
+  const PINCH_COOLDOWN_MS = 200; // 200ms cooldown after pinch ends
 
   const initialFocalX = useSharedValue(0);
   const initialFocalY = useSharedValue(0);
@@ -197,6 +201,11 @@ export function MediaZoom2({
       'worklet';
       // Prevent pinch if reset animation is in progress
       if (isResetting.value) {
+        return;
+      }
+      // Prevent pinch if cooldown period hasn't elapsed
+      if (pinchCooldown.value > 0) {
+        logGesture('pinch.start.blocked', { cooldown: pinchCooldown.value });
         return;
       }
       hasResetOnEnd.value = false;
@@ -351,6 +360,11 @@ export function MediaZoom2({
         // Cancel pan gesture immediately to prevent any delays
         isPanning.value = false;
         
+        // Start cooldown period to prevent immediate re-pinch
+        // Set to max value first so the check blocks immediately, then animate to 0
+        pinchCooldown.value = PINCH_COOLDOWN_MS;
+        pinchCooldown.value = withTiming(0, { duration: PINCH_COOLDOWN_MS });
+        
         if (resetOnRelease) {
           // Smooth animated reset when all fingers are released
           reset(true);
@@ -361,6 +375,7 @@ export function MediaZoom2({
           translateX: translateX.value,
           translateY: translateY.value,
           resetOnRelease,
+          cooldownStarted: true,
         });
         return;
       }
@@ -466,6 +481,13 @@ export function MediaZoom2({
       isPanning.value = false;
       savedTranslateX.value = translateX.value;
       savedTranslateY.value = translateY.value;
+
+      // If all fingers are released, start cooldown to prevent immediate re-pinch
+      if (e.numberOfPointers === 0) {
+        // Set to max value first so the check blocks immediately, then animate to 0
+        pinchCooldown.value = PINCH_COOLDOWN_MS;
+        pinchCooldown.value = withTiming(0, { duration: PINCH_COOLDOWN_MS });
+      }
 
       // Reset to original position/scale when pan ends
       // Always use smooth animated reset
