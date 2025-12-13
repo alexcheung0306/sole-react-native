@@ -191,6 +191,7 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
           minScale={1}
           maxScale={3}
           onZoomActiveChange={handleZoomChange}
+          onScaleChange={onScaleChange}
         />
       </Animated.View>
     );
@@ -207,7 +208,7 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
         carouselAnimatedStyle, // Uses Reanimated for instant z-index updates
       ]}>
       {/* Debug overlay for ImageCarousel z-index */}
-      <View
+     {isLogAvaliable && <View
         style={{
           position: 'absolute',
           top: 10,
@@ -220,7 +221,7 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
         <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
           Carousel z-index: {isZooming ? 8888 : 100}
         </Text>
-      </View>
+      </View>}
       <FlatList
         style={{
           width: SCREEN_WIDTH,

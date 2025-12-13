@@ -6,150 +6,38 @@ import Animated, {
   withTiming,
   withSpring,
   runOnJS,
+  runOnUI,
   cancelAnimation,
+  useDerivedValue,
 } from 'react-native-reanimated';
 import { getAppTabBarControl } from './useScrollAppTabBar';
+import { useCollapsibleBar } from './useCollapsibleBar';
 
 export const useScrollHeader = () => {
+  // Use the unified collapsible bar hook for base functionality
+  const baseBar = useCollapsibleBar({ type: 'header', enableScroll: true });
+  
+  // Keep headerHeight state for backward compatibility and zoom logic
   const [headerHeight, setHeaderHeight] = useState(0);
-  const scrollY = useSharedValue(0);
-  const lastScrollY = useRef(0);
-  const scrollDirection = useRef<'up' | 'down'>('down');
-  const headerTranslateY = useSharedValue(0);
-  const isAnimating = useSharedValue(false);
 
+  // Wrap handleHeightChange to update both state and base hook
   const handleHeightChange = useCallback((height: number) => {
-    // console.log('Header height:', height); // Debug: Remove after testing
     setHeaderHeight(height);
-  }, []);
+    baseBar.handleHeightChange(height);
+  }, [baseBar]);
 
-  // Create scroll handler function that updates shared values
-  const onScroll = useCallback((event: any) => {
-    const currentScrollY = event.nativeEvent.contentOffset.y;
-    const scrollDelta = currentScrollY - lastScrollY.current;
-
-    // Update scrollY shared value
-    scrollY.value = currentScrollY;
-
-
-    // Always show header when near the top (within 20px)
-    if (currentScrollY <= 10) {
-      if (headerTranslateY.value !== 0 && !isAnimating.value) {
-        isAnimating.value = true;
-        headerTranslateY.value = withSpring(0, {
-          damping: 40,
-          stiffness: 250,
-          mass: 1,
-        }, () => {
-          isAnimating.value = false;
-        });
-      }
-      lastScrollY.current = currentScrollY;
-      return;
-    }
-
-    // Only trigger header animation if scroll delta is significant enough and header height is known
-    if (Math.abs(scrollDelta) > 1 && headerHeight > 0) {
-      if (scrollDelta > 0) {
-        // Scrolling down - hide header immediately
-        if (headerTranslateY.value !== -headerHeight && !isAnimating.value) {
-          isAnimating.value = true;
-          headerTranslateY.value = withTiming(-headerHeight, {
-            duration: 200,
-          }, () => {
-            isAnimating.value = false;
-          });
-        }
-        scrollDirection.current = 'down';
-      } else if (scrollDelta < 0) {
-        // Scrolling up - show header
-        if (headerTranslateY.value !== 0 && !isAnimating.value) {
-          isAnimating.value = true;
-          headerTranslateY.value = withSpring(0, {
-            damping: 35,
-            stiffness: 200,
-            mass: 1,
-          }, () => {
-            isAnimating.value = false;
-          });
-        }
-        scrollDirection.current = 'up';
-      }
-    }
-
-    lastScrollY.current = currentScrollY;
-  }, [headerHeight]);
-
-  // Create animated style for the header
-  const animatedHeaderStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: headerTranslateY.value }],
-  }));
-
-  const resetHeader = useCallback(() => {
-    headerTranslateY.value = 0;
-    lastScrollY.current = 0;
-  }, []);
-
-  const collapseHeader = useCallback(() => {
-    if (headerHeight > 0) {
-      // Cancel any ongoing animation
-      cancelAnimation(headerTranslateY);
-      isAnimating.value = true;
-      headerTranslateY.value = withTiming(-headerHeight, {
-        duration: 100, // Faster animation for zoom responsiveness
-      }, (finished) => {
-        if (finished) {
-          isAnimating.value = false;
-        }
-      });
-    }
-  }, [headerHeight]);
-
-  const showHeader = useCallback(() => {
-    // Cancel any ongoing animation
-    cancelAnimation(headerTranslateY);
-    isAnimating.value = true;
-    headerTranslateY.value = withTiming(0, {
-      duration: 100, // Faster animation for zoom responsiveness
-    }, (finished) => {
-      if (finished) {
-        isAnimating.value = false;
-      }
-    });
-  }, []);
-
-  // Set header position based on zoom scale (proportional translation)
-  // scale: minScale = start position, maxScale = fully collapsed
-  const setHeaderPositionByScale = useCallback((scale: number, startPosition: number, minScale: number = 1, maxScale: number = 3) => {
-    if (headerHeight <= 0) return;
-    
-    // Cancel any ongoing animation
-    cancelAnimation(headerTranslateY);
-    
-    // Normalize scale: minScale -> 0 (start position), maxScale -> 1 (fully collapsed)
-    const normalizedScale = Math.max(0, Math.min(1, (scale - minScale) / (maxScale - minScale)));
-    
-    // Calculate translateY: interpolate from startPosition to -headerHeight
-    const collapsedPosition = -headerHeight;
-    const targetTranslateY = startPosition + (collapsedPosition - startPosition) * normalizedScale;
-    
-    // Update header position smoothly but quickly
-    headerTranslateY.value = withTiming(targetTranslateY, {
-      duration: 50, // Very quick response to scale changes for smooth following
-    });
-  }, [headerHeight]);
-
-  // Get current header translateY value (for JS use)
-  const getHeaderTranslateY = useCallback(() => {
-    return headerTranslateY.value;
-  }, []);
-
-  // Get current collapsed state (for JS use)
-  // Header is considered collapsed if translateY is less than -half of header height
-  const getIsHeaderCollapsed = useCallback(() => {
-    // Access shared value directly - this will be called from JS thread
-    return headerTranslateY.value < -headerHeight / 2;
-  }, [headerHeight]);
+  // Use base hook's functions
+  const {
+    animatedHeaderStyle,
+    scrollY,
+    onScroll,
+    resetHeader,
+    collapseHeader,
+    showHeader,
+    isHeaderCollapsed,
+    setHeaderPositionByScale,
+    getHeaderTranslateY,
+  } = baseBar;
 
   // Zoom handling state and refs
   const [isAnyImageZooming, setIsAnyImageZooming] = useState(false);
@@ -166,10 +54,9 @@ export const useScrollHeader = () => {
         const nowZooming = isZooming;
 
         if (!wasZooming && nowZooming) {
-          // Zoom just started - save current positions IMMEDIATELY
-          // This must happen synchronously before any scale changes to avoid lag
-          headerStateBeforeZoom.current = getIsHeaderCollapsed();
-          headerStartPosition.current = getHeaderTranslateY();
+          // Zoom just started - save current positions IMMEDIATELY using cached values (fast, no blocking)
+          headerStateBeforeZoom.current = isHeaderCollapsed?.() ?? false;
+          headerStartPosition.current = getHeaderTranslateY?.() ?? 0;
 
           // Get tab bar start position
           const tabBarControl = getAppTabBarControl();
@@ -182,8 +69,8 @@ export const useScrollHeader = () => {
           maxScaleReached.current = 1;
           lastScale.current = 1;
 
-          // Immediately collapse header and tab bar with transition
-          collapseHeader();
+          // Immediately collapse header and tab bar on UI thread (non-blocking)
+          collapseHeader?.();
           if (tabBarControl) {
             tabBarControl.collapseTabBar();
           }
@@ -194,10 +81,10 @@ export const useScrollHeader = () => {
           // Restore header to original position
           if (headerStateBeforeZoom.current === false) {
             // Header was open before zoom, restore it
-            showHeader();
+            showHeader?.();
           } else {
             // Header was collapsed, restore to its original collapsed position
-            setHeaderPositionByScale(1, headerStartPosition.current, 1, 2);
+            setHeaderPositionByScale?.(1, headerStartPosition.current, 1, 2);
           }
 
           // Restore tab bar to original position
@@ -213,7 +100,7 @@ export const useScrollHeader = () => {
         return nowZooming;
       });
     },
-    [showHeader, getIsHeaderCollapsed, getHeaderTranslateY, setHeaderPositionByScale, collapseHeader]
+    [showHeader, isHeaderCollapsed, getHeaderTranslateY, setHeaderPositionByScale, collapseHeader]
   );
 
   // Track the max scale reached and last scale to detect reset
@@ -251,7 +138,7 @@ export const useScrollHeader = () => {
         
         if (scale <= endScale) {
           // Scale has reached 1, always restore to open (regardless of original state)
-          showHeader();
+          showHeader?.();
           
           const tabBarControl = getAppTabBarControl();
           if (tabBarControl) {
@@ -263,10 +150,10 @@ export const useScrollHeader = () => {
           maxScaleReached.current = 1;
         } else {
           // During reset animation, ALWAYS follow scale to restore (regardless of original state)
-          // Interpolate from collapsed (-headerHeight) to open (0) as scale goes from resetStartScale to 1
+          // Interpolate from collapsed to open (0) as scale goes from resetStartScale to 1
           // Use setHeaderPositionByScale: startPosition=0 (open), minScale=1, maxScale=resetStartScale
-          // This will interpolate from 0 (when scale=1) to -headerHeight (when scale=resetStartScale)
-          setHeaderPositionByScale(scale, 0, endScale, resetStartScale);
+          // This will interpolate from 0 (when scale=1) to collapsed (when scale=resetStartScale)
+          setHeaderPositionByScale?.(scale, 0, endScale, resetStartScale);
           
           // Tab bar: interpolate from collapsed to original
           const tabBarControl = getAppTabBarControl();
@@ -281,14 +168,11 @@ export const useScrollHeader = () => {
       // Only do scale-based translation if we're actively zooming (not restoring)
       // Positions should already be initialized in handleZoomChange when zoom starts
       if (isAnyImageZooming) {
-        // Threshold: 1/5 of zoom range (1 to 3) = scale > 1.4
-        // minScale = 1, maxScale = 3, threshold = 1 + (3-1)/5 = 1.4
-        const threshold = 1 + (3 - 1) / 5; // 1.4
-        
-        if (scale > threshold) {
-          // Scale is over 1/5 of zoom range - only collapse if header was originally open
+        // Collapse immediately when scale > 1 (any zoom) - no threshold needed
+        if (scale > 1) {
+          // Only collapse if header was originally open
           if (headerStateBeforeZoom.current === false) {
-            collapseHeader();
+            collapseHeader?.();
           }
           // If header was originally collapsed, keep it collapsed (don't change it)
           
@@ -298,11 +182,10 @@ export const useScrollHeader = () => {
             tabBarControl.collapseTabBar();
           }
         }
-        // During zoom, don't restore when scale is below threshold - stay collapsed
-        // This prevents the weird open/collapse behavior during zoom
+        // During zoom, stay collapsed - no restoration until reset
       }
     },
-    [isAnyImageZooming, setHeaderPositionByScale, showHeader, collapseHeader, headerHeight]
+    [isAnyImageZooming, setHeaderPositionByScale, showHeader, collapseHeader]
   );
 
   return {
@@ -313,7 +196,7 @@ export const useScrollHeader = () => {
     resetHeader,
     collapseHeader,
     showHeader,
-    isHeaderCollapsed: getIsHeaderCollapsed,
+    isHeaderCollapsed,
     setHeaderPositionByScale,
     getHeaderTranslateY,
     handleZoomChange,
