@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet, Dimensions, Text } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -8,6 +8,7 @@ import Animated, {
   withTiming,
   runOnJS,
   cancelAnimation,
+  useDerivedValue,
 } from 'react-native-reanimated';
 
 interface MediaZoom2Props {
@@ -32,7 +33,7 @@ export function MediaZoom2({
   onScaleChange,
 }: MediaZoom2Props) {
   const pinchSensitivity = 1.0;
-  const isLogAvaliable =false;
+  const isLogAvaliable =true;
   
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
@@ -65,6 +66,18 @@ export function MediaZoom2({
 
   // Track number of pointers to detect changes (e.g. lifting one finger)
   const activePointers = useSharedValue(0);
+
+  // State for debug z-index display
+  const [wrapperZIndex, setWrapperZIndex] = React.useState(10);
+  const [contentZIndex, setContentZIndex] = React.useState(30);
+
+  // Update z-index display when zoom state changes
+  useDerivedValue(() => {
+    const wrapperZ = isZoomActive.value ? 20000 : 10;
+    const contentZ = isZoomActive.value ? 9999 : 30;
+    runOnJS(setWrapperZIndex)(wrapperZ);
+    runOnJS(setContentZIndex)(contentZ);
+  }, [isZoomActive]);
 
   const debugLog = React.useCallback((label: string, payload: Record<string, any>) => {
     if (!__DEV__) return;
@@ -188,7 +201,16 @@ export function MediaZoom2({
       }
       hasResetOnEnd.value = false;
       isPinching.value = true;
-      // Don't set isZoomActive here; wait for actual scale change in onUpdate
+      
+      // Set zoom active immediately on pinch start for instant z-index update
+      // This ensures the carousel gets highest z-index before any scale change happens
+      if (!isZoomActive.value) {
+        isZoomActive.value = true;
+        if (onZoomActiveChange) {
+          runOnJS(onZoomActiveChange)(true); // Notify immediately for instant z-index update
+        }
+        backdropOpacity.value = withTiming(1);
+      }
 
       logGesture('pinch.start', {
         focalX: e.focalX,
@@ -234,43 +256,23 @@ export function MediaZoom2({
     .onUpdate((e) => {
       'worklet';
 
-      if (!isZoomActive.value) {
-        // Start animation earlier - use a smaller threshold (2%) to start header/tab bar animation sooner
-        const scaleChange = Math.abs(e.scale - 1);
-        if (scaleChange > 0.02) {
-          // 2% threshold - start animation earlier
-          isZoomActive.value = true;
-          if (onZoomActiveChange) {
-            runOnJS(onZoomActiveChange)(true);
-          }
-          backdropOpacity.value = withTiming(1);
+      // isZoomActive is already set in onStart, so we just need to handle scale changes
+      // Re-anchor origin on first actual scale change (when transitioning from scale 1)
+      if (isZoomActive.value && savedScale.value === 1 && e.scale !== 1) {
+        // First actual scale change - re-anchor origin to current focal point
+        const cx = width / 2;
+        const cy = height / 2;
+        originX.value = (e.focalX - cx - translateX.value) / scale.value;
+        originY.value = (e.focalY - cy - translateY.value) / scale.value;
+        
+        // Adjust savedScale so the zoom starts smoothly from current scale (1)
+        savedScale.value = scale.value / e.scale;
+      }
 
-          // Re-anchor origin to current focal point to prevent jump upon activation
-          const cx = width / 2;
-          const cy = height / 2;
-          originX.value = (e.focalX - cx - translateX.value) / scale.value;
-          originY.value = (e.focalY - cy - translateY.value) / scale.value;
-
-          // Adjust savedScale so the zoom starts smoothly from current scale (1)
-          // effectively treating current e.scale as the baseline
-          savedScale.value = scale.value / e.scale;
-          
-          // Notify scale change AFTER activation to ensure positions are initialized
-          // Use the actual scale value for accurate calculation
-          if (onScaleChange) {
-            const currentScale = Math.max(minScale, Math.min(maxScale, savedScale.value * e.scale));
-            runOnJS(onScaleChange)(currentScale);
-          }
-        } else {
-          // Wait until threshold is met - don't notify scale change yet to avoid lag
-          return;
-        }
-      } else {
-        // Zoom is active - notify scale change for proportional header/tab bar translation
-        if (onScaleChange) {
-          const currentScale = Math.max(minScale, Math.min(maxScale, savedScale.value * e.scale));
-          runOnJS(onScaleChange)(currentScale);
-        }
+      // Notify scale change for proportional header/tab bar translation
+      if (onScaleChange) {
+        const currentScale = Math.max(minScale, Math.min(maxScale, savedScale.value * e.scale));
+        runOnJS(onScaleChange)(currentScale);
       }
 
       // If number of pointers changes (e.g. 2 -> 1), re-anchor origin to prevent jump
@@ -542,6 +544,24 @@ export function MediaZoom2({
         <Animated.View style={[styles.container, { width, height }]}>
           <Animated.View style={[styles.content, { width, height }, animatedStyle]}>
             {children}
+            {/* Debug overlay for MediaZoom2 z-index */}
+            <View
+              style={{
+                position: 'absolute',
+                top: 10,
+                right: 10,
+                backgroundColor: 'rgba(255, 0, 0, 0.8)',
+                padding: 8,
+                borderRadius: 4,
+                zIndex: 99999,
+              }}>
+              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
+                Image wrapper: {wrapperZIndex}
+              </Text>
+              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
+                Image content: {contentZIndex}
+              </Text>
+            </View>
           </Animated.View>
         </Animated.View>
       </GestureDetector>

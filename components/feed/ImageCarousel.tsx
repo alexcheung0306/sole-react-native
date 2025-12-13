@@ -12,6 +12,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 // import { ReactNativeZoomableView } from '@openspacelabs/react-native-zoomable-view';
 import { MediaZoom2 } from '@/components/custom/media-zoom2';
+import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
 interface MediaItem {
   mediaUrl: string;
@@ -37,12 +38,25 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
   const [currentHeight, setCurrentHeight] = useState<number>(SCREEN_WIDTH); // Default to square
   const [isZooming, setIsZooming] = useState(false);
   const listRef = useRef<FlatList<MediaItem>>(null);
+  
+  // Shared value for z-index - updates instantly on UI thread
+  const isZoomingShared = useSharedValue(false);
 
-  // Handle zoom state changes - update internal state and notify parent
+  // Handle zoom state changes - update both React state and shared value
   const handleZoomChange = useCallback((isZooming: boolean) => {
     setIsZooming(isZooming);
+    isZoomingShared.value = isZooming; // Update shared value immediately for instant z-index change
     onZoomChange?.(isZooming);
-  }, [onZoomChange]);
+  }, [onZoomChange, isZoomingShared]);
+  
+  // Animated style for z-index - updates instantly on UI thread
+  const carouselAnimatedStyle = useAnimatedStyle(() => {
+    const activeZ = isZoomingShared.value ? 8888 : 100;
+    return {
+      zIndex: activeZ,
+      elevation: activeZ,
+    };
+  });
 
   const logOutZoomState = React.useCallback(
     (_event: any, _gestureState: any, zoomState: { zoomLevel?: number }) => {
@@ -136,13 +150,31 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
   if (media.length === 1) {
     const singleImageHeight = imageHeights[0] || currentHeight;
     return (
-      <View
-        style={{
-          width: SCREEN_WIDTH,
-          height: 'auto',
-          overflow: 'visible',
-          position: 'relative',
-        }}>
+      <Animated.View
+        style={[
+          {
+            width: SCREEN_WIDTH,
+            height: 'auto',
+            overflow: 'visible',
+            position: 'relative',
+          },
+          carouselAnimatedStyle, // Uses Reanimated for instant z-index updates
+        ]}>
+        {/* Debug overlay for ImageCarousel z-index */}
+        <View
+          style={{
+            position: 'absolute',
+            top: 10,
+            left: 10,
+            backgroundColor: 'rgba(0, 0, 255, 0.8)',
+            padding: 8,
+            borderRadius: 4,
+            zIndex: 99999,
+          }}>
+          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
+            Carousel z-index: {isZooming ? 8888 : 100}
+          </Text>
+        </View>
         <MediaZoom2
           children={
             <Image
@@ -156,20 +188,37 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
           resetOnRelease={true}
           minScale={1}
           maxScale={3}
+          onZoomActiveChange={handleZoomChange}
         />
-      </View>
+      </Animated.View>
     );
   }
 
   // Multiple images - show carousel
   return (
-    <View
-      style={{
-        position: 'relative',
-        overflow: 'visible',
-        zIndex: 50, // keep zoomed media above surrounding UI (e.g., like/comment buttons)
-        elevation: 50,
-      }}>
+    <Animated.View
+      style={[
+        {
+          position: 'relative',
+          overflow: 'visible',
+        },
+        carouselAnimatedStyle, // Uses Reanimated for instant z-index updates
+      ]}>
+        {/* Debug overlay for ImageCarousel z-index */}
+        <View
+          style={{
+            position: 'absolute',
+            top: 10,
+            left: 10,
+            backgroundColor: 'rgba(0, 0, 255, 0.8)',
+            padding: 8,
+            borderRadius: 4,
+            zIndex: 99999,
+          }}>
+          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
+            Carousel z-index: {isZooming ? 8888 : 100}
+          </Text>
+        </View>
       <FlatList
         style={{
           width: SCREEN_WIDTH,
@@ -260,6 +309,6 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
           </View>
         </>
       )}
-    </View>
+    </Animated.View>
   );
 }
