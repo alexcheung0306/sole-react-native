@@ -30,13 +30,13 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarouselProps) {
 
-  const isLogAvaliable =false;
+  const isLogAvaliable = false;
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageHeights, setImageHeights] = useState<{ [key: number]: number }>({});
   const [currentHeight, setCurrentHeight] = useState<number>(SCREEN_WIDTH); // Default to square
   const [isZooming, setIsZooming] = useState(false);
   const listRef = useRef<FlatList<MediaItem>>(null);
-  
+
   // Shared value for z-index - updates instantly on UI thread
   const isZoomingShared = useSharedValue(false);
 
@@ -46,7 +46,7 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
     isZoomingShared.value = isZooming; // Update shared value immediately for instant z-index change
     onZoomChange?.(isZooming);
   }, [onZoomChange, isZoomingShared]);
-  
+
   // Animated style for z-index - updates instantly on UI thread
   const carouselAnimatedStyle = useAnimatedStyle(() => {
     const activeZ = isZoomingShared.value ? 8888 : 100;
@@ -152,7 +152,7 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
           carouselAnimatedStyle, // Uses Reanimated for instant z-index updates
         ]}>
         {/* Debug overlay for ImageCarousel z-index */}
-        { isLogAvaliable && <View
+        {isLogAvaliable && <View
           style={{
             position: 'absolute',
             top: 10,
@@ -171,14 +171,11 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
             position: 'absolute',
             top: 10,
             left: 10,
-            backgroundColor: 'rgba(0, 0, 255, 0.8)',
             padding: 8,
             borderRadius: 4,
             zIndex: 99999,
           }}>
-          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
-            Carousel z-index: {isZooming ? 8888 : 100}
-          </Text>
+     
         </View>
         <MediaZoom2
           children={
@@ -209,21 +206,21 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
         },
         carouselAnimatedStyle, // Uses Reanimated for instant z-index updates
       ]}>
-        {/* Debug overlay for ImageCarousel z-index */}
-        <View
-          style={{
-            position: 'absolute',
-            top: 10,
-            left: 10,
-            backgroundColor: 'rgba(0, 0, 255, 0.8)',
-            padding: 8,
-            borderRadius: 4,
-            zIndex: 99999,
-          }}>
-          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
-            Carousel z-index: {isZooming ? 8888 : 100}
-          </Text>
-        </View>
+      {/* Debug overlay for ImageCarousel z-index */}
+      <View
+        style={{
+          position: 'absolute',
+          top: 10,
+          left: 10,
+          backgroundColor: 'rgba(0, 0, 255, 0.8)',
+          padding: 8,
+          borderRadius: 4,
+          zIndex: 99999,
+        }}>
+        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
+          Carousel z-index: {isZooming ? 8888 : 100}
+        </Text>
+      </View>
       <FlatList
         style={{
           width: SCREEN_WIDTH,
@@ -298,9 +295,8 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
               {media.map((_, index) => (
                 <View
                   key={index}
-                  className={`h-1.5 w-1.5 rounded-full ${
-                    index === currentIndex ? 'bg-white' : 'bg-white/40'
-                  }`}
+                  className={`h-1.5 w-1.5 rounded-full ${index === currentIndex ? 'bg-white' : 'bg-white/40'
+                    }`}
                 />
               ))}
             </View>

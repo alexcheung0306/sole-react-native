@@ -179,6 +179,8 @@ export const useScrollHeader = () => {
 
           // Clear restore flag if it was set
           isRestoring.current = false;
+          maxScaleReached.current = 1;
+          lastScale.current = 1;
 
           // Immediately collapse header and tab bar with transition
           collapseHeader();
@@ -214,24 +216,65 @@ export const useScrollHeader = () => {
     [showHeader, getIsHeaderCollapsed, getHeaderTranslateY, setHeaderPositionByScale, collapseHeader]
   );
 
+  // Track the max scale reached and last scale to detect reset
+  const maxScaleReached = useRef<number>(1);
+  const lastScale = useRef<number>(1);
+
   // Handle scale changes - collapse fully when scale > 1/3 of zoom range
   const handleScaleChange = useCallback(
     (scale: number) => {
-      // If we're restoring (zoom just ended), don't use scale-based translation
-      // Just ensure positions are at original when scale reaches 1
-      if (isRestoring.current) {
-        if (scale <= 1) {
-          // Scale has reached 1, ensure positions are restored and clear restore mode
-          if (headerStateBeforeZoom.current === false) {
-            showHeader();
-          }
+      // Track max scale reached
+      if (scale > maxScaleReached.current) {
+        maxScaleReached.current = scale;
+      }
+
+      // Detect if reset has started: scale is decreasing from a significant zoom level (> 1.5) towards 1
+      // Check before updating lastScale
+      const wasSignificantlyZoomed = lastScale.current > 1.5;
+      const isScaleDecreasing = scale < lastScale.current && scale >= 1;
+      const resetStartScale = maxScaleReached.current;
+      
+      // Update lastScale after checking
+      lastScale.current = scale;
+
+      // If we're restoring (during reset animation), smoothly follow the scale
+      // Only trigger reset detection if we were significantly zoomed and scale is decreasing
+      if (isRestoring.current || (isAnyImageZooming && wasSignificantlyZoomed && isScaleDecreasing && scale > 1 && resetStartScale > 1.5)) {
+        // If reset just started, mark it
+        if (!isRestoring.current && isScaleDecreasing) {
+          isRestoring.current = true;
+        }
+
+        // During reset, interpolate from collapsed position back to original position
+        // as scale goes from resetStartScale to 1
+        const endScale = 1;
+        
+        if (scale <= endScale) {
+          // Scale has reached 1, always restore to open (regardless of original state)
+          showHeader();
+          
           const tabBarControl = getAppTabBarControl();
           if (tabBarControl) {
             tabBarControl.showTabBar();
           }
+          
+          // Clear restore mode when scale reaches 1
           isRestoring.current = false;
+          maxScaleReached.current = 1;
+        } else {
+          // During reset animation, ALWAYS follow scale to restore (regardless of original state)
+          // Interpolate from collapsed (-headerHeight) to open (0) as scale goes from resetStartScale to 1
+          // Use setHeaderPositionByScale: startPosition=0 (open), minScale=1, maxScale=resetStartScale
+          // This will interpolate from 0 (when scale=1) to -headerHeight (when scale=resetStartScale)
+          setHeaderPositionByScale(scale, 0, endScale, resetStartScale);
+          
+          // Tab bar: interpolate from collapsed to original
+          const tabBarControl = getAppTabBarControl();
+          if (tabBarControl && tabBarControl.setTabBarPositionByScale) {
+            // Invert scale for tab bar too
+            tabBarControl.setTabBarPositionByScale(scale, tabBarStartPosition.current, endScale, resetStartScale);
+          }
         }
-        // During restore, don't do scale-based translation
         return;
       }
 
@@ -243,33 +286,23 @@ export const useScrollHeader = () => {
         const threshold = 1 + (3 - 1) / 5; // 1.4
         
         if (scale > threshold) {
-          // Scale is over 1/5 of zoom range - fully collapse
-          collapseHeader();
+          // Scale is over 1/5 of zoom range - only collapse if header was originally open
+          if (headerStateBeforeZoom.current === false) {
+            collapseHeader();
+          }
+          // If header was originally collapsed, keep it collapsed (don't change it)
           
-          // Collapse tab bar
+          // Always collapse tab bar
           const tabBarControl = getAppTabBarControl();
           if (tabBarControl) {
             tabBarControl.collapseTabBar();
           }
-        } else {
-          // Scale is at or below 1/5 of zoom range - restore to original position
-          if (headerStateBeforeZoom.current === false) {
-            // Header was open before zoom, restore it
-            showHeader();
-          } else {
-            // Header was collapsed, restore to its original collapsed position
-            setHeaderPositionByScale(1, headerStartPosition.current, 1, 2);
-          }
-          
-          // Restore tab bar to original position
-          const tabBarControl = getAppTabBarControl();
-          if (tabBarControl) {
-            tabBarControl.showTabBar();
-          }
         }
+        // During zoom, don't restore when scale is below threshold - stay collapsed
+        // This prevents the weird open/collapse behavior during zoom
       }
     },
-    [isAnyImageZooming, setHeaderPositionByScale, showHeader, collapseHeader]
+    [isAnyImageZooming, setHeaderPositionByScale, showHeader, collapseHeader, headerHeight]
   );
 
   return {

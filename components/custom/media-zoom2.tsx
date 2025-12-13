@@ -83,6 +83,15 @@ export function MediaZoom2({
     runOnJS(setContentZIndex)(contentZ);
   }, [isZoomActive]);
 
+  // Continuously notify scale changes during reset animation so header/tab bar can follow
+  useDerivedValue(() => {
+    // Only notify during reset animation to allow header/tab bar to follow smoothly
+    if (isResetting.value && onScaleChange) {
+      const currentScale = Math.max(minScale, Math.min(maxScale, scale.value));
+      runOnJS(onScaleChange)(currentScale);
+    }
+  }, [scale, isResetting, onScaleChange, minScale, maxScale]);
+
   const debugLog = React.useCallback((label: string, payload: Record<string, any>) => {
     if (!__DEV__) return;
     console.log(`[media-zoom-2] ${label}`, payload);
@@ -143,10 +152,8 @@ export function MediaZoom2({
     translateY.value = withSpring(0, springConfig);
     // Backdrop stays visible during animation - will fade out in scale completion callback
 
-    // Notify scale reset
-    if (onScaleChange) {
-      runOnJS(onScaleChange)(1);
-    }
+    // Note: Scale changes during reset are now handled by useDerivedValue above
+    // which continuously tracks scale.value and calls onScaleChange as it animates
 
     savedScale.value = 1;
     savedTranslateX.value = 0;
