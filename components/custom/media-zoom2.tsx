@@ -34,7 +34,7 @@ export function MediaZoom2({
   onScaleChange,
 }: MediaZoom2Props) {
   const pinchSensitivity = 1.0;
-  const isLogAvaliable =true;
+  const isLogAvaliable =false;
   
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
@@ -104,49 +104,16 @@ export function MediaZoom2({
     cancelAnimation(scale);
     cancelAnimation(translateX);
     cancelAnimation(translateY);
+    cancelAnimation(backdropOpacity);
     
     // Immediately prevent all interactions before starting animations
-    isZoomActive.value = false;
+    // Note: Keep isZoomActive true during animation so z-index stays high
+    // We'll set it to false when animation completes
+    // Also keep backdrop visible during animation - it will fade out when animation completes
     hasResetOnEnd.value = false;
     isPanning.value = false;
     isPinching.value = false;
     
-    if (onZoomActiveChange) {
-      runOnJS(onZoomActiveChange)(false);
-    }
-    
-    // if (!instant) {
-    //   // Instant reset without animation
-    //   isResetting.value = false;
-    //   scale.value = 1;
-    //   translateX.value = 0;
-    //   translateY.value = 0;
-    //   backdropOpacity.value = 0;
-    // } else {
-    //   // Mark that we're resetting to prevent gestures during animation
-    //   isResetting.value = true;
-      
-    //   // Smooth reset with gentle spring animation
-    //   // Using high damping and lower stiffness for a smooth, non-bouncy transition
-    //   const springConfig = {
-    //     damping: 20,
-    //     stiffness: 90,
-    //     mass: 0.5,
-    //   };
-      
-    //   // Use callback on scale animation to clear the resetting flag when it completes
-    //   // Scale is typically the longest animation, so when it's done, others are too
-    //   scale.value = withSpring(1, springConfig, (finished) => {
-    //     'worklet';
-    //     if (finished) {
-    //       isResetting.value = false;
-    //     }
-    //   });
-    //   translateX.value = withSpring(0, springConfig);
-    //   translateY.value = withSpring(0, springConfig);
-    //   backdropOpacity.value = withTiming(0, { duration: 250 });
-    // }
-
     isResetting.value = true;
       
     // Smooth reset with gentle spring animation
@@ -157,17 +124,23 @@ export function MediaZoom2({
       mass: 0.5,
     };
     
-    // Use callback on scale animation to clear the resetting flag when it completes
+    // Use callback on scale animation to clear the resetting flag and notify zoom inactive
     // Scale is typically the longest animation, so when it's done, others are too
     scale.value = withSpring(1, springConfig, (finished) => {
       'worklet';
       if (finished) {
         isResetting.value = false;
+        // Now that animation is complete, fade out backdrop and set zoom inactive
+        backdropOpacity.value = withTiming(0, { duration: 250 });
+        isZoomActive.value = false;
+        if (onZoomActiveChange) {
+          runOnJS(onZoomActiveChange)(false); // Z-index will drop now
+        }
       }
     });
     translateX.value = withSpring(0, springConfig);
     translateY.value = withSpring(0, springConfig);
-    backdropOpacity.value = withTiming(0, { duration: 250 });
+    // Backdrop stays visible during animation - will fade out in scale completion callback
 
     // Notify scale reset
     if (onScaleChange) {
@@ -567,7 +540,9 @@ export function MediaZoom2({
           <Animated.View style={[styles.content, { width, height }, animatedStyle]}>
             {children}
             {/* Debug overlay for MediaZoom2 z-index */}
-            <View
+
+
+           { isLogAvaliable && <View
               style={{
                 position: 'absolute',
                 top: 10,
@@ -583,7 +558,7 @@ export function MediaZoom2({
               <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
                 Image content: {contentZIndex}
               </Text>
-            </View>
+            </View>}
           </Animated.View>
         </Animated.View>
       </GestureDetector>

@@ -29,10 +29,8 @@ interface ImageCarouselProps {
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarouselProps) {
-  // const ZoomableView: any = ReactNativeZoomableView;
-  // if (ZoomableView && !ZoomableView.displayName) {
-  //   ZoomableView.displayName = 'ReactNativeZoomableView';
-  // }
+
+  const isLogAvaliable =false;
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageHeights, setImageHeights] = useState<{ [key: number]: number }>({});
   const [currentHeight, setCurrentHeight] = useState<number>(SCREEN_WIDTH); // Default to square
@@ -161,6 +159,20 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
           carouselAnimatedStyle, // Uses Reanimated for instant z-index updates
         ]}>
         {/* Debug overlay for ImageCarousel z-index */}
+        { isLogAvaliable && <View
+          style={{
+            position: 'absolute',
+            top: 10,
+            left: 10,
+            backgroundColor: 'rgba(0, 0, 255, 0.8)',
+            padding: 8,
+            borderRadius: 4,
+            zIndex: 99999,
+          }}>
+          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
+            Carousel z-index: {isZooming ? 8888 : 100}
+          </Text>
+        </View>}
         <View
           style={{
             position: 'absolute',

@@ -179,8 +179,14 @@ export const useScrollHeader = () => {
 
           // Clear restore flag if it was set
           isRestoring.current = false;
+
+          // Immediately collapse header and tab bar with transition
+          collapseHeader();
+          if (tabBarControl) {
+            tabBarControl.collapseTabBar();
+          }
         } else if (wasZooming && !nowZooming) {
-          // Zoom just ended - set restore mode and restore header and tab bar to original positions
+          // Zoom just ended (after reset animation completes) - restore header and tab bar to original positions
           isRestoring.current = true;
 
           // Restore header to original position
@@ -205,7 +211,7 @@ export const useScrollHeader = () => {
         return nowZooming;
       });
     },
-    [showHeader, getIsHeaderCollapsed, getHeaderTranslateY, setHeaderPositionByScale]
+    [showHeader, getIsHeaderCollapsed, getHeaderTranslateY, setHeaderPositionByScale, collapseHeader]
   );
 
   // Handle scale changes - collapse fully when scale > 1/3 of zoom range

@@ -105,7 +105,7 @@ export function PostCard({ post, onLike, onAddComment, comments, onZoomChange, o
           </TouchableOpacity>
 
           {/* More Options */}
-          <TouchableOpacity 
+          <TouchableOpacity
             className="p-2"
             onPress={() => setIsDrawerOpen(true)}
             activeOpacity={0.7}>
