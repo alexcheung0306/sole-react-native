@@ -90,45 +90,27 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
         }
 
         const item = media[i];
-        // Skip if mediaUrl is invalid
-        if (!item.mediaUrl || typeof item.mediaUrl !== 'string') {
-          heights[i] = SCREEN_WIDTH; // Fallback to square
-          continue;
-        }
-
         // Fetch image dimensions for items without dimensions
         try {
-          await Promise.race([
-            new Promise<void>((resolve) => {
-              Image.getSize(
-                item.mediaUrl,
-                (width, height) => {
-                  if (width > 0 && height > 0) {
-                    const aspectRatio = width / height;
-                    heights[i] = SCREEN_WIDTH / aspectRatio;
-                  } else {
-                    heights[i] = SCREEN_WIDTH; // Fallback if invalid dimensions
-                  }
-                  resolve();
-                },
-                (error) => {
-                  // Silently handle error and use fallback
-                  heights[i] = SCREEN_WIDTH;
-                  resolve();
-                }
-              );
-            }),
-            // Timeout after 5 seconds
-            new Promise<void>((resolve) => {
-              setTimeout(() => {
-                heights[i] = SCREEN_WIDTH; // Fallback on timeout
+          await new Promise<void>((resolve, reject) => {
+            Image.getSize(
+              item.mediaUrl,
+              (width, height) => {
+                const aspectRatio = width / height;
+                heights[i] = SCREEN_WIDTH / aspectRatio;
                 resolve();
-              }, 5000);
-            }),
-          ]);
+              },
+              (error) => {
+                console.error('Error loading image size:', error);
+                // Fallback to square if error
+                heights[i] = SCREEN_WIDTH;
+                resolve();
+              }
+            );
+          });
         } catch (error) {
-          // Fallback to square on any unexpected error
-          heights[i] = SCREEN_WIDTH;
+          console.error('Error loading image dimensions:', error);
+          heights[i] = SCREEN_WIDTH; // Fallback to square
         }
       }
 

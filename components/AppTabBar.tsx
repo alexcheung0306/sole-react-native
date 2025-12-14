@@ -17,6 +17,7 @@ import {
 } from 'lucide-react-native';
 import { AccountDropDownMenu } from '@/components/AccountDropDownMenu';
 import { GlassOverlay } from '@/components/custom/GlassView';
+import { getDeviceScreenRadius } from '~/utils/device-screen-radius';
 
 type TabConfig = {
   name: string;
@@ -32,7 +33,7 @@ export default function AppTabBar() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { animatedTabBarStyle, handleHeightChange, collapseTabBar, showTabBar, setTabBarPositionByScale, getTabBarTranslateY } = useScrollAppTabBar();
-
+  const radius = getDeviceScreenRadius();
   // Simple fade animation for mode transitions
   const fadeAnim = useRef(new RNAnimated.Value(1)).current;
   const prevModeRef = useRef<'user' | 'client' | null>(null);
@@ -240,12 +241,14 @@ export default function AppTabBar() {
     <Animated.View
       style={[
         {
+          marginHorizontal: 10,
+          marginBottom: insets.bottom,
           position: 'absolute',
           bottom: 0,
           left: 0,
           right: 0,
           overflow: 'hidden',
-          borderTopWidth: 1,
+          borderRadius: radius,
           borderTopColor: 'rgba(255, 255, 255, 0.3)',
           zIndex: 10,
         },
@@ -260,8 +263,9 @@ export default function AppTabBar() {
       {/* Content */}
       <View
         style={{
-          paddingBottom: insets.bottom,
-          paddingTop: 4,
+          // paddingBottom: insets.bottom,
+          // paddingTop: 4,
+          padding: 10,
         }}>
         <RNAnimated.View
           style={{

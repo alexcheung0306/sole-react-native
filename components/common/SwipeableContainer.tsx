@@ -10,6 +10,7 @@ import Animated, {
   Extrapolate,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { getDeviceScreenRadius } from '~/utils/device-screen-radius';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -28,6 +29,7 @@ export default function SwipeableContainer({
   shouldFailAtEdges = false,
   shrink = true,
 }: SwipeableContainerProps) {
+  const radius = getDeviceScreenRadius();
   const translateX = useSharedValue(-activeIndex * SCREEN_WIDTH);
   const currentIndex = useSharedValue(activeIndex);
   const isGestureActive = useSharedValue(false);
@@ -390,7 +392,8 @@ export default function SwipeableContainer({
     const scale = interpolate(swipeProgress, [0, 0.3, 1], [1, 0.95, 0.9], Extrapolate.CLAMP);
 
     // Border radius increases during swipe (phone-like rounded corners)
-    const borderRadius = interpolate(swipeProgress, [0, 0.5, 1], [0, 20, 30], Extrapolate.CLAMP);
+    // const borderRadius = interpolate(swipeProgress, [0, 0.5, 1], [0, 20, 30], Extrapolate.CLAMP);
+    const borderRadius = radius;
 
     // Shadow opacity increases during swipe
     const shadowOpacity = interpolate(swipeProgress, [0, 0.2, 1], [0, 0.3, 0.6], Extrapolate.CLAMP);
@@ -440,6 +443,15 @@ export default function SwipeableContainer({
                   flex: 1,
                   backgroundColor: '#000000',
                   overflow: 'hidden', // Ensure border radius clips content
+                  // White light shadow for each screen
+                  shadowColor: '#ffffff',
+                  shadowOffset: {
+                    width: 0,
+                    height: 2,
+                  },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 25,
+                  elevation: 10,
                 },
               ]}>
               {child}
