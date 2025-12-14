@@ -3,6 +3,7 @@ import { View, TouchableOpacity, Alert } from 'react-native';
 import { AspectRatioWheel } from './AspectRatioWheel';
 import { MediaItem, useCameraContext } from '~/context/CameraContext';
 import { router } from 'expo-router';
+import { GlassOverlay } from '../custom/GlassView';
 
 export default function CropControls({
   selectedAspectRatio,
@@ -24,6 +25,7 @@ export default function CropControls({
   isAspectRatioLocked?: boolean;
 }) {
   const { selectedMedia, setSelectedMedia, removeMedia } = useCameraContext();
+
 
   const calculateCenterCrop = (media: MediaItem, targetRatio: number) => {
     const naturalWidth = media.cropData?.naturalWidth ?? media.width;
@@ -96,8 +98,8 @@ export default function CropControls({
   };
 
   return (
-    <View className="absolute bottom-3 left-0 right-0 z-50 px-4">
-      <View className="flex-row items-center justify-between">
+      <View className="flex flex-row items-center justify-between p-4">
+        <GlassOverlay intensity={80} tint="dark" />
         {/* Aspect Ratio Toggle - Left */}
         <AspectRatioWheel
           selectedRatio={selectedAspectRatio}
@@ -119,9 +121,6 @@ export default function CropControls({
               }
             }}
             style={{
-              position: 'absolute',
-              right: 12,
-              bottom: 12,
               backgroundColor: isMultiSelect ? 'rgb(0, 140, 255)' : 'rgba(0,0,0,0.6)',
               borderRadius: 20,
               padding: 8,
@@ -133,6 +132,5 @@ export default function CropControls({
           </TouchableOpacity>
         )}
       </View>
-    </View>
   );
 }

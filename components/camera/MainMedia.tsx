@@ -2,6 +2,7 @@ import { View } from 'react-native';
 import { Video, ResizeMode } from 'expo-av';
 import { MediaItem, useCameraContext } from '~/context/CameraContext';
 import { EditableImage } from '~/components/camera/EditableImage';
+import GlassView, { GlassOverlay } from '../custom/GlassView';
 
 export default function MainMedia({
   currentIndex,

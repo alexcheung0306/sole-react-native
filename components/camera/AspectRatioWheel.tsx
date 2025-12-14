@@ -40,15 +40,11 @@ export function AspectRatioWheel({
       disabled={isLocked}
       activeOpacity={1}
       style={{
-        position: 'absolute',
-        left: 12,
-        bottom: 12,
         backgroundColor: 'rgba(0,0,0,0.6)',
         borderRadius: 20,
         padding: 8,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
       }}>
       <Icon size={12} color="#ffffff" />
       <Text style={{ color: '#ffffff', fontSize: 8, fontWeight: 'bold' }}>{currentItem.label}</Text>
