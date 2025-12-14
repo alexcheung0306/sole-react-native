@@ -15,6 +15,7 @@ interface CollapsibleHeaderProps {
   textColor?: string;
   isDark?: boolean;
   gradientOpacity?: number; // Opacity for the top of the gradient (0-1)
+  isScrollCollapsible?: boolean;
 }
 
 export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
@@ -28,6 +29,7 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
   textColor,
   isDark = true,
   gradientOpacity = 0.9,
+  isScrollCollapsible = true,
 }) => {
   const insets = useSafeAreaInsets();
 
@@ -55,7 +57,8 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
           right: 0,
           zIndex: 1000,
         },
-        animatedStyle,
+        // Only apply animated style if scroll collapsible is enabled
+        isScrollCollapsible ? animatedStyle : undefined,
       ]}
       onLayout={handleLayout}>
       {/* Glass effect overlay */}

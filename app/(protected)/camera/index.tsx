@@ -712,6 +712,7 @@ const CameraContent = ({
               </Text>
             </TouchableOpacity>
           }
+          isScrollCollapsible={false}
         />
 
         {isLoading ? (
