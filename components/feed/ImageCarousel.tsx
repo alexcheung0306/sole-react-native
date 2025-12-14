@@ -32,8 +32,24 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
 
   const isLogAvaliable = false;
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [imageHeights, setImageHeights] = useState<{ [key: number]: number }>({});
-  const [currentHeight, setCurrentHeight] = useState<number>(SCREEN_WIDTH); // Default to square
+
+  // Initialize heights synchronously from media items that have dimensions
+  const initialHeights = React.useMemo(() => {
+    const heights: { [key: number]: number } = {};
+    for (let i = 0; i < media.length; i++) {
+      const item = media[i];
+      if (item.width && item.height) {
+        const aspectRatio = item.width / item.height;
+        heights[i] = SCREEN_WIDTH / aspectRatio;
+      }
+    }
+    return heights;
+  }, [media]);
+
+  const [imageHeights, setImageHeights] = useState<{ [key: number]: number }>(initialHeights);
+  const [currentHeight, setCurrentHeight] = useState<number>(
+    initialHeights[0] || SCREEN_WIDTH // Use calculated height if available, otherwise default to square
+  );
   const [isZooming, setIsZooming] = useState(false);
   const listRef = useRef<FlatList<MediaItem>>(null);
 
@@ -62,53 +78,69 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
     return null;
   }
 
-  // Load image dimensions and calculate heights
+  // Load image dimensions and calculate heights for items without dimensions
   useEffect(() => {
     const loadImageDimensions = async () => {
-      const heights: { [key: number]: number } = {};
+      const heights: { [key: number]: number } = { ...initialHeights };
 
       for (let i = 0; i < media.length; i++) {
-        const item = media[i];
+        // Skip if we already have the height from initial calculation
+        if (heights[i] !== undefined) {
+          continue;
+        }
 
-        // If dimensions are already provided, use them
-        if (item.width && item.height) {
-          const aspectRatio = item.width / item.height;
-          heights[i] = SCREEN_WIDTH / aspectRatio;
-        } else {
-          // Otherwise, fetch image dimensions
-          try {
-            await new Promise<void>((resolve, reject) => {
+        const item = media[i];
+        // Skip if mediaUrl is invalid
+        if (!item.mediaUrl || typeof item.mediaUrl !== 'string') {
+          heights[i] = SCREEN_WIDTH; // Fallback to square
+          continue;
+        }
+
+        // Fetch image dimensions for items without dimensions
+        try {
+          await Promise.race([
+            new Promise<void>((resolve) => {
               Image.getSize(
                 item.mediaUrl,
                 (width, height) => {
-                  const aspectRatio = width / height;
-                  heights[i] = SCREEN_WIDTH / aspectRatio;
+                  if (width > 0 && height > 0) {
+                    const aspectRatio = width / height;
+                    heights[i] = SCREEN_WIDTH / aspectRatio;
+                  } else {
+                    heights[i] = SCREEN_WIDTH; // Fallback if invalid dimensions
+                  }
                   resolve();
                 },
                 (error) => {
-                  console.error('Error loading image size:', error);
-                  // Fallback to square if error
+                  // Silently handle error and use fallback
                   heights[i] = SCREEN_WIDTH;
                   resolve();
                 }
               );
-            });
-          } catch (error) {
-            console.error('Error loading image dimensions:', error);
-            heights[i] = SCREEN_WIDTH; // Fallback to square
-          }
+            }),
+            // Timeout after 5 seconds
+            new Promise<void>((resolve) => {
+              setTimeout(() => {
+                heights[i] = SCREEN_WIDTH; // Fallback on timeout
+                resolve();
+              }, 5000);
+            }),
+          ]);
+        } catch (error) {
+          // Fallback to square on any unexpected error
+          heights[i] = SCREEN_WIDTH;
         }
       }
 
       setImageHeights(heights);
-      // Set initial height for first image
-      if (heights[0]) {
+      // Set initial height for first image if not already set
+      if (heights[0] && !initialHeights[0]) {
         setCurrentHeight(heights[0]);
       }
     };
 
     loadImageDimensions();
-  }, [media]);
+  }, [media, initialHeights]);
 
   // Update height when current index changes
   useEffect(() => {
@@ -140,14 +172,17 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
   // Single image - no carousel needed
   if (media.length === 1) {
     const singleImageHeight = imageHeights[0] || currentHeight;
+    const hasCalculatedHeight = imageHeights[0] !== undefined || initialHeights[0] !== undefined;
     return (
       <Animated.View
         style={[
           {
             width: SCREEN_WIDTH,
-            height: 'auto',
+            height: hasCalculatedHeight ? singleImageHeight : 'auto',
             overflow: 'visible',
             position: 'relative',
+            borderWidth: 2,
+
           },
           carouselAnimatedStyle, // Uses Reanimated for instant z-index updates
         ]}>
@@ -175,18 +210,18 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
             borderRadius: 4,
             zIndex: 99999,
           }}>
-     
+
         </View>
         <MediaZoom2
           children={
             <Image
               source={{ uri: media[0].mediaUrl }}
-              style={{ width: SCREEN_WIDTH, height: singleImageHeight }}
+              style={{ width: SCREEN_WIDTH, height: hasCalculatedHeight ? singleImageHeight : 'auto' }}
               resizeMode="contain"
             />
           }
           width={SCREEN_WIDTH}
-          height={singleImageHeight}
+          height={hasCalculatedHeight ? singleImageHeight : (currentHeight || SCREEN_WIDTH)}
           resetOnRelease={true}
           minScale={1}
           maxScale={3}
@@ -208,7 +243,7 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
         carouselAnimatedStyle, // Uses Reanimated for instant z-index updates
       ]}>
       {/* Debug overlay for ImageCarousel z-index */}
-     {isLogAvaliable && <View
+      {isLogAvaliable && <View
         style={{
           position: 'absolute',
           top: 10,
@@ -237,25 +272,33 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
         keyExtractor={(_, index) => `${index}`}
         onMomentumScrollEnd={handleMomentumEnd}
         renderItem={({ item, index }) => {
-          // All items use currentHeight for consistent paging
+          // Use calculated height if available, otherwise 'auto'
           const itemHeight = imageHeights[index] || currentHeight;
+          const hasCalculatedHeight = imageHeights[index] !== undefined || (index === 0 && initialHeights[0] !== undefined);
           return (
-            <MediaZoom2
-              children={
-                <Image
-                  source={{ uri: item.mediaUrl }}
-                  style={{ width: SCREEN_WIDTH, height: itemHeight }}
-                  resizeMode="contain"
-                />
-              }
-              width={SCREEN_WIDTH}
-              height={itemHeight}
-              resetOnRelease={true}
-              minScale={1}
-              maxScale={3}
-              onZoomActiveChange={handleZoomChange}
-              onScaleChange={onScaleChange}
-            />
+            <View
+              style={{
+                width: SCREEN_WIDTH,
+                height: hasCalculatedHeight ? itemHeight : 'auto',
+                borderWidth: 2,
+              }}>
+              <MediaZoom2
+                children={
+                  <Image
+                    source={{ uri: item.mediaUrl }}
+                    style={{ width: SCREEN_WIDTH, height: hasCalculatedHeight ? itemHeight : 'auto' }}
+                    resizeMode="contain"
+                  />
+                }
+                width={SCREEN_WIDTH}
+                height={hasCalculatedHeight ? itemHeight : (currentHeight || SCREEN_WIDTH)}
+                resetOnRelease={true}
+                minScale={1}
+                maxScale={3}
+                onZoomActiveChange={handleZoomChange}
+                onScaleChange={onScaleChange}
+              />
+            </View>
           );
         }}
       />
