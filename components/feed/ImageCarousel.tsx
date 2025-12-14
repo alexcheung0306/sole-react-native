@@ -133,13 +133,15 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
 
   const handlePrevious = () => {
     const nextIndex = currentIndex === 0 ? media.length - 1 : currentIndex - 1;
-    listRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+    const offset = nextIndex * SCREEN_WIDTH;
+    listRef.current?.scrollToOffset({ offset, animated: true });
     setCurrentIndex(nextIndex);
   };
 
   const handleNext = () => {
     const nextIndex = currentIndex === media.length - 1 ? 0 : currentIndex + 1;
-    listRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+    const offset = nextIndex * SCREEN_WIDTH;
+    listRef.current?.scrollToOffset({ offset, animated: true });
     setCurrentIndex(nextIndex);
   };
 
@@ -164,7 +166,7 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
             overflow: 'visible',
             position: 'relative',
             borderWidth: 2,
-
+            backgroundColor: 'grey',
           },
           carouselAnimatedStyle, // Uses Reanimated for instant z-index updates
         ]}>
@@ -253,6 +255,11 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
         showsHorizontalScrollIndicator={false}
         keyExtractor={(_, index) => `${index}`}
         onMomentumScrollEnd={handleMomentumEnd}
+        getItemLayout={(_, index) => ({
+          length: SCREEN_WIDTH,
+          offset: SCREEN_WIDTH * index,
+          index,
+        })}
         renderItem={({ item, index }) => {
           // Use calculated height if available, otherwise 'auto'
           const itemHeight = imageHeights[index] || currentHeight;
@@ -262,7 +269,8 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
               style={{
                 width: SCREEN_WIDTH,
                 height: hasCalculatedHeight ? itemHeight : 'auto',
-                borderWidth: 2,
+                overflow: 'hidden',
+                backgroundColor: 'grey',
               }}>
               <MediaZoom2
                 children={

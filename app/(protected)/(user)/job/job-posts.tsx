@@ -59,12 +59,7 @@ export default function JobPosts({ scrollHandler }: JobPostsProps) {
     refetchProjects();
   };
 
-
- 
-
   const projectsData = projects;
-
-
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />

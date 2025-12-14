@@ -77,15 +77,17 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
         backgroundColor="transparent"
         translucent
       />
+
+      {/* first header */}
       <View
         style={{
           paddingTop: insets.top + 8, // Add extra padding for better spacing
-          paddingHorizontal: 16,
+          paddingHorizontal: 0,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
           minHeight: 56, // Increased min height for better proportions
-          paddingBottom: secondHeader ? 8 : 16, // Reduce bottom padding when secondHeader exists
+          paddingBottom: secondHeader ? 0 : 0, // Reduce bottom padding when secondHeader exists
         }}>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
           {headerLeft}
@@ -96,6 +98,7 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
                 fontWeight: '600',
                 color: textColor || defaultText,
                 marginLeft: headerLeft ? 8 : 0,
+                paddingHorizontal: 20,
               }}>
               {title}
             </Text>
@@ -109,6 +112,7 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
         {headerRight && <View style={{ flex: 1, alignItems: 'flex-end' }}>{headerRight}</View>}
       </View>
 
+      {/* second header */}
       {secondHeader && (
         <View
           style={{

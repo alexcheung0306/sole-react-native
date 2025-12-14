@@ -11,7 +11,11 @@ import FilterSearch from '~/components/custom/filter-search';
 import FlatListEmpty from '~/components/custom/flatlist-empty';
 import ScreenTransition from '@/components/projects/ScreenTransition';
 
-export default function ManageProjectsPage({ scrollHandler }: { scrollHandler: (event: any) => void }) {
+type ManageProjectsProps = {
+  scrollHandler?: (event: any) => void;
+};
+
+export default function ManageProjectsPage({ scrollHandler }: ManageProjectsProps) {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const [refreshing, setRefreshing] = useState(false);

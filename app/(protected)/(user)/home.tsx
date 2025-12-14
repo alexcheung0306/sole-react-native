@@ -127,7 +127,6 @@ export default React.memo(function UserHome() {
     });
   };
 
-
   // Transform backend response to component format with defensive null checks
   const transformPost = (backendPost: PostWithDetailsResponse) => {
     // DEFENSIVE CHECK: Handle missing soleUserInfo

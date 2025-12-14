@@ -10,7 +10,11 @@ import { useManageContractContext } from '@/context/ManageContractContext';
 import ScreenTransition from '@/components/projects/ScreenTransition';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 
-export default function ManageContractsPage({ scrollHandler }: { scrollHandler: (event: any) => void }) {
+type ManageContractsProps = {
+  scrollHandler?: (event: any) => void;
+};
+
+export default function ManageContractsPage({ scrollHandler }: ManageContractsProps) {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const {
