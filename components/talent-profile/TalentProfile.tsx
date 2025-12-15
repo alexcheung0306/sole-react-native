@@ -1,6 +1,6 @@
 import { Image as ExpoImage } from 'expo-image';
 import { View, ScrollView, Text, Image } from 'react-native';
-import { TalentInfoForm } from '~/components/form-components/talent-form/TalentInfo-form';
+import { TalentInfoFormPortal } from '~/components/form-components/talent-form/TalentInfoFormPortal';
 import { useState, useEffect } from 'react';
 
 export default function TalentProfile({
@@ -34,7 +34,7 @@ export default function TalentProfile({
     <View className="py-4">
       {/* Edit Button (for own profile) */}
       {isOwnProfile && (
-        <TalentInfoForm
+        <TalentInfoFormPortal
           talentLevel={talentLevel}
           talentInfo={talentInfo}
           userProfileData={userProfileData}

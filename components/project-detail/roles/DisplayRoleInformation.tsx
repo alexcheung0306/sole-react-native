@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
-import { RoleForm } from '../../form-components/role-form/RoleForm';
+import { RoleFormPortal } from '~/components/form-components/role-form/RoleFormPortal';
 import { DeleteRoleButton } from './DeleteRoleButton';
 import { formatDateTimeLocale } from '@/lib/datetime';
 
@@ -293,7 +293,7 @@ export function DisplayRoleInformation({
           <View className="gap-3 border-t border-white/10 pt-4">
             <View className="flex-row gap-3">
               <View className="flex-1">
-                <RoleForm
+                <RoleFormPortal
                   projectId={projectId}
                   method="PUT"
                   roleId={role.id || 0}

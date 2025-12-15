@@ -3,7 +3,7 @@ import { Pencil, Plus } from 'lucide-react-native';
 import { PrimaryButton } from '~/components/custom/primary-button';
 import { router } from 'expo-router';
 
-interface ProjectInfoFormModalProps {
+interface ProjectInfoFormPortalProps {
   method: 'POST' | 'PUT';
   initValues?: any;
   triggerClassName?: string;
@@ -24,12 +24,12 @@ export interface ProjectFormValues {
   status: string;
 }
 
-export default function ProjectInfoFormModal({
+export default function ProjectInfoFormPortal({
   method,
   initValues,
   triggerClassName,
   renderTrigger,
-}: ProjectInfoFormModalProps) {
+}: ProjectInfoFormPortalProps) {
   const handleOpen = () => {
     const params: Record<string, string> = {
       formType: 'project',

@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { Button, ButtonText } from '@/components/ui/button';
 
-interface RoleFormNavigationButtonsProps {
+interface RoleFormPortalNavigationButtonsProps {
   currentPage: 'roleInformation' | 'requirements' | 'schedules' | 'confirm';
   getPreviousPage: () => 'roleInformation' | 'requirements' | 'schedules' | 'confirm';
   getNextPage: () => 'roleInformation' | 'requirements' | 'schedules' | 'confirm';
@@ -23,7 +23,7 @@ export function RoleFormNavigationButtons({
   isSubmitting,
   onSave,
   onClose,
-}: RoleFormNavigationButtonsProps) {
+}: RoleFormPortalNavigationButtonsProps) {
   return (
     <View className="flex-row gap-3 border-t border-white/10 px-4 py-4">
       <Button

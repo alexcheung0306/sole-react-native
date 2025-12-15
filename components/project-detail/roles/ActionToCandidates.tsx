@@ -5,7 +5,7 @@ import {
   FileSignature,
 } from 'lucide-react-native';
 import { getStatusColorObject } from '@/utils/get-status-color';
-import { SendOfferModal } from '../../form-components/send-offer-form/SendOfferModal';
+import { SendOfferFormPortal } from '../../form-components/send-offer-form/SendOfferFormPortal';
 
 interface ActionToCandidatesProps {
   applicant: any;
@@ -50,7 +50,7 @@ export function ActionToCandidates({
         </View>
 
         <View className="px-4 pb-4">
-          <SendOfferModal
+          <SendOfferFormPortal
             applicant={applicant}
             projectData={projectData}
             roleWithSchedules={roleWithSchedules || applicant?.jobApplicant?.roleWithSchedules || (roleId ? { role: { id: roleId } } : null)}

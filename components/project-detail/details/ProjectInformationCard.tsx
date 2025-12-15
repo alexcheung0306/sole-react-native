@@ -3,7 +3,7 @@ import { View, Text, ImageBackground, TouchableOpacity } from 'react-native';
 import { EllipsisVertical } from 'lucide-react-native';
 
 import { ProjectInfoActionsDrawer } from '~/components/project-detail/details/ProjectInfoActionsDrawer';
-import ProjectInfoFormModal from '@/components/projects/ProjectInfoFormModal';
+import ProjectInfoFormPortal from '@/components/projects/ProjectInfoFormPortal';
 import { formatDateTime } from '@/utils/time-converts';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getStatusColor } from '@/utils/get-status-color';

@@ -35,7 +35,7 @@ export default function RoleCandidatesSwipeScreen() {
   const [showStatusDrawer, setShowStatusDrawer] = useState(false);
   const [statusFilterSelection, setStatusFilterSelection] = useState<string[]>([]);
   const [exhausted, setExhausted] = useState(false);
-  const [showSendOfferModal, setShowSendOfferModal] = useState(false);
+  const [showSendOfferFormPortal, setShowSendOfferFormPortal] = useState(false);
   // Track swiped away candidates to remove them from the array
   const [swipedCandidateIds, setSwipedCandidateIds] = useState<Set<number>>(new Set());
   const toggleStatusFilter = useCallback((id: string) => {
@@ -724,7 +724,7 @@ export default function RoleCandidatesSwipeScreen() {
       
       // Handle "send offer" action - open modal instead of executing
       if (action === 'send offer') {
-        setShowSendOfferModal(true);
+        setShowSendOfferFormPortal(true);
         return;
       }
 
@@ -761,13 +761,13 @@ export default function RoleCandidatesSwipeScreen() {
   }, []);
 
   // Handle send offer modal close
-  const handleSendOfferModalClose = useCallback(() => {
-    setShowSendOfferModal(false);
+  const handleSendOfferFormPortalClose = useCallback(() => {
+    setShowSendOfferFormPortal(false);
   }, []);
 
   // Handle send offer success - slide card out
   const handleSendOfferSuccess = useCallback(() => {
-    setShowSendOfferModal(false);
+    setShowSendOfferFormPortal(false);
     handleCardSwipeComplete();
   }, [handleCardSwipeComplete]);
 
@@ -1059,8 +1059,8 @@ export default function RoleCandidatesSwipeScreen() {
                       currentIndexShared={currentIndexShared}
                       currentProcessShared={currentProcessShared}
                       isExiting={isExiting}
-                      showSendOfferModal={isTopCard ? showSendOfferModal : false}
-                      onSendOfferModalClose={handleSendOfferModalClose}
+                      showSendOfferFormPortal={isTopCard ? showSendOfferFormPortal : false}
+                      onSendOfferFormPortalClose={handleSendOfferFormPortalClose}
                       onSendOfferSuccess={handleSendOfferSuccess}
                     />
                   );

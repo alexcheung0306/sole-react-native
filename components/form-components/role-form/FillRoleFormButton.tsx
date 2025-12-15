@@ -1,6 +1,6 @@
 import { TouchableOpacity, Text } from 'react-native';
 
-interface FillRoleFormButtonProps {
+interface FillRoleFormPortalButtonProps {
   projectId: number;
   setFieldValue: (field: string, value: any) => void;
   setSelectedCategories?: (categories: string[]) => void;
@@ -12,7 +12,7 @@ export function FillRoleFormButton({
   setFieldValue,
   setSelectedCategories,
   setEthnic,
-}: FillRoleFormButtonProps) {
+}: FillRoleFormPortalButtonProps) {
   return (
     <TouchableOpacity
       onPress={() => {

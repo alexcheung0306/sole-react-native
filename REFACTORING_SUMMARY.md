@@ -49,7 +49,7 @@ Matching sole-web structure:
 
 ## Component Changes
 
-### 3. **UserInfoForm.tsx** - Complete Rewrite ✅
+### 3. **UserInfoFormPortal.tsx** - Complete Rewrite ✅
 
 **Before Issues:**
 ❌ Manual state management with `useState`
@@ -86,7 +86,7 @@ if (usernameChanged) {
 }
 ```
 
-### 4. **TalentInfoForm.tsx** - Complete Rewrite ✅
+### 4. **TalentInfoFormPortal.tsx** - Complete Rewrite ✅
 
 **Before Issues:**
 ❌ Manual validation in component (100+ lines)
@@ -277,8 +277,8 @@ if (method === 'PUT') {
 4. `api/apiservice/user_search_api.ts` ✅ NEW (was missing in native)
 
 ### Modified:
-1. `components/profile/UserInfoForm.tsx` - Complete rewrite ✅
-2. `components/talent-profile/TalentInfoForm.tsx` - Complete rewrite ✅
+1. `components/profile/UserInfoFormPortal.tsx` - Complete rewrite ✅
+2. `components/talent-profile/TalentInfoFormPortal.tsx` - Complete rewrite ✅
 3. `components/profile/userInfo.tsx` - Removed mutation logic ✅
 4. `api/apiservice/soleUser_api.ts` - Added missing APIs ✅
    - Added `searchTalents()` function

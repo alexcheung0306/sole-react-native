@@ -17,7 +17,7 @@ import { getStatusColor } from '@/utils/get-status-color';
 import TalentProfile from '~/components/talent-profile/TalentProfile';
 import { ApplicationDetail } from '~/components/project-detail/roles/ApplicationDetail';
 import { ActionToCandidates } from '~/components/project-detail/roles/ActionToCandidates';
-import { SendOfferModal } from '~/components/form-components/send-offer-form/SendOfferModal';
+import { SendOfferFormPortal } from '~/components/form-components/send-offer-form/SendOfferFormPortal';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 100;
@@ -54,8 +54,8 @@ interface SwipeCardProps {
   availableActionsShared: SharedValue<string[]>;
   currentIndexShared: SharedValue<number>;
   currentProcessShared: SharedValue<string>;
-  showSendOfferModal?: boolean;
-  onSendOfferModalClose?: () => void;
+  showSendOfferFormPortal?: boolean;
+  onSendOfferFormPortalClose?: () => void;
   onSendOfferSuccess?: () => void;
 }
 
@@ -90,8 +90,8 @@ export default function SwipeCard({
   availableActionsShared,
   currentIndexShared,
   currentProcessShared,
-  showSendOfferModal = false,
-  onSendOfferModalClose,
+  showSendOfferFormPortal = false,
+  onSendOfferFormPortalClose,
   onSendOfferSuccess,
 }: SwipeCardProps) {
   // Animation values for this card
@@ -110,19 +110,19 @@ export default function SwipeCard({
 
   // Reset card position when modal closes (without submitting)
   // This ensures the card returns to center if modal is closed without submitting
-  const prevShowModalRef = useRef(showSendOfferModal);
+  const prevShowModalRef = useRef(showSendOfferFormPortal);
   useEffect(() => {
-    if (isTopCard && prevShowModalRef.current && !showSendOfferModal) {
+    if (isTopCard && prevShowModalRef.current && !showSendOfferFormPortal) {
       // Modal was just closed - reset card position
       translateX.value = withTiming(0, { duration: 200 });
       translateY.value = withTiming(0, { duration: 200 });
       rejectGradientOpacity.value = withTiming(0, { duration: 150 });
       rightActionOpacities.value = withTiming([0, 0, 0, 0, 0], { duration: 150 });
     }
-    prevShowModalRef.current = showSendOfferModal;
+    prevShowModalRef.current = showSendOfferFormPortal;
   }, [
     isTopCard,
-    showSendOfferModal,
+    showSendOfferFormPortal,
     translateX,
     translateY,
     rejectGradientOpacity,
@@ -495,7 +495,7 @@ export default function SwipeCard({
 
       {/* Send Offer Modal */}
       {isTopCard && (
-        <SendOfferModal
+        <SendOfferFormPortal
           applicant={candidate}
           projectData={projectData || { id: projectId }}
           roleWithSchedules={
@@ -503,10 +503,10 @@ export default function SwipeCard({
             candidate?.jobApplicant?.roleWithSchedules ||
             (roleId ? { role: { id: roleId } } : null)
           }
-          open={showSendOfferModal}
+          open={showSendOfferFormPortal}
           onOpenChange={(isOpen) => {
-            if (!isOpen && onSendOfferModalClose) {
-              onSendOfferModalClose();
+            if (!isOpen && onSendOfferFormPortalClose) {
+              onSendOfferFormPortalClose();
             }
           }}
           onSuccess={() => {

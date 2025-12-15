@@ -28,7 +28,7 @@ import {
   validateRegion,
 } from '~/lib/validations/talentInfo-validations';
 import { validateImageField } from '~/lib/validations/form-field-validations';
-import { TalentFormValues } from './TalentInfo-form';
+import { TalentFormValues } from '~/components/form-components/talent-form/TalentInfoFormPortal';
 
 const GENDER_OPTIONS = ['Male', 'Female', 'Non-binary', 'Other'];
 const EYE_COLOR_OPTIONS = ['Brown', 'Blue', 'Green', 'Hazel', 'Gray', 'Amber'];
@@ -43,7 +43,7 @@ const ETHNIC_OPTIONS = [
   'Mixed',
 ];
 
-export default function TalentInfoFormPage() {
+export default function TalentInfoFormPortalPage() {
   const queryClient = useQueryClient();
   const { soleUser } = useSoleUserContext();
   const params = useLocalSearchParams<{

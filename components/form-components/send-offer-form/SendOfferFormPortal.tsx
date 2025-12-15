@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { PrimaryButton } from '@/components/custom/primary-button';
 import { useSoleUserContext } from '@/context/SoleUserContext';
 
-type SendOfferModalProps = {
+type SendOfferFormPortalProps = {
   applicant: any;
   projectData: any;
   roleWithSchedules: any;
@@ -12,7 +12,7 @@ type SendOfferModalProps = {
   onOpenChange?: (open: boolean) => void;
 };
 
-export function SendOfferModal({ applicant, projectData, roleWithSchedules, onSuccess, open, onOpenChange }: SendOfferModalProps) {
+export function SendOfferFormPortal({ applicant, projectData, roleWithSchedules, onSuccess, open, onOpenChange }: SendOfferFormPortalProps) {
   const { soleUserId: currentUserSoleUserId } = useSoleUserContext();
   const jobApplicant = applicant?.jobApplicant || applicant || {};
   const role = roleWithSchedules?.role || {};

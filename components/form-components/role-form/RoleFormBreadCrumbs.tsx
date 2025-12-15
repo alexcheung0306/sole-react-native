@@ -1,6 +1,6 @@
 import { View, TouchableOpacity, Text } from 'react-native';
 
-interface RoleFormBreadCrumbsProps {
+interface RoleFormPortalBreadCrumbsProps {
   currentPage: string;
   setCurrentPage: (page: string) => void;
   pageOrder: string[];
@@ -17,7 +17,7 @@ export function RoleFormBreadCrumbs({
   requirementsErrors,
   hasErrors,
   hasJobActivity = true,
-}: RoleFormBreadCrumbsProps) {
+}: RoleFormPortalBreadCrumbsProps) {
   return (
     <View className=" flex-row flex-wrap gap-2  ">
       {pageOrder.map((page, index) => {

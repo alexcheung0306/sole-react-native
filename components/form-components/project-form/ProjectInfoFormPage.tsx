@@ -9,7 +9,7 @@ import { FormPage } from '@/components/custom/form-page';
 import { useCameraContext } from '~/context/CameraContext';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
-import { ProjectFormValues } from './ProjectInfoFormModal';
+import { ProjectFormValues } from '~/components/form-components/project-form/ProjectInfoFormPortal';
 
 export default function ProjectInfoFormPage() {
   const { soleUserId } = useSoleUserContext();
@@ -52,7 +52,7 @@ export default function ProjectInfoFormPage() {
         return await createProject(soleUserId, values);
       } else {
         if (!projectId) throw new Error('Project ID not found');
-        return await updateProject(projectId, soleUserId, values);
+        return await updateProject(parseInt(projectId), soleUserId, values);
       }
     },
     onSuccess: () => {

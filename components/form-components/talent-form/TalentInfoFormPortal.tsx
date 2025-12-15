@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { Edit2 } from 'lucide-react-native';
 import { router } from 'expo-router';
 
-interface TalentInfoFormProps {
+interface TalentInfoFormPortalProps {
   userProfileData: any;
   talentLevel: number | null;
   talentInfo: any;
@@ -40,7 +40,7 @@ const ETHNIC_OPTIONS = [
   'Mixed',
 ];
 
-export function TalentInfoForm({ userProfileData, talentLevel, talentInfo }: TalentInfoFormProps) {
+export function TalentInfoFormPortal({ userProfileData, talentLevel, talentInfo }: TalentInfoFormPortalProps) {
   const soleUserId = userProfileData?.userInfo?.soleUserId;
 
   // Handle talent level logic (matching web pattern)

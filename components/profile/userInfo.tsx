@@ -6,7 +6,7 @@ import { View, Text, TouchableOpacity, Image } from 'react-native';
 import FollowList from '../follow/follow-list';
 import { useUser } from '@clerk/clerk-expo';
 import { User } from 'lucide-react-native';
-import { UserInfoForm } from '../form-components/userInfo-form/UserInfo-form';
+import { UserInfoFormPortal } from '../form-components/userInfo-form/UserInfoFormPortal';
 
 export const UserInfo = React.memo(function UserInfo({
   userPostsData,
@@ -86,7 +86,7 @@ export const UserInfo = React.memo(function UserInfo({
 
         {/* Action Buttons */}
         {isOwnProfile ? (
-          <UserInfoForm userProfileData={userProfileData} />
+          <UserInfoFormPortal userProfileData={userProfileData} />
         ) : (
           <View className="flex-row gap-2">
             <TouchableOpacity className="flex-1 rounded-lg bg-gray-700 px-4 py-2">

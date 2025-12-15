@@ -92,7 +92,7 @@ app/(protected)/(client)/projects/
 
 components/projects/
 ├── ProjectsNavTabs.tsx         # Top-level navigation
-├── ProjectInfoFormModal.tsx    # Create/Edit project modal
+├── ProjectInfoFormPortal.tsx    # Create/Edit project modal
 ├── ProjectStatusTabs.tsx       # Status filter tabs
 ├── ProjectSearchBar.tsx        # Project search with modal
 ├── ContractSearchBar.tsx       # Contract search with modal & filters
@@ -387,9 +387,9 @@ const styles = StyleSheet.create({
 
 ### **Action Components**
 
-#### **ProjectInfoFormModal** (Create/Edit project)
+#### **ProjectInfoFormPortal** (Create/Edit project)
 ```tsx
-<ProjectInfoFormModal 
+<ProjectInfoFormPortal 
   method="POST"        // or "PUT"
   initValues={project} // for edit, undefined for create
 />
@@ -662,7 +662,7 @@ const renderHeader = () => (
   <View>
     <ProjectsNavTabs />                    {/* REQUIRED */}
     <Text className="text-[28px]">Title</Text>
-    <ProjectInfoFormModal method="POST" /> {/* Optional */}
+    <ProjectInfoFormPortal method="POST" /> {/* Optional */}
     <ProjectStatusTabs />                  {/* Optional */}
     <ProjectSearchBar />                   {/* Optional */}
     <Text className="text-sm">X items</Text>
@@ -1010,7 +1010,7 @@ onPress={() => {
 
 **Components (6 files):**
 - `components/projects/ProjectsNavTabs.tsx`
-- `components/projects/ProjectInfoFormModal.tsx`
+- `components/projects/ProjectInfoFormPortal.tsx`
 - `components/projects/ProjectStatusTabs.tsx`
 - `components/projects/ProjectSearchBar.tsx`
 - `components/projects/ContractSearchBar.tsx`

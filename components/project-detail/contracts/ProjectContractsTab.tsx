@@ -16,7 +16,7 @@ import { RoleScheduleListInputs } from '@/components/form-components/role-form/R
 import { DateTimePickerInput } from '@/components/form-components/DateTimePickerInput';
 import { SingleWheelPickerInput } from '@/components/form-components/SingleWheelPickerInput';
 import { RangeWheelPickerInput } from '@/components/form-components/RangeWheelPickerInput';
-import BatchSendConditionFormModal from '~/components/form-components/batch-send-condition-form/BatchSendConditionFormModal';
+import BatchSendConditionFormPortal from '~/components/form-components/batch-send-condition-form/BatchSendConditionFormPortal';
 import ContractsTable from './ContractsTable';
 
 type ProjectContractsTabProps = {
@@ -310,7 +310,7 @@ export function ProjectContractsTab({
 
               {viewMode === 'select' && selectedContractIds.length > 0 ? (
                 // Batch Send Condition Form Modal
-                <BatchSendConditionFormModal
+                <BatchSendConditionFormPortal
                   projectId={projectId}
                   selectedContractIds={selectedContractIds}
                 />

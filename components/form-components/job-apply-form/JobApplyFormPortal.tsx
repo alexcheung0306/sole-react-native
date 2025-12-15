@@ -2,7 +2,7 @@ import React from 'react';
 import { router } from 'expo-router';
 import { PrimaryButton } from '@/components/custom/primary-button';
 
-interface JobApplyFormModalProps {
+interface JobApplyFormPortalProps {
   projectId: number;
   roleId: number;
   soleUserId?: string | null;
@@ -14,13 +14,13 @@ interface JobApplyFormModalProps {
   }) => React.ReactNode;
 }
 
-export default function JobApplyFormModal({
+export default function JobApplyFormPortal({
   projectId,
   roleId,
   soleUserId,
   triggerClassName,
   renderTrigger,
-}: JobApplyFormModalProps) {
+}: JobApplyFormPortalProps) {
   const handleOpen = () => {
     if (!soleUserId) {
       // Handle sign in requirement - could show alert or navigate to sign in

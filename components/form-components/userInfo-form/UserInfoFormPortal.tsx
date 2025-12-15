@@ -3,7 +3,7 @@ import { TouchableOpacity, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useUser } from '@clerk/clerk-expo';
 
-interface UserInfoFormProps {
+interface UserInfoFormPortalProps {
   userProfileData: any;
   isLoading?: boolean;
 }
@@ -16,7 +16,7 @@ export interface ProfileFormValues {
   category: string[];
 }
 
-export const UserInfoForm = React.memo(function UserInfoForm({ userProfileData, isLoading = false }: UserInfoFormProps) {
+export const UserInfoFormPortal = React.memo(function UserInfoFormPortal({ userProfileData, isLoading = false }: UserInfoFormPortalProps) {
   const router = useRouter();
   const { user } = useUser();
 

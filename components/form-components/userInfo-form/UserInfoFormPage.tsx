@@ -23,10 +23,10 @@ import {
   validateName,
   validateBio,
 } from '~/lib/validations/userInfo-validations';
-import { ProfileFormValues } from './UserInfo-form';
+import { ProfileFormValues } from '~/components/form-components/userInfo-form/UserInfoFormPortal';
 
 // Helper component to handle effects that need Formik context
-function UserInfoFormEffects({
+function UserInfoFormPortalEffects({
   isFocused,
   isWaitingForCamera,
   selectedMedia,
@@ -69,7 +69,7 @@ function UserInfoFormEffects({
   return null;
 }
 
-export default function UserInfoFormPage() {
+export default function UserInfoFormPortalPage() {
   const queryClient = useQueryClient();
   const { user } = useUser();
   const { selectedMedia, clearMedia } = useCameraContext();
@@ -223,7 +223,7 @@ export default function UserInfoFormPage() {
 
         return (
           <>
-            <UserInfoFormEffects
+            <UserInfoFormPortalEffects
               isFocused={isFocused}
               isWaitingForCamera={isWaitingForCamera}
               selectedMedia={selectedMedia}

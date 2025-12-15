@@ -6,7 +6,7 @@ import { ShieldCheck, ShieldX, Trash2, Pencil } from 'lucide-react-native';
 
 import { updateProject, deleteProjectById } from '@/api/apiservice/project_api';
 import CollapseDrawer from '~/components/custom/collapse-drawer';
-import ProjectInfoFormModal from '~/components/form-components/project-form/ProjectInfoFormModal';
+import ProjectInfoFormPortal from '~/components/form-components/project-form/ProjectInfoFormPortal';
 
 interface ProjectInfoActionsDrawerProps {
   project: any;
@@ -166,7 +166,7 @@ export function ProjectInfoActionsDrawer({
 
           {/* ---------------------------------------Edit project details--------------------------------------- */}
           {project?.status === 'Draft' ? (
-            <ProjectInfoFormModal
+            <ProjectInfoFormPortal
               method="PUT"
               initValues={project}
               renderTrigger={({ open }) => (

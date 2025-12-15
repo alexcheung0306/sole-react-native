@@ -3,7 +3,7 @@ import { Plus, Pencil } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { PrimaryButton } from '@/components/custom/primary-button';
 
-type RoleFormProps = {
+type RoleFormPortalProps = {
   projectId: number;
   method: 'POST' | 'PUT';
   roleId?: number | null;
@@ -12,14 +12,14 @@ type RoleFormProps = {
   refetchRoles: () => void;
 };
 
-export function RoleForm({
+export function RoleFormPortal({
   projectId,
   method,
   roleId = null,
   fetchedValues = null,
   isDisabled = false,
   refetchRoles,
-}: RoleFormProps) {
+}: RoleFormPortalProps) {
   // Handle both old format (fetchedValues directly) and new format (roleWithSchedules with nested role)
   const roleData = fetchedValues?.role ? fetchedValues.role : fetchedValues;
   const activitiesData = fetchedValues?.activities ? fetchedValues.activities : [];

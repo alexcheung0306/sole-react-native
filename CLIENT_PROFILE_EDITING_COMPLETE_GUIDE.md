@@ -105,7 +105,7 @@ Profile Page Checks: Is this my profile?
     ↓
 User Clicks "Edit Info" in Dropdown Menu
     ↓
-UserInfoForm Modal Opens (Full Screen)
+UserInfoFormPortal Modal Opens (Full Screen)
     ↓
 Formik Initializes with Current Values:
   ├─ profilePic: Current profile picture URL
@@ -510,7 +510,7 @@ const {
   </DropdownMenu>
 </Dropdown>
 
-<UserInfoForm
+<UserInfoFormPortal
   username={username}
   categoryValue={filteredCategoryCHip}
   userInfo={userInfo}
@@ -1058,7 +1058,7 @@ const EditFieldModal = ({
 
 ### Step 4: Form Components
 ```typescript
-- [ ] UserInfoForm.tsx (main edit modal)
+- [ ] UserInfoFormPortal.tsx (main edit modal)
 - [ ] EditFieldModal.tsx (individual field editor)
 - [ ] CategoriesCard.tsx (category selector)
 - [ ] CategoriesModal.tsx (category picker modal)

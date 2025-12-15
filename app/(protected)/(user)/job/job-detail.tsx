@@ -24,7 +24,7 @@ import { CustomTabs } from '@/components/custom/custom-tabs';
 import { JobContractsTab } from '~/components/job-detail/contracts/JobContractsTab';
 import { JobRolesBreadcrumb } from '~/components/job-detail/roles/JobRolesBreadcrumb';
 import { JobApplicationDetail } from '~/components/job-detail/roles/JobApplicationDetail';
-import JobApplyFormModal from '~/components/form-components/job-apply-form/JobApplyFormModal';
+import JobApplyFormPortal from '~/components/form-components/job-apply-form/JobApplyFormPortal';
 import SwipeableContainer from '@/components/common/SwipeableContainer';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -399,7 +399,7 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
                                 </Text>
                               )}
                             </View>
-                            <JobApplyFormModal
+                            <JobApplyFormPortal
                               projectId={projectData?.id}
                               roleId={rolesWithSchedules[currentRole]?.role?.id}
                               soleUserId={soleUserId}

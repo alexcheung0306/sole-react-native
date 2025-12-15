@@ -3,7 +3,7 @@ import { RoleRequirementsInputs } from './RoleRequirementsInputs';
 import { RoleScheduleListInputs } from './RoleScheduleListInputs';
 import { RoleConfirm } from '../../project-detail/roles/RoleConfirm';
 
-interface RoleFormPageContentProps {
+interface RoleFormPortalPageContentProps {
   currentPage: 'roleInformation' | 'requirements' | 'schedules' | 'confirm';
   values: any;
   touched: any;
@@ -33,7 +33,7 @@ export function RoleFormPageContent({
   onFillLater,
   fillSchedulesLater,
   onRegisterScrollClose,
-}: RoleFormPageContentProps) {
+}: RoleFormPortalPageContentProps) {
   switch (currentPage) {
     case 'roleInformation':
       return (

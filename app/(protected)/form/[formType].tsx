@@ -1,12 +1,11 @@
-import React from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import ProjectInfoFormPage from '~/components/form-components/project-form/ProjectInfoFormPage';
-import UserInfoFormPage from '~/components/form-components/userInfo-form/UserInfoFormPage';
-import RoleFormPage from '@/components/form-components/role-form/RoleFormPage';
-import TalentInfoFormPage from '~/components/form-components/talent-form/TalentInfoFormPage';
+import RoleFormPage from '~/components/form-components/role-form/RoleFormPage';
 import SendOfferFormPage from '~/components/form-components/send-offer-form/SendOfferFormPage';
 import BatchSendConditionFormPage from '~/components/form-components/batch-send-condition-form/BatchSendConditionFormPage';
 import JobApplyFormPage from '~/components/form-components/job-apply-form/JobApplyFormPage';
+import TalentInfoFormPortalPage from '~/components/form-components/talent-form/TalentInfoFormPage';
+import UserInfoFormPortalPage from '~/components/form-components/userInfo-form/UserInfoFormPage';
 
 export default function FormPage() {
   const { formType } = useLocalSearchParams<{ formType: string }>();
@@ -16,11 +15,11 @@ export default function FormPage() {
     case 'project':
       return <ProjectInfoFormPage />;
     case 'userInfo':
-      return <UserInfoFormPage />;
+      return <UserInfoFormPortalPage />;
     case 'role':
       return <RoleFormPage />;
     case 'talentInfo':
-      return <TalentInfoFormPage />;
+      return <TalentInfoFormPortalPage />;
     case 'sendOffer':
       return <SendOfferFormPage />;
     case 'batchSendCondition':

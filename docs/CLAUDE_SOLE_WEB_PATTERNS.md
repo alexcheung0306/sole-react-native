@@ -178,7 +178,7 @@ export default function ProjectInfoForm({ method, initValues }) {
 ### **sole-react-native Pattern:**
 ```tsx
 // ✅ CORRECT - Same pattern
-export default function ProjectInfoFormModal({ method, initValues }) {
+export default function ProjectInfoFormPortal({ method, initValues }) {
   const [isOpen, setIsOpen] = useState(false);
   
   return (
@@ -359,7 +359,7 @@ const renderHeader = () => (
     <Text className="text-[28px] font-bold text-white mb-1">Manage Projects</Text>
     
     {/* Action Button */}
-    <ProjectInfoFormModal method="POST" />
+    <ProjectInfoFormPortal method="POST" />
     
     {/* Level 2: Status Filter */}
     <ProjectStatusTabs />  {/* Draft / Published / InProgress */}
@@ -615,7 +615,7 @@ _layout.tsx (Provider only)
   │       ├── ListHeaderComponent:
   │       │   ├── ProjectsNavTabs (Manage Projects / Manage Contracts)
   │       │   ├── Title
-  │       │   ├── ProjectInfoFormModal (button + modal)
+  │       │   ├── ProjectInfoFormPortal (button + modal)
   │       │   ├── ProjectStatusTabs (Draft / Published / InProgress)
   │       │   └── Results count
   │       ├── renderItem: Project cards
@@ -683,7 +683,7 @@ export default function ManageProjectsPage() {
     <View>
       <ProjectsNavTabs />           {/* ← Navigation */}
       <Text>Manage Projects</Text>
-      <ProjectInfoFormModal />      {/* ← Button + Modal */}
+      <ProjectInfoFormPortal />      {/* ← Button + Modal */}
       <ProjectStatusTabs />         {/* ← Filters */}
     </View>
   );

@@ -3,7 +3,7 @@ import { ChevronRight } from 'lucide-react-native';
 import { TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
 
-interface BatchSendConditionFormModalProps {
+interface BatchSendConditionFormPortalProps {
   projectId: number;
   selectedContractIds: string[];
   triggerClassName?: string;
@@ -14,12 +14,12 @@ interface BatchSendConditionFormModalProps {
   }) => React.ReactNode;
 }
 
-export default function BatchSendConditionFormModal({
+export default function BatchSendConditionFormPortal({
   projectId,
   selectedContractIds,
   triggerClassName,
   renderTrigger,
-}: BatchSendConditionFormModalProps) {
+}: BatchSendConditionFormPortalProps) {
   const handleOpen = () => {
     const params: Record<string, string> = {
       formType: 'batchSendCondition',

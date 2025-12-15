@@ -231,7 +231,7 @@ Modal Closes
 
 ## 📝 EDITABLE FIELDS (COMPLETE LIST)
 
-### User Profile Fields (UserInfoForm)
+### User Profile Fields (UserInfoFormPortal)
 
 **File**: `/src/app/(home)/_components/userProfile/_userInfoComponents/userinfo-form.tsx`
 
@@ -539,7 +539,7 @@ Modal Closes
 
 ## 🔧 TECHNICAL IMPLEMENTATION
 
-### 1. UserInfoForm Component
+### 1. UserInfoFormPortal Component
 
 **File**: `/src/app/(home)/_components/userProfile/_userInfoComponents/userinfo-form.tsx`
 
@@ -1486,7 +1486,7 @@ public String generateComcardPDF(Comcard comcard, TalentInfo talentInfo) {
 
 ### Step 4: Form Components
 ```typescript
-- [ ] UserInfoForm.tsx (profile pic, username, name, bio, categories)
+- [ ] UserInfoFormPortal.tsx (profile pic, username, name, bio, categories)
 - [ ] TalentProfileForm.tsx (full talent form)
 - [ ] TalentProfileInfo.tsx (read-only display)
 - [ ] EditFieldModal.tsx (individual field editor)

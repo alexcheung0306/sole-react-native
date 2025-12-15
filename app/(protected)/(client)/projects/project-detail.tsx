@@ -22,7 +22,7 @@ import { ProjectInformationCard } from '~/components/project-detail/details/Proj
 import { CreateProjectAnnouncementDrawer } from '~/components/project-detail/details/CreateProjectAnnouncementDrawer';
 import { ProjectAnnouncementsList } from '~/components/project-detail/details/ProjectAnnouncementsList';
 import { CustomTabs } from '@/components/custom/custom-tabs';
-import { RoleForm } from '~/components/form-components/role-form/RoleForm';
+import { RoleFormPortal } from '~/components/form-components/role-form/RoleFormPortal';
 import { RolesBreadcrumb } from '~/components/project-detail/roles/RolesBreadcrumb';
 import { ManageCandidates } from '~/components/project-detail/roles/ManageCandidates';
 import { PublishProjectButton } from '~/components/project-detail/PublishProjectButton';
@@ -329,7 +329,7 @@ export default function ProjectDetail({ scrollHandler }: { scrollHandler: (event
                     <View key={tab.id} className="gap-4">
                       <View className="px-2">
                         {project?.status === 'Draft' && rolesWithSchedules.length < 5 && (
-                          <RoleForm
+                          <RoleFormPortal
                             projectId={projectId}
                             method="POST"
                             roleId={null}

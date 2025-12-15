@@ -3,13 +3,13 @@ import { Stack } from 'expo-router';
 import { View, Text, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useManageProjectContext } from '@/context/ManageProjectContext';
-import ProjectInfoFormModal from '~/components/form-components/project-form/ProjectInfoFormModal';
 import ProjectStatusTabs from '@/components/projects/ProjectStatusTabs';
 import PaginationControl from '~/components/projects/PaginationControl';
 import ProjectListCard from '~/components/projects/ProjectListCard';
 import FilterSearch from '~/components/custom/filter-search';
 import FlatListEmpty from '~/components/custom/flatlist-empty';
 import ScreenTransition from '@/components/projects/ScreenTransition';
+import ProjectInfoFormPortal from '~/components/form-components/project-form/ProjectInfoFormPortal';
 
 type ManageProjectsProps = {
   scrollHandler?: (event: any) => void;
@@ -92,7 +92,7 @@ export default function ManageProjectsPage({ scrollHandler }: ManageProjectsProp
               <View className="mb-3 gap-2">
 
                 {/* Create Project Button */}
-                <ProjectInfoFormModal method="POST" />
+                <ProjectInfoFormPortal method="POST" />
 
                 {/* Status Tabs */}
                 <ProjectStatusTabs />
