@@ -1,13 +1,6 @@
- import { router } from 'expo-router';
-import {
-  View,
-  ActivityIndicator,
-  Text,
-  TouchableOpacity,
-  Dimensions,
-  Image,
-} from 'react-native';
-
+import { router } from 'expo-router';
+import { View, ActivityIndicator, Text, TouchableOpacity, Dimensions,Image  } from 'react-native';
+// import { Image } from 'expo-image';
 export default function UserPosts({
   userIsLoading,
   userIsError,
@@ -35,19 +28,17 @@ export default function UserPosts({
   // Error state
   if (userIsError) {
     return (
-      <View className="flex-1 items-center justify-center py-10 px-4">
-        <Text className="text-red-400 text-center mb-4">
-          Failed to load posts
-        </Text>
-        <Text className="text-gray-400 text-center mb-4 text-sm">
+      <View className="flex-1 items-center justify-center px-4 py-10">
+        <Text className="mb-4 text-center text-red-400">Failed to load posts</Text>
+        <Text className="mb-4 text-center text-sm text-gray-400">
           {userError?.message || 'Please try again'}
         </Text>
         {onRefresh && (
           <TouchableOpacity
             onPress={onRefresh}
-            className="bg-blue-500 px-6 py-3 rounded-lg"
+            className="rounded-lg bg-blue-500 px-6 py-3"
             disabled={isRefreshing}>
-            <Text className="text-white font-semibold">
+            <Text className="font-semibold text-white">
               {isRefreshing ? 'Refreshing...' : 'Retry'}
             </Text>
           </TouchableOpacity>
@@ -73,11 +64,13 @@ export default function UserPosts({
                   key={item.id}
                   className="aspect-square bg-gray-800"
                   style={{ width: IMAGE_SIZE, height: IMAGE_SIZE }}
-                  onPress={() => router.push({
-                    pathname: `/(protected)/post` as any,
-                    params: { postId: item.id },
-                  })}>
-                  {firstMedia ? (
+                  onPress={() =>
+                    router.push({
+                      pathname: `/(protected)/post` as any,
+                      params: { postId: item.id },
+                    })
+                  }>
+                  {firstMedia && firstMedia.mediaUrl ? (
                     <Image
                       source={{ uri: firstMedia.mediaUrl }}
                       className="h-full w-full"
@@ -92,7 +85,7 @@ export default function UserPosts({
               );
             })}
           </View>
-          
+
           {/* Load More Button */}
           {userHasNextPage && (
             <TouchableOpacity

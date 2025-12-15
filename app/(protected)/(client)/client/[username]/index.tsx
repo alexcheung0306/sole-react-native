@@ -46,52 +46,16 @@ export default function ClientProfileScreen() {
     refetchOnWindowFocus: false,
   });
 
-  // Fetch user posts with infinite scroll
-  const {
-    data: userPostsData,
-    fetchNextPage: userFetchNextPage,
-    hasNextPage: userHasNextPage,
-    isFetchingNextPage: userIsFetchingNextPage,
-    isLoading: userIsLoading,
-    isRefetching: isRefetchingPosts,
-    isError: userIsError,
-    error: userError,
-    refetch: refetchPosts,
-  } = useInfiniteQuery({
-    queryKey: ['profilePagePosts', username],
-    queryFn: async ({ pageParam = 0 }) => {
-      const response = await searchPosts({
-        soleUserId: userProfileData?.userInfo?.soleUserId,
-        content: '',
-        pageNo: pageParam,
-        pageSize: 9, // 3x3 grid
-        orderBy: 'createdAt',
-        orderSeq: 'desc',
-      });
-      return response;
-    },
-    enabled: !!userProfileData?.userInfo?.soleUserId,
-    getNextPageParam: (lastPage, allPages) => {
-      const currentPage = allPages.length - 1;
-      const loadedItems = allPages.reduce((sum, page) => sum + page.data.length, 0);
-      // Check if there are more items to load
-      if (loadedItems < lastPage.total) {
-        return currentPage + 1;
-      }
-      return undefined;
-    },
-    initialPageParam: 0,
-  });
+
 
   const userInfo = userProfileData?.userInfo;
 
   // Pull to refresh
   const onRefresh = useCallback(() => {
     refetchProfile();
-    refetchPosts();
-  }, [refetchProfile, refetchPosts]);
+  }, [refetchProfile]);
 
-  const isRefreshing = isRefetchingProfile || isRefetchingPosts;
+  const isRefreshing = isRefetchingProfile;
 
   // Loading state
   if (profileLoading && !userProfileData) {
@@ -211,17 +175,10 @@ export default function ClientProfileScreen() {
 
         <ClientProfessionalProfile
           userProfileData={userProfileData}
-          userPostsData={userPostsData}
-          username={username || undefined}
           isOwnProfile={isOwnProfile}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
-          userIsLoading={userIsLoading}
-          userIsError={userIsError}
-          userError={userError}
-          userHasNextPage={userHasNextPage}
-          userIsFetchingNextPage={userIsFetchingNextPage}
-          userFetchNextPage={userFetchNextPage}
+          userIsLoading={profileLoading}
           onScroll={onScroll}
           topPadding={insets.top + 50}
           bottomPadding={insets.bottom + 80}

@@ -37,6 +37,11 @@ export default function CommentModal({ post }: { post: Post }) {
         return undefined;
       }
       
+      // Ensure allPages is defined and is an array
+      if (!allPages || !Array.isArray(allPages)) {
+        return undefined;
+      }
+      
       // If lastPage is an array, check its length
       if (Array.isArray(lastPage)) {
         // If last page has fewer items than requested, no more pages

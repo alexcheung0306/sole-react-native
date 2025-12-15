@@ -14,23 +14,15 @@ import {
   Sparkles
 } from 'lucide-react-native';
 import ProjectListCard from '~/components/projects/ProjectListCard';
-import UserPosts from '~/components/profile/UserPosts';
 
 const { width } = Dimensions.get('window');
 
 interface ClientProfessionalProfileProps {
   userProfileData?: any;
-  userPostsData?: any;
-  username?: string;
   isOwnProfile?: boolean;
   onRefresh?: () => void;
   isRefreshing?: boolean;
   userIsLoading?: boolean;
-  userIsError?: boolean;
-  userError?: any;
-  userHasNextPage?: boolean;
-  userIsFetchingNextPage?: boolean;
-  userFetchNextPage?: () => void;
   onScroll?: (event: any) => void;
   topPadding?: number;
   bottomPadding?: number;
@@ -38,17 +30,9 @@ interface ClientProfessionalProfileProps {
 
 export default function ClientProfessionalProfile({
   userProfileData,
-  userPostsData,
-  username,
   isOwnProfile = false,
   onRefresh,
   isRefreshing,
-  userIsLoading,
-  userIsError,
-  userError,
-  userHasNextPage,
-  userIsFetchingNextPage,
-  userFetchNextPage,
   onScroll,
   topPadding = 0,
   bottomPadding = 0,
@@ -118,8 +102,6 @@ export default function ClientProfessionalProfile({
       { icon: Users, label: 'Network', value: '500+' },
     ],
   };
-
-  const posts = userPostsData?.pages.flatMap((page: any) => page.data) ?? [];
 
   return (
     <ScrollView 
@@ -305,43 +287,6 @@ export default function ClientProfessionalProfile({
         </View>
       </View>
 
-      {/* Posts Section */}
-      {posts.length > 0 && (
-        <View className="px-4 mb-6">
-          <View className="flex-row items-center gap-2 mb-3">
-            <Briefcase size={20} color="#3b82f6" />
-            <Text className="text-lg font-semibold text-white">Recent Work</Text>
-          </View>
-          <UserPosts
-            userIsLoading={userIsLoading || false}
-            userIsError={userIsError || false}
-            userError={userError || null}
-            posts={posts}
-            userHasNextPage={userHasNextPage || false}
-            userIsFetchingNextPage={userIsFetchingNextPage || false}
-            userFetchNextPage={userFetchNextPage || (() => {})}
-            onRefresh={onRefresh}
-            isRefreshing={isRefreshing}
-          />
-        </View>
-      )}
-
-      {/* Contact Section */}
-      {!isOwnProfile && (
-        <View className="px-4 mb-6">
-          <View className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-            <Text className="text-white font-semibold mb-3">Let's Work Together</Text>
-            <TouchableOpacity className="flex-row items-center gap-2 mb-2">
-              <Mail size={16} color="#3b82f6" />
-              <Text className="text-blue-400">{demoData.email}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity className="flex-row items-center gap-2">
-              <Globe size={16} color="#3b82f6" />
-              <Text className="text-blue-400">{demoData.website}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
     </ScrollView>
   );
 }
