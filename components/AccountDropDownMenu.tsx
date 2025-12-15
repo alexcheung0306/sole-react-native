@@ -7,6 +7,7 @@ import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 import { SwitchInterface } from './profile/switch-interface';
 import CollapseDrawer from './custom/collapse-drawer';
+import { useSoleUserContext } from '~/context/SoleUserContext';
 
 interface AccountDropDownMenuProps {
   color: string;
@@ -22,6 +23,7 @@ export function AccountDropDownMenu({ color, focused, onPress, activeTab, profil
   const router = useRouter();
   const { signOut } = useAuth();
   const { user, isLoaded } = useUser();
+  const { soleUser } = useSoleUserContext();
 
   const handleSettings = (close: () => void) => {
     close();
@@ -164,10 +166,12 @@ export function AccountDropDownMenu({ color, focused, onPress, activeTab, profil
             </View>
           )}
 
-          {/* Switch Interface */}
-          <View style={{ width: '100%', overflow: 'hidden', paddingHorizontal: 20 }}>
-            <SwitchInterface setIsOpen={setIsOpen} />
-          </View>
+          {/* Switch Interface (hide if client not activated) */}
+          {soleUser?.clientLevel !== null && soleUser?.clientLevel !== undefined && (
+            <View style={{ width: '100%', overflow: 'hidden', paddingHorizontal: 20 }}>
+              <SwitchInterface setIsOpen={setIsOpen} />
+            </View>
+          )}
 
           {/* Menu Items */}
           <View className="gap-3 px-5">
