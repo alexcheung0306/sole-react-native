@@ -84,7 +84,7 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
       {/* first header */}
       <View
         style={{
-          paddingTop: insets.top + 8, // Add extra padding for better spacing
+          paddingTop: insets.top + 12, // Add extra padding for better spacing
           paddingHorizontal: 0,
           flexDirection: 'row',
           alignItems: 'center',

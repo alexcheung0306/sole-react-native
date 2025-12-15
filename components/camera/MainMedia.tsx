@@ -66,7 +66,7 @@ export default function MainMedia({
 
   return (
     <View
-      style={{ width, height: fixedContainerHeight }}
+      style={{ width, height: fixedContainerHeight,borderWidth:1,borderColor:'red' }}
       className="relative items-center justify-center overflow-hidden bg-black">
       {item.mediaType === 'video' ? (
         <Video
