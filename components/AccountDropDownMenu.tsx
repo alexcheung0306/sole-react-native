@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { TouchableOpacity, View, Text } from 'react-native';
 import { UserCircle, Settings, LogOut, User, Users, Wallet } from 'lucide-react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
@@ -30,7 +31,7 @@ export function AccountDropDownMenu({
   const router = useRouter();
   const { signOut } = useAuth();
   const { user, isLoaded } = useUser();
-  const { soleUser } = useSoleUserContext();
+  const { soleUser, userInfo } = useSoleUserContext();
 
   const handleSettings = (close: () => void) => {
     close();
@@ -126,6 +127,13 @@ export function AccountDropDownMenu({
   // Use Simultaneous so both gestures can be detected, but logic prevents conflict
   const composedGesture = Gesture.Simultaneous(tapGesture, longPressGesture);
 
+  // Get profile picture from userInfo first, then fallback to soleUser.image
+  // userInfo can be an array or an object, so we handle both cases
+  const userInfoData = Array.isArray(userInfo) ? userInfo[0] : userInfo;
+  const profilePic = userInfoData?.profilePic || soleUser?.image;
+
+  console.log('userInfo', userInfo);
+
   return (
     <>
       <GestureDetector gesture={composedGesture}>
@@ -137,7 +145,21 @@ export function AccountDropDownMenu({
             paddingVertical: 4,
           }}>
           <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-            <UserCircle color={color} size={24} />
+            {profilePic ? (
+              <ExpoImage
+                source={{ uri: profilePic }}
+                style={{
+                  width: 23,
+                  height: 23,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: 'white',
+                }}
+                contentFit="cover"
+              />
+            ) : (
+              <UserCircle color={color} size={24} />
+            )}
           </View>
           <Text
             style={{

@@ -9,6 +9,7 @@ import WebSocketService from "~/components/socket/WebSocketService"
 
 import { useAppContext } from "~/context/AppContext"
 import { getSoleUserByClerkId } from "~/api/apiservice"
+import { getUserInfoBySoleUserId } from "~/api/apiservice/userInfo_api"
 import { env } from "~/env.mjs"
 
 interface SoleUserContextType {
@@ -37,6 +38,7 @@ interface SoleUserContextType {
   //global data
   soleUserId: string 
   soleUser: any
+  userInfo: any
   clerkId: string | undefined
 }
 interface ChatMessage {
@@ -68,8 +70,29 @@ export const SoleUserProvider = ({ children }: { children: React.ReactNode }) =>
     enabled: !!clerkId && clerkId != undefined,
   })
 
+  const {
+    data: userInfo = null,
+    refetch: userInfoRefetch,
+    isLoading: userInfoIsLoading,
+    isError: userInfoIsError,
+    error: userInfoError,
+  } = useQuery({
+    queryKey: ["userInfo", soleUserId],
+    queryFn: async () => {
+      if (!soleUserId) return null
+      const result = await getUserInfoBySoleUserId(soleUserId)
+      return result
+    },
+    enabled: !!soleUserId && soleUserId !== "",
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
+
   if (isError) {
     console.error("Error fetching user data:", error)
+  }
+
+  if (userInfoIsError) {
+    console.error("Error fetching userInfo data:", userInfoError)
   }
 
   //user states
@@ -155,6 +178,7 @@ export const SoleUserProvider = ({ children }: { children: React.ReactNode }) =>
         //common value
         soleUserId,
         soleUser,
+        userInfo,
         clerkId,
       }}
     >
