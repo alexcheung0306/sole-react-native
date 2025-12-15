@@ -6,6 +6,7 @@ import BatchSendConditionFormPage from '~/components/form-components/batch-send-
 import JobApplyFormPage from '~/components/form-components/job-apply-form/JobApplyFormPage';
 import TalentInfoFormPortalPage from '~/components/form-components/talent-form/TalentInfoFormPage';
 import UserInfoFormPortalPage from '~/components/form-components/userInfo-form/UserInfoFormPage';
+import ProjectAnnouncementFormPortalPage from '~/components/form-components/project-announcement-form/ProjectAnnouncementFormPortalPage';
 
 export default function FormPage() {
   const { formType } = useLocalSearchParams<{ formType: string }>();
@@ -26,6 +27,8 @@ export default function FormPage() {
       return <BatchSendConditionFormPage />;
     case 'jobApply':
       return <JobApplyFormPage />;
+    case 'projectAnnouncement':
+      return <ProjectAnnouncementFormPortalPage />;
     default:
       return null;
   }

@@ -19,7 +19,7 @@ import { useSoleUserContext } from '@/context/SoleUserContext';
 import { useProjectDetailQueries } from '@/hooks/useProjectDetailQueries';
 import { ProjectContractsTab } from '~/components/project-detail/contracts/ProjectContractsTab';
 import { ProjectInformationCard } from '~/components/project-detail/details/ProjectInformationCard';
-import { CreateProjectAnnouncementDrawer } from '~/components/project-detail/details/CreateProjectAnnouncementDrawer';
+import ProjectAnnouncementFormPortal from '~/components/form-components/project-announcement-form/ProjectAnnouncementFormPortal';
 import { ProjectAnnouncementsList } from '~/components/project-detail/details/ProjectAnnouncementsList';
 import { CustomTabs } from '@/components/custom/custom-tabs';
 import { RoleFormPortal } from '~/components/form-components/role-form/RoleFormPortal';
@@ -311,11 +311,10 @@ export default function ProjectDetail({ scrollHandler }: { scrollHandler: (event
                   return (
                     <View key={tab.id} className="gap-2 px-2">
                       <ProjectInformationCard project={project} soleUserId={soleUserId || ''} />
-                      <CreateProjectAnnouncementDrawer
+                      <ProjectAnnouncementFormPortal
                         projectId={projectId}
                         soleUserId={soleUserId || ''}
-                        projectStatus={project?.status}
-                        rolesWithSchedules={rolesWithSchedules}
+                        projectStatus={project?.status || 'Draft'}
                       />
                       <ProjectAnnouncementsList
                         projectId={projectId}
