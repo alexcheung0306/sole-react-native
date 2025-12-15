@@ -24,82 +24,39 @@ interface ImageCarouselProps {
   media: MediaItem[];
   onZoomChange?: (isZooming: boolean) => void;
   onScaleChange?: (scale: number) => void;
-  onTouchStart?: () => void; // Notify parent immediately when touch starts
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export function ImageCarousel({ media, onZoomChange, onScaleChange, onTouchStart }: ImageCarouselProps) {
-  // const ZoomableView: any = ReactNativeZoomableView;
-  // if (ZoomableView && !ZoomableView.displayName) {
-  //   ZoomableView.displayName = 'ReactNativeZoomableView';
-  // }
+export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarouselProps) {
+
+  const isLogAvaliable = false;
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageHeights, setImageHeights] = useState<{ [key: number]: number }>({});
   const [currentHeight, setCurrentHeight] = useState<number>(SCREEN_WIDTH); // Default to square
   const [isZooming, setIsZooming] = useState(false);
-  const [imageScale, setImageScale] = useState(1); // Track scale from MediaZoom2 (for non-animated use)
-  const imageScaleShared = useSharedValue(1); // Shared value for animated style
-  const currentZIndexShared = useSharedValue(1);
-  const [currentZIndex, setCurrentZIndex] = useState(1);
   const listRef = useRef<FlatList<MediaItem>>(null);
 
-  // Handle zoom state changes - update internal state and notify parent
-  // Use useCallback with stable dependencies to ensure gesture handlers work correctly
+  // Shared value for z-index - updates instantly on UI thread
+  const isZoomingShared = useSharedValue(false);
+
+  // Handle zoom state changes - update both React state and shared value
   const handleZoomChange = useCallback((isZooming: boolean) => {
     setIsZooming(isZooming);
+    isZoomingShared.value = isZooming; // Update shared value immediately for instant z-index change
     onZoomChange?.(isZooming);
-  }, [onZoomChange]);
-  
-  // Memoize scale change handler to ensure it's stable across renders
-  const handleScaleChange = useCallback((scale: number) => {
-    setImageScale(scale); // Track scale for non-animated use
-    imageScaleShared.value = scale; // Update shared value for animated style
-    onScaleChange?.(scale);
-  }, [onScaleChange, imageScaleShared]);
+  }, [onZoomChange, isZoomingShared]);
 
-  // Handle touch start - notify parent
-  const handleTouchStart = useCallback(() => {
-    onTouchStart?.();
-  }, [onTouchStart]);
-
-  // Animated style for ImageCarousel wrapper z-index
-  // Use scale directly to calculate z-index, matching MediaZoom2's logic
-  // Base z-index: 1 when scale = 1
-  // Scale-based z-index: scale * 1000000 when scale > 1
-  const wrapperAnimatedStyle = useAnimatedStyle(() => {
-    // Use shared value for immediate updates - same calculation as MediaZoom2
-    const currentScale = imageScaleShared.value;
-    const baseZIndex = 1;
-    const scaleBasedZIndex = Math.round(currentScale * 1000000);
-    const zIndex = currentScale > 1 ? scaleBasedZIndex : baseZIndex;
-    
-    currentZIndexShared.value = zIndex; // Update for debug display
+  // Animated style for z-index - updates instantly on UI thread
+  const carouselAnimatedStyle = useAnimatedStyle(() => {
+    const activeZ = isZoomingShared.value ? 8888 : 100;
     return {
-      zIndex: zIndex,
-      elevation: zIndex, // Android elevation
+      zIndex: activeZ,
+      elevation: activeZ,
     };
-  }, []);
+  });
 
-  // Update debug z-index display
-  // useEffect(() => {
-  //   if (!__DEV__) return;
 
-  //   const interval = setInterval(() => {
-  //     setCurrentZIndex(currentZIndexShared.value);
-  //   }, 100); // Update every 100ms
-
-  //   return () => clearInterval(interval);
-  // }, [currentZIndexShared]);
-
-  const logOutZoomState = React.useCallback(
-    (_event: any, _gestureState: any, zoomState: { zoomLevel?: number }) => {
-      if (__DEV__) {
-        console.log('Zoom level:', zoomState?.zoomLevel);
-      }
-    },
-    []
-  );
 
   if (!media || media.length === 0) {
     return null;
@@ -192,8 +149,34 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange, onTouchStart
             overflow: 'visible',
             position: 'relative',
           },
-          wrapperAnimatedStyle,
+          carouselAnimatedStyle, // Uses Reanimated for instant z-index updates
         ]}>
+        {/* Debug overlay for ImageCarousel z-index */}
+        {isLogAvaliable && <View
+          style={{
+            position: 'absolute',
+            top: 10,
+            left: 10,
+            backgroundColor: 'rgba(0, 0, 255, 0.8)',
+            padding: 8,
+            borderRadius: 4,
+            zIndex: 99999,
+          }}>
+          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
+            Carousel z-index: {isZooming ? 8888 : 100}
+          </Text>
+        </View>}
+        <View
+          style={{
+            position: 'absolute',
+            top: 10,
+            left: 10,
+            padding: 8,
+            borderRadius: 4,
+            zIndex: 99999,
+          }}>
+     
+        </View>
         <MediaZoom2
           children={
             <Image
@@ -208,29 +191,8 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange, onTouchStart
           minScale={1}
           maxScale={3}
           onZoomActiveChange={handleZoomChange}
-          onScaleChange={handleScaleChange}
-          onTouchStart={handleTouchStart}
-          scaleSharedValue={imageScaleShared}
+          onScaleChange={onScaleChange}
         />
-        {/* {__DEV__ && (
-          <View
-            style={{
-              position: 'absolute',
-              top: 5,
-              left: 5,
-              backgroundColor: 'black',
-              paddingHorizontal: 5,
-              paddingVertical: 2,
-              borderRadius: 3,
-              borderWidth: 2,
-              borderColor: 'red',
-              zIndex: 9999999, // Ensure debug overlay is always on top
-            }}>
-            <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>
-              Carousel Z: {currentZIndex}
-            </Text>
-          </View>
-        )} */}
       </Animated.View>
     );
   }
@@ -243,8 +205,23 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange, onTouchStart
           position: 'relative',
           overflow: 'visible',
         },
-        wrapperAnimatedStyle,
+        carouselAnimatedStyle, // Uses Reanimated for instant z-index updates
       ]}>
+      {/* Debug overlay for ImageCarousel z-index */}
+     {isLogAvaliable && <View
+        style={{
+          position: 'absolute',
+          top: 10,
+          left: 10,
+          backgroundColor: 'rgba(0, 0, 255, 0.8)',
+          padding: 8,
+          borderRadius: 4,
+          zIndex: 99999,
+        }}>
+        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
+          Carousel z-index: {isZooming ? 8888 : 100}
+        </Text>
+      </View>}
       <FlatList
         style={{
           width: SCREEN_WIDTH,
@@ -277,9 +254,7 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange, onTouchStart
               minScale={1}
               maxScale={3}
               onZoomActiveChange={handleZoomChange}
-              onScaleChange={handleScaleChange}
-              onTouchStart={handleTouchStart}
-              scaleSharedValue={imageScaleShared}
+              onScaleChange={onScaleChange}
             />
           );
         }}
@@ -321,9 +296,8 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange, onTouchStart
               {media.map((_, index) => (
                 <View
                   key={index}
-                  className={`h-1.5 w-1.5 rounded-full ${
-                    index === currentIndex ? 'bg-white' : 'bg-white/40'
-                  }`}
+                  className={`h-1.5 w-1.5 rounded-full ${index === currentIndex ? 'bg-white' : 'bg-white/40'
+                    }`}
                 />
               ))}
             </View>
@@ -337,25 +311,6 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange, onTouchStart
           </View>
         </>
       )}
-      {/* {__DEV__ && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 5,
-            left: 5,
-            backgroundColor: 'black',
-            paddingHorizontal: 5,
-            paddingVertical: 2,
-            borderRadius: 3,
-            borderWidth: 2,
-            borderColor: 'red',
-            zIndex: 9999999, // Ensure debug overlay is always on top
-          }}>
-          <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>
-            Carousel Z: {currentZIndex}
-          </Text>
-        </View>
-      )} */}
     </Animated.View>
   );
 }
