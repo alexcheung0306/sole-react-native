@@ -110,7 +110,9 @@ export const useCollapsibleBar = (options: UseCollapsibleBarOptions) => {
     if (height > 0) {
       cancelAnimation(barTranslateY);
       isAnimating.value = true;
-      const collapsedPosition = isHeader ? -height : height;
+      // For tab bar, use a multiplier to translate more (1.5x the height for more movement)
+      const translationMultiplier = isHeader ? 1 : 1.5; // Tab bar translates 1.5x more
+      const collapsedPosition = isHeader ? -height : height * translationMultiplier;
       barTranslateY.value = withTiming(collapsedPosition, {
         duration: 100, // Faster animation for zoom responsiveness
       }, (finished) => {
@@ -153,7 +155,9 @@ export const useCollapsibleBar = (options: UseCollapsibleBarOptions) => {
     const normalizedScale = Math.max(0, Math.min(1, (scale - minScale) / (maxScale - minScale)));
     
     // Calculate translateY: interpolate from startPosition to collapsed position
-    const collapsedPosition = isHeader ? -height : height;
+    // For tab bar, use a multiplier to translate more (1.5x the height for more movement)
+    const translationMultiplier = isHeader ? 1 : 1.5; // Tab bar translates 1.5x more
+    const collapsedPosition = isHeader ? -height : height * translationMultiplier;
     const targetTranslateY = startPosition + (collapsedPosition - startPosition) * normalizedScale;
     
     // Update bar position smoothly but quickly

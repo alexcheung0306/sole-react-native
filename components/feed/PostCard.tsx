@@ -8,39 +8,34 @@ import { ImageCarousel } from './ImageCarousel';
 import { LikeButton } from './LikeButton';
 import { CommentSheet } from './CommentSheet';
 import { PostDrawer } from './PostDrawer';
+import CommentModal from './CommentModal';
+import { formatTimeAgo } from '~/utils/time-converts';
 
 interface PostCardProps {
   post: Post;
   onLike: (postId: string) => void;
   onAddComment: (postId: string, content: string) => void;
-  comments: Comment[];
   onZoomChange?: (isZooming: boolean) => void;
   onScaleChange?: (scale: number) => void;
 }
 
-export function PostCard({ post, onLike, onAddComment, comments, onZoomChange, onScaleChange }: PostCardProps) {
+export function PostCard({
+  post,
+  onLike,
+  onAddComment,
+  onZoomChange,
+  onScaleChange,
+}: PostCardProps) {
   const router = useRouter();
   const commentSheetRef = useRef<BottomSheet>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (seconds < 60) return 'just now';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-    return date.toLocaleDateString();
-  };
 
   const renderCaption = () => {
     if (!post.content) return null;
 
     // Simple hashtag and mention parsing
     const parts = post.content.split(/(\s+)/);
-
+console.log('post.content', post);
     return (
       <Text className="text-sm leading-5 text-gray-200">
         {parts.map((part, index) => {
@@ -114,7 +109,11 @@ export function PostCard({ post, onLike, onAddComment, comments, onZoomChange, o
         </View>
 
         {/* Body: Image/Video */}
-        <ImageCarousel media={post.media} onZoomChange={onZoomChange} onScaleChange={onScaleChange} />
+        <ImageCarousel
+          media={post.media}
+          onZoomChange={onZoomChange}
+          onScaleChange={onScaleChange}
+        />
 
         {/* Footer: Actions & Caption */}
         <View className="px-4 py-3">
@@ -126,18 +125,7 @@ export function PostCard({ post, onLike, onAddComment, comments, onZoomChange, o
               onPress={() => onLike(post.id)}
             />
 
-            <TouchableOpacity
-              onPress={() => router.push({
-                pathname: `/(protected)/post` as any,
-                params: { postId: post.id },
-              })}
-              className="ml-4 flex-row items-center gap-2"
-              activeOpacity={0.7}>
-              <MessageCircle size={24} color="#ffffff" strokeWidth={2} />
-              <Text className="text-sm font-semibold text-white">
-                {post.commentCount > 0 ? post.commentCount : ''}
-              </Text>
-            </TouchableOpacity>
+            <CommentModal post={post} />
           </View>
 
           {/* Caption */}
@@ -149,33 +137,11 @@ export function PostCard({ post, onLike, onAddComment, comments, onZoomChange, o
               {renderCaption()}
             </View>
           )}
-
-          {/* View Comments */}
-          {post.commentCount > 0 && (
-            <TouchableOpacity
-              // onPress={() => router.push(`/(protected)/(user)/post/postid${post.id}` as any)}
-              onPress={() => router.push(`/(protected)/post/${post.id}` as any)}
-              activeOpacity={0.7}>
-              <Text className="text-sm text-gray-400">View all {post.commentCount} comments</Text>
-            </TouchableOpacity>
-          )}
         </View>
       </View>
 
-      {/* Comment Sheet */}
-      <CommentSheet
-        bottomSheetRef={commentSheetRef}
-        postId={post.id}
-        comments={comments}
-        onAddComment={(content) => onAddComment(post.id, content)}
-      />
-
       {/* Post Drawer */}
-      <PostDrawer
-        post={post}
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-      />
+      <PostDrawer post={post} isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
     </>
   );
 }

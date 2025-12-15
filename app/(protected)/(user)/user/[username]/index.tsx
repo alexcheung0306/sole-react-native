@@ -26,7 +26,7 @@ export default function ProfileScreen() {
   const [profileTab, setProfileTab] = useState<TabKey>('posts');
   const { user } = useUser();
   const insets = useSafeAreaInsets();
-  const { headerTranslateY, handleScroll } = useScrollHeader();
+  const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   const params = useLocalSearchParams<{ username?: string }>();
   
   // Get username from params, or fallback to current user's username (for swipeable container)
@@ -123,22 +123,23 @@ export default function ProfileScreen() {
               </View>
             ) : undefined
           }
-          translateY={headerTranslateY}
+          animatedStyle={animatedHeaderStyle}
+          onHeightChange={handleHeightChange}
           isDark={true}
         />
 
         <ScrollView
           className="flex-1 bg-black"
-          onScroll={handleScroll}
+          onScroll={onScroll}
           scrollEventThrottle={16}
           contentContainerStyle={{
-            paddingTop: insets.top + 72,
+            paddingTop: insets.top + 50,
             paddingBottom: insets.bottom + 80,
           }}>
           {/* Profile Header - Instagram Style */}
           <UserInfo 
             userPostsData={userPostsData} 
-            username={username} 
+            username={username || ''} 
             userProfileData={userProfileData} 
           />
 

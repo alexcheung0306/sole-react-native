@@ -216,7 +216,6 @@ export default React.memo(function UserHome() {
                 post={transformedPost}
                 onLike={handleLike}
                 onAddComment={handleAddComment}
-                comments={[]} // Comments will be fetched when sheet opens
                 onZoomChange={handleZoomChange}
                 onScaleChange={handleScaleChange}
               />

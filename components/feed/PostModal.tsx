@@ -5,6 +5,7 @@ import { ImageCarousel } from './ImageCarousel';
 import { LikeButton } from './LikeButton';
 import { MessageCircle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { formatTimeAgo } from '~/utils/time-converts';
 
 interface PostModalProps {
   visible: boolean;
@@ -18,18 +19,6 @@ export function PostModal({ visible, post, onClose, onLike, onOpenComments }: Po
   const router = useRouter();
 
   if (!post) return null;
-
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (seconds < 60) return 'just now';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-    return date.toLocaleDateString();
-  };
 
   const handleUsernamePress = () => {
     onClose();

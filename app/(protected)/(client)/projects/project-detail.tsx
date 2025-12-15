@@ -281,8 +281,7 @@ export default function ProjectDetail({ scrollHandler }: { scrollHandler: (event
             />
           }
           contentContainerStyle={{
-            // Base header (insets.top + 8) + main header (56) + secondHeader (chips ~40 + tabs ~60 + padding ~20 = ~120)
-            paddingTop: insets.top + 140, // Account for secondHeader (chips + tabs)
+            paddingTop: insets.top + 140, 
             paddingBottom: insets.bottom + 80,
             paddingHorizontal: 0,
           }}>

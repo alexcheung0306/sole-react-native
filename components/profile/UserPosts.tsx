@@ -36,7 +36,6 @@ export default function UserPosts({
           <View className="flex-row flex-wrap">
             {posts.map((item, index) => {
               const firstMedia = item.media && item.media.length > 0 ? item.media[0] : null;
-              
               return (
                 <TouchableOpacity
                   key={item.id}

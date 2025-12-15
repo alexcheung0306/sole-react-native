@@ -39,12 +39,12 @@ export function convertTimestampToNewFormat(input: string) {
   const hours = String(date.getUTCHours()).padStart(2, "0")
   const minutes = String(date.getUTCMinutes()).padStart(2, "0")
   const output = `${year}-${month}-${day}T${hours}:${minutes}`
-  const dataRange = parseZonedDateTime(`${output}[${userTimeZone}]`)
+  const dataRange = new Date(`${output}[${userTimeZone}]`)
 
   return dataRange
 }
 
-function formatDate(zonedDate, userTimeZone) {
+function formatDate(zonedDate: Date, userTimeZone: string) {
   // Create a new Date object from the zonedDate
   const date = new Date(zonedDate)
 
@@ -66,7 +66,7 @@ function formatDate(zonedDate, userTimeZone) {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.000 ${sign}${offsetHours}${offsetMinutes}`
 }
 
-export function formatDateTime(isoString) {
+export function formatDateTime(isoString: string) {
   try {
     // Validate input
     if (!isoString || typeof isoString !== "string") {
@@ -84,7 +84,88 @@ export function formatDateTime(isoString) {
     const timePart = `${hours}:${minutes}${ampm}`
     return `${datePart} ${timePart}`
   } catch (error) {
-    console.error("Error formatting date:", error.message, "Input:", isoString)
+    console.error("Error formatting date:", error instanceof Error ? error.message : error, "Input:", isoString)
     return null // or customize fallback (e.g., return a default value or throw error)
+  }
+}
+
+/**
+ * Formats a date string to a human-readable "time ago" format
+ * @param dateString - ISO date string
+ * @returns Formatted string like "5m ago", "2h ago", "3d ago", etc.
+ */
+export function formatTimeAgo(dateString: string): string {
+  if (!dateString) return '';
+
+  try {
+    // Parse the date string
+    const date = new Date(dateString);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      if (__DEV__) {
+        console.warn('Invalid date string:', dateString);
+      }
+      return '';
+    }
+
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const seconds = Math.floor(Math.abs(diffMs) / 1000);
+    
+    // Handle future dates - show the date if it's clearly in the future
+    if (diffMs < 0) {
+      // If more than 1 day in the future, show the date
+      // Otherwise treat as "just now" (might be timezone/clock sync issue)
+      if (seconds > 86400) {
+        return date.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric',
+          year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+        });
+      }
+      return 'just now';
+    }
+
+    // Calculate time differences for past dates
+    if (seconds < 60) {
+      return 'just now';
+    }
+    
+    if (seconds < 3600) {
+      // Less than 1 hour - show minutes
+      const minutes = Math.floor(seconds / 60);
+      return `${minutes}m ago`;
+    }
+    
+    if (seconds < 86400) {
+      // Less than 1 day - show hours
+      const hours = Math.floor(seconds / 3600);
+      return `${hours}h ago`;
+    }
+    
+    if (seconds < 604800) {
+      // Less than 1 week - show days
+      const days = Math.floor(seconds / 86400);
+      return `${days}d ago`;
+    }
+    
+    if (seconds < 31536000) {
+      // Less than 1 year - show weeks
+      const weeks = Math.floor(seconds / 604800);
+      return `${weeks}w ago`;
+    }
+    
+    // More than a year - show specific date
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+    });
+  } catch (error) {
+    if (__DEV__) {
+      console.error('Error formatting date:', error instanceof Error ? error.message : error, 'Input:', dateString);
+    }
+    return '';
   }
 }
