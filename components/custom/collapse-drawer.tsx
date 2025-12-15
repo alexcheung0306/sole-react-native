@@ -10,6 +10,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   LayoutChangeEvent,
+  Keyboard,
 } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -45,6 +46,7 @@ export default function CollapseDrawer({
   const { height: SCREEN_HEIGHT } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
   const translateY = useSharedValue(SCREEN_HEIGHT);
+  const keyboardOffset = useSharedValue(0);
   const [isVisible, setIsVisible] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
 
@@ -52,10 +54,41 @@ export default function CollapseDrawer({
   const HANDLE_HEIGHT = title ? 33 : 17;
   const MAX_HEIGHT = SCREEN_HEIGHT * 0.88;
 
+  // Handle keyboard show/hide to move drawer up
+  useEffect(() => {
+    if (!bottomArea) return; // Only listen to keyboard if bottomArea exists
+
+    const keyboardWillShow = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        const kbHeight = e.endCoordinates.height;
+        // Move drawer up by keyboard height (negative translateY)
+        keyboardOffset.value = withTiming(-kbHeight, { 
+          duration: Platform.OS === 'ios' ? 250 : 100 
+        });
+      }
+    );
+
+    const keyboardWillHide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        // Move drawer back to original position
+        keyboardOffset.value = withTiming(0, { 
+          duration: Platform.OS === 'ios' ? 250 : 100 
+        });
+      }
+    );
+
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, [bottomArea]);
+
   // Calculate drawer height: fixed or dynamic
   const getDrawerHeight = () => {
     if (autoHeight) {
-      const calculatedHeight = HANDLE_HEIGHT + contentHeight + 20 + insets.bottom; // +20 for padding + bottom inset
+      const calculatedHeight = HANDLE_HEIGHT + contentHeight + 20 + insets.bottom;
       return Math.min(calculatedHeight, MAX_HEIGHT);
     }
     return SCREEN_HEIGHT * height;
@@ -116,13 +149,11 @@ export default function CollapseDrawer({
     });
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
+    transform: [{ translateY: translateY.value + keyboardOffset.value }],
   }));
 
   // Calculate current drawer height (reactive to contentHeight changes)
-  const currentDrawerHeight = autoHeight
-    ? Math.min(HANDLE_HEIGHT + contentHeight + 20 + insets.bottom, MAX_HEIGHT)
-    : DRAWER_HEIGHT;
+  const currentDrawerHeight = getDrawerHeight();
 
   if (!isVisible) return null;
 
@@ -179,28 +210,19 @@ export default function CollapseDrawer({
                 {children}
               </View>
             ) : (
-              <View style={{ flex: 1, paddingBottom: insets.bottom }}>
-                {Platform.OS === 'ios' ? (
-                  <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-                    <ScrollView
-                      bounces={false}
-                      showsVerticalScrollIndicator={false}
-                      keyboardShouldPersistTaps="handled"
-                      scrollEnabled={true}
-                      contentContainerStyle={{ paddingBottom: insets.bottom }}>
-                      {children}
-                    </ScrollView>
-                    {bottomArea}
-                  </KeyboardAvoidingView>
-                ) : (
-                  <View style={{ flex: 1 }}>
-                    <ScrollView
-                      style={{ flex: 1 }}
-                      scrollEnabled={true}
-                      nestedScrollEnabled={true}
-                      contentContainerStyle={{ paddingBottom: insets.bottom }}>
-                      {children}
-                    </ScrollView>
+              <View style={{ flex: 1, flexDirection: 'column' }}>
+                <ScrollView
+                  style={{ flex: 1 }}
+                  bounces={false}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                  scrollEnabled={true}
+                  nestedScrollEnabled={true}
+                  contentContainerStyle={{ paddingBottom: insets.bottom }}>
+                  {children}
+                </ScrollView>
+                {bottomArea && (
+                  <View style={{ paddingBottom: insets.bottom }}>
                     {bottomArea}
                   </View>
                 )}

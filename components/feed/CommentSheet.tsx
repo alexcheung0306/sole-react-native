@@ -1,5 +1,5 @@
 import { View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator, ScrollView } from 'react-native';
-import { Send } from 'lucide-react-native';
+import { Send, ChevronDown } from 'lucide-react-native';
 import { useState } from 'react';
 import { Comment } from '~/types/post';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -44,8 +44,6 @@ export function CommentSheet({
   const comments = providedComments || apiComments || [];
   const commentsLoading = providedIsLoading !== undefined ? providedIsLoading : apiLoading;
 
-
-  console.log('comments', comments);
   return (
     <View className="flex-1">
       {/* Comments List */}
@@ -98,15 +96,19 @@ export function CommentSheet({
 
           {/* Load More Button */}
           {hasMore && (
-            <View className="items-center py-4">
+            <View className="items-center py-3 px-4">
               {isFetchingMore ? (
-                <ActivityIndicator size="small" color="#3b82f6" />
+                <View className="flex-row items-center gap-2 py-2">
+                  <ActivityIndicator size="small" color="#9ca3af" />
+                  <Text className="text-xs text-gray-400">Loading more comments...</Text>
+                </View>
               ) : (
                 <TouchableOpacity
                   onPress={onLoadMore}
-                  className="rounded-lg bg-gray-700/50 px-6 py-3"
-                  activeOpacity={0.7}>
-                  <Text className="text-sm font-semibold text-white">Load More Comments</Text>
+                  className="flex-row items-center gap-2 rounded-full border border-gray-600/50 bg-gray-800/30 px-4 py-2.5"
+                  activeOpacity={0.6}>
+                  <ChevronDown size={16} color="#9ca3af" />
+                  <Text className="text-xs font-medium text-gray-300">Load More</Text>
                 </TouchableOpacity>
               )}
             </View>
