@@ -60,6 +60,8 @@ export default function ProtectedLayout() {
             <Stack.Screen name="chat" options={{ headerShown: false }} />
             <Stack.Screen name="camera" options={{ headerShown: false }} />
             <Stack.Screen name="account" options={{ headerShown: false }} />
+            <Stack.Screen name="settings" options={{ headerShown: false }} />
+            <Stack.Screen name="wallet" options={{ headerShown: false }} />
           </Stack>
           {showTabBar && <AppTabBar />}
         </View>

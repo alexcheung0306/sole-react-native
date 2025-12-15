@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { TouchableOpacity, View, Text } from 'react-native';
-import { UserCircle, Settings, LogOut, User, Users } from 'lucide-react-native';
+import { UserCircle, Settings, LogOut, User, Users, Wallet } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
@@ -18,7 +18,14 @@ interface AccountDropDownMenuProps {
   profileTab: string;
 }
 
-export function AccountDropDownMenu({ color, focused, onPress, activeTab, profileTab, profileLabel }: AccountDropDownMenuProps) {
+export function AccountDropDownMenu({
+  color,
+  focused,
+  onPress,
+  activeTab,
+  profileTab,
+  profileLabel,
+}: AccountDropDownMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const { signOut } = useAuth();
@@ -61,8 +68,13 @@ export function AccountDropDownMenu({ color, focused, onPress, activeTab, profil
     },
     {
       icon: Users,
-      label: 'Advanced Account',
+      label: 'Account',
       onPress: handleSwitchAccount,
+    },
+    {
+      icon: Wallet,
+      label: 'Wallet',
+      onPress: () => router.push('/wallet' as any),
     },
     {
       icon: LogOut,
@@ -136,9 +148,7 @@ export function AccountDropDownMenu({ color, focused, onPress, activeTab, profil
             {profileLabel}
           </Text>
         </View>
-
-
-      </GestureDetector>
+        </GestureDetector>
 
       <CollapseDrawer
         showDrawer={isOpen}
@@ -148,7 +158,7 @@ export function AccountDropDownMenu({ color, focused, onPress, activeTab, profil
             ? user?.firstName || user?.primaryEmailAddress?.emailAddress?.split('@')[0] || 'User'
             : 'Account'
         }>
-        <View className="gap-4" style={{ width: '100%' }}>
+        <View className="gap-2" style={{ width: '100%' }}>
           {/* User Info */}
           {isLoaded && user && (
             <View className="gap-1 px-5 pb-4">
@@ -168,7 +178,7 @@ export function AccountDropDownMenu({ color, focused, onPress, activeTab, profil
 
           {/* Switch Interface (hide if client not activated) */}
           {soleUser?.clientLevel !== null && soleUser?.clientLevel !== undefined && (
-            <View style={{ width: '100%', overflow: 'hidden', paddingHorizontal: 20 }}>
+            <View className="px-5 pb-2" style={{ width: '100%', overflow: 'hidden' }}>
               <SwitchInterface setIsOpen={setIsOpen} />
             </View>
           )}
@@ -181,18 +191,21 @@ export function AccountDropDownMenu({ color, focused, onPress, activeTab, profil
                 <TouchableOpacity
                   key={index}
                   onPress={() => item.onPress(() => setIsOpen(false))}
-                  className={`flex-row items-center gap-3 rounded-2xl border px-4 py-3 ${item.danger ? 'border-rose-500/30 bg-rose-500/10' : 'border-white/10 bg-white/5'
-                    }`}
+                  className={`flex-row items-center gap-3 rounded-2xl border px-4 py-2 ${
+                    item.danger ? 'border-rose-500/30 bg-rose-500/10' : 'border-white/10 bg-white/5'
+                  }`}
                   activeOpacity={0.85}>
                   <View
-                    className={`rounded-full p-2 ${item.danger ? 'bg-rose-500/20' : 'bg-blue-500/20'
-                      }`}>
+                    className={`rounded-full p-2 ${
+                      item.danger ? 'bg-rose-500/20' : 'bg-blue-500/20'
+                    }`}>
                     <Icon size={20} color={item.danger ? '#fecaca' : '#bfdbfe'} />
                   </View>
                   <View className="flex-1">
                     <Text
-                      className={`text-sm font-semibold ${item.danger ? 'text-rose-300' : 'text-white'
-                        }`}>
+                      className={`text-sm font-semibold ${
+                        item.danger ? 'text-rose-300' : 'text-white'
+                      }`}>
                       {item.label}
                     </Text>
                   </View>
