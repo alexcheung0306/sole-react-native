@@ -731,6 +731,35 @@ const CameraContent = ({
                    isMultiSelect={isMultiSelect}
                    isAspectRatioLocked={isAspectRatioLocked}
                  />
+                 {/* Thumbnail Strip (only if multiple selected) */}
+                 {selectedMedia.length > 1 && (
+                   <View className="bg-black px-4 py-3">
+                     <Text className="mb-2 text-sm text-gray-400">Selected ({selectedMedia.length})</Text>
+                     <FlatList
+                       data={selectedMedia}
+                       renderItem={({ item, index }: { item: MediaItem; index: number }) => (
+                         <TouchableOpacity
+                           onPress={() => setCurrentIndex(index)}
+                           className={`mr-2 ${currentIndex === index ? 'border-2 border-blue-500' : 'border border-gray-600'} overflow-hidden rounded-lg`}
+                           style={{ width: 60, height: 60 }}>
+                           <ExpoImage
+                             source={{ uri: item.uri }}
+                             style={{ width: 60, height: 60 }}
+                             contentFit="cover"
+                           />
+                           {item.mediaType === 'video' && (
+                             <View className="absolute inset-0 items-center justify-center bg-black/30">
+                               <ImageIcon size={16} color="#ffffff" />
+                             </View>
+                           )}
+                         </TouchableOpacity>
+                       )}
+                       keyExtractor={(item) => item.id}
+                       horizontal
+                       showsHorizontalScrollIndicator={false}
+                     />
+                   </View>
+                 )}
                </View>
              </GestureDetector>
            </View>
@@ -782,7 +811,7 @@ const CameraContent = ({
                 return (
                   <View
                     style={{ width: ITEM_SIZE, height: ITEM_SIZE }}
-                    className="relative border-b border-r border-gray-900">
+                    className="relative  border-gray-900">
                     <TouchableOpacity
                       style={{ width: '100%', height: '100%' }}
                       onPress={() => {
