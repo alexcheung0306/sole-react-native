@@ -69,7 +69,7 @@ export const CameraCroppingArea = ({
   if (selectedMedia.length > 0) {
     return (
       <Animated.View
-        className="  border-red-500"
+        className=" "
         style={[{ position: 'relative' }, containerAnimatedStyle]}>
         {/* Main Media Display (Editable) */}
         <Animated.View style={mainMediaAnimatedStyle}>
@@ -88,7 +88,7 @@ export const CameraCroppingArea = ({
 
   return (
     <View
-      style={{ width, height: width, borderWidth: 1, borderColor: 'red' }}
+      style={{ width, height: width, }}
       className="relative bg-black">
       <ExpoImage
         source={previewItem.uri}

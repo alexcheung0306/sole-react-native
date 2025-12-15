@@ -4,12 +4,11 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  useAnimatedReaction,
   withSpring,
   withTiming,
-  withDelay,
   runOnJS,
   cancelAnimation,
-  useDerivedValue,
 } from 'react-native-reanimated';
 
 interface MediaZoom2Props {
@@ -21,7 +20,13 @@ interface MediaZoom2Props {
   maxScale?: number;
   onZoomActiveChange?: (active: boolean) => void;
   onScaleChange?: (scale: number) => void;
+  onTouchStart?: () => void; // Notify parent immediately when touch starts
+  scaleSharedValue?: { value: number }; // Optional shared value to update directly in worklet
+  debugZIndex?: boolean; // Enable debug overlay
 }
+
+// Global counter to ensure unique z-index for zooming images
+let globalZoomCounter = 0;
 
 export function MediaZoom2({
   children,
@@ -32,10 +37,16 @@ export function MediaZoom2({
   maxScale = 5,
   onZoomActiveChange,
   onScaleChange,
+  onTouchStart,
+  scaleSharedValue,
+  debugZIndex = __DEV__,
 }: MediaZoom2Props) {
+  const [currentZIndex, setCurrentZIndex] = React.useState(30);
+  const zoomCounterRef = React.useRef<number | null>(null);
+  const currentZIndexShared = useSharedValue(30);
   const pinchSensitivity = 1.0;
-  const isLogAvaliable =false;
-  
+  const isLogAvaliable = false;
+
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -56,41 +67,18 @@ export function MediaZoom2({
   const isPinching = useSharedValue(false);
   const isPanning = useSharedValue(false);
   const isZoomActive = useSharedValue(false);
+  const isTouching = useSharedValue(false); // Track if user is touching the image
   const backdropOpacity = useSharedValue(0);
   // Prevent duplicate resets when both gestures fire end events
   const hasResetOnEnd = useSharedValue(false);
   // Track if a reset animation is in progress to prevent gestures during reset
   const isResetting = useSharedValue(false);
-  // Cooldown period after pinch ends to prevent immediate re-pinch (in milliseconds)
-  const pinchCooldown = useSharedValue(0);
-  const PINCH_COOLDOWN_MS = 200; // 200ms cooldown after pinch ends
 
   const initialFocalX = useSharedValue(0);
   const initialFocalY = useSharedValue(0);
 
   // Track number of pointers to detect changes (e.g. lifting one finger)
   const activePointers = useSharedValue(0);
-
-  // State for debug z-index display
-  const [wrapperZIndex, setWrapperZIndex] = React.useState(10);
-  const [contentZIndex, setContentZIndex] = React.useState(30);
-
-  // Update z-index display when zoom state changes
-  useDerivedValue(() => {
-    const wrapperZ = isZoomActive.value ? 20000 : 10;
-    const contentZ = isZoomActive.value ? 9999 : 30;
-    runOnJS(setWrapperZIndex)(wrapperZ);
-    runOnJS(setContentZIndex)(contentZ);
-  }, [isZoomActive]);
-
-  // Continuously notify scale changes during reset animation so header/tab bar can follow
-  useDerivedValue(() => {
-    // Only notify during reset animation to allow header/tab bar to follow smoothly
-    if (isResetting.value && onScaleChange) {
-      const currentScale = Math.max(minScale, Math.min(maxScale, scale.value));
-      runOnJS(onScaleChange)(currentScale);
-    }
-  }, [scale, isResetting, onScaleChange, minScale, maxScale]);
 
   const debugLog = React.useCallback((label: string, payload: Record<string, any>) => {
     if (!__DEV__) return;
@@ -113,18 +101,55 @@ export function MediaZoom2({
     cancelAnimation(scale);
     cancelAnimation(translateX);
     cancelAnimation(translateY);
-    cancelAnimation(backdropOpacity);
-    
+
     // Immediately prevent all interactions before starting animations
-    // Note: Keep isZoomActive true during animation so z-index stays high
-    // We'll set it to false when animation completes
-    // Also keep backdrop visible during animation - it will fade out when animation completes
+    isZoomActive.value = false;
+    isTouching.value = false; // Clear touch state
     hasResetOnEnd.value = false;
     isPanning.value = false;
     isPinching.value = false;
-    
+
+    // Clear zoom counter when reset
+    zoomCounterRef.current = null;
+
+    if (onZoomActiveChange) {
+      runOnJS(onZoomActiveChange)(false);
+    }
+
+    // if (!instant) {
+    //   // Instant reset without animation
+    //   isResetting.value = false;
+    //   scale.value = 1;
+    //   translateX.value = 0;
+    //   translateY.value = 0;
+    //   backdropOpacity.value = 0;
+    // } else {
+    //   // Mark that we're resetting to prevent gestures during animation
+    //   isResetting.value = true;
+
+    //   // Smooth reset with gentle spring animation
+    //   // Using high damping and lower stiffness for a smooth, non-bouncy transition
+    //   const springConfig = {
+    //     damping: 20,
+    //     stiffness: 90,
+    //     mass: 0.5,
+    //   };
+
+    //   // Use callback on scale animation to clear the resetting flag when it completes
+    //   // Scale is typically the longest animation, so when it's done, others are too
+    //   scale.value = withSpring(1, springConfig, (finished) => {
+    //     'worklet';
+    //     if (finished) {
+    //       isResetting.value = false;
+    //     }
+    //   });
+    //   translateX.value = withSpring(0, springConfig);
+    //   translateY.value = withSpring(0, springConfig);
+    //   backdropOpacity.value = withTiming(0, { duration: 250 });
+    // }
+
     isResetting.value = true;
-      
+
     // Smooth reset with gentle spring animation
     // Using high damping and lower stiffness for a smooth, non-bouncy transition
     const springConfig = {
@@ -132,28 +157,23 @@ export function MediaZoom2({
       stiffness: 90,
       mass: 0.5,
     };
-    
-    // Use callback on scale animation to clear the resetting flag and notify zoom inactive
+
+    // Use callback on scale animation to clear the resetting flag when it completes
     // Scale is typically the longest animation, so when it's done, others are too
     scale.value = withSpring(1, springConfig, (finished) => {
       'worklet';
       if (finished) {
         isResetting.value = false;
-        // Now that animation is complete, set zoom inactive
-        // Backdrop will be hidden (opacity = 0) since isZoomActive is false
-        // Opacity automatically becomes 0 because scale is 1 and isZoomActive is false
-        isZoomActive.value = false;
-        if (onZoomActiveChange) {
-          runOnJS(onZoomActiveChange)(false); // Z-index will drop now
-        }
       }
     });
     translateX.value = withSpring(0, springConfig);
     translateY.value = withSpring(0, springConfig);
-    // Backdrop stays visible during animation - will fade out in scale completion callback
+    backdropOpacity.value = withTiming(0, { duration: 250 });
 
-    // Note: Scale changes during reset are now handled by useDerivedValue above
-    // which continuously tracks scale.value and calls onScaleChange as it animates
+    // Notify scale reset
+    if (onScaleChange) {
+      runOnJS(onScaleChange)(1);
+    }
 
     savedScale.value = 1;
     savedTranslateX.value = 0;
@@ -178,30 +198,37 @@ export function MediaZoom2({
   );
 
   const pinchGesture = Gesture.Pinch()
+    .withTestId('media-zoom-pinch') // Add test ID for debugging
+    .onTouchesDown((e, state) => {
+      'worklet';
+      // Mark that user is touching - set z-index high immediately
+      // The useAnimatedReaction below will notify parent immediately
+      isTouching.value = true;
+      
+      // Always assign a new counter on touch to ensure latest touched item has highest z-index
+      // This ensures that when switching between posts, the newly touched one gets a higher z-index
+      globalZoomCounter++;
+      zoomCounterRef.current = globalZoomCounter;
+      
+      if (__DEV__ && isLogAvaliable) {
+        runOnJS(debugLog)('pinch.touchesDown', { numberOfPointers: e.allTouches.length });
+      }
+    })
     .onStart((e) => {
       'worklet';
       // Prevent pinch if reset animation is in progress
       if (isResetting.value) {
         return;
       }
-      // Prevent pinch if cooldown period hasn't elapsed
-      if (pinchCooldown.value > 0) {
-        logGesture('pinch.start.blocked', { cooldown: pinchCooldown.value });
-        return;
-      }
+      backdropOpacity.value = withTiming(1);
+
+      // Assign unique zoom counter for this instance when touch starts
+      globalZoomCounter++;
+      zoomCounterRef.current = globalZoomCounter;
+
       hasResetOnEnd.value = false;
       isPinching.value = true;
-      
-      // Set zoom active immediately on pinch start for instant z-index update
-      // This ensures the carousel gets highest z-index before any scale change happens
-      if (!isZoomActive.value) {
-        isZoomActive.value = true;
-        if (onZoomActiveChange) {
-          runOnJS(onZoomActiveChange)(true); // Notify immediately for instant z-index update
-        }
-        // Backdrop opacity is now calculated from scale in useAnimatedStyle
-        // No need to set it here - it will automatically follow scale
-      }
+      // Don't set isZoomActive here; wait for actual scale change in onUpdate
 
       logGesture('pinch.start', {
         focalX: e.focalX,
@@ -247,27 +274,55 @@ export function MediaZoom2({
     .onUpdate((e) => {
       'worklet';
 
-      // isZoomActive is already set in onStart, so we just need to handle scale changes
-      // Re-anchor origin on first actual scale change (when transitioning from scale 1)
-      if (isZoomActive.value && savedScale.value === 1 && e.scale !== 1) {
-        // First actual scale change - re-anchor origin to current focal point
-        const cx = width / 2;
-        const cy = height / 2;
-        originX.value = (e.focalX - cx - translateX.value) / scale.value;
-        originY.value = (e.focalY - cy - translateY.value) / scale.value;
-        
-        // Adjust savedScale so the zoom starts smoothly from current scale (1)
-        savedScale.value = scale.value / e.scale;
-      }
+      if (!isZoomActive.value) {
+        // Start animation earlier - use a smaller threshold (2%) to start header/tab bar animation sooner
+        const scaleChange = Math.abs(e.scale - 1);
+        if (scaleChange > 0.02) {
+          // 2% threshold - start animation earlier
+          isZoomActive.value = true;
 
-      // Notify scale change for proportional header/tab bar translation
-      if (onScaleChange) {
-        const currentScale = Math.max(minScale, Math.min(maxScale, savedScale.value * e.scale));
-        runOnJS(onScaleChange)(currentScale);
-      }
+          // Assign unique zoom counter for this instance
+          globalZoomCounter++;
+          zoomCounterRef.current = globalZoomCounter;
 
-      // Note: backdropOpacity is now calculated from scale in useAnimatedStyle
-      // This allows it to follow the scale animation during reset
+          if (onZoomActiveChange) {
+            if (__DEV__) {
+              runOnJS(debugLog)('zoom.active', { scale: scale.value, hasCallback: !!onZoomActiveChange });
+            }
+            runOnJS(onZoomActiveChange)(true);
+          } else if (__DEV__) {
+            runOnJS(debugLog)('zoom.active.noCallback', { scale: scale.value });
+          }
+
+          // Re-anchor origin to current focal point to prevent jump upon activation
+          const cx = width / 2;
+          const cy = height / 2;
+          originX.value = (e.focalX - cx - translateX.value) / scale.value;
+          originY.value = (e.focalY - cy - translateY.value) / scale.value;
+
+          // Adjust savedScale so the zoom starts smoothly from current scale (1)
+          // effectively treating current e.scale as the baseline
+          savedScale.value = scale.value / e.scale;
+
+          // Notify scale change AFTER activation to ensure positions are initialized
+          // Use the actual scale value for accurate calculation
+          // Note: scaleSharedValue is automatically synced via useAnimatedReaction
+          if (onScaleChange) {
+            const currentScale = Math.max(minScale, Math.min(maxScale, savedScale.value * e.scale));
+            runOnJS(onScaleChange)(currentScale);
+          }
+        } else {
+          // Wait until threshold is met - don't notify scale change yet to avoid lag
+          return;
+        }
+      } else {
+        // Zoom is active - notify scale change for proportional header/tab bar translation
+        // Note: scaleSharedValue is automatically synced via useAnimatedReaction
+        if (onScaleChange) {
+          const currentScale = Math.max(minScale, Math.min(maxScale, savedScale.value * e.scale));
+          runOnJS(onScaleChange)(currentScale);
+        }
+      }
 
       // If number of pointers changes (e.g. 2 -> 1), re-anchor origin to prevent jump
       // because the focal point (center of pointers) changes abruptly.
@@ -344,23 +399,19 @@ export function MediaZoom2({
       if (e.numberOfPointers === 0) {
         // Cancel pan gesture immediately to prevent any delays
         isPanning.value = false;
-        
-        // Start cooldown period to prevent immediate re-pinch
-        // Set to max value first so the check blocks immediately, then animate to 0
-        pinchCooldown.value = PINCH_COOLDOWN_MS;
-        pinchCooldown.value = withTiming(0, { duration: PINCH_COOLDOWN_MS });
-        
+        isTouching.value = false; // Clear touch state
+        zoomCounterRef.current = null; // Clear zoom counter
+
         if (resetOnRelease) {
           // Smooth animated reset when all fingers are released
           reset(true);
         }
-        
+
         logGesture('pinch.end.allFingersReleased', {
           scale: scale.value,
           translateX: translateX.value,
           translateY: translateY.value,
           resetOnRelease,
-          cooldownStarted: true,
         });
         return;
       }
@@ -382,26 +433,44 @@ export function MediaZoom2({
       // Fallback: if pinch is cancelled or ends without firing onEnd, ensure reset when no pan is active
       if (!isPanning.value && resetOnRelease) {
         isPanning.value = false;
-        handlePanEndReset({
-          velocityX: 0,
-          velocityY: 0,
-          translateX: translateX.value,
-          translateY: translateY.value,
-          scale: scale.value,
-          reason: 'pinch.finalize',
-        }, false);
+        handlePanEndReset(
+          {
+            velocityX: 0,
+            velocityY: 0,
+            translateX: translateX.value,
+            translateY: translateY.value,
+            scale: scale.value,
+            reason: 'pinch.finalize',
+          },
+          false
+        );
       }
     });
 
   const panGesture = Gesture.Pan()
     .averageTouches(true)
     .manualActivation(true)
+    .onTouchesDown((e, state) => {
+      'worklet';
+      // Mark that user is touching - set z-index high immediately
+      isTouching.value = true;
+      if (__DEV__ && isLogAvaliable) {
+        runOnJS(debugLog)('pan.touchesDown', { numberOfPointers: e.allTouches.length });
+      }
+    })
     .onStart((e) => {
       'worklet';
       // Prevent pan if reset animation is in progress
       if (isResetting.value) {
         return;
       }
+
+      // Mark that user is touching - set z-index high immediately
+
+      // Assign unique zoom counter for this instance when touch starts
+      globalZoomCounter++;
+      zoomCounterRef.current = globalZoomCounter;
+
       hasResetOnEnd.value = false;
 
       // Note: We rely on onTouchesMove to prevent invalid activation.
@@ -464,42 +533,53 @@ export function MediaZoom2({
     .onEnd((e) => {
       'worklet';
       isPanning.value = false;
+
+      // Clear touch state when pan ends (if no other gestures are active)
+      if (!isPinching.value && e.numberOfPointers === 0) {
+        isTouching.value = false;
+        zoomCounterRef.current = null;
+        
+        // Notify parent that touch ended (for z-index reset)
+        if (onTouchStart) {
+          runOnJS(onTouchStart)(); // Reuse to notify touch end
+        }
+      }
+
       savedTranslateX.value = translateX.value;
       savedTranslateY.value = translateY.value;
 
-      // If all fingers are released, start cooldown to prevent immediate re-pinch
-      if (e.numberOfPointers === 0) {
-        // Set to max value first so the check blocks immediately, then animate to 0
-        pinchCooldown.value = PINCH_COOLDOWN_MS;
-        pinchCooldown.value = withTiming(0, { duration: PINCH_COOLDOWN_MS });
-      }
-
       // Reset to original position/scale when pan ends
       // Always use smooth animated reset
-      handlePanEndReset({
-        velocityX: e.velocityX,
-        velocityY: e.velocityY,
-        translateX: translateX.value,
-        translateY: translateY.value,
-        scale: scale.value,
-        reason: 'pan.end',
-        numberOfPointers: e.numberOfPointers,
-      }, true);
+      handlePanEndReset(
+        {
+          velocityX: e.velocityX,
+          velocityY: e.velocityY,
+          translateX: translateX.value,
+          translateY: translateY.value,
+          scale: scale.value,
+          reason: 'pan.end',
+          numberOfPointers: e.numberOfPointers,
+        },
+        true
+      );
     })
     .onFinalize((e) => {
       'worklet';
       // Fallback in case onEnd doesn't fire (e.g., cancellation)
       isPanning.value = false;
       // Always use smooth animated reset
-      handlePanEndReset({
-        velocityX: e?.velocityX ?? 0,
-        velocityY: e?.velocityY ?? 0,
-        translateX: translateX.value,
-        translateY: translateY.value,
-        scale: scale.value,
-        reason: 'pan.finalize',
-        numberOfPointers: e?.numberOfPointers ?? 0,
-      }, true);
+      handlePanEndReset(
+        {
+          velocityX: e?.velocityX ?? 0,
+          velocityY: e?.velocityY ?? 0,
+          translateX: translateX.value,
+          translateY: translateY.value,
+          scale: scale.value,
+          reason: 'pan.finalize',
+          numberOfPointers: e?.numberOfPointers ?? 0,
+        },
+        true
+      );
     });
 
   // Activate pan ONLY when zoom is active or scale > 1, otherwise fail to let scrollview take over
@@ -517,35 +597,65 @@ export function MediaZoom2({
   });
 
   const backdropStyle = useAnimatedStyle(() => {
-    // Backdrop is only visible when zoom is active
-    // Opacity is calculated directly from scale so it follows scale animations (including reset)
-    if (!isZoomActive.value) {
-      return { opacity: 0 };
-    }
-    
-    // Calculate opacity from current scale value
-    // This ensures opacity follows scale during reset animation
-    // Scale 1 = 0% opacity, Scale 2 = 80% opacity
-    const currentScale = Math.max(minScale, Math.min(maxScale, scale.value));
-    // Normalize scale: 0 at minScale (1), 1 at scale 2 (target for 80% opacity)
-    const targetScale = 2; // Scale at which we want 80% opacity
-    const normalizedScale = Math.min(1, (currentScale - minScale) / (targetScale - minScale));
-    // Use power of 1.5 to make opacity increase faster as scale increases
-    // Then multiply by 0.8 to cap at 80% opacity at scale 2
-    const opacity = Math.pow(normalizedScale, 1.5) * 0.8;
-    
     return {
-      opacity,
+      opacity: backdropOpacity.value,
     };
   });
 
   const wrapperAnimatedStyle = useAnimatedStyle(() => {
-    const activeZ = isZoomActive.value ? 20000 : 10;
+    // Use scale directly as z-index multiplier
+    // Base z-index: 30 when scale = 1
+    // Scale-based z-index: scale * 1000000 to ensure proper stacking
+    // This ensures z-index increases smoothly with zoom level
+    const baseZIndex = 30;
+    const scaleBasedZIndex = Math.round(scale.value * 1000000);
+    const finalZIndex = scale.value > 1 ? scaleBasedZIndex : baseZIndex;
+
+    // Update shared value for debug display
+    currentZIndexShared.value = finalZIndex;
+
     return {
-      zIndex: activeZ,
-      elevation: activeZ,
+      zIndex: finalZIndex,
+      elevation: finalZIndex, // Android elevation
     };
-  });
+  }, []);
+
+  // No longer need to notify parent of z-index changes since we're using scale directly
+  // The parent (ImageCarousel) will track scale and calculate z-index itself
+
+  // Update debug z-index display
+  // React.useEffect(() => {
+  //   if (!debugZIndex) return;
+
+  //   const interval = setInterval(() => {
+  //     setCurrentZIndex(currentZIndexShared.value);
+  //   }, 100); // Update every 100ms
+
+  //   return () => clearInterval(interval);
+  // }, [debugZIndex]);
+
+  // Sync scale to shared value immediately (no JS thread overhead)
+  useAnimatedReaction(
+    () => scale.value,
+    (currentScale) => {
+      if (scaleSharedValue) {
+        scaleSharedValue.value = currentScale;
+      }
+    },
+    [scaleSharedValue]
+  );
+
+  // React immediately to isTouching changes to notify parent for instant z-index update
+  useAnimatedReaction(
+    () => isTouching.value,
+    (isTouchingNow, wasTouching) => {
+      if (isTouchingNow && !wasTouching && onTouchStart) {
+        // Touch just started - notify immediately
+        runOnJS(onTouchStart)();
+      }
+    },
+    [onTouchStart]
+  );
 
   return (
     <Animated.View style={[styles.wrapper, { width, height }, wrapperAnimatedStyle]}>
@@ -568,29 +678,27 @@ export function MediaZoom2({
         <Animated.View style={[styles.container, { width, height }]}>
           <Animated.View style={[styles.content, { width, height }, animatedStyle]}>
             {children}
-            {/* Debug overlay for MediaZoom2 z-index */}
-
-
-           { isLogAvaliable && <View
-              style={{
-                position: 'absolute',
-                top: 10,
-                right: 10,
-                backgroundColor: 'rgba(255, 0, 0, 0.8)',
-                padding: 8,
-                borderRadius: 4,
-                zIndex: 99999,
-              }}>
-              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
-                Image wrapper: {wrapperZIndex}
-              </Text>
-              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
-                Image content: {contentZIndex}
-              </Text>
-            </View>}
           </Animated.View>
         </Animated.View>
       </GestureDetector>
+
+      {/* Debug z-index overlay */}
+      {/* {debugZIndex && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            padding: 8,
+            borderRadius: 4,
+            zIndex: 999999,
+          }}>
+          <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+            zIndex: {currentZIndex}
+          </Text>
+        </View>
+      )} */}
     </Animated.View>
   );
 }

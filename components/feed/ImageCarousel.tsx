@@ -24,105 +24,134 @@ interface ImageCarouselProps {
   media: MediaItem[];
   onZoomChange?: (isZooming: boolean) => void;
   onScaleChange?: (scale: number) => void;
+  onTouchStart?: () => void; // Notify parent immediately when touch starts
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarouselProps) {
-
-  const isLogAvaliable = false;
+export function ImageCarousel({ media, onZoomChange, onScaleChange, onTouchStart }: ImageCarouselProps) {
+  // const ZoomableView: any = ReactNativeZoomableView;
+  // if (ZoomableView && !ZoomableView.displayName) {
+  //   ZoomableView.displayName = 'ReactNativeZoomableView';
+  // }
   const [currentIndex, setCurrentIndex] = useState(0);
-
-  // Initialize heights synchronously from media items that have dimensions
-  const initialHeights = React.useMemo(() => {
-    const heights: { [key: number]: number } = {};
-    for (let i = 0; i < media.length; i++) {
-      const item = media[i];
-      if (item.width && item.height) {
-        const aspectRatio = item.width / item.height;
-        heights[i] = SCREEN_WIDTH / aspectRatio;
-      }
-    }
-    return heights;
-  }, [media]);
-
-  const [imageHeights, setImageHeights] = useState<{ [key: number]: number }>(initialHeights);
-  const [currentHeight, setCurrentHeight] = useState<number>(
-    initialHeights[0] || SCREEN_WIDTH // Use calculated height if available, otherwise default to square
-  );
+  const [imageHeights, setImageHeights] = useState<{ [key: number]: number }>({});
+  const [currentHeight, setCurrentHeight] = useState<number>(SCREEN_WIDTH); // Default to square
   const [isZooming, setIsZooming] = useState(false);
+  const [imageScale, setImageScale] = useState(1); // Track scale from MediaZoom2 (for non-animated use)
+  const imageScaleShared = useSharedValue(1); // Shared value for animated style
+  const currentZIndexShared = useSharedValue(1);
+  const [currentZIndex, setCurrentZIndex] = useState(1);
   const listRef = useRef<FlatList<MediaItem>>(null);
 
-  // Shared value for z-index - updates instantly on UI thread
-  const isZoomingShared = useSharedValue(false);
-
-  // Handle zoom state changes - update both React state and shared value
+  // Handle zoom state changes - update internal state and notify parent
+  // Use useCallback with stable dependencies to ensure gesture handlers work correctly
   const handleZoomChange = useCallback((isZooming: boolean) => {
     setIsZooming(isZooming);
-    isZoomingShared.value = isZooming; // Update shared value immediately for instant z-index change
     onZoomChange?.(isZooming);
-  }, [onZoomChange, isZoomingShared]);
+  }, [onZoomChange]);
+  
+  // Memoize scale change handler to ensure it's stable across renders
+  const handleScaleChange = useCallback((scale: number) => {
+    setImageScale(scale); // Track scale for non-animated use
+    imageScaleShared.value = scale; // Update shared value for animated style
+    onScaleChange?.(scale);
+  }, [onScaleChange, imageScaleShared]);
 
-  // Animated style for z-index - updates instantly on UI thread
-  const carouselAnimatedStyle = useAnimatedStyle(() => {
-    const activeZ = isZoomingShared.value ? 8888 : 100;
+  // Handle touch start - notify parent
+  const handleTouchStart = useCallback(() => {
+    onTouchStart?.();
+  }, [onTouchStart]);
+
+  // Animated style for ImageCarousel wrapper z-index
+  // Use scale directly to calculate z-index, matching MediaZoom2's logic
+  // Base z-index: 1 when scale = 1
+  // Scale-based z-index: scale * 1000000 when scale > 1
+  const wrapperAnimatedStyle = useAnimatedStyle(() => {
+    // Use shared value for immediate updates - same calculation as MediaZoom2
+    const currentScale = imageScaleShared.value;
+    const baseZIndex = 1;
+    const scaleBasedZIndex = Math.round(currentScale * 1000000);
+    const zIndex = currentScale > 1 ? scaleBasedZIndex : baseZIndex;
+    
+    currentZIndexShared.value = zIndex; // Update for debug display
     return {
-      zIndex: activeZ,
-      elevation: activeZ,
+      zIndex: zIndex,
+      elevation: zIndex, // Android elevation
     };
-  });
+  }, []);
 
+  // Update debug z-index display
+  // useEffect(() => {
+  //   if (!__DEV__) return;
 
+  //   const interval = setInterval(() => {
+  //     setCurrentZIndex(currentZIndexShared.value);
+  //   }, 100); // Update every 100ms
+
+  //   return () => clearInterval(interval);
+  // }, [currentZIndexShared]);
+
+  const logOutZoomState = React.useCallback(
+    (_event: any, _gestureState: any, zoomState: { zoomLevel?: number }) => {
+      if (__DEV__) {
+        console.log('Zoom level:', zoomState?.zoomLevel);
+      }
+    },
+    []
+  );
 
   if (!media || media.length === 0) {
     return null;
   }
 
-  // Load image dimensions and calculate heights for items without dimensions
+  // Load image dimensions and calculate heights
   useEffect(() => {
     const loadImageDimensions = async () => {
-      const heights: { [key: number]: number } = { ...initialHeights };
+      const heights: { [key: number]: number } = {};
 
       for (let i = 0; i < media.length; i++) {
-        // Skip if we already have the height from initial calculation
-        if (heights[i] !== undefined) {
-          continue;
-        }
-
         const item = media[i];
-        // Fetch image dimensions for items without dimensions
-        try {
-          await new Promise<void>((resolve, reject) => {
-            Image.getSize(
-              item.mediaUrl,
-              (width, height) => {
-                const aspectRatio = width / height;
-                heights[i] = SCREEN_WIDTH / aspectRatio;
-                resolve();
-              },
-              (error) => {
-                console.error('Error loading image size:', error);
-                // Fallback to square if error
-                heights[i] = SCREEN_WIDTH;
-                resolve();
-              }
-            );
-          });
-        } catch (error) {
-          console.error('Error loading image dimensions:', error);
-          heights[i] = SCREEN_WIDTH; // Fallback to square
+
+        // If dimensions are already provided, use them
+        if (item.width && item.height) {
+          const aspectRatio = item.width / item.height;
+          heights[i] = SCREEN_WIDTH / aspectRatio;
+        } else {
+          // Otherwise, fetch image dimensions
+          try {
+            await new Promise<void>((resolve, reject) => {
+              Image.getSize(
+                item.mediaUrl,
+                (width, height) => {
+                  const aspectRatio = width / height;
+                  heights[i] = SCREEN_WIDTH / aspectRatio;
+                  resolve();
+                },
+                (error) => {
+                  console.error('Error loading image size:', error);
+                  // Fallback to square if error
+                  heights[i] = SCREEN_WIDTH;
+                  resolve();
+                }
+              );
+            });
+          } catch (error) {
+            console.error('Error loading image dimensions:', error);
+            heights[i] = SCREEN_WIDTH; // Fallback to square
+          }
         }
       }
 
       setImageHeights(heights);
-      // Set initial height for first image if not already set
-      if (heights[0] && !initialHeights[0]) {
+      // Set initial height for first image
+      if (heights[0]) {
         setCurrentHeight(heights[0]);
       }
     };
 
     loadImageDimensions();
-  }, [media, initialHeights]);
+  }, [media]);
 
   // Update height when current index changes
   useEffect(() => {
@@ -133,15 +162,13 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
 
   const handlePrevious = () => {
     const nextIndex = currentIndex === 0 ? media.length - 1 : currentIndex - 1;
-    const offset = nextIndex * SCREEN_WIDTH;
-    listRef.current?.scrollToOffset({ offset, animated: true });
+    listRef.current?.scrollToIndex({ index: nextIndex, animated: true });
     setCurrentIndex(nextIndex);
   };
 
   const handleNext = () => {
     const nextIndex = currentIndex === media.length - 1 ? 0 : currentIndex + 1;
-    const offset = nextIndex * SCREEN_WIDTH;
-    listRef.current?.scrollToOffset({ offset, animated: true });
+    listRef.current?.scrollToIndex({ index: nextIndex, animated: true });
     setCurrentIndex(nextIndex);
   };
 
@@ -156,62 +183,54 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
   // Single image - no carousel needed
   if (media.length === 1) {
     const singleImageHeight = imageHeights[0] || currentHeight;
-    const hasCalculatedHeight = imageHeights[0] !== undefined || initialHeights[0] !== undefined;
     return (
       <Animated.View
         style={[
           {
             width: SCREEN_WIDTH,
-            height: hasCalculatedHeight ? singleImageHeight : 'auto',
+            height: 'auto',
             overflow: 'visible',
             position: 'relative',
-            borderWidth: 2,
-            backgroundColor: 'grey',
           },
-          carouselAnimatedStyle, // Uses Reanimated for instant z-index updates
+          wrapperAnimatedStyle,
         ]}>
-        {/* Debug overlay for ImageCarousel z-index */}
-        {isLogAvaliable && <View
-          style={{
-            position: 'absolute',
-            top: 10,
-            left: 10,
-            backgroundColor: 'rgba(0, 0, 255, 0.8)',
-            padding: 8,
-            borderRadius: 4,
-            zIndex: 99999,
-          }}>
-          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
-            Carousel z-index: {isZooming ? 8888 : 100}
-          </Text>
-        </View>}
-        <View
-          style={{
-            position: 'absolute',
-            top: 10,
-            left: 10,
-            padding: 8,
-            borderRadius: 4,
-            zIndex: 99999,
-          }}>
-
-        </View>
         <MediaZoom2
           children={
             <Image
               source={{ uri: media[0].mediaUrl }}
-              style={{ width: SCREEN_WIDTH, height: hasCalculatedHeight ? singleImageHeight : 'auto' }}
+              style={{ width: SCREEN_WIDTH, height: singleImageHeight }}
               resizeMode="contain"
             />
           }
           width={SCREEN_WIDTH}
-          height={hasCalculatedHeight ? singleImageHeight : (currentHeight || SCREEN_WIDTH)}
+          height={singleImageHeight}
           resetOnRelease={true}
           minScale={1}
           maxScale={3}
           onZoomActiveChange={handleZoomChange}
-          onScaleChange={onScaleChange}
+          onScaleChange={handleScaleChange}
+          onTouchStart={handleTouchStart}
+          scaleSharedValue={imageScaleShared}
         />
+        {/* {__DEV__ && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 5,
+              left: 5,
+              backgroundColor: 'black',
+              paddingHorizontal: 5,
+              paddingVertical: 2,
+              borderRadius: 3,
+              borderWidth: 2,
+              borderColor: 'red',
+              zIndex: 9999999, // Ensure debug overlay is always on top
+            }}>
+            <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>
+              Carousel Z: {currentZIndex}
+            </Text>
+          </View>
+        )} */}
       </Animated.View>
     );
   }
@@ -224,23 +243,8 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
           position: 'relative',
           overflow: 'visible',
         },
-        carouselAnimatedStyle, // Uses Reanimated for instant z-index updates
+        wrapperAnimatedStyle,
       ]}>
-      {/* Debug overlay for ImageCarousel z-index */}
-      {isLogAvaliable && <View
-        style={{
-          position: 'absolute',
-          top: 10,
-          left: 10,
-          backgroundColor: 'rgba(0, 0, 255, 0.8)',
-          padding: 8,
-          borderRadius: 4,
-          zIndex: 99999,
-        }}>
-        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
-          Carousel z-index: {isZooming ? 8888 : 100}
-        </Text>
-      </View>}
       <FlatList
         style={{
           width: SCREEN_WIDTH,
@@ -255,40 +259,28 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
         showsHorizontalScrollIndicator={false}
         keyExtractor={(_, index) => `${index}`}
         onMomentumScrollEnd={handleMomentumEnd}
-        getItemLayout={(_, index) => ({
-          length: SCREEN_WIDTH,
-          offset: SCREEN_WIDTH * index,
-          index,
-        })}
         renderItem={({ item, index }) => {
-          // Use calculated height if available, otherwise 'auto'
+          // All items use currentHeight for consistent paging
           const itemHeight = imageHeights[index] || currentHeight;
-          const hasCalculatedHeight = imageHeights[index] !== undefined || (index === 0 && initialHeights[0] !== undefined);
           return (
-            <View
-              style={{
-                width: SCREEN_WIDTH,
-                height: hasCalculatedHeight ? itemHeight : 'auto',
-                overflow: 'hidden',
-                backgroundColor: 'grey',
-              }}>
-              <MediaZoom2
-                children={
-                  <Image
-                    source={{ uri: item.mediaUrl }}
-                    style={{ width: SCREEN_WIDTH, height: hasCalculatedHeight ? itemHeight : 'auto' }}
-                    resizeMode="contain"
-                  />
-                }
-                width={SCREEN_WIDTH}
-                height={hasCalculatedHeight ? itemHeight : (currentHeight || SCREEN_WIDTH)}
-                resetOnRelease={true}
-                minScale={1}
-                maxScale={3}
-                onZoomActiveChange={handleZoomChange}
-                onScaleChange={onScaleChange}
-              />
-            </View>
+            <MediaZoom2
+              children={
+                <Image
+                  source={{ uri: item.mediaUrl }}
+                  style={{ width: SCREEN_WIDTH, height: itemHeight }}
+                  resizeMode="contain"
+                />
+              }
+              width={SCREEN_WIDTH}
+              height={itemHeight}
+              resetOnRelease={true}
+              minScale={1}
+              maxScale={3}
+              onZoomActiveChange={handleZoomChange}
+              onScaleChange={handleScaleChange}
+              onTouchStart={handleTouchStart}
+              scaleSharedValue={imageScaleShared}
+            />
           );
         }}
       />
@@ -329,8 +321,9 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
               {media.map((_, index) => (
                 <View
                   key={index}
-                  className={`h-1.5 w-1.5 rounded-full ${index === currentIndex ? 'bg-white' : 'bg-white/40'
-                    }`}
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    index === currentIndex ? 'bg-white' : 'bg-white/40'
+                  }`}
                 />
               ))}
             </View>
@@ -344,6 +337,25 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
           </View>
         </>
       )}
+      {/* {__DEV__ && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 5,
+            left: 5,
+            backgroundColor: 'black',
+            paddingHorizontal: 5,
+            paddingVertical: 2,
+            borderRadius: 3,
+            borderWidth: 2,
+            borderColor: 'red',
+            zIndex: 9999999, // Ensure debug overlay is always on top
+          }}>
+          <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>
+            Carousel Z: {currentZIndex}
+          </Text>
+        </View>
+      )} */}
     </Animated.View>
   );
 }

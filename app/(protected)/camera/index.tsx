@@ -739,6 +739,7 @@ const CameraContent = ({
                        data={selectedMedia}
                        renderItem={({ item, index }: { item: MediaItem; index: number }) => (
                          <TouchableOpacity
+                         activeOpacity={1}
                            onPress={() => setCurrentIndex(index)}
                            className={`mr-2 ${currentIndex === index ? 'border-2 border-blue-500' : 'border border-gray-600'} overflow-hidden rounded-lg`}
                            style={{ width: 60, height: 60 }}>
