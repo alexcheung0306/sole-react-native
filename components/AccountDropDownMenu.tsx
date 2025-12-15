@@ -30,7 +30,7 @@ export function AccountDropDownMenu({ color, focused, onPress, activeTab, profil
 
   const handleSwitchAccount = (close: () => void) => {
     close();
-    // Add switch account logic here
+    router.push('/account' as any);
   };
 
   const handleSignOut = async (close: () => void) => {
@@ -59,7 +59,7 @@ export function AccountDropDownMenu({ color, focused, onPress, activeTab, profil
     },
     {
       icon: Users,
-      label: 'Switch Account',
+      label: 'Advanced Account',
       onPress: handleSwitchAccount,
     },
     {

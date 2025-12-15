@@ -317,7 +317,7 @@ export function TalentInfoForm({ userProfileData, talentLevel, talentInfo }: Tal
     // Redirect to account page to set talent level
     return (
       <View className="items-center p-4">
-        <Text className="mb-4 text-center text-gray-400">
+        <Text className="mb-4 text-center text-black-400">
           Please set your account type in settings first
         </Text>
         <TouchableOpacity
@@ -386,7 +386,7 @@ export function TalentInfoForm({ userProfileData, talentLevel, talentInfo }: Tal
                       className="w-full mb-6 flex-row items-center justify-center 
                       rounded-lg bg-white px-4 py-2 text-black shadow-md"
                       onPress={open}>
-                      <Text className="font-semibold text-white">Create Talent Profile</Text>
+                      <Text className="font-semibold text-black">Create Talent Profile</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
