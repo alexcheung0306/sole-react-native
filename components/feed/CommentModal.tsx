@@ -32,19 +32,47 @@ export default function CommentModal({ post }: { post: Post }) {
     queryFn: ({ pageParam = 0 }) =>
       getPostComments(parseInt(post.id), pageParam, COMMENTS_PER_PAGE, 'desc'),
     getNextPageParam: (lastPage, allPages) => {
-      // If last page has fewer items than requested, no more pages
-      if (lastPage.length < COMMENTS_PER_PAGE) {
+      // Handle undefined or null lastPage
+      if (!lastPage) {
         return undefined;
       }
-      // Otherwise, return next page number
-      return allPages.length;
+      
+      // If lastPage is an array, check its length
+      if (Array.isArray(lastPage)) {
+        // If last page has fewer items than requested, no more pages
+        if (lastPage.length < COMMENTS_PER_PAGE) {
+          return undefined;
+        }
+        // Otherwise, return next page number
+        return allPages.length;
+      }
+      
+      // If lastPage is an object with a content array (paginated response)
+      if (lastPage.content && Array.isArray(lastPage.content)) {
+        if (lastPage.content.length < COMMENTS_PER_PAGE) {
+          return undefined;
+        }
+        return allPages.length;
+      }
+      
+      // Default: no more pages
+      return undefined;
     },
     initialPageParam: 0,
     enabled: showDrawer && !!post.id && !isNaN(parseInt(post.id)), // Only fetch when drawer is open
   });
 
   // Flatten all pages into single array
-  const allComments = commentsData?.pages.flatMap((page) => page) || [];
+  const allComments = commentsData?.pages?.flatMap((page) => {
+    // Handle both array and object with content property
+    if (Array.isArray(page)) {
+      return page;
+    }
+    if (page && typeof page === 'object' && Array.isArray(page.content)) {
+      return page.content;
+    }
+    return [];
+  }) || [];
 
   // Mutation for adding comments
   const commentMutation = useMutation({

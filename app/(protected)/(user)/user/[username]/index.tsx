@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { ScrollView, TouchableOpacity, View, Dimensions } from 'react-native';
+import { useState, useCallback } from 'react';
+import { ScrollView, TouchableOpacity, View, Dimensions, RefreshControl, Text } from 'react-native';
 import { useUser } from '@clerk/clerk-expo';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
@@ -39,7 +39,9 @@ export default function ProfileScreen() {
   const {
     data: userProfileData,
     isLoading: profileLoading,
+    isRefetching: isRefetchingProfile,
     error: profileError,
+    refetch: refetchProfile,
   } = useQuery({
     queryKey: ['userProfile', username],
     queryFn: async () => {
@@ -62,8 +64,10 @@ export default function ProfileScreen() {
     hasNextPage: userHasNextPage,
     isFetchingNextPage: userIsFetchingNextPage,
     isLoading: userIsLoading,
+    isRefetching: isRefetchingPosts,
     isError: userIsError,
     error: userError,
+    refetch: refetchPosts,
   } = useInfiniteQuery({
     queryKey: ['profilePagePosts', username],
     queryFn: async ({ pageParam = 0 }) => {
@@ -94,6 +98,70 @@ export default function ProfileScreen() {
   const userInfo = userProfileData?.userInfo;
   const talentInfo = userProfileData?.talentInfo;
   const talentLevel = userProfileData?.talentLevel || null;
+
+  // Pull to refresh
+  const onRefresh = useCallback(() => {
+    refetchProfile();
+    refetchPosts();
+  }, [refetchProfile, refetchPosts]);
+
+  const isRefreshing = isRefetchingProfile || isRefetchingPosts;
+
+  // Profile error state
+  if (profileError && !profileLoading) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View className="flex-1 bg-black">
+          <CollapsibleHeader
+            title={isOwnProfile ? 'Talent Profile' : `@${username}`}
+            headerLeft={
+              !isOwnProfile ? (
+                <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+                  <Ionicons name="arrow-back" size={24} color="#fff" />
+                </TouchableOpacity>
+              ) : undefined
+            }
+            animatedStyle={animatedHeaderStyle}
+            onHeightChange={handleHeightChange}
+            isDark={true}
+          />
+          <ScrollView
+            className="flex-1 bg-black"
+            contentContainerStyle={{
+              flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: 16,
+            }}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing || false}
+                onRefresh={onRefresh}
+                tintColor="#3b82f6"
+                colors={['#3b82f6']}
+                progressViewOffset={insets.top + 50}
+              />
+            }>
+            <Text className="text-red-400 text-center mb-4">
+              Failed to load profile
+            </Text>
+            <Text className="text-gray-400 text-center mb-4 text-sm">
+              {profileError?.message || 'Please try again'}
+            </Text>
+            <TouchableOpacity
+              onPress={onRefresh}
+              className="bg-blue-500 px-6 py-3 rounded-lg"
+              disabled={isRefreshing}>
+              <Text className="text-white font-semibold">
+                {isRefreshing ? 'Refreshing...' : 'Retry'}
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </>
+    );
+  }
 
   return (
     <>
@@ -135,7 +203,16 @@ export default function ProfileScreen() {
           contentContainerStyle={{
             paddingTop: insets.top + 50,
             paddingBottom: insets.bottom + 80,
-          }}>
+          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing || false}
+              onRefresh={onRefresh}
+              tintColor="#3b82f6"
+              colors={['#3b82f6']}
+              progressViewOffset={insets.top + 50}
+            />
+          }>
           {/* Profile Header - Instagram Style */}
           <UserInfo 
             userPostsData={userPostsData} 
@@ -175,10 +252,14 @@ export default function ProfileScreen() {
             {profileTab === 'posts' ? (
               <UserPosts
                 userIsLoading={userIsLoading}
+                userIsError={userIsError}
+                userError={userError}
                 posts={posts}
                 userHasNextPage={userHasNextPage}
                 userIsFetchingNextPage={userIsFetchingNextPage}
                 userFetchNextPage={userFetchNextPage}
+                onRefresh={onRefresh}
+                isRefreshing={isRefreshing}
               />
             ) : profileTab === 'talent' ? (
               <TalentProfile

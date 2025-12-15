@@ -42,8 +42,8 @@ export default function ProjectListCard({ item }: { item: any }) {
               {project.projectName || 'Untitled Project'}
             </Text>
           </View>
-          <View style={[styles.statusChip, { backgroundColor: `${statusColor}33` }]}>
-            <Text className="text-[10px] font-semibold" style={{ color: statusColor }}>
+          <View style={[styles.statusChip, { backgroundColor: `${statusColor}` }]}>
+            <Text className="text-[10px] font-semibold" style={{ color: 'white' }}>
               {project.status || 'Draft'}
             </Text>
           </View>
@@ -84,7 +84,7 @@ export default function ProjectListCard({ item }: { item: any }) {
         </Text>
 
         {project.applicationDeadline && (
-          <Text className="text-[11px] text-amber-400" numberOfLines={1}>
+          <Text className="text-[11px] text-white" numberOfLines={1}>
             Deadline: {formatDateTime(project.applicationDeadline)}
           </Text>
         )}

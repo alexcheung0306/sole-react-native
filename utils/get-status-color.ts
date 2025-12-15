@@ -39,10 +39,10 @@ export const getStatusColor = (status: string): string => {
   
   // Project Statuses
   const projectStatuses: Record<string, string> = {
-    Draft: '#6b7280',          // gray
-    draft: '#6b7280',          // gray
-    Published: '#f59e0b',      // amber
-    published: '#f59e0b',      // amber
+    Draft: 'rgba(60, 60, 60, 0.33)',          // gray
+    draft: 'rgba(60, 60, 60, 0.33)',          // gray
+    Published: 'rgba(82, 94, 253, 0.37)',      // amber
+    published: 'rgba(143, 153, 251, 0.33)',      // amber
     InProgress: '#10b981',     // green
     inprogress: '#10b981',     // green
     'in progress': '#10b981',  // green
@@ -53,6 +53,7 @@ export const getStatusColor = (status: string): string => {
     active: '#10b981',         // green
     Closed: '#ef4444',         // red
     closed: '#ef4444',         // red
+    
   };
   
   // Check application statuses first

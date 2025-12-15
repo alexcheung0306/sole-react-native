@@ -10,19 +10,51 @@ import {
 
 export default function UserPosts({
   userIsLoading,
+  userIsError,
+  userError,
   posts,
   userHasNextPage,
   userIsFetchingNextPage,
   userFetchNextPage,
+  onRefresh,
+  isRefreshing,
 }: {
   userIsLoading: boolean;
+  userIsError?: boolean;
+  userError?: Error | null;
   posts: any[];
   userHasNextPage: boolean;
   userIsFetchingNextPage: boolean;
   userFetchNextPage: () => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }) {
   const { width } = Dimensions.get('window');
   const IMAGE_SIZE = width / 3;
+
+  // Error state
+  if (userIsError) {
+    return (
+      <View className="flex-1 items-center justify-center py-10 px-4">
+        <Text className="text-red-400 text-center mb-4">
+          Failed to load posts
+        </Text>
+        <Text className="text-gray-400 text-center mb-4 text-sm">
+          {userError?.message || 'Please try again'}
+        </Text>
+        {onRefresh && (
+          <TouchableOpacity
+            onPress={onRefresh}
+            className="bg-blue-500 px-6 py-3 rounded-lg"
+            disabled={isRefreshing}>
+            <Text className="text-white font-semibold">
+              {isRefreshing ? 'Refreshing...' : 'Retry'}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1">

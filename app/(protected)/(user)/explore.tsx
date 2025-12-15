@@ -93,6 +93,7 @@ export default React.memo(function Explore() {
     hasNextPage,
     isFetchingNextPage,
     isLoading: isLoadingPosts,
+    isRefetching: isRefetchingPosts,
     isError: isPostsError,
     error: postsError,
     refetch: refetchPosts,
@@ -341,7 +342,23 @@ export default React.memo(function Explore() {
   // Error state
   if (isPostsError) {
     return (
-      <View className="flex-1 bg-black justify-center items-center p-4">
+      <ScrollView
+        className="flex-1 bg-black"
+        contentContainerStyle={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 16,
+        }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetchingPosts || false}
+            onRefresh={onRefresh}
+            tintColor="#3b82f6"
+            colors={['#3b82f6']}
+          />
+        }
+      >
         <Text className="text-red-400 text-center mb-4">
           Failed to load posts
         </Text>
@@ -354,7 +371,7 @@ export default React.memo(function Explore() {
         >
           <Text className="text-white font-semibold">Retry</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     );
   }
 
@@ -477,7 +494,7 @@ export default React.memo(function Explore() {
             ListEmptyComponent={renderEmpty}
             refreshControl={
               <RefreshControl
-                refreshing={false}
+                refreshing={isRefetchingPosts || false}
                 onRefresh={onRefresh}
                 tintColor="#3b82f6"
                 colors={['#3b82f6']}
