@@ -7,7 +7,6 @@ import { Formik } from 'formik';
 import {
   searchJobContracts,
   updateJobContractsStatusById,
-  createBatchContractConditions,
 } from '@/api/apiservice/jobContracts_api';
 import PaginationControl from '~/components/projects/PaginationControl';
 import FilterSearch from '~/components/custom/filter-search';
@@ -17,7 +16,7 @@ import { RoleScheduleListInputs } from '@/components/form-components/role-form/R
 import { DateTimePickerInput } from '@/components/form-components/DateTimePickerInput';
 import { SingleWheelPickerInput } from '@/components/form-components/SingleWheelPickerInput';
 import { RangeWheelPickerInput } from '@/components/form-components/RangeWheelPickerInput';
-import BatchSendConditionFormModal from './BatchSendConditionFormModal';
+import BatchSendConditionFormModal from '~/components/form-components/batch-send-condition-form/BatchSendConditionFormModal';
 import ContractsTable from './ContractsTable';
 
 type ProjectContractsTabProps = {
@@ -94,10 +93,6 @@ export function ProjectContractsTab({
   const [pageSize] = useState(10);
   const [viewMode, setViewMode] = useState<'view' | 'select'>('view');
   const [selectedContracts, setSelectedContracts] = useState<Set<string>>(new Set());
-  const [batchStatus, setBatchStatus] = useState('Activated');
-  const [batchRemarks, setBatchRemarks] = useState('');
-  const [showBatchDrawer, setShowBatchDrawer] = useState(false);
-  const [showBatchConditionsModal, setShowBatchConditionsModal] = useState(false);
 
   const handleSearch = () => {
     setPage(0);
@@ -204,25 +199,6 @@ export function ProjectContractsTab({
       setSelectedContracts(new Set(selectableIds));
     }
   };
-
-  const batchCreateConditionsMutation = useMutation({
-    mutationFn: async (batchRequest: {
-      contractIds: number[];
-      conditionData: any;
-      remarks?: string;
-    }) => createBatchContractConditions(batchRequest),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['project-contracts-search', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['manageContracts'] });
-      queryClient.invalidateQueries({ queryKey: ['myContracts'] });
-      refetchContracts();
-      setSelectedContracts(new Set());
-      setShowBatchConditionsModal(false);
-    },
-    onError: (error) => {
-      console.error('Error batch creating contract conditions:', error);
-    },
-  });
 
   const deleteContractMutation = useMutation({
     mutationFn: async (contractId: number) => {
@@ -335,11 +311,8 @@ export function ProjectContractsTab({
               {viewMode === 'select' && selectedContractIds.length > 0 ? (
                 // Batch Send Condition Form Modal
                 <BatchSendConditionFormModal
-                  contracts={contracts}
+                  projectId={projectId}
                   selectedContractIds={selectedContractIds}
-                  batchCreateConditionsMutation={batchCreateConditionsMutation}
-                  getPrimaryCondition={getPrimaryCondition}
-                  formatCurrency={formatCurrency}
                 />
               ) : (
                 // Toggle Switch

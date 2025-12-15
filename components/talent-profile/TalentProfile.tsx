@@ -1,6 +1,6 @@
 import { Image as ExpoImage } from 'expo-image';
 import { View, ScrollView, Text, Image } from 'react-native';
-import { TalentInfoForm } from './TalentInfo-form';
+import { TalentInfoForm } from '~/components/form-components/talent-form/TalentInfo-form';
 import { useState, useEffect } from 'react';
 
 export default function TalentProfile({

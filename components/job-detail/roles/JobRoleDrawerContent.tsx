@@ -1,8 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
 import { DisplayJobRoleInformation } from './DisplayJobRoleInformation';
-import { JobApplyFormModal } from './JobApplyFormModal';
-import { JobApplicationDetail } from './JobApplicationDetail';
 
 type JobRoleDrawerContentProps = {
   projectData: any;

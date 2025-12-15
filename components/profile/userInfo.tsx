@@ -6,7 +6,7 @@ import { View, Text, TouchableOpacity, Image } from 'react-native';
 import FollowList from '../follow/follow-list';
 import { useUser } from '@clerk/clerk-expo';
 import { User } from 'lucide-react-native';
-import { UserInfoForm } from './UserInfo-form';
+import { UserInfoForm } from '../form-components/userInfo-form/UserInfo-form';
 
 export const UserInfo = React.memo(function UserInfo({
   userPostsData,

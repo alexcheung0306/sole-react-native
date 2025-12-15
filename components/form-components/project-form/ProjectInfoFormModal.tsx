@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pencil, Plus } from 'lucide-react-native';
-import { PrimaryButton } from '../custom/primary-button';
+import { PrimaryButton } from '~/components/custom/primary-button';
 import { router } from 'expo-router';
 
 interface ProjectInfoFormModalProps {

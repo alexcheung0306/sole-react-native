@@ -24,7 +24,7 @@ import { CustomTabs } from '@/components/custom/custom-tabs';
 import { JobContractsTab } from '~/components/job-detail/contracts/JobContractsTab';
 import { JobRolesBreadcrumb } from '~/components/job-detail/roles/JobRolesBreadcrumb';
 import { JobApplicationDetail } from '~/components/job-detail/roles/JobApplicationDetail';
-import { JobApplyFormModal } from '~/components/job-detail/roles/JobApplyFormModal';
+import JobApplyFormModal from '~/components/form-components/job-apply-form/JobApplyFormModal';
 import SwipeableContainer from '@/components/common/SwipeableContainer';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -385,12 +385,26 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
                             onDeleted={refetchApplications}
                           />
                         ) : (
-                          <JobApplyFormModal
-                            projectData={projectData}
-                            roleWithSchedules={rolesWithSchedules[currentRole]}
-                            soleUserId={soleUserId}
-                            onSubmitted={refetchApplications}
-                          />
+                          <View className="rounded-2xl border bg-zinc-700 p-4 mx-2">
+                            <View className="flex-row items-center justify-between">
+                              <View className="flex-1">
+                                <Text className="text-base font-semibold text-white">Apply for this role</Text>
+                                <Text className="text-sm text-white/70">
+                                  Share your quote and details to submit your application.
+                                </Text>
+                              </View>
+                              {!soleUserId && (
+                                <Text className="ml-2 text-xs font-semibold text-amber-300">
+                                  Sign in to apply
+                                </Text>
+                              )}
+                            </View>
+                            <JobApplyFormModal
+                              projectId={projectData?.id}
+                              roleId={rolesWithSchedules[currentRole]?.role?.id}
+                              soleUserId={soleUserId}
+                            />
+                          </View>
                         )}
                       </ >
                     )}

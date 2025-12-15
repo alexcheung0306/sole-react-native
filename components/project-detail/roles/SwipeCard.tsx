@@ -17,7 +17,7 @@ import { getStatusColor } from '@/utils/get-status-color';
 import TalentProfile from '~/components/talent-profile/TalentProfile';
 import { ApplicationDetail } from '~/components/project-detail/roles/ApplicationDetail';
 import { ActionToCandidates } from '~/components/project-detail/roles/ActionToCandidates';
-import { SendOfferModal } from '~/components/project-detail/roles/SendOfferModal';
+import { SendOfferModal } from '~/components/form-components/send-offer-form/SendOfferModal';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 100;

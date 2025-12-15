@@ -5,7 +5,7 @@ import {
   FileSignature,
 } from 'lucide-react-native';
 import { getStatusColorObject } from '@/utils/get-status-color';
-import { SendOfferModal } from './SendOfferModal';
+import { SendOfferModal } from '../../form-components/send-offer-form/SendOfferModal';
 
 interface ActionToCandidatesProps {
   applicant: any;
