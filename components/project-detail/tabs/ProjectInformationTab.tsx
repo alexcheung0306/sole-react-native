@@ -60,11 +60,14 @@ export default React.memo(function ProjectInformationTab({
           />
         )}
         <ProjectInformationCard project={project} soleUserId={soleUserId} />
-        <ProjectAnnouncementFormPortal
-          projectId={projectId}
-          soleUserId={soleUserId}
-          projectStatus={projectStatus}
-        />
+        {project?.status != 'Draft' && (
+
+          <ProjectAnnouncementFormPortal
+            projectId={projectId}
+            soleUserId={soleUserId}
+            projectStatus={projectStatus}
+          />
+        )}
         <ProjectAnnouncementsList
           projectId={projectId}
           viewerSoleUserId={soleUserId}
