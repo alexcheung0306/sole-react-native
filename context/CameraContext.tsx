@@ -22,6 +22,11 @@ export interface MediaItem {
   };
 }
 
+export interface PhotosCache {
+  photos: MediaItem[];
+  timestamp: number;
+}
+
 interface CameraContextType {
   selectedMedia: MediaItem[];
   setSelectedMedia: (media: MediaItem[]) => void;
@@ -32,13 +37,20 @@ interface CameraContextType {
   setSelectedAspectRatio: (ratio: 'free' | '1:1' | '4:5' | '16:9') => void;
   resetPostData: () => void;
   cropMedia: (media: MediaItem) => Promise<MediaItem>;
+  photosCache: PhotosCache | null;
+  setPhotosCache: (cache: PhotosCache | null) => void;
+  getPhotosCache: () => PhotosCache | null;
+  clearPhotosCache: () => void;
 }
 
 const CameraContext = createContext<CameraContextType | undefined>(undefined);
 
+export const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache duration
+
 export function CameraProvider({ children }: { children: ReactNode }) {
   const [selectedMedia, setSelectedMedia] = useState<MediaItem[]>([]);
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<'free' | '1:1' | '4:5' | '16:9'>('free');
+  const [photosCache, setPhotosCacheState] = useState<PhotosCache | null>(null);
 
   const addMedia = useCallback((media: MediaItem) => {
     setSelectedMedia((prev) => [...prev, media]);
@@ -55,6 +67,18 @@ export function CameraProvider({ children }: { children: ReactNode }) {
   const resetPostData = useCallback(() => {
     setSelectedMedia([]);
     setSelectedAspectRatio('free');
+  }, []);
+
+  const setPhotosCache = useCallback((cache: PhotosCache | null) => {
+    setPhotosCacheState(cache);
+  }, []);
+
+  const getPhotosCache = useCallback(() => {
+    return photosCache;
+  }, [photosCache]);
+
+  const clearPhotosCache = useCallback(() => {
+    setPhotosCacheState(null);
   }, []);
 
   /**
@@ -149,6 +173,10 @@ export function CameraProvider({ children }: { children: ReactNode }) {
       setSelectedAspectRatio,
       resetPostData,
       cropMedia,
+      photosCache,
+      setPhotosCache,
+      getPhotosCache,
+      clearPhotosCache,
     }),
     [
       selectedMedia,
@@ -159,6 +187,10 @@ export function CameraProvider({ children }: { children: ReactNode }) {
       setSelectedAspectRatio,
       resetPostData,
       cropMedia,
+      photosCache,
+      setPhotosCache,
+      getPhotosCache,
+      clearPhotosCache,
     ]
   );
 

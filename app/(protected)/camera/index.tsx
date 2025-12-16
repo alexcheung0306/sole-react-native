@@ -28,7 +28,7 @@ import {
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCameraContext, MediaItem } from '~/context/CameraContext';
+import { useCameraContext, MediaItem, CACHE_DURATION } from '~/context/CameraContext';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { CollapsibleHeader } from '~/components/CollapsibleHeader';
 import CropControls from '~/components/camera/CropControls';
@@ -50,7 +50,14 @@ type Mask = 'circle' | 'square';
 export default React.memo(function CameraScreen() {
   const insets = useSafeAreaInsets();
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
-  const { selectedMedia, setSelectedMedia, clearMedia, cropMedia } = useCameraContext();
+  const { 
+    selectedMedia, 
+    setSelectedMedia, 
+    clearMedia, 
+    cropMedia,
+    photosCache,
+    setPhotosCache,
+  } = useCameraContext();
   // Animated value for main media collapse (0 = expanded, 1 = collapsed)
   const mediaCollapseProgress = useSharedValue(0);
   const [isMediaCollapsed, setIsMediaCollapsed] = useState(false);
@@ -317,6 +324,30 @@ export default React.memo(function CameraScreen() {
   }, []);
 
   const requestPermissions = async () => {
+    // Check cache first - if valid cache exists, use it immediately without loading
+    if (photosCache) {
+      const cacheAge = Date.now() - photosCache.timestamp;
+      if (cacheAge < CACHE_DURATION && photosCache.photos.length > 0) {
+        // Use cached photos immediately
+        setPhotos(photosCache.photos);
+        setIsLoading(false);
+        
+        // Automatically select the first photo if nothing is selected yet
+        if (photosCache.photos.length > 0 && selectedMedia.length === 0) {
+          setSelectedMedia([photosCache.photos[0]]);
+        }
+        
+        // Still check permissions in background, but don't block UI
+        try {
+          const { status } = await MediaLibrary.getPermissionsAsync();
+          setHasPermission(status === 'granted');
+        } catch {
+          // Ignore permission check errors when using cache
+        }
+        return;
+      }
+    }
+
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync();
       setHasPermission(status === 'granted');
@@ -324,6 +355,7 @@ export default React.memo(function CameraScreen() {
       if (status === 'granted') {
         loadPhotos();
       } else {
+        setIsLoading(false);
         Alert.alert('Permission Required', 'Please grant photo library access to select media', [
           { text: 'OK' },
         ]);
@@ -344,9 +376,11 @@ export default React.memo(function CameraScreen() {
             loadPhotos();
           } else {
             setHasPermission(false);
+            setIsLoading(false);
           }
         } catch {
           setHasPermission(false);
+          setIsLoading(false);
         }
       } else {
         // Log other errors normally
@@ -367,8 +401,24 @@ export default React.memo(function CameraScreen() {
     }, [clearMedia])
   );
 
-  const loadPhotos = async (retryCount = 0) => {
+  const loadPhotos = async (retryCount = 0, forceReload = false) => {
     try {
+      // Check cache first (unless force reload is requested)
+      if (!forceReload && photosCache) {
+        const cacheAge = Date.now() - photosCache.timestamp;
+        if (cacheAge < CACHE_DURATION && photosCache.photos.length > 0) {
+          // Use cached photos
+          setPhotos(photosCache.photos);
+          setIsLoading(false);
+          
+          // Automatically select the first photo if nothing is selected yet
+          if (retryCount === 0 && photosCache.photos.length > 0 && selectedMedia.length === 0) {
+            setSelectedMedia([photosCache.photos[0]]);
+          }
+          return;
+        }
+      }
+
       setIsLoading(true);
 
       // Re-check permissions before accessing media library
@@ -426,27 +476,52 @@ export default React.memo(function CameraScreen() {
         return;
       }
 
-      const media = await MediaLibrary.getAssetsAsync({
-        first: 100,
-        mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
-        sortBy: MediaLibrary.SortBy.creationTime,
+      // Load all assets using pagination
+      const allAssets: MediaItem[] = [];
+      let hasNextPage = true;
+      let after: string | undefined = undefined;
+      const pageSize = 100; // Load 100 at a time for better performance
+
+      while (hasNextPage) {
+        const media = await MediaLibrary.getAssetsAsync({
+          first: pageSize,
+          after: after,
+          mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
+          sortBy: MediaLibrary.SortBy.creationTime,
+        });
+
+        const pageAssets: MediaItem[] = media.assets.map((asset) => ({
+          id: asset.id,
+          uri: asset.uri,
+          mediaType: asset.mediaType === MediaLibrary.MediaType.video ? 'video' : 'photo',
+          duration: asset.duration,
+          width: asset.width,
+          height: asset.height,
+          filename: asset.filename,
+        }));
+
+        allAssets.push(...pageAssets);
+
+        // Check if there are more pages
+        hasNextPage = media.hasNextPage;
+        if (media.assets.length > 0) {
+          after = media.assets[media.assets.length - 1].id;
+        } else {
+          hasNextPage = false;
+        }
+      }
+
+      setPhotos(allAssets);
+      
+      // Update cache
+      setPhotosCache({
+        photos: allAssets,
+        timestamp: Date.now(),
       });
 
-      const assets: MediaItem[] = media.assets.map((asset) => ({
-        id: asset.id,
-        uri: asset.uri,
-        mediaType: asset.mediaType === MediaLibrary.MediaType.video ? 'video' : 'photo',
-        duration: asset.duration,
-        width: asset.width,
-        height: asset.height,
-        filename: asset.filename,
-      }));
-
-      setPhotos(assets);
-
       // Automatically select the first photo (most recent) if nothing is selected yet
-      if (retryCount === 0 && assets.length > 0 && selectedMedia.length === 0) {
-        setSelectedMedia([assets[0]]);
+      if (retryCount === 0 && allAssets.length > 0 && selectedMedia.length === 0) {
+        setSelectedMedia([allAssets[0]]);
       }
     } catch (error) {
       // Suppress AUDIO permission error logging on emulator
@@ -538,10 +613,8 @@ export default React.memo(function CameraScreen() {
         setSelectedMedia(updatedSelected);
 
         // We need to reload photos to show the new asset in the grid
-        // but passing a flag or checking inside loadPhotos to avoid over-selecting might be needed.
-        // For now, loadPhotos selects [0] only if selectedMedia is empty.
-        // Since we just updated selectedMedia, loadPhotos won't override it.
-        loadPhotos();
+        // Force reload to invalidate cache and show the new photo
+        loadPhotos(0, true);
       }
     } catch (error) {
       console.error('Error opening camera:', error);
