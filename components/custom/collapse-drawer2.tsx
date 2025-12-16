@@ -266,7 +266,7 @@ export default function CollapseDrawer2({
                   console.log('scroll', e.nativeEvent.contentOffset.y);
                 }}
                 style={{ flex: 1 }}
-                bounces={false}
+                bounces={true}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 nestedScrollEnabled={true}
