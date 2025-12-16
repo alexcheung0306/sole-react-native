@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TouchableOpacity, View, Text, Image, ImageBackground, StyleSheet } from 'react-native';
@@ -9,6 +9,8 @@ import { useSoleUserContext } from '~/context/SoleUserContext';
 
 export default function JobListCard({ item }: { item: any }) {
   const { soleUserId } = useSoleUserContext();
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [isProfileNavigating, setIsProfileNavigating] = useState(false);
   const project = item?.project || item;
 
   if (!project) {
@@ -16,6 +18,13 @@ export default function JobListCard({ item }: { item: any }) {
   }
 
   const handleJobPress = () => {
+    // Prevent multiple navigations
+    if (isNavigating) {
+      return;
+    }
+    
+    setIsNavigating(true);
+    
     // If user is the creator, redirect to project detail page
     if (project.soleUserId === soleUserId) {
       router.push({
@@ -28,6 +37,11 @@ export default function JobListCard({ item }: { item: any }) {
         params: { id: project.id },
       });
     }
+    
+    // Reset navigation state after a delay to allow navigation to complete
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 1000);
   };
 
   const statusColor = useMemo(() => getStatusColor(project.status || 'Published'), [project.status]);
@@ -43,13 +57,21 @@ export default function JobListCard({ item }: { item: any }) {
       : '', [item?.userInfoName]);
 
   const handleProfilePress = () => {
-    if (!item?.soleUserName) {
+    if (!item?.soleUserName || isProfileNavigating) {
       return;
     }
+    
+    setIsProfileNavigating(true);
+    
     router.push({
       pathname: '/(protected)/profile/[username]',
       params: { username: item.soleUserName },
     });
+    
+    // Reset navigation state after a delay
+    setTimeout(() => {
+      setIsProfileNavigating(false);
+    }, 1000);
   };
 
   const hasImage = !!project.projectImage && project.projectImage !== 'default_image_url';
@@ -83,7 +105,7 @@ export default function JobListCard({ item }: { item: any }) {
 
       {/* Client Name and Profile Picture */}
       {hasClientMeta && (
-        <TouchableOpacity className="mb-2 flex-row items-center gap-2 px-1" onPress={handleProfilePress}>
+        <TouchableOpacity className="mb-2 flex-row items-center gap-2 px-1" onPress={handleProfilePress} disabled={isProfileNavigating}>
           {item?.userInfoProfilePic ? (
             <Image source={{ uri: item.userInfoProfilePic }} className="h-6 w-6 rounded-full" />
           ) : (
@@ -109,7 +131,8 @@ export default function JobListCard({ item }: { item: any }) {
       {/* Project Image and Overlay */}
       <TouchableOpacity
         className="overflow-hidden rounded-2xl border bg-zinc-900/80"
-        onPress={handleJobPress}>
+        onPress={handleJobPress}
+        disabled={isNavigating}>
         {hasImage ? (
           <ImageBackground
             source={{ uri: project.projectImage }}

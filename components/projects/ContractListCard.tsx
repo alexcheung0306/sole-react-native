@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -16,6 +17,7 @@ type ContractListCardProps = {
 };
 
 export default function ContractListCard({ item }: ContractListCardProps) {
+  const [isNavigating, setIsNavigating] = useState(false);
   const contract = item?.jobContract ?? item;
 
   if (!contract) {
@@ -32,10 +34,22 @@ export default function ContractListCard({ item }: ContractListCardProps) {
     null;
 
   const handleContractPress = () => {
+    // Prevent multiple navigations
+    if (isNavigating) {
+      return;
+    }
+    
+    setIsNavigating(true);
+    
     router.push({
       pathname: '/(protected)/(client)/projects/contract-detail' as any,
       params: { id: contract.id },
     });
+    
+    // Reset navigation state after a delay to allow navigation to complete
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 1000);
   };
 
   const hasImage = !!projectImage;
@@ -73,7 +87,7 @@ export default function ContractListCard({ item }: ContractListCardProps) {
   );
 
   return (
-    <TouchableOpacity activeOpacity={0.9} className="mx-1 mb-5" style={{ width: '100%' }} onPress={handleContractPress}>
+    <TouchableOpacity activeOpacity={0.9} className="mx-1 mb-5" style={{ width: '100%' }} onPress={handleContractPress} disabled={isNavigating}>
       <View className="overflow-hidden rounded-2xl border  bg-zinc-900/80">
         {projectImage ? (
           <ImageBackground
