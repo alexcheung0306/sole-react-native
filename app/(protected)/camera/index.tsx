@@ -24,6 +24,7 @@ import {
   Image as ImageIcon,
   Video as VideoIcon,
   ChevronLeft,
+  X,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -33,6 +34,7 @@ import { CollapsibleHeader } from '~/components/CollapsibleHeader';
 import CropControls from '~/components/camera/CropControls';
 import { CameraCroppingArea } from '~/components/camera/CameraCroppingArea';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { GlassOverlay } from '~/components/custom/GlassView';
 
 const { width } = Dimensions.get('window');
 const ITEM_SIZE = width / 3;
@@ -576,6 +578,30 @@ export default React.memo(function CameraScreen() {
     return index >= 0 ? index + 1 : null;
   };
 
+  const removeFromSelection = (mediaId: string) => {
+    // Prevent removing if it's the last remaining photo
+    if (selectedMedia.length <= 1) {
+      return;
+    }
+
+    const removedIndex = selectedMedia.findIndex((m) => m.id === mediaId);
+    if (removedIndex === -1) return;
+
+    // Remove the item
+    const updated = selectedMedia.filter((m) => m.id !== mediaId);
+    setSelectedMedia(updated);
+
+    // Adjust currentIndex if needed
+    if (removedIndex <= currentIndex) {
+      // If we removed an item at or before currentIndex, adjust it
+      const newIndex = Math.max(0, currentIndex - 1);
+      setCurrentIndex(newIndex);
+    } else if (currentIndex >= updated.length) {
+      // If currentIndex is now out of bounds, set to last item
+      setCurrentIndex(updated.length - 1);
+    }
+  };
+
   if (hasPermission === null) {
     return (
       <View className="flex-1 items-center justify-center bg-black">
@@ -682,6 +708,7 @@ export default React.memo(function CameraScreen() {
       setIsMediaCollapsed={setIsMediaCollapsed}
       fixedCropControlsPanGesture={fixedCropControlsPanGesture}
       composedGesture={composedGesture}
+      removeFromSelection={removeFromSelection}
     />
   );
 });
@@ -725,6 +752,7 @@ const CameraContent = ({
   setIsMediaCollapsed,
   fixedCropControlsPanGesture,
   composedGesture,
+  removeFromSelection,
 }: any) => {
   // Initialize crop data for all photos when selection changes
   useEffect(() => {
@@ -851,7 +879,7 @@ const CameraContent = ({
 
         {/* Fixed Crop Controls - shown when collapsed, positioned outside FlatList */}
         <GestureDetector gesture={fixedCropControlsPanGesture}>
-          <View collapsable={false} className="z-[999]">
+          <View collapsable={false} className="">
             <CropControls
               selectedAspectRatio={selectedAspectRatio}
               setSelectedAspectRatio={setSelectedAspectRatio}
@@ -864,27 +892,40 @@ const CameraContent = ({
             />
             {/* Thumbnail Strip (only if multiple selected) */}
             {selectedMedia.length > 1 && (
-              <View className="bg-black px-4 py-3">
+              <View className=" px-4 py-3">
+                <GlassOverlay intensity={80} tint="dark" />
+
                 <Text className="mb-2 text-sm text-gray-400">Selected ({selectedMedia.length})</Text>
                 <FlatList
                   data={selectedMedia}
                   renderItem={({ item, index }: { item: MediaItem; index: number }) => (
-                    <TouchableOpacity
-                      activeOpacity={1}
-                      onPress={() => setCurrentIndex(index)}
-                      className={`mr-2 ${currentIndex === index ? 'border-2 border-blue-500' : 'border border-gray-600'} overflow-hidden rounded-lg`}
-                      style={{ width: 60, height: 60 }}>
-                      <ExpoImage
-                        source={{ uri: item.uri }}
-                        style={{ width: 60, height: 60 }}
-                        contentFit="cover"
-                      />
-                      {item.mediaType === 'video' && (
-                        <View className="absolute inset-0 items-center justify-center bg-black/30">
-                          <ImageIcon size={16} color="#ffffff" />
-                        </View>
-                      )}
-                    </TouchableOpacity>
+                    <View className="mr-2 relative overflow-visible">
+                      <TouchableOpacity
+                        activeOpacity={1}
+                        onPress={() => setCurrentIndex(index)}
+                        className={`${currentIndex === index ? 'border-2 border-blue-500' : 'border border-gray-600'} overflow-hidden rounded-lg`}
+                        style={{ width: 60, height: 60 }}>
+                        <ExpoImage
+                          source={{ uri: item.uri }}
+                          style={{ width: 60, height: 60 }}
+                          contentFit="cover"
+                        />
+                        {item.mediaType === 'video' && (
+                          <View className="absolute inset-0 items-center justify-center bg-black/30">
+                            <ImageIcon size={16} color="#ffffff" />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          removeFromSelection(item.id);
+                        }}
+                        className="absolute -top-1 -right-1 rounded-full p-0.5 z-10 items-center justify-center"
+                        style={{ width: 20, height: 20 }}>
+                        <X size={12} color="#ffffff" />
+                      </TouchableOpacity>
+                    </View>
                   )}
                   keyExtractor={(item) => item.id}
                   horizontal
