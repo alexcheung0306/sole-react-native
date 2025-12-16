@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Briefcase, InfoIcon } from 'lucide-react-native';
-import CollapseDrawer from '~/components/custom/collapse-drawerV1';
 import { JobRoleDrawerContent } from './JobRoleDrawerContent';
+import CollapseDrawer from '~/components/custom/collapse-drawer';
 
 type JobRolesBreadcrumbProps = {
   projectData: any;
@@ -105,9 +105,7 @@ export function JobRolesBreadcrumb({
           setShowDrawer={setIsDrawerOpen}
           title={`${selectedRole?.role?.roleTitle || 'Role Details'} • Role #${selectedRole?.role?.id ? String(selectedRole.role.id) : ''} • ${currentRole + 1} of ${rolesWithSchedules.length}`}>
           <View className="px-5 pb-6">
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 24 }}>
+    
               <JobRoleDrawerContent
                 projectData={projectData}
                 roleWithSchedules={selectedRole}
@@ -115,7 +113,6 @@ export function JobRolesBreadcrumb({
                 soleUserId={soleUserId}
                 onApplicationSubmitted={onApplicationUpdated}
               />
-            </ScrollView>
           </View>
         </CollapseDrawer>
       )}

@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { AlertCircle, InfoIcon } from 'lucide-react-native';
-import CollapseDrawer from '~/components/custom/collapse-drawerV1';
 import { DisplayRoleInformation } from './DisplayRoleInformation';
-import CollapseDrawer2 from '~/components/custom/collapse-drawer';
+import CollapseDrawer from '~/components/custom/collapse-drawer';
 
 type RolesBreadcrumbProps = {
   projectData: any;

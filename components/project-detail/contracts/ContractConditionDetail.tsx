@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+  import React, { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
-import CollapseDrawer from '~/components/custom/collapse-drawerV1';
 import { formatDateTime } from '@/utils/time-converts';
 import EditContractConditionFormModal from '~/components/project-detail/contracts/EditContractConditionFormModal';
+import CollapseDrawer from '~/components/custom/collapse-drawer';
 
 interface ContractConditionDetailProps {
   condition: any;

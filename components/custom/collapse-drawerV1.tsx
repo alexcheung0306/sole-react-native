@@ -34,7 +34,7 @@ type Props = {
   bottomArea?: React.ReactNode;
 };
 
-export default function CollapseDrawerV1({
+export function CollapseDrawerV1({
   showDrawer,
   setShowDrawer,
   title = '',

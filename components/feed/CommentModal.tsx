@@ -1,5 +1,5 @@
 import { TouchableOpacity, Text, TextInput, View, Dimensions } from 'react-native';
-import CollapseDrawer from '../custom/collapse-drawerV1';
+import CollapseDrawer from '../custom/collapse-drawer';
 import { CommentSheet } from './CommentSheet';
 import { useState } from 'react';
 import { Post } from '~/types/post';
@@ -31,7 +31,7 @@ export default function CommentModal({ post }: { post: Post }) {
     queryKey: ['postComments', post.id],
     queryFn: ({ pageParam = 0 }) =>
       getPostComments(parseInt(post.id), pageParam, COMMENTS_PER_PAGE, 'desc'),
-    getNextPageParam: (lastPage, allPages) => {
+    getNextPageParam: (lastPage: any, allPages: any) => {
       // Handle undefined or null lastPage
       if (!lastPage) {
         return undefined;
@@ -68,7 +68,7 @@ export default function CommentModal({ post }: { post: Post }) {
   });
 
   // Flatten all pages into single array
-  const allComments = commentsData?.pages?.flatMap((page) => {
+  const allComments = commentsData?.pages?.flatMap((page: any) => {
     // Handle both array and object with content property
     if (Array.isArray(page)) {
       return page;

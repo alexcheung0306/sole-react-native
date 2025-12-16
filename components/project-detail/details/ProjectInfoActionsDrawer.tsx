@@ -5,8 +5,8 @@ import { useRouter } from 'expo-router';
 import { ShieldCheck, ShieldX, Trash2, Pencil } from 'lucide-react-native';
 
 import { updateProject, deleteProjectById } from '@/api/apiservice/project_api';
-import CollapseDrawer from '~/components/custom/collapse-drawerV1';
 import ProjectInfoFormPortal from '~/components/form-components/project-form/ProjectInfoFormPortal';
+import CollapseDrawer from '~/components/custom/collapse-drawer';
 
 interface ProjectInfoActionsDrawerProps {
   project: any;

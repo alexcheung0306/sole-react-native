@@ -10,7 +10,7 @@ import {
 } from '@/api/apiservice/jobContracts_api';
 import PaginationControl from '~/components/projects/PaginationControl';
 import FilterSearch from '~/components/custom/filter-search';
-import CollapseDrawer from '~/components/custom/collapse-drawerV1';
+import CollapseDrawer from ' ~/components/custom/collapse-drawer';
 import { FormModal } from '@/components/custom/form-modal';
 import { RoleScheduleListInputs } from '@/components/form-components/role-form/RoleScheduleListInputs';
 import { DateTimePickerInput } from '@/components/form-components/DateTimePickerInput';
