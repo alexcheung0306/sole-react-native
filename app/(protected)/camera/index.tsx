@@ -8,13 +8,12 @@ import {
   Alert,
   FlatList,
 } from 'react-native';
-import Animated, {
+import {
   useSharedValue,
-  useAnimatedStyle,
   withTiming,
-  useAnimatedScrollHandler,
   runOnJS,
   useAnimatedReaction,
+  cancelAnimation,
 } from 'react-native-reanimated';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
@@ -25,14 +24,12 @@ import {
   Image as ImageIcon,
   Video as VideoIcon,
   ChevronLeft,
-  Layers,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCameraContext, MediaItem } from '~/context/CameraContext';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { CollapsibleHeader } from '~/components/CollapsibleHeader';
-import MainMedia from '~/components/camera/MainMedia';
 import CropControls from '~/components/camera/CropControls';
 import { CameraCroppingArea } from '~/components/camera/CameraCroppingArea';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -116,6 +113,8 @@ export default React.memo(function CameraScreen() {
   // Track scroll position for media collapse
   const scrollY = useSharedValue(0);
   const lastScrollYValue = useSharedValue(0);
+  const flingStartY = useSharedValue(0);
+  const isExpandingFromFling = useSharedValue(false);
 
   // Combined scroll handler that handles both header and media collapse
   const handleScroll = useCallback((event: any) => {
@@ -141,19 +140,53 @@ export default React.memo(function CameraScreen() {
       lastScrollYValue.value = current;
 
       // Handle media collapse based on scroll direction
-      // Only collapse when scrolling down, don't auto-expand on scroll up
-      if (scrollDelta > 0) {
-        // Scrolling down - collapse media
+      // Don't collapse if we just expanded from fling (give it time to animate)
+      if (isExpandingFromFling.value) {
+        return;
+      }
+
+      // Don't collapse if media is fully expanded (just expanded) - give it time
+      // This prevents immediate collapse after fling expansion
+      if (mediaCollapseProgress.value < 0.1) {
+        return;
+      }
+
+      // Only collapse when:
+      // 1. Actually scrolled down significantly (not at top, account for bounce)
+      // 2. Scrolling down (positive delta)
+      // 3. Media is expanded but not just expanded
+      if (current > 5 && scrollDelta > 5 && mediaCollapseProgress.value < 0.5 && mediaCollapseProgress.value >= 0.1) {
+        // Scrolled down and scrolling further down, media is expanded - collapse media
+        cancelAnimation(mediaCollapseProgress);
         mediaCollapseProgress.value = withTiming(1, { duration: 300 });
       }
-      // Removed auto-expand on scroll up - media will only expand via drag gesture
+      // Removed auto-expand on scroll up - media will only expand via drag gesture or fling
     }
   );
 
-  // Function to expand media (called from drag gesture)
-  const expandMedia = useCallback(() => {
-    mediaCollapseProgress.value = withTiming(0, { duration: 300 });
+  // Function to reset the expanding flag (with delay to prevent immediate collapse)
+  const resetExpandingFlag = useCallback(() => {
+    // Keep the flag set for a bit longer to prevent scroll reaction from collapsing
+    setTimeout(() => {
+      isExpandingFromFling.value = false;
+      console.log('[EXPAND MEDIA] Flag reset, scroll reaction can now collapse');
+    }, 500); // Keep flag for 500ms after animation completes
   }, []);
+
+  // Function to expand media (called from drag gesture or fling)
+  const expandMedia = useCallback(() => {
+    console.log('[EXPAND MEDIA] Called, current progress:', mediaCollapseProgress.value);
+    isExpandingFromFling.value = true;
+    cancelAnimation(mediaCollapseProgress);
+    mediaCollapseProgress.value = withTiming(0, { duration: 300 }, (finished) => {
+      'worklet';
+      if (finished) {
+        console.log('[EXPAND MEDIA] Animation completed, new progress:', mediaCollapseProgress.value);
+        // Reset the flag after animation completes (with delay)
+        runOnJS(resetExpandingFlag)();
+      }
+    });
+  }, [resetExpandingFlag]);
 
   // Function to collapse media (called from drag gesture)
   const collapseMedia = useCallback(() => {
@@ -175,6 +208,101 @@ export default React.memo(function CameraScreen() {
       runOnJS(collapseMedia)();
     }
   });
+
+  // Logging function for fling trigger
+  const logFlingTrigger = (event: string, details?: string) => {
+    console.log(`[CAMERA FLING] ${event}${details ? ` - ${details}` : ''}`);
+  };
+
+  // Fling gesture to expand CameraCroppingArea when scrolling at top
+  const flingGesture = Gesture.Pan()
+    .manualActivation(true)
+    .minDistance(20) // Require significant movement to avoid interfering with button taps
+    .activeOffsetY(20) // Require clear downward movement
+    .maxPointers(1)
+    .failOffsetX([-15, 15]) // Fail on horizontal movement
+    .shouldCancelWhenOutside(false)
+    .onTouchesDown((e, state) => {
+      'worklet';
+      // Fail immediately if scroll is not at top - this allows buttons to work
+      if (scrollY.value > 5) {
+        state.fail();
+        runOnJS(logFlingTrigger)('GESTURE FAILED', `Scroll not at top: ${scrollY.value.toFixed(0)}`);
+        return;
+      }
+      // Store initial Y position to detect movement
+      if (e.allTouches.length > 0) {
+        flingStartY.value = e.allTouches[0].y;
+      }
+      runOnJS(logFlingTrigger)('TOUCHES DOWN', `Scroll at top: ${scrollY.value.toFixed(0)}`);
+      // Don't activate yet - wait to see if there's actual downward movement
+    })
+    .onTouchesMove((e, state) => {
+      'worklet';
+      // Check if scroll moved away from top
+      if (scrollY.value > 5) {
+        state.fail();
+        return;
+      }
+      // Only activate if there's clear downward movement (not a button tap)
+      if (e.allTouches.length > 0) {
+        const currentY = e.allTouches[0].y;
+        const deltaY = currentY - flingStartY.value;
+
+        // Only activate when there's clear downward movement (> 15px)
+        // Button taps usually have minimal movement (< 10px)
+        if (deltaY > 15) {
+          state.activate();
+          runOnJS(logFlingTrigger)('GESTURE ACTIVATED', `Downward: ${deltaY.toFixed(0)}px`);
+        } else if (deltaY < -5) {
+          // Moving upward - not a fling, fail
+          state.fail();
+        }
+        // For small movements (0-15px), wait (don't fail yet, but don't activate)
+      }
+    })
+    .onStart(() => {
+      'worklet';
+      runOnJS(logFlingTrigger)('GESTURE STARTED', `Scroll: ${scrollY.value.toFixed(0)}`);
+    })
+    .onEnd((e) => {
+      'worklet';
+      const velocity = e.velocityY;
+      const translation = e.translationY;
+      const currentScrollOffset = scrollY.value;
+
+      runOnJS(logFlingTrigger)('GESTURE ENDED', `Velocity: ${velocity.toFixed(0)}, Translation: ${translation.toFixed(0)}, Scroll: ${currentScrollOffset.toFixed(0)}`);
+
+      // Only allow fling when scroll is at the top (within 5px tolerance)
+      const isAtTop = currentScrollOffset <= 5;
+
+      if (!isAtTop) {
+        runOnJS(logFlingTrigger)('FLING BLOCKED', `Scroll not at top: ${currentScrollOffset.toFixed(0)}`);
+        return;
+      }
+
+      // Expand on fling: high downward velocity (>800) or significant downward swipe (>100px with velocity >500)
+      const isFling = velocity > 800 || (translation > 100 && velocity > 500);
+
+      if (isFling && translation > 0) {
+        runOnJS(logFlingTrigger)('FLING DETECTED', `Expanding CameraCroppingArea, current progress: ${mediaCollapseProgress.value.toFixed(2)}`);
+        // Only expand if not already expanded
+        if (mediaCollapseProgress.value > 0.1) {
+          // Expand the CameraCroppingArea
+          runOnJS(expandMedia)();
+        } else {
+          runOnJS(logFlingTrigger)('ALREADY EXPANDED', `Progress: ${mediaCollapseProgress.value.toFixed(2)}`);
+        }
+      } else {
+        runOnJS(logFlingTrigger)('FLING NOT DETECTED', `Velocity too low: ${velocity.toFixed(0)}`);
+      }
+    });
+
+  // Native scroll gesture for FlatList
+  const scrollGesture = Gesture.Native();
+
+  // Compose gestures - fling can trigger even during scroll
+  const composedGesture = Gesture.Simultaneous(scrollGesture, flingGesture);
 
   // Clear previous data when screen mounts
   useEffect(() => {
@@ -553,6 +681,7 @@ export default React.memo(function CameraScreen() {
       isMediaCollapsed={isMediaCollapsed}
       setIsMediaCollapsed={setIsMediaCollapsed}
       fixedCropControlsPanGesture={fixedCropControlsPanGesture}
+      composedGesture={composedGesture}
     />
   );
 });
@@ -595,6 +724,7 @@ const CameraContent = ({
   isMediaCollapsed,
   setIsMediaCollapsed,
   fixedCropControlsPanGesture,
+  composedGesture,
 }: any) => {
   // Initialize crop data for all photos when selection changes
   useEffect(() => {
@@ -688,9 +818,8 @@ const CameraContent = ({
               disabled={selectedMedia.length === 0}
               className="p-2">
               <Text
-                className={`font-semibold ${
-                  selectedMedia.length > 0 ? 'text-blue-500' : 'text-gray-600'
-                }`}>
+                className={`font-semibold ${selectedMedia.length > 0 ? 'text-blue-500' : 'text-gray-600'
+                  }`}>
                 Next
               </Text>
             </TouchableOpacity>
@@ -698,7 +827,7 @@ const CameraContent = ({
           isScrollCollapsible={false}
         />
 
-        <View style={{ top: insets.top+50, left: 0, right: 0, bottom: 0, zIndex: 100 }}>
+        <View style={{ paddingTop: insets.top + 50, zIndex: 100 }}>
           <CameraCroppingArea
             insets={insets}
             previewItem={previewItem}
@@ -718,56 +847,53 @@ const CameraContent = ({
             collapseMedia={collapseMedia}
             fixedCropControlsPanGesture={fixedCropControlsPanGesture}
           />
-           <View>
-             <GestureDetector gesture={fixedCropControlsPanGesture}>
-               <View collapsable={false}>
-                 <CropControls
-                   selectedAspectRatio={selectedAspectRatio}
-                   setSelectedAspectRatio={setSelectedAspectRatio}
-                   currentIndex={currentIndex}
-                   setCurrentIndex={setCurrentIndex}
-                   multipleSelection={multipleSelection}
-                   setIsMultiSelect={setIsMultiSelect}
-                   isMultiSelect={isMultiSelect}
-                   isAspectRatioLocked={isAspectRatioLocked}
-                 />
-                 {/* Thumbnail Strip (only if multiple selected) */}
-                 {selectedMedia.length > 1 && (
-                   <View className="bg-black px-4 py-3">
-                     <Text className="mb-2 text-sm text-gray-400">Selected ({selectedMedia.length})</Text>
-                     <FlatList
-                       data={selectedMedia}
-                       renderItem={({ item, index }: { item: MediaItem; index: number }) => (
-                         <TouchableOpacity
-                         activeOpacity={1}
-                           onPress={() => setCurrentIndex(index)}
-                           className={`mr-2 ${currentIndex === index ? 'border-2 border-blue-500' : 'border border-gray-600'} overflow-hidden rounded-lg`}
-                           style={{ width: 60, height: 60 }}>
-                           <ExpoImage
-                             source={{ uri: item.uri }}
-                             style={{ width: 60, height: 60 }}
-                             contentFit="cover"
-                           />
-                           {item.mediaType === 'video' && (
-                             <View className="absolute inset-0 items-center justify-center bg-black/30">
-                               <ImageIcon size={16} color="#ffffff" />
-                             </View>
-                           )}
-                         </TouchableOpacity>
-                       )}
-                       keyExtractor={(item) => item.id}
-                       horizontal
-                       showsHorizontalScrollIndicator={false}
-                     />
-                   </View>
-                 )}
-               </View>
-             </GestureDetector>
-           </View>
         </View>
 
         {/* Fixed Crop Controls - shown when collapsed, positioned outside FlatList */}
-
+        <GestureDetector gesture={fixedCropControlsPanGesture}>
+          <View collapsable={false} className="z-[999]">
+            <CropControls
+              selectedAspectRatio={selectedAspectRatio}
+              setSelectedAspectRatio={setSelectedAspectRatio}
+              currentIndex={currentIndex}
+              setCurrentIndex={setCurrentIndex}
+              multipleSelection={multipleSelection}
+              setIsMultiSelect={setIsMultiSelect}
+              isMultiSelect={isMultiSelect}
+              isAspectRatioLocked={isAspectRatioLocked}
+            />
+            {/* Thumbnail Strip (only if multiple selected) */}
+            {selectedMedia.length > 1 && (
+              <View className="bg-black px-4 py-3">
+                <Text className="mb-2 text-sm text-gray-400">Selected ({selectedMedia.length})</Text>
+                <FlatList
+                  data={selectedMedia}
+                  renderItem={({ item, index }: { item: MediaItem; index: number }) => (
+                    <TouchableOpacity
+                      activeOpacity={1}
+                      onPress={() => setCurrentIndex(index)}
+                      className={`mr-2 ${currentIndex === index ? 'border-2 border-blue-500' : 'border border-gray-600'} overflow-hidden rounded-lg`}
+                      style={{ width: 60, height: 60 }}>
+                      <ExpoImage
+                        source={{ uri: item.uri }}
+                        style={{ width: 60, height: 60 }}
+                        contentFit="cover"
+                      />
+                      {item.mediaType === 'video' && (
+                        <View className="absolute inset-0 items-center justify-center bg-black/30">
+                          <ImageIcon size={16} color="#ffffff" />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                  keyExtractor={(item) => item.id}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                />
+              </View>
+            )}
+          </View>
+        </GestureDetector>
         {isLoading ? (
           <View
             className="flex-1 items-center justify-center"
@@ -776,8 +902,10 @@ const CameraContent = ({
             <Text className="mt-2 text-gray-400">Loading media...</Text>
           </View>
         ) : (
-          <View>
+          <GestureDetector gesture={composedGesture}>
             <FlatList
+              bounces={false}
+              style={{ paddingTop: 0, paddingBottom: insets.bottom + 72 }}
               data={mediaItems}
               keyExtractor={(item: any) => item.id}
               numColumns={3}
@@ -785,14 +913,8 @@ const CameraContent = ({
               scrollEventThrottle={16}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{
-                paddingTop: insets.top + 50,
                 paddingBottom: insets.bottom + 72,
               }}
-              // Preview item - Use stable component
-              // ListHeaderComponent={
-              // <View></View>
-              // }
-              // Gallery grid items
               renderItem={({ item, index }: any) => {
                 // Camera option in first position
                 if (index === 0 && item.id === 'camera') {
@@ -902,7 +1024,7 @@ const CameraContent = ({
                 );
               }}
             />
-          </View>
+          </GestureDetector>
         )}
       </View>
     </>

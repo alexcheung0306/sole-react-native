@@ -11,21 +11,11 @@ export const CameraCroppingArea = ({
   currentIndex,
   width,
   selectedAspectRatio,
-  setSelectedAspectRatio,
-  setCurrentIndex,
-  multipleSelection,
-  setIsMultiSelect,
-  isMultiSelect,
-  isAspectRatioLocked,
   mask,
   mediaCollapseProgress,
-  expandMedia,
-  collapseMedia,
-  fixedCropControlsPanGesture,
 }: any) => {
   // Calculate the fixed container height for collapse animation
   const FIXED_RATIO = 4 / 5;
-  const fixedContainerHeight = width / FIXED_RATIO;
   const variableContainerHeight = width / selectedAspectRatio;
 
   // Animated style for collapsing the main media
