@@ -53,6 +53,7 @@ export default function CollapseDrawer2({
   const [contentHeight, setContentHeight] = useState(0);
   const scrollViewRef = useAnimatedRef<Animated.ScrollView>();
   const scrollOffset = useSharedValue(0);
+  const flingStartY = useSharedValue(0);
 
   // Handle height: ~33px (5px handle + 12px paddingBottom + 16px title margin if exists)
   const HANDLE_HEIGHT = title ? 33 : 17;
@@ -134,21 +135,51 @@ export default function CollapseDrawer2({
   };
 
   // Pan gesture that detects fling-like behavior (high velocity downward swipes)
+  // Fails immediately when it shouldn't activate to allow buttons to work
   const flingGesture = Gesture.Pan()
     .manualActivation(true) // Manual activation to check scroll position
-    .minDistance(10)
-    .activeOffsetY(10) // Activate on downward movement
+    .minDistance(20) // Require significant movement to avoid interfering with button taps
+    .activeOffsetY(20) // Require clear downward movement (button taps are usually < 10px)
     .maxPointers(1)
-    .failOffsetX([-30, 30]) // Fail if too much horizontal movement
+    .failOffsetX([-15, 15]) // Fail on horizontal movement
+    .shouldCancelWhenOutside(false)
     .onTouchesDown((e, state) => {
       'worklet';
-      // Only activate if scroll is at top (within 5px tolerance)
-      if (scrollOffset.value <= 5) {
-        state.activate();
-        runOnJS(logFlingTrigger)('GESTURE ACTIVATED', `Scroll at top: ${scrollOffset.value.toFixed(0)}`);
-      } else {
+      // Fail immediately if scroll is not at top - this allows buttons to work
+      if (scrollOffset.value > 5) {
         state.fail();
-        runOnJS(logFlingTrigger)('GESTURE FAILED', `Scroll not at top (${scrollOffset.value.toFixed(0)}px)`);
+        return;
+      }
+      // Store initial Y position to detect movement
+      if (e.allTouches.length > 0) {
+        flingStartY.value = e.allTouches[0].y;
+      }
+      // Don't activate yet - wait to see if there's actual downward movement
+      // This prevents button taps from activating the gesture
+    })
+    .onTouchesMove((e, state) => {
+      'worklet';
+      // Check if scroll moved away from top
+      if (scrollOffset.value > 5) {
+        state.fail();
+        return;
+      }
+      // Only activate if there's clear downward movement (not a button tap)
+      if (e.allTouches.length > 0) {
+        const currentY = e.allTouches[0].y;
+        const deltaY = currentY - flingStartY.value;
+        
+        // Only activate when there's clear downward movement (> 15px)
+        // Button taps usually have minimal movement (< 10px)
+        if (deltaY > 15) {
+          state.activate();
+          runOnJS(logFlingTrigger)('GESTURE ACTIVATED', `Scroll at top: ${scrollOffset.value.toFixed(0)}, Downward: ${deltaY.toFixed(0)}px`);
+        } else if (deltaY < -5) {
+          // Moving upward - not a fling, fail
+          state.fail();
+        }
+        // For small movements (0-15px), wait (don't fail yet, but don't activate)
+        // This allows the gesture to activate if user continues swiping
       }
     })
     .onStart(() => {

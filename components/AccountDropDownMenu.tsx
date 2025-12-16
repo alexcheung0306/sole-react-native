@@ -7,7 +7,7 @@ import { useAuth, useUser } from '@clerk/clerk-expo';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 import { SwitchInterface } from './profile/switch-interface';
-import CollapseDrawer from './custom/collapse-drawer';
+import CollapseDrawer2 from './custom/collapse-drawer2';
 import { useSoleUserContext } from '~/context/SoleUserContext';
 
 interface AccountDropDownMenuProps {
@@ -172,7 +172,7 @@ export function AccountDropDownMenu({
         </View>
         </GestureDetector>
 
-      <CollapseDrawer
+      <CollapseDrawer2
         showDrawer={isOpen}
         setShowDrawer={setIsOpen}
         title={
@@ -236,7 +236,7 @@ export function AccountDropDownMenu({
             })}
           </View>
         </View>
-      </CollapseDrawer>
+      </CollapseDrawer2>
     </>
   );
 }
