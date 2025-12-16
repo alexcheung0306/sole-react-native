@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-nati
 import { AlertCircle, InfoIcon } from 'lucide-react-native';
 import CollapseDrawer from '@/components/custom/collapse-drawer';
 import { DisplayRoleInformation } from './DisplayRoleInformation';
+import CollapseDrawer2 from '~/components/custom/collapse-drawer2';
 
 type RolesBreadcrumbProps = {
   projectData: any;
@@ -96,7 +97,7 @@ export function RolesBreadcrumb({
       </ScrollView>
 
       {/* Role Details Drawer */}
-      {selectedRole && (
+      {/* {selectedRole && (
         <CollapseDrawer
           showDrawer={isDrawerOpen}
           setShowDrawer={setIsDrawerOpen}
@@ -124,6 +125,33 @@ export function RolesBreadcrumb({
             </ScrollView>
           </View>
         </CollapseDrawer>
+      )} */}
+
+      {/* Role Details Drawer */}
+      {selectedRole && (
+        <CollapseDrawer2
+          showDrawer={isDrawerOpen}
+          setShowDrawer={setIsDrawerOpen}
+          title={`${selectedRole?.role?.roleTitle || 'Role Details'} • Role #${selectedRole?.role?.id ? String(selectedRole.role.id) : ''} • ${currentRole + 1} of ${rolesWithSchedules.length}`}>
+          <View className="px-5 pb-6">
+            <DisplayRoleInformation
+              projectId={projectId}
+              index={currentRole}
+              role={selectedRole?.role}
+              roleWithSchedules={selectedRole}
+              jobActivitiesCount={countJobActivities(selectedRole)}
+              projectData={projectData}
+              setCurrentRole={(index) => {
+                setCurrentRole(index);
+                // Keep drawer open when switching roles
+              }}
+              refetchRoles={() => {
+                refetchRoles();
+              }}
+              onClose={() => setIsDrawerOpen(false)}
+            />
+          </View>
+        </CollapseDrawer2>
       )}
     </View>
   );
