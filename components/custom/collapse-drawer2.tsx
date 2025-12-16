@@ -53,7 +53,6 @@ export default function CollapseDrawer2({
   const [contentHeight, setContentHeight] = useState(0);
   const scrollViewRef = useAnimatedRef<Animated.ScrollView>();
   const scrollOffset = useSharedValue(0);
-  const initialScrollY = useSharedValue(0);
 
   // Handle height: ~33px (5px handle + 12px paddingBottom + 16px title margin if exists)
   const HANDLE_HEIGHT = title ? 33 : 17;
@@ -100,7 +99,7 @@ export default function CollapseDrawer2({
   };
 
   const DRAWER_HEIGHT = getDrawerHeight();
-  const [isScrollEnabled, setIsScrollEnabled] = useState(false);
+  const [isScrollEnabled, setIsScrollEnabled] = useState(true);
 
   // Handle drawer show/hide with animation
   useEffect(() => {
@@ -129,62 +128,82 @@ export default function CollapseDrawer2({
     setShowDrawer(false);
   };
 
+  // Logging function for fling trigger
+  const logFlingTrigger = (event: string, details?: string) => {
+    console.log(`[FLING TRIGGER] ${event}${details ? ` - ${details}` : ''}`);
+  };
+
+  // Pan gesture that detects fling-like behavior (high velocity downward swipes)
+  const flingGesture = Gesture.Pan()
+    .manualActivation(true) // Manual activation to check scroll position
+    .minDistance(10)
+    .activeOffsetY(10) // Activate on downward movement
+    .maxPointers(1)
+    .failOffsetX([-30, 30]) // Fail if too much horizontal movement
+    .onTouchesDown((e, state) => {
+      'worklet';
+      // Only activate if scroll is at top (within 5px tolerance)
+      if (scrollOffset.value <= 5) {
+        state.activate();
+        runOnJS(logFlingTrigger)('GESTURE ACTIVATED', `Scroll at top: ${scrollOffset.value.toFixed(0)}`);
+      } else {
+        state.fail();
+        runOnJS(logFlingTrigger)('GESTURE FAILED', `Scroll not at top (${scrollOffset.value.toFixed(0)}px)`);
+      }
+    })
+    .onStart(() => {
+      'worklet';
+      const currentScrollOffset = scrollOffset.value;
+      runOnJS(logFlingTrigger)('GESTURE STARTED', `Scroll offset: ${currentScrollOffset.toFixed(0)}`);
+    })
+    .onUpdate((e) => {
+      'worklet';
+      // Only log significant movements
+      if (Math.abs(e.translationY) > 20) {
+        runOnJS(logFlingTrigger)('GESTURE UPDATE', `Translation: ${e.translationY.toFixed(0)}, Velocity: ${e.velocityY.toFixed(0)}`);
+      }
+    })
+    .onEnd((e) => {
+      'worklet';
+      const velocity = e.velocityY;
+      const translation = e.translationY;
+      const currentScrollOffset = scrollOffset.value;
+      
+      runOnJS(logFlingTrigger)('GESTURE ENDED', `Velocity: ${velocity.toFixed(0)}, Translation: ${translation.toFixed(0)}, Scroll: ${currentScrollOffset.toFixed(0)}`);
+      
+      // Only allow fling when scroll is at the top (within 5px tolerance)
+      const isAtTop = currentScrollOffset <= 5;
+      
+      if (!isAtTop) {
+        runOnJS(logFlingTrigger)('FLING BLOCKED', `Scroll not at top (${currentScrollOffset.toFixed(0)}px)`);
+        return;
+      }
+      
+      // Close on fling: high downward velocity (>800) or significant downward swipe (>100px with velocity >500)
+      const isFling = velocity > 800 || (translation > 100 && velocity > 500);
+      
+      if (isFling && translation > 0) {
+        runOnJS(logFlingTrigger)('FLING DETECTED', 'Closing drawer');
+        cancelAnimation(translateY);
+        translateY.value = withTiming(SCREEN_HEIGHT, { duration: 300 }, (finished) => {
+          'worklet';
+          if (finished) {
+            runOnJS(logFlingTrigger)('DRAWER CLOSED', 'Animation completed');
+            runOnJS(setShowDrawer)(false);
+          }
+        });
+      } else {
+        runOnJS(logFlingTrigger)('FLING NOT DETECTED', `Velocity too low or wrong direction`);
+      }
+    });
+
   // Native scroll gesture for ScrollView
   const scrollGesture = Gesture.Native();
 
   console.log('isScrollEnabled', isScrollEnabled);
 
-  // Pan gesture for drawer closing (only downward)
-  const panGesture = Gesture.Pan()
-    .minDistance(10) // Require some movement to activate
-    .activeOffsetY(15) // Only activate on significant downward movement
-    .maxPointers(1) // Single finger only
-    .failOffsetX([-20, 20]) // Fail if horizontal movement exceeds 20px
-    .onStart((e) => {
-      'worklet';
-      initialScrollY.value = scrollOffset.value;
-      console.log('modal opened - gesture started, initial direction: ' +
-        (e.translationY > 0 ? 'DOWN' : e.translationY < 0 ? 'UP' : 'NEUTRAL'));
-    })
-    .onUpdate((e) => {
-      'worklet';
-      console.log('pan update: ' + e.translationY + ', scrollOffset: ' + scrollOffset.value);
-
-      if (e.translationY > 0) {
-        // Finger DOWN - close the drawer
-        translateY.value = e.translationY;
-        console.log('closing drawer, translateY: ' + e.translationY);
-      } else if (e.translationY < 0) {
-        // Finger UP - enable scroll
-        runOnJS(setIsScrollEnabled)(true);
-      }
-      // Small movements or slight variations are normal during dragging
-    })
-    .onEnd((e) => {
-      'worklet';
-      console.log('pan gesture ended, final translationY: ' + e.translationY + ', velocityY: ' + e.velocityY);
-
-      const shouldClose = e.translationY > 180 || e.velocityY > 1000;
-      if (shouldClose) {
-        console.log('closing drawer completely');
-        cancelAnimation(translateY);
-        translateY.value = withTiming(SCREEN_HEIGHT, { duration: 300 }, (finished) => {
-          'worklet';
-          if (finished) {
-            runOnJS(setShowDrawer)(false);
-            // Reset scroll state when drawer closes
-          }
-        });
-      } else {
-        console.log('resetting drawer position');
-        cancelAnimation(translateY);
-        translateY.value = withTiming(0, { duration: 300 });
-        // Keep scroll enabled after gesture ends (don't reset to false)
-      }
-    });
-
-  // Allow both gestures to work together
-  const composedGesture = Gesture.Simultaneous(scrollGesture, panGesture);
+  // Allow both gestures to work together - fling can trigger even during scroll
+  const composedGesture = Gesture.Simultaneous(scrollGesture, flingGesture);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value + keyboardOffset.value }],
