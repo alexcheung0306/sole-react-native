@@ -10,6 +10,7 @@ type RoleFormPortalProps = {
   fetchedValues?: any;
   isDisabled?: boolean;
   refetchRoles: () => void;
+  onOpen?: () => void; // Callback when form is opened (e.g., to close drawer)
 };
 
 export function RoleFormPortal({
@@ -19,12 +20,16 @@ export function RoleFormPortal({
   fetchedValues = null,
   isDisabled = false,
   refetchRoles,
+  onOpen,
 }: RoleFormPortalProps) {
   // Handle both old format (fetchedValues directly) and new format (roleWithSchedules with nested role)
   const roleData = fetchedValues?.role ? fetchedValues.role : fetchedValues;
   const activitiesData = fetchedValues?.activities ? fetchedValues.activities : [];
 
   const handleOpen = () => {
+    // Close drawer or perform any pre-navigation actions
+    onOpen?.();
+    
     const params: Record<string, string> = {
       formType: 'role',
       projectId: String(projectId),

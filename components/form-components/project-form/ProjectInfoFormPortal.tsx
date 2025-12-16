@@ -7,6 +7,7 @@ interface ProjectInfoFormPortalProps {
   method: 'POST' | 'PUT';
   initValues?: any;
   triggerClassName?: string;
+  onOpen?: () => void; // Callback when form is opened (e.g., to close drawer)
   renderTrigger?: (helpers: {
     open: () => void;
     close: () => void;
@@ -28,9 +29,13 @@ export default function ProjectInfoFormPortal({
   method,
   initValues,
   triggerClassName,
+  onOpen,
   renderTrigger,
 }: ProjectInfoFormPortalProps) {
   const handleOpen = () => {
+    // Close drawer or perform any pre-navigation actions
+    onOpen?.();
+    
     const params: Record<string, string> = {
       formType: 'project',
       method,

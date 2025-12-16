@@ -55,8 +55,12 @@ export function FormPage({
   const insets = useSafeAreaInsets();
 
   const handleClose = () => {
-    onClose?.();
-    router.back();
+    if (onClose) {
+      onClose();
+    } else {
+      // Fallback to router.back() only if onClose is not provided
+      router.back();
+    }
   };
 
   const handleSubmit = () => {

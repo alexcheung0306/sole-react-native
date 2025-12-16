@@ -302,6 +302,7 @@ export function DisplayRoleInformation({
                     refetchRoles();
                     onClose?.();
                   }}
+                  onOpen={onClose}
                 />
               </View>
               <View className="flex-1">

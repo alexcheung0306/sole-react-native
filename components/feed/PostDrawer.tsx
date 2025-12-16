@@ -71,7 +71,7 @@ export function PostDrawer({ post, isOpen, onClose }: PostDrawerProps) {
 
   return (
     <>
-      <CollapseDrawer showDrawer={isOpen} setShowDrawer={onClose} autoHeight>
+      <CollapseDrawer showDrawer={isOpen} setShowDrawer={onClose} >
         <View style={styles.drawerContent}>
           {/* Report - Only for non-creator */}
           {!isCreator && (

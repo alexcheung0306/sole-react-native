@@ -27,7 +27,6 @@ export function PostCard({
   onScaleChange,
 }: PostCardProps) {
   const router = useRouter();
-  const commentSheetRef = useRef<BottomSheet>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const renderCaption = () => {
@@ -35,7 +34,6 @@ export function PostCard({
 
     // Simple hashtag and mention parsing
     const parts = post.content.split(/(\s+)/);
-console.log('post.content', post);
     return (
       <Text className="text-sm leading-5 text-gray-200">
         {parts.map((part, index) => {

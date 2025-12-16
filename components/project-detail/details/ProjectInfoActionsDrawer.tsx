@@ -169,6 +169,7 @@ export function ProjectInfoActionsDrawer({
             <ProjectInfoFormPortal
               method="PUT"
               initValues={project}
+              onOpen={() => onOpenChange(false)}
               renderTrigger={({ open }) => (
                 <ActionRow
                   icon={<Pencil color="#bfdbfe" size={20} />}

@@ -104,10 +104,8 @@ export default function RoleFormPage() {
       queryClient.invalidateQueries({ queryKey: ['rolesWithSchedules', projectId] });
       queryClient.invalidateQueries({ queryKey: ['project-contracts', projectId] });
 
-      // Navigate back after successful creation
-      if (method === 'POST') {
-        router.back();
-      }
+      // Navigate back after successful submit (both create and edit)
+      router.back();
     },
   });
 
