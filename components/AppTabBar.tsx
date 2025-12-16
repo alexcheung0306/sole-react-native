@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTabContext, UserTab, ClientTab } from '~/context/AppTabContext';
 import { useUser } from '@clerk/clerk-expo';
 import { useRouter, usePathname } from 'expo-router';
-import Animated from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { useScrollAppTabBar } from '~/hooks/useScrollAppTabBar';
 import {
   BriefcaseBusiness,
@@ -26,17 +26,26 @@ type TabConfig = {
   onPress: () => void;
 };
 
-export default function AppTabBar() {
+interface AppTabBarProps {
+  showTabBar?: boolean;
+}
+
+export default function AppTabBar({ showTabBar = true }: AppTabBarProps) {
   const { activeTab, setActiveTab, isUserMode, isClientMode } = useAppTabContext();
   const { user } = useUser();
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const { animatedTabBarStyle, handleHeightChange, collapseTabBar, showTabBar, setTabBarPositionByScale, getTabBarTranslateY } = useScrollAppTabBar();
+  const { animatedTabBarStyle, handleHeightChange, collapseTabBar, showTabBar: scrollShowTabBar, setTabBarPositionByScale, getTabBarTranslateY } = useScrollAppTabBar();
   const radius = getDeviceScreenRadius();
   // Simple fade animation for mode transitions
   const fadeAnim = useRef(new RNAnimated.Value(1)).current;
   const prevModeRef = useRef<'user' | 'client' | null>(null);
+  
+  // Slide animation for tab bar visibility
+  // Initialize based on showTabBar - if false, start off-screen
+  const slideTranslateY = useSharedValue(showTabBar ? 0 : 200);
+  const tabBarHeightRef = useRef(0);
 
   // Animate fade when mode changes
   useEffect(() => {
@@ -64,6 +73,30 @@ export default function AppTabBar() {
       prevModeRef.current = currentMode;
     }
   }, [isUserMode, isClientMode, fadeAnim]);
+
+  // Animate slide when showTabBar changes
+  useEffect(() => {
+    if (showTabBar) {
+      // Slide in (move to original position)
+      slideTranslateY.value = withTiming(0, {
+        duration: 300,
+      });
+    } else {
+      // Slide out (move down off screen)
+      // Use a large value to ensure it goes off screen, or use the actual height
+      const translateValue = tabBarHeightRef.current > 0 ? tabBarHeightRef.current + insets.bottom + 20 : 200;
+      slideTranslateY.value = withTiming(translateValue, {
+        duration: 300,
+      });
+    }
+  }, [showTabBar, insets.bottom, slideTranslateY]);
+
+  // Animated style for slide animation
+  const slideAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: slideTranslateY.value }],
+    };
+  });
 
   // If not in a valid mode, don't render
   if (!isUserMode && !isClientMode) {
@@ -253,9 +286,11 @@ export default function AppTabBar() {
           zIndex: 10,
         },
         animatedTabBarStyle,
+        slideAnimatedStyle,
       ]}
       onLayout={(event) => {
         const { height } = event.nativeEvent.layout;
+        tabBarHeightRef.current = height;
         handleHeightChange(height);
       }}>
       {/* Glass effect overlay */}

@@ -64,7 +64,7 @@ export default function ProtectedLayout() {
             <Stack.Screen name="settings" options={{ headerShown: false }} />
             <Stack.Screen name="wallet" options={{ headerShown: false }} />
           </Stack>
-          {showTabBar && <AppTabBar />}
+          <AppTabBar showTabBar={showTabBar} />
         </View>
       </AuthWrapper>
       {/* Show maintenance screen as overlay when server is down */}
