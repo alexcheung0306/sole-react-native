@@ -224,6 +224,7 @@ export default function ProfileScreen() {
           <View className="border-t border-gray-800">
             <View className="flex-row">
               <TouchableOpacity
+                activeOpacity={1}
                 className={`flex-1 items-center border-b-2 py-3 ${
                   profileTab === 'posts' ? 'border-white' : 'border-transparent'
                 }`}
@@ -231,6 +232,7 @@ export default function ProfileScreen() {
                 <Grid size={24} color={profileTab === 'posts' ? '#ffffff' : '#6b7280'} />
               </TouchableOpacity>
               <TouchableOpacity
+                activeOpacity={1}
                 className={`flex-1 items-center border-b-2 py-3 ${
                   profileTab === 'talent' ? 'border-white' : 'border-transparent'
                 }`}
@@ -238,6 +240,7 @@ export default function ProfileScreen() {
                 <User size={24} color={profileTab === 'talent' ? '#ffffff' : '#6b7280'} />
               </TouchableOpacity>
               <TouchableOpacity
+                activeOpacity={1}
                 className={`flex-1 items-center border-b-2 py-3 ${
                   profileTab === 'jobs' ? 'border-white' : 'border-transparent'
                 }`}

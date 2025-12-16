@@ -12,7 +12,8 @@ import Animated, {
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { getDeviceScreenRadius } from '~/utils/device-screen-radius';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH , height: SCREEN_HEIGHT} = Dimensions.get('window');
+
 
 type SwipeableContainerProps = {
   children: React.ReactNode[];

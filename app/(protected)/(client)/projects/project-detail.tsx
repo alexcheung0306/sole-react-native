@@ -2,31 +2,21 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  RefreshControl,
-  Dimensions,
 } from 'react-native';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useQueryClient } from '@tanstack/react-query';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { ChevronLeft } from 'lucide-react-native';
 import { CollapsibleHeader } from '@/components/CollapsibleHeader';
 import { useSoleUserContext } from '@/context/SoleUserContext';
 import { useProjectDetailQueries } from '@/hooks/useProjectDetailQueries';
-import { ProjectContractsTab } from '~/components/project-detail/contracts/ProjectContractsTab';
-import { ProjectInformationCard } from '~/components/project-detail/details/ProjectInformationCard';
-import ProjectAnnouncementFormPortal from '~/components/form-components/project-announcement-form/ProjectAnnouncementFormPortal';
-import { ProjectAnnouncementsList } from '~/components/project-detail/details/ProjectAnnouncementsList';
 import { CustomTabs } from '@/components/custom/custom-tabs';
-import { RoleFormPortal } from '~/components/form-components/role-form/RoleFormPortal';
-import { RolesBreadcrumb } from '~/components/project-detail/roles/RolesBreadcrumb';
-import { ManageCandidates } from '~/components/project-detail/roles/ManageCandidates';
-import { PublishProjectButton } from '~/components/project-detail/PublishProjectButton';
 import SwipeableContainer from '@/components/common/SwipeableContainer';
+import ProjectInformationTab from '@/components/project-detail/tabs/ProjectInformationTab';
+import ProjectRolesTab from '@/components/project-detail/tabs/ProjectRolesTab';
+import ProjectContractsTabWrapper from '@/components/project-detail/tabs/ProjectContractsTabWrapper';
 
 const STATUS_COLORS: Record<string, string> = {
   Draft: '#6b7280',
@@ -36,20 +26,15 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function ProjectDetail({ scrollHandler }: { scrollHandler: (event: any) => void }) {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id, tab, roleId } = useLocalSearchParams();
   const { soleUserId } = useSoleUserContext();
-  const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
+  const { animatedHeaderStyle, handleHeightChange } = useScrollHeader();
   const queryClient = useQueryClient();
   // Local state for tab and role selection (not in context)
   // Initialize from params if provided
   const [currentTab, setCurrentTab] = useState((tab as string) || 'project-information');
   const [currentRole, setCurrentRole] = useState(0);
-
-  // Animation for ManageCandidates transition
-  const manageCandidatesTranslateX = useSharedValue(0);
-  const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
   const projectId = id ? parseInt(id as string, 10) : 0;
 
@@ -151,18 +136,6 @@ export default function ProjectDetail({ scrollHandler }: { scrollHandler: (event
       setCurrentRole(0);
     }
   }, [rolesWithSchedules.length, currentRole]);
-
-  // Animate ManageCandidates transition when currentRole changes
-  useEffect(() => {
-    manageCandidatesTranslateX.value = withTiming(-currentRole * SCREEN_WIDTH, {
-      duration: 300,
-    });
-  }, [currentRole, rolesWithSchedules.length, SCREEN_WIDTH]);
-
-  // Animated style for ManageCandidates container
-  const manageCandidatesAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: manageCandidatesTranslateX.value }],
-  }));
 
   // Switch to project-information tab if user is on contracts tab when project is Draft
   useEffect(() => {
@@ -268,148 +241,66 @@ export default function ProjectDetail({ scrollHandler }: { scrollHandler: (event
           isDark={true}
         />
 
-        <ScrollView
-          className="flex-1"
-          onScroll={onScroll}
-          scrollEventThrottle={16}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="rgb(255, 255, 255)"
-              colors={['rgb(255, 255, 255)']}
-            />
-          }
-          contentContainerStyle={{
-            paddingTop: insets.top + 140, 
-            paddingBottom: insets.bottom + 80,
-            paddingHorizontal: 0,
-          }}>
-          <View className="gap-6">
-            {/* Project Header */}
-    
-
-            {/* Publish Project Button - Only show when project is Draft */}
-            {project?.status === 'Draft' && (
-              <PublishProjectButton
-                key={`publish-button-${roleCount}-${jobNotReadyCount}`}
-                projectData={project}
-                isDisable={isPublishButtonDisabled}
-                onSuccess={() => {
-                  // Navigate back to projects list after successful publish
-                  router.back();
-                }}
-              />
-            )}
-            {/* Swipeable Tab Content */}
-            <SwipeableContainer
-              activeIndex={currentTabIndex}
-              onIndexChange={handleIndexChange}
-              shrink={false}>
-              {tabs.map((tab) => {
-                if (tab.id === 'project-information') {
-                  return (
-                    <View key={tab.id} className="gap-2 px-2">
-                      <ProjectInformationCard project={project} soleUserId={soleUserId || ''} />
-                      <ProjectAnnouncementFormPortal
-                        projectId={projectId}
-                        soleUserId={soleUserId || ''}
-                        projectStatus={project?.status || 'Draft'}
-                      />
-                      <ProjectAnnouncementsList
-                        projectId={projectId}
-                        viewerSoleUserId={soleUserId || ''}
-                      />
-                    </View>
-                  );
-                }
-                if (tab.id === 'project-roles') {
-                  return (
-                    <View key={tab.id} className="gap-4">
-                      <View className="px-2">
-                        {project?.status === 'Draft' && rolesWithSchedules.length < 5 && (
-                          <RoleFormPortal
-                            projectId={projectId}
-                            method="POST"
-                            roleId={null}
-                            fetchedValues={null}
-                            isDisabled={rolesWithSchedules.length >= 5}
-                            refetchRoles={refetchRoles}
-                          />
-                        )}
-                      </View>
-
-                      {rolesWithSchedules.length === 0 ? (
-                        <View className="px-2">
-                          <View className="items-center gap-3 rounded-2xl border border-white/10 bg-zinc-800 p-8">
-                            <Text className="text-lg font-semibold text-white">No roles yet</Text>
-                            <Text className="text-center text-sm text-white/70">
-                              {project?.status === 'Draft'
-                                ? 'Create your first role to get started.'
-                                : 'No roles have been created for this project.'}
-                            </Text>
-                          </View>
-                        </View>
-                      ) : (
-                        <RolesBreadcrumb
-                          projectData={project}
-                          rolesWithSchedules={rolesWithSchedules}
-                          currentRole={currentRole}
-                          setCurrentRole={setCurrentRole}
-                          countJobActivities={countJobActivities}
-                          projectId={projectId}
-                          refetchRoles={refetchRoles}
-                        />
-                      )}
-
-                      {/* Manage Candidates - Only show for Published projects with roles */}
-                      {project?.status === 'Published' && rolesWithSchedules.length > 0 && (
-                        <View className="border-t border-white/10" style={{ overflow: 'hidden' }}>
-                          <Animated.View
-                            style={[
-                              {
-                                flexDirection: 'row',
-                                width: SCREEN_WIDTH * rolesWithSchedules.length,
-                              },
-                              manageCandidatesAnimatedStyle,
-                            ]}>
-                            {rolesWithSchedules.map((roleWithSchedule, index) => (
-                              <View
-                                key={`manage-candidates-${roleWithSchedule?.role?.id || index}`}
-                                style={{ width: SCREEN_WIDTH }}
-                                className="px-2">
-                                <ManageCandidates
-                                  projectData={project}
-                                  roleWithSchedules={roleWithSchedule}
-                                />
-                              </View>
-                            ))}
-                          </Animated.View>
-                        </View>
-                      )}
-                    </View>
-                  );
-                }
-                if (tab.id === 'project-contracts') {
-                  return (
-                    <ProjectContractsTab
-                      key={tab.id}
-                      projectId={projectId}
-                      initialContracts={
-                        Array.isArray(jobContractsData)
-                          ? jobContractsData
-                          : (jobContractsData?.content ?? jobContractsData?.data ?? [])
-                      }
-                      isLoadingInitial={jobContractsLoading}
-                      refetchContracts={refetchContracts}
-                    />
-                  );
-                }
-                return <View key={tab.id} />;
-              })}
-            </SwipeableContainer>
-          </View>
-        </ScrollView>
+        {/* Swipeable Tab Content */}
+        <SwipeableContainer
+          activeIndex={currentTabIndex}
+          onIndexChange={handleIndexChange}
+          shrink={false}>
+          {tabs.map((tab) => {
+            if (tab.id === 'project-information') {
+              return (
+                <ProjectInformationTab
+                  key={tab.id}
+                  project={project}
+                  projectId={projectId}
+                  soleUserId={soleUserId || ''}
+                  projectStatus={project?.status || 'Draft'}
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  isPublishButtonDisabled={isPublishButtonDisabled}
+                  onPublishSuccess={() => {
+                    // Navigate back to projects list after successful publish
+                    router.back();
+                  }}
+                />
+              );
+            }
+            if (tab.id === 'project-roles') {
+              return (
+                <ProjectRolesTab
+                  key={tab.id}
+                  project={project}
+                  projectId={projectId}
+                  rolesWithSchedules={rolesWithSchedules}
+                  currentRole={currentRole}
+                  setCurrentRole={setCurrentRole}
+                  countJobActivities={countJobActivities}
+                  refetchRoles={refetchRoles}
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                />
+              );
+            }
+            if (tab.id === 'project-contracts') {
+              return (
+                <ProjectContractsTabWrapper
+                  key={tab.id}
+                  projectId={projectId}
+                  initialContracts={
+                    Array.isArray(jobContractsData)
+                      ? jobContractsData
+                      : (jobContractsData?.content ?? jobContractsData?.data ?? [])
+                  }
+                  isLoadingInitial={jobContractsLoading}
+                  refetchContracts={refetchContracts}
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                />
+              );
+            }
+            return <View key={tab.id} />;
+          })}
+        </SwipeableContainer>
       </View>
     </>
   );

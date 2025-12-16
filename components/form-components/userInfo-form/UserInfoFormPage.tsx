@@ -241,7 +241,7 @@ export default function UserInfoFormPortalPage() {
               headerClassName="border-b border-white/10 px-4 pb-3 pt-12"
               contentClassName="flex-1 px-4">
               {/* Profile Picture */}
-              <View className="mb-4">
+              <View className="mb-4 px-4">
                 <Text className="mb-2 text-white">Profile Picture</Text>
                 <TouchableOpacity
                   onPress={() => {

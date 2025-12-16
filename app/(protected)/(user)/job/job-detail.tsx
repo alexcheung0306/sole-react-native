@@ -1,10 +1,8 @@
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  RefreshControl,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -12,20 +10,16 @@ import { ChevronLeft } from 'lucide-react-native';
 import { useSoleUserContext } from '~/context/SoleUserContext';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { CollapsibleHeader } from '@/components/CollapsibleHeader';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getProjectByID } from '~/api/apiservice/project_api';
 import { getRolesByProjectId } from '~/api/apiservice/role_api';
 import { getJobApplicantsByProjectIdAndSoleUserId } from '~/api/apiservice/applicant_api';
 import { getJobContractsWithProfileByProjectIdAndTalentId } from '~/api/apiservice/jobContracts_api';
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { ProjectInformationCard } from '~/components/project-detail/details/ProjectInformationCard';
-import { ProjectAnnouncementsList } from '~/components/project-detail/details/ProjectAnnouncementsList';
 import { CustomTabs } from '@/components/custom/custom-tabs';
-import { JobContractsTab } from '~/components/job-detail/contracts/JobContractsTab';
-import { JobRolesBreadcrumb } from '~/components/job-detail/roles/JobRolesBreadcrumb';
-import { JobApplicationDetail } from '~/components/job-detail/roles/JobApplicationDetail';
-import JobApplyFormPortal from '~/components/form-components/job-apply-form/JobApplyFormPortal';
 import SwipeableContainer from '@/components/common/SwipeableContainer';
+import JobInformationTab from '@/components/job-detail/tabs/JobInformationTab';
+import JobRolesTab from '@/components/job-detail/tabs/JobRolesTab';
+import JobContractsTabWrapper from '@/components/job-detail/tabs/JobContractsTabWrapper';
 
 const STATUS_COLORS: Record<string, string> = {
   Draft: '#6b7280',
@@ -35,11 +29,10 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function JobDetail({ scrollHandler }: { scrollHandler: (event: any) => void }) {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams();
   const { soleUserId } = useSoleUserContext();
-  const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
+  const { animatedHeaderStyle, handleHeightChange } = useScrollHeader();
   const queryClient = useQueryClient();
 
   const projectId = params.id ? parseInt(params.id as string, 10) : 0;
@@ -217,10 +210,6 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
     }
   }, [getTabId, currentTab]);
 
-  const application = applicationsData?.find(
-    (app: any) => app.roleId === rolesWithSchedules[currentRole]?.role?.id
-  );
-
   if (isInitialLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-[#0a0a0a] px-6">
@@ -292,135 +281,41 @@ export default function JobDetail({ scrollHandler }: { scrollHandler: (event: an
           onHeightChange={handleHeightChange}
           isDark={true}
         />
-        <ScrollView
-          className="flex-1"
-          onScroll={onScroll}
-          scrollEventThrottle={16}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="rgb(255, 255, 255)"
-              colors={['rgb(255, 255, 255)']}
-            />
-          }
-          contentContainerStyle={{
-            // Base header (insets.top + 8) + main header (56) + secondHeader (chips ~40 + tabs ~60 + padding ~20 = ~120)
-            paddingTop: insets.top + 140, // Account for secondHeader (chips + tabs)
-            paddingBottom: 28,
-            paddingHorizontal: 0,
-          }}>
-          <View className="gap-6">
-            {/* Title and Description */}
-            <View className={`gap-2 px-2`}>
-              <Text className="text-2xl font-bold text-white">{project?.projectName || ''}</Text>
-              <Text className="text-sm text-white/80">
-                Browse job details, roles, and your contracts for this opportunity.
-              </Text>
-            </View>
-
-            {/* Swipeable Tab Content */}
-            <SwipeableContainer 
-              activeIndex={currentTabIndex} 
-              onIndexChange={handleIndexChange}
-              shrink={false}
-            >
-              {/* ---------------------------------------Job Information--------------------------------------- */}
-              <View className="gap-0 px-2">
-                <ProjectInformationCard project={project} soleUserId={soleUserId || ''} />
-                <View className="mt-4">
-                  {project?.soleUserId === soleUserId || (applicationsData && applicationsData.length > 0) ? (
-                    <ProjectAnnouncementsList
-                      projectId={projectId}
-                      viewerId={soleUserId || ''}
-                      viewerSoleUserId={soleUserId || ''}
-                      viewerRoleLevels={userRoleLevels}
-                    />
-                  ) : (
-                    <View className="mt-2 rounded-2xl border border-white/10 bg-zinc-900/60 p-4">
-                      <Text className="text-sm font-semibold text-white">
-                        Apply to see announcements
-                      </Text>
-                      <Text className="mt-1 text-xs text-white/70">
-                        Project announcements become visible once you have an application for a
-                        role.
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-
-              {/* ---------------------------------------Job Roles--------------------------------------- */}
-              <View className="gap-4">
-                {rolesLoading ? (
-                  <View className="items-center justify-center py-20">
-                    <ActivityIndicator size="large" color="#3b82f6" />
-                    <Text className="mt-3 text-sm text-gray-400">Loading roles...</Text>
-                  </View>
-                ) : rolesWithSchedules.length === 0 ? (
-                  <View className="items-center gap-3 rounded-2xl border border-white/10 bg-zinc-800 p-8">
-                    <Text className="text-lg font-semibold text-white">No roles yet</Text>
-                    <Text className="text-center text-sm text-white/70">
-                      No roles have been created for this job.
-                    </Text>
-                  </View>
-                ) : (
-                  <>
-                    <JobRolesBreadcrumb
-                      projectData={project}
-                      rolesWithSchedules={rolesWithSchedules}
-                      currentRole={currentRole}
-                      setCurrentRole={setCurrentRole}
-                      applicationsData={applicationsData}
-                      soleUserId={soleUserId}
-                      onApplicationUpdated={refetchApplications}
-                    />
-
-                    {rolesWithSchedules[currentRole] && (
-                      < >
-                        {application ? (
-                          <JobApplicationDetail
-                            application={application}
-                            roleWithSchedules={rolesWithSchedules[currentRole]}
-                            onDeleted={refetchApplications}
-                          />
-                        ) : (
-                          <View className="rounded-2xl border bg-zinc-700 p-4 mx-2">
-                            <View className="flex-row items-center justify-between">
-                              <View className="flex-1">
-                                <Text className="text-base font-semibold text-white">Apply for this role</Text>
-                                <Text className="text-sm text-white/70">
-                                  Share your quote and details to submit your application.
-                                </Text>
-                              </View>
-                              {!soleUserId && (
-                                <Text className="ml-2 text-xs font-semibold text-amber-300">
-                                  Sign in to apply
-                                </Text>
-                              )}
-                            </View>
-                            <JobApplyFormPortal
-                              projectId={projectData?.id}
-                              roleId={rolesWithSchedules[currentRole]?.role?.id}
-                              soleUserId={soleUserId}
-                            />
-                          </View>
-                        )}
-                      </ >
-                    )}
-                  </>
-                )}
-              </View>
-
-              {/* ---------------------------------------Job Contracts--------------------------------------- */}
-              <JobContractsTab 
-                contracts={contractsData || []} 
-                isLoading={contractsLoading}
-                highlightedContractId={contractIdParam || undefined}
-              />
-            </SwipeableContainer>
-          </View>
-        </ScrollView>
+        {/* Swipeable Tab Content */}
+        <SwipeableContainer
+          activeIndex={currentTabIndex}
+          onIndexChange={handleIndexChange}
+          shrink={false}>
+          <JobInformationTab
+            project={project}
+            projectId={projectId}
+            soleUserId={soleUserId || ''}
+            applicationsData={applicationsData}
+            userRoleLevels={userRoleLevels}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+          />
+          <JobRolesTab
+            project={project}
+            projectId={projectId}
+            rolesWithSchedules={rolesWithSchedules}
+            currentRole={currentRole}
+            setCurrentRole={setCurrentRole}
+            applicationsData={applicationsData}
+            soleUserId={soleUserId}
+            onApplicationUpdated={refetchApplications}
+            rolesLoading={rolesLoading}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+          />
+          <JobContractsTabWrapper
+            contracts={contractsData || []}
+            isLoading={contractsLoading}
+            highlightedContractId={contractIdParam || undefined}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+          />
+        </SwipeableContainer>
       </View>
     </>
   );
