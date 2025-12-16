@@ -26,13 +26,14 @@ export const CameraCroppingArea = ({
   // Calculate the fixed container height for collapse animation
   const FIXED_RATIO = 4 / 5;
   const fixedContainerHeight = width / FIXED_RATIO;
+  const variableContainerHeight = width / selectedAspectRatio;
 
   // Animated style for collapsing the main media
   const mainMediaAnimatedStyle = useAnimatedStyle(() => {
     const height = interpolate(
       mediaCollapseProgress?.value ?? 0,
       [0, 1],
-      [fixedContainerHeight, 0],
+      [variableContainerHeight, 0],
       Extrapolation.CLAMP
     );
 
@@ -55,7 +56,7 @@ export const CameraCroppingArea = ({
     const collapseProgress = mediaCollapseProgress?.value ?? 0;
 
     // Fully collapse to 0 height - only the main media is inside this container now
-    const height = interpolate(collapseProgress, [0, 1], [fixedContainerHeight, 0], Extrapolation.CLAMP);
+    const height = interpolate(collapseProgress, [0, 1], [variableContainerHeight, 0], Extrapolation.CLAMP);
 
     return {
       height,
@@ -70,9 +71,9 @@ export const CameraCroppingArea = ({
     return (
       <Animated.View
         className=" "
-        style={[{ position: 'relative' }, containerAnimatedStyle]}>
+        style={[{ position: 'relative',justifyContent: 'center', alignItems: 'center' }, containerAnimatedStyle]}>
         {/* Main Media Display (Editable) */}
-        <Animated.View style={mainMediaAnimatedStyle}>
+        <Animated.View style={[mainMediaAnimatedStyle,{justifyContent: 'center', alignItems: 'center'}]}>
           <MainMedia
             currentIndex={currentIndex}
             width={width}
