@@ -7,8 +7,9 @@ import { useAuth, useUser } from '@clerk/clerk-expo';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 import { SwitchInterface } from './profile/switch-interface';
-import CollapseDrawer2 from './custom/collapse-drawer2';
+import CollapseDrawer2 from './custom/collapse-drawer';
 import { useSoleUserContext } from '~/context/SoleUserContext';
+import CollapseDrawer from './custom/collapse-drawerV1';
 
 interface AccountDropDownMenuProps {
   color: string;

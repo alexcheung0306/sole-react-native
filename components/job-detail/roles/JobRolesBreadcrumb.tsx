@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Briefcase, InfoIcon } from 'lucide-react-native';
-import CollapseDrawer from '~/components/custom/collapse-drawer';
+import CollapseDrawer from '~/components/custom/collapse-drawerV1';
 import { JobRoleDrawerContent } from './JobRoleDrawerContent';
 
 type JobRolesBreadcrumbProps = {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { Search, X, Filter } from 'lucide-react-native';
-import CollapseDrawer from './collapse-drawer';
+import CollapseDrawer from './collapse-drawerV1';
 
 interface FilterSearchProps {
   searchBy: string;

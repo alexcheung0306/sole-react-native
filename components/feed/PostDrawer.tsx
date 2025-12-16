@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import CollapseDrawer from '~/components/custom/collapse-drawer';
+import CollapseDrawer from '~/components/custom/collapse-drawerV1';
 import { useSoleUserContext } from '~/context/SoleUserContext';
 import { Post } from '~/types/post';
 import { deletePost } from '~/api/apiservice/post_api';

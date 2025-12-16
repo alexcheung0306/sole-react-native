@@ -13,7 +13,7 @@ import Animated, {
     cancelAnimation,
     SharedValue
 } from 'react-native-reanimated';
-import CollapseDrawer from '@/components/custom/collapse-drawer';
+import CollapseDrawer from '~/components/custom/collapse-drawerV1';
 
 const ITEM_HEIGHT = 50;
 const CONTAINER_HEIGHT = 215;

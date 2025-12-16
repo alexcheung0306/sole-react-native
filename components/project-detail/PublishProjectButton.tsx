@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Upload } from 'lucide-react-native';
 import { PrimaryButton } from '@/components/custom/primary-button';
 import { Button, ButtonText } from '@/components/ui/button';
-import CollapseDrawer from '@/components/custom/collapse-drawer';
+import CollapseDrawer from '~/components/custom/collapse-drawerV1';
 import { parseDateTime } from '@/lib/datetime';
 import { publishProject } from '@/api/apiservice/project_api';
 import { DateTimePickerInput } from '@/components/form-components/DateTimePickerInput';

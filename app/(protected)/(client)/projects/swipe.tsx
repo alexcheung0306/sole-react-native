@@ -20,7 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getStatusColor } from "@/utils/get-status-color";
 import { getUserProfileByUsername } from "@/api/apiservice/soleUser_api";
 import SwipeCard from "~/components/project-detail/roles/SwipeCard";
-import CollapseDrawer from "@/components/custom/collapse-drawer";
+import CollapseDrawer from "~/components/custom/collapse-drawerV1";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 

@@ -1,5 +1,5 @@
 import { TouchableOpacity, Text, TextInput, View, Dimensions } from 'react-native';
-import CollapseDrawer from '../custom/collapse-drawer';
+import CollapseDrawer from '../custom/collapse-drawerV1';
 import { CommentSheet } from './CommentSheet';
 import { useState } from 'react';
 import { Post } from '~/types/post';

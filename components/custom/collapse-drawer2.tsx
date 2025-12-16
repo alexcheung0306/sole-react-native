@@ -54,6 +54,7 @@ export default function CollapseDrawer2({
   const scrollViewRef = useAnimatedRef<Animated.ScrollView>();
   const scrollOffset = useSharedValue(0);
   const flingStartY = useSharedValue(0);
+  const handlePanOffset = useSharedValue(0);
 
   // Handle height: ~33px (5px handle + 12px paddingBottom + 16px title margin if exists)
   const HANDLE_HEIGHT = title ? 33 : 17;
@@ -228,6 +229,32 @@ export default function CollapseDrawer2({
       }
     });
 
+  // Pan gesture for handle - allows dragging but returns to position on release
+  const handlePanGesture = Gesture.Pan()
+    .minDistance(5)
+    .activeOffsetY(5) // Activate on downward movement
+    .maxPointers(1)
+    .shouldCancelWhenOutside(false)
+    .onStart(() => {
+      'worklet';
+      cancelAnimation(handlePanOffset);
+      cancelAnimation(translateY);
+    })
+    .onUpdate((e) => {
+      'worklet';
+      // Only allow downward dragging
+      if (e.translationY > 0) {
+        handlePanOffset.value = e.translationY;
+      }
+    })
+    .onEnd(() => {
+      'worklet';
+      // Return to original position (don't close) - gentle, smooth animation
+      handlePanOffset.value = withTiming(0, {
+        duration: 300,
+      });
+    });
+
   // Native scroll gesture for ScrollView
   const scrollGesture = Gesture.Native();
 
@@ -237,7 +264,7 @@ export default function CollapseDrawer2({
   const composedGesture = Gesture.Simultaneous(scrollGesture, flingGesture);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value + keyboardOffset.value }],
+    transform: [{ translateY: translateY.value + keyboardOffset.value + handlePanOffset.value }],
   }));
 
   // Calculate current drawer height (reactive to contentHeight changes)
@@ -278,14 +305,16 @@ export default function CollapseDrawer2({
               <GlassOverlay intensity={100} tint="dark" darkOverlayOpacity={0.5} />
 
               {/* Handle + Title - Draggable Area */}
-              <View style={{ alignItems: 'center', paddingBottom: 12 }}>
-                <View
-                  style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: '#ffffff40' }}
-                />
-                {title ? (
-                  <Text style={{ color: '#fff', fontSize: 12, marginTop: 16 }}>{title}</Text>
-                ) : null}
-              </View>
+              <GestureDetector gesture={handlePanGesture}>
+                <View style={{ alignItems: 'center', paddingBottom: 12 }}>
+                  <View
+                    style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: '#ffffff40' }}
+                  />
+                  {title ? (
+                    <Text style={{ color: '#fff', fontSize: 12, marginTop: 16 }}>{title}</Text>
+                  ) : null}
+                </View>
+              </GestureDetector>
 
               {/* Content */}
               <Animated.ScrollView
