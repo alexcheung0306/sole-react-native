@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -7,6 +7,7 @@ import {
   Text,
   ImageBackground,
   StyleSheet,
+  Animated,
 } from 'react-native';
 import GlassView from '@/components/custom/GlassView';
 import { formatDateTime } from '~/utils/time-converts';
@@ -18,6 +19,7 @@ type ContractListCardProps = {
 
 export default function ContractListCard({ item }: ContractListCardProps) {
   const [isNavigating, setIsNavigating] = useState(false);
+  const translateX = useRef(new Animated.Value(0)).current;
   const contract = item?.jobContract ?? item;
 
   if (!contract) {
@@ -41,15 +43,29 @@ export default function ContractListCard({ item }: ContractListCardProps) {
     
     setIsNavigating(true);
     
-    router.push({
-      pathname: '/(protected)/(client)/projects/contract-detail' as any,
-      params: { id: contract.id },
+    // Gentle translate animation
+    Animated.sequence([
+      Animated.timing(translateX, {
+        toValue: 4,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateX, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      router.push({
+        pathname: '/(protected)/(client)/projects/contract-detail' as any,
+        params: { id: contract.id },
+      });
+      
+      // Reset navigation state after a delay to allow navigation to complete
+      setTimeout(() => {
+        setIsNavigating(false);
+      }, 1000);
     });
-    
-    // Reset navigation state after a delay to allow navigation to complete
-    setTimeout(() => {
-      setIsNavigating(false);
-    }, 1000);
   };
 
   const hasImage = !!projectImage;
@@ -87,40 +103,42 @@ export default function ContractListCard({ item }: ContractListCardProps) {
   );
 
   return (
-    <TouchableOpacity activeOpacity={0.9} className="mx-1 mb-5" style={{ width: '100%' }} onPress={handleContractPress} disabled={isNavigating}>
-      <View className="overflow-hidden rounded-2xl border  bg-zinc-900/80">
-        {projectImage ? (
-          <ImageBackground
-            source={{ uri: projectImage }}
-            style={styles.cardBackground}
-            imageStyle={styles.cardImage}
-          >
-            {renderCardOverlay()}
-          </ImageBackground>
-        ) : (
-          <GlassView
-            style={styles.cardBackground}
-            intensity={80}
-            tint="dark"
-            borderRadius={16}
-            darkOverlayOpacity={0}>
-            {renderCardOverlay()}
-          </GlassView>
-        )}
-      </View>
+    <Animated.View style={{ transform: [{ translateX }], width: '100%' }}>
+      <TouchableOpacity activeOpacity={0.9} className="mx-1 mb-5" style={{ width: '100%' }} onPress={handleContractPress} disabled={isNavigating}>
+        <View className="overflow-hidden rounded-2xl border  bg-zinc-900/80">
+          {projectImage ? (
+            <ImageBackground
+              source={{ uri: projectImage }}
+              style={styles.cardBackground}
+              imageStyle={styles.cardImage}
+            >
+              {renderCardOverlay()}
+            </ImageBackground>
+          ) : (
+            <GlassView
+              style={styles.cardBackground}
+              intensity={80}
+              tint="dark"
+              borderRadius={16}
+              darkOverlayOpacity={0}>
+              {renderCardOverlay()}
+            </GlassView>
+          )}
+        </View>
 
-      <View className="mt-2 gap-1 px-1">
-        <Text className="text-[11px] text-gray-400">
-          Created: {formatDateTime(contract.createdAt)}
-        </Text>
-
-        {contract.remarks ? (
-          <Text className="text-[11px] text-white/80" numberOfLines={2}>
-            {contract.remarks}
+        <View className="mt-2 gap-1 px-1">
+          <Text className="text-[11px] text-gray-400">
+            Created: {formatDateTime(contract.createdAt)}
           </Text>
-        ) : null}
-      </View>
-    </TouchableOpacity>
+
+          {contract.remarks ? (
+            <Text className="text-[11px] text-white/80" numberOfLines={2}>
+              {contract.remarks}
+            </Text>
+          ) : null}
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 

@@ -1,10 +1,13 @@
+import { useRef } from "react";
 import { router } from "expo-router";
 import { Briefcase, FileText, Calendar } from "lucide-react-native";
-import { TouchableOpacity, View, Text } from "react-native";
+import { TouchableOpacity, View, Text, Animated } from "react-native";
 import { formatDateTime } from "~/lib/datetime";
 import { getStatusColorObject } from "~/utils/get-status-color";
 
 export  function AppliedRoleListCard({ item }: { item: any }) {
+    const translateX = useRef(new Animated.Value(0)).current;
+    
     // Extract nested data to match the logged structure
     const jobApplicant = item?.jobApplicant || {};
     const project = item?.project || {};
@@ -28,21 +31,36 @@ export  function AppliedRoleListCard({ item }: { item: any }) {
     
     const statusColor = getStatusColorObject(applicationProcess || applicationStatus);
     const handleApplicationPress = (application: any) => {
-        const projectId = application?.project?.id || application?.jobApplicant?.projectId;
-        const roleId = application?.role?.id || application?.jobApplicant?.roleId;
-        if (projectId) {
-          router.push({
-            pathname: `/(protected)/(user)/job/job-detail` as any,
-            params: { id: projectId, roleId: roleId },
-          });
-        }
+        // Gentle translate animation
+        Animated.sequence([
+          Animated.timing(translateX, {
+            toValue: 4,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(translateX, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          const projectId = application?.project?.id || application?.jobApplicant?.projectId;
+          const roleId = application?.role?.id || application?.jobApplicant?.roleId;
+          if (projectId) {
+            router.push({
+              pathname: `/(protected)/(user)/job/job-detail` as any,
+              params: { id: projectId, roleId: roleId },
+            });
+          }
+        });
       };
     return (
-      <TouchableOpacity
-        onPress={() => handleApplicationPress(item)}
-        className="bg-zinc-800/60 rounded-2xl p-4 mb-3 border border-white/10"
-        activeOpacity={0.7}
-      >
+      <Animated.View style={{ transform: [{ translateX }] }}>
+        <TouchableOpacity
+          onPress={() => handleApplicationPress(item)}
+          className="bg-zinc-800/60 rounded-2xl p-4 mb-3 border border-white/10"
+          activeOpacity={0.7}
+        >
         {/* Role Title */}
         <Text className="text-lg font-bold text-white mb-2" numberOfLines={2}>
           {roleTitle}
@@ -89,5 +107,6 @@ export  function AppliedRoleListCard({ item }: { item: any }) {
           </Text>
         )}
       </TouchableOpacity>
+      </Animated.View>
     );
   };
