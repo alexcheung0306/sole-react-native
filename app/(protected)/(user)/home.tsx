@@ -48,11 +48,11 @@ export default React.memo(function UserHome() {
     refetch,
     isRefetching,
   } = useInfiniteQuery({
-    queryKey: ['homePagePosts', soleUserId],
+    queryKey: ['homePagePosts', soleUserId], // Include userId in key for proper cache invalidation
     queryFn: async ({ pageParam = 0 }) => {
       console.log('Fetching posts page:', pageParam);
       const response = await searchPosts({
-        soleUserId: '', // Empty = ALL users for home feed
+        soleUserId: soleUserId || '', // Pass current user ID for like status
         content: '',
         pageNo: pageParam,
         pageSize: 5, // Fetch 5 posts per page
@@ -86,6 +86,7 @@ export default React.memo(function UserHome() {
     },
   });
 
+
   // Mutation for adding comments
   const commentMutation = useMutation({
     mutationFn: ({
@@ -107,6 +108,9 @@ export default React.memo(function UserHome() {
   const posts = postsData?.pages.flatMap((page) => page.data) ?? [];
   const totalPosts = postsData?.pages[0]?.total ?? 0;
 
+
+  console.log('postsData', postsData);
+  console.log('posts0', posts[0]);
   // Handle like
   const handleLike = (postId: string) => {
     if (!soleUserId) return;
@@ -157,7 +161,7 @@ export default React.memo(function UserHome() {
       })),
       likeCount: backendPost.likeCount || 0,
       commentCount: backendPost.commentCount || 0,
-      isLikedByUser: false, // We'll need to check this separately if needed
+      isLikedByUser: backendPost.isLikedByUser || false,
       soleUserInfo: {
         soleUserId: userInfo.soleUserId,
         username: userInfo.username,
