@@ -33,10 +33,8 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
 
   const isLogAvaliable = false;
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [imageHeights, setImageHeights] = useState<{ [key: number]: number }>({});
-  const [currentHeight, setCurrentHeight] = useState<number>(300); // Default to reasonable height to prevent layout shift
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set()); // Track loaded images
-  const [imageRefs, setImageRefs] = useState<{ [key: number]: any }>({}); // Store image refs for blur control
+  const [imageDimensions, setImageDimensions] = useState<{ [key: number]: { width: number; height: number } }>({}); // Store image dimensions
   const [isZooming, setIsZooming] = useState(false);
   const listRef = useRef<FlatList<MediaItem>>(null);
 
@@ -63,150 +61,19 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
     return null;
   }
 
-  // Load image dimensions and calculate heights with memory management
-  useEffect(() => {
-    let isMounted = true; // Track if component is still mounted
-    let abortController = new AbortController(); // For cancelling requests
-
-    const loadImageDimensions = async () => {
-      const heights: { [key: number]: number } = {};
-
-      // Limit to first 10 images to prevent memory issues with large carousels
-      const maxImagesToLoad = Math.min(media.length, 10);
-
-      // Process images one by one with delays to prevent memory pressure
-      for (let i = 0; i < maxImagesToLoad; i++) {
-        const item = media[i];
-
-        // Check if component is still mounted and not aborted
-        if (!isMounted || abortController.signal.aborted) {
-          break;
-        }
-
-        // Skip if this image is already loaded
-        if (loadedImages.has(i)) {
-          continue;
-        }
-
-        // If dimensions are already provided, use them
-        if (item.width && item.height) {
-          const aspectRatio = item.width / item.height;
-          heights[i] = SCREEN_WIDTH / aspectRatio;
-        } else {
-          // Otherwise, fetch image dimensions with timeout and error handling
-          try {
-            await new Promise<void>((resolve, reject) => {
-              // Check if component is still mounted before making the request
-              if (!isMounted || abortController.signal.aborted) {
-                resolve();
-                return;
-              }
-
-              // Set a timeout for the image size request
-              const timeoutId = setTimeout(() => {
-                console.warn('Image size request timeout for:', item.mediaUrl);
-                heights[i] = 300; // Fallback height
-                resolve();
-              }, 5000); // 5 second timeout
-
-              Image.getSize(
-                item.mediaUrl,
-                (width, height) => {
-                  clearTimeout(timeoutId);
-                  // Check again if component is still mounted
-                  if (!isMounted || abortController.signal.aborted) return;
-
-                  const aspectRatio = width / height;
-                  heights[i] = SCREEN_WIDTH / aspectRatio;
-                  resolve();
-                },
-                (error) => {
-                  clearTimeout(timeoutId);
-                  // Check if component is still mounted
-                  if (!isMounted || abortController.signal.aborted) return;
-
-                  // Handle memory pool violations gracefully
-                  if (error?.message?.includes('PoolSizeViolationException')) {
-                    console.warn('Image memory limit reached, using fallback dimensions');
-                    // Add longer delay for memory recovery
-                    setTimeout(() => {}, 1000);
-                  } else {
-                    console.error('Error loading image size:', error);
-                  }
-
-                  // Fallback to reasonable height if error
-                  heights[i] = 300;
-                  resolve();
-                }
-              );
-            });
-
-            // Small delay between requests to prevent memory pressure
-            if (i < media.length - 1) {
-              await new Promise(resolve => setTimeout(resolve, 100));
-            }
-
-          } catch (error) {
-            // Check if component is still mounted
-            if (!isMounted || abortController.signal.aborted) return;
-
-            console.error('Error loading image dimensions:', error);
-            heights[i] = 300; // Fallback to reasonable height
-          }
-        }
-      }
-
-      // Only update state if component is still mounted and not aborted
-      if (isMounted && !abortController.signal.aborted) {
-        setImageHeights(heights);
-        // Set initial height for first image
-        if (heights[0]) {
-          setCurrentHeight(heights[0]);
-        }
-      }
-    };
-
-    loadImageDimensions();
-
-    // Cleanup function to prevent state updates and cancel pending requests
-    return () => {
-      isMounted = false;
-      abortController.abort();
-    };
-  }, [media]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      // Clear loaded images state when component unmounts
-      setLoadedImages(new Set());
-      setImageHeights({});
-    };
-  }, []);
-
-  // Handle app memory warnings
-  useEffect(() => {
-    const memoryWarningHandler = () => {
-      console.warn('Memory warning received, clearing image caches');
-      // Clear any cached image data
-      setLoadedImages(new Set());
-      setImageHeights({});
-    };
-
-    // Note: React Native doesn't have a direct memory warning listener
-    // This is a placeholder for future memory management
-
-    return () => {
-      // Cleanup if needed
-    };
-  }, []);
-
-  // Update height when current index changes
-  useEffect(() => {
-    if (imageHeights[currentIndex] !== undefined) {
-      setCurrentHeight(imageHeights[currentIndex]);
+  // Simple helper to get aspect ratio from media item or loaded dimensions
+  const getAspectRatio = (item: MediaItem, index: number): number => {
+    // First check if dimensions are provided in the media item
+    if (item.width && item.height) {
+      return item.width / item.height;
     }
-  }, [currentIndex, imageHeights]);
+    // Then check if we've loaded the dimensions from the image
+    if (imageDimensions[index]) {
+      return imageDimensions[index].width / imageDimensions[index].height;
+    }
+    // Default to 16:9 if dimensions not available yet
+    return 16 / 9;
+  };
 
   const handlePrevious = () => {
     const nextIndex = currentIndex === 0 ? media.length - 1 : currentIndex - 1;
@@ -228,23 +95,29 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
     }
   };
 
-  const handleImageLoad = (index: number) => {
+  const handleImageLoad = (index: number, event?: any) => {
     setLoadedImages(prev => new Set(prev).add(index));
-    // Remove blur effect after image loads
-    if (imageRefs[index]) {
-      // The blur will be removed through state update
+    // Get dimensions from the loaded image
+    if (event?.nativeEvent?.source) {
+      const { width, height } = event.nativeEvent.source;
+      if (width && height) {
+        setImageDimensions(prev => ({
+          ...prev,
+          [index]: { width, height }
+        }));
+      }
     }
   };
 
   // Single image - no carousel needed
   if (media.length === 1) {
-    const singleImageHeight = imageHeights[0] || currentHeight;
+    const aspectRatio = getAspectRatio(media[0], 0);
+    const calculatedHeight = SCREEN_WIDTH / aspectRatio;
     return (
       <Animated.View
         style={[
           {
             width: SCREEN_WIDTH,
-            height: 'auto',
             overflow: 'visible',
             position: 'relative',
           },
@@ -274,11 +147,11 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
             borderRadius: 4,
             zIndex: 99999,
           }}>
-     
+
         </View>
         <MediaZoom2
           children={
-            <View style={{ width: SCREEN_WIDTH, height: singleImageHeight }}>
+            <View style={{ width: '100%', height: '100%' }}>
               {!loadedImages.has(0) && (
                 <View
                   style={{
@@ -298,22 +171,21 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
               <Image
                 source={{ uri: media[0].mediaUrl }}
                 style={{
-                  width: SCREEN_WIDTH,
-                  height: singleImageHeight,
+                  width: '100%',
+                  height: '100%',
                   opacity: loadedImages.has(0) ? 1 : 0
                 }}
                 resizeMode="contain"
-                onLoad={() => handleImageLoad(0)}
+                onLoad={(event) => handleImageLoad(0, event)}
                 onError={(error) => {
                   console.warn('Image failed to load:', media[0].mediaUrl, error);
-                  // Mark as loaded to hide spinner even on error
                   handleImageLoad(0);
                 }}
               />
             </View>
           }
           width={SCREEN_WIDTH}
-          height={singleImageHeight}
+          height={calculatedHeight}
           resetOnRelease={true}
           minScale={1}
           maxScale={3}
@@ -322,152 +194,156 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
         />
       </Animated.View>
     );
+    // multiple images
+  } else if (media.length > 1) {
+    // Use first image's aspect ratio for FlatList height (or default)
+    const firstAspectRatio = getAspectRatio(media[0], 0);
+    const defaultHeight = SCREEN_WIDTH / firstAspectRatio;
+    return (
+      <Animated.View
+        style={[
+          {
+            position: 'relative',
+            overflow: 'visible',
+          },
+          carouselAnimatedStyle, // Uses Reanimated for instant z-index updates
+        ]}>
+        {/* Debug overlay for ImageCarousel z-index */}
+        {isLogAvaliable && <View
+          style={{
+            position: 'absolute',
+            top: 10,
+            left: 10,
+            backgroundColor: 'rgba(0, 0, 255, 0.8)',
+            padding: 8,
+            borderRadius: 4,
+            zIndex: 99999,
+          }}>
+          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
+            Carousel z-index: {isZooming ? 8888 : 100}
+          </Text>
+        </View>}
+        <FlatList
+          style={{
+            width: SCREEN_WIDTH,
+            overflow: 'visible',
+            position: 'relative',
+          }}
+          ref={listRef}
+          data={media}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(_, index) => `${index}`}
+          onMomentumScrollEnd={handleMomentumEnd}
+          renderItem={({ item, index }) => {
+            const aspectRatio = getAspectRatio(item, index);
+            const calculatedHeight = SCREEN_WIDTH / aspectRatio;
+
+            return (
+              <View style={{ width: SCREEN_WIDTH, height: calculatedHeight }}>
+                <MediaZoom2
+                  children={
+                    <View style={{ width: SCREEN_WIDTH, height: '100%' }}>
+                      {!loadedImages.has(index) && (
+                        <View
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                          }}
+                        >
+                          <ActivityIndicator size="large" color="#666" />
+                        </View>
+                      )}
+                      <Image
+                        source={{ uri: item.mediaUrl }}
+                        style={{
+                          width: SCREEN_WIDTH,
+                          height: '100%',
+                          opacity: loadedImages.has(index) ? 1 : 0
+                        }}
+                        resizeMode="contain"
+                        onLoad={(event) => handleImageLoad(index, event)}
+                        onError={(error) => {
+                          console.warn('Image failed to load:', item.mediaUrl, error);
+                          handleImageLoad(index);
+                        }}
+                      />
+                    </View>
+                  }
+                  width={SCREEN_WIDTH}
+                  height={calculatedHeight}
+                  resetOnRelease={true}
+                  minScale={1}
+                  maxScale={3}
+                  onZoomActiveChange={handleZoomChange}
+                  onScaleChange={onScaleChange}
+                />
+              </View>
+            );
+          }}
+        />
+
+        {!isZooming && (
+          <>
+            {/* Navigation Arrows */}
+            {media.length > 1 && currentIndex > 0 && (
+              <TouchableOpacity
+                onPress={handlePrevious}
+                className="absolute left-2 h-6 w-6 items-center justify-center rounded-full bg-black/50"
+                style={{
+                  top: '50%',
+                  transform: [{ translateY: -12 }], // Half of button height (24px / 2 = 12px)
+                }}
+                activeOpacity={0.7}>
+                <ChevronLeft size={12} color="#ffffff" />
+              </TouchableOpacity>
+            )}
+
+            {media.length > 1 && currentIndex < media.length - 1 && (
+              <TouchableOpacity
+                onPress={handleNext}
+                className="absolute right-2 h-6 w-6 items-center justify-center rounded-full bg-black/50"
+                style={{
+                  top: '50%',
+                  transform: [{ translateY: -12 }], // Half of button height (24px / 2 = 12px)
+                }}
+                activeOpacity={0.7}>
+                <ChevronRight size={12} color="#ffffff" />
+              </TouchableOpacity>
+            )}
+
+            {/* Image Counter & Indicators */}
+            <View className="absolute bottom-3 left-0 right-0 items-center">
+              {/* Dot Indicators */}
+              <View className="mb-2 flex-row gap-1">
+                {media.map((_, index) => (
+                  <View
+                    key={index}
+                    className={`h-1.5 w-1.5 rounded-full ${index === currentIndex ? 'bg-white' : 'bg-white/40'
+                      }`}
+                  />
+                ))}
+              </View>
+
+              {/* Counter */}
+              <View className="rounded-full bg-black/60 px-3 py-1">
+                <Text className="text-xs font-semibold text-white">
+                  {currentIndex + 1} / {media.length}
+                </Text>
+              </View>
+            </View>
+          </>
+        )}
+      </Animated.View>
+    );
   }
 
-  // Multiple images - show carousel
-  return (
-    <Animated.View
-      style={[
-        {
-          position: 'relative',
-          overflow: 'visible',
-        },
-        carouselAnimatedStyle, // Uses Reanimated for instant z-index updates
-      ]}>
-      {/* Debug overlay for ImageCarousel z-index */}
-     {isLogAvaliable && <View
-        style={{
-          position: 'absolute',
-          top: 10,
-          left: 10,
-          backgroundColor: 'rgba(0, 0, 255, 0.8)',
-          padding: 8,
-          borderRadius: 4,
-          zIndex: 99999,
-        }}>
-        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
-          Carousel z-index: {isZooming ? 8888 : 100}
-        </Text>
-      </View>}
-      <FlatList
-        style={{
-          width: SCREEN_WIDTH,
-          height: 'auto',
-          overflow: 'visible',
-          position: 'relative',
-        }}
-        ref={listRef}
-        data={media}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={(_, index) => `${index}`}
-        onMomentumScrollEnd={handleMomentumEnd}
-        renderItem={({ item, index }) => {
-          // All items use currentHeight for consistent paging
-          const itemHeight = imageHeights[index] || currentHeight;
-          return (
-            <View style={{ width: SCREEN_WIDTH, height: itemHeight }}>
-              <MediaZoom2
-                children={
-                <View style={{ width: SCREEN_WIDTH, height: itemHeight }}>
-                  {!loadedImages.has(index) && (
-                    <View
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                      }}
-                    >
-                      <ActivityIndicator size="large" color="#666" />
-                    </View>
-                  )}
-                  <Image
-                    source={{ uri: item.mediaUrl }}
-                    style={{
-                      width: SCREEN_WIDTH,
-                      height: itemHeight,
-                      opacity: loadedImages.has(index) ? 1 : 0
-                    }}
-                    resizeMode="contain"
-                    onLoad={() => handleImageLoad(index)}
-                    onError={(error) => {
-                      console.warn('Image failed to load:', item.mediaUrl, error);
-                      // Mark as loaded to hide spinner even on error
-                      handleImageLoad(index);
-                    }}
-                  />
-                </View>
-                }
-                width={SCREEN_WIDTH}
-                height={itemHeight}
-                resetOnRelease={true}
-                minScale={1}
-                maxScale={3}
-                onZoomActiveChange={handleZoomChange}
-                onScaleChange={onScaleChange}
-              />
-            </View>
-          );
-        }}
-      />
 
-      {!isZooming && (
-        <>
-          {/* Navigation Arrows */}
-          {media.length > 1 && currentIndex > 0 && (
-            <TouchableOpacity
-              onPress={handlePrevious}
-              className="absolute left-2 h-6 w-6 items-center justify-center rounded-full bg-black/50"
-              style={{
-                top: '50%',
-                transform: [{ translateY: -12 }], // Half of button height (24px / 2 = 12px)
-              }}
-              activeOpacity={0.7}>
-              <ChevronLeft size={12} color="#ffffff" />
-            </TouchableOpacity>
-          )}
-
-          {media.length > 1 && currentIndex < media.length - 1 && (
-            <TouchableOpacity
-              onPress={handleNext}
-              className="absolute right-2 h-6 w-6 items-center justify-center rounded-full bg-black/50"
-              style={{
-                top: '50%',
-                transform: [{ translateY: -12 }], // Half of button height (24px / 2 = 12px)
-              }}
-              activeOpacity={0.7}>
-              <ChevronRight size={12} color="#ffffff" />
-            </TouchableOpacity>
-          )}
-
-          {/* Image Counter & Indicators */}
-          <View className="absolute bottom-3 left-0 right-0 items-center">
-            {/* Dot Indicators */}
-            <View className="mb-2 flex-row gap-1">
-              {media.map((_, index) => (
-                <View
-                  key={index}
-                  className={`h-1.5 w-1.5 rounded-full ${index === currentIndex ? 'bg-white' : 'bg-white/40'
-                    }`}
-                />
-              ))}
-            </View>
-
-            {/* Counter */}
-            <View className="rounded-full bg-black/60 px-3 py-1">
-              <Text className="text-xs font-semibold text-white">
-                {currentIndex + 1} / {media.length}
-              </Text>
-            </View>
-          </View>
-        </>
-      )}
-    </Animated.View>
-  );
 }

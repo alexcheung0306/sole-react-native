@@ -598,7 +598,7 @@ const styles = StyleSheet.create({
   },
   content: {
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'stretch', // Allow children to fill width
     zIndex: 3, // Highest z-index for the image/content itself
   },
   backdrop: {
