@@ -61,6 +61,17 @@ export default function ProfileScreen() {
     isRefreshing,
   } = useProfileQueries(username as string, viewerUserId as string | undefined, true);
 
+  // Debug logging
+  console.log('Profile Debug:', {
+    username,
+    viewerUserId,
+    profileLoading,
+    userIsLoading,
+    postsCount: posts.length,
+    hasProfileData: !!userProfileData,
+    targetUserId: userProfileData?.userInfo?.soleUserId
+  });
+
   const userInfo = userProfileData?.userInfo;
   const talentInfo = userProfileData?.talentInfo;
   const talentLevel = userProfileData?.talentLevel || null;

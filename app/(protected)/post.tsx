@@ -4,7 +4,7 @@ import { ChevronLeft } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSoleUserContext } from '~/context/SoleUserContext';
 import { useProfileQueries } from '~/hooks/useProfileQueries';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { PostCard } from '~/components/feed/PostCard';
 import { CollapsibleHeader } from '~/components/CollapsibleHeader';
@@ -17,15 +17,18 @@ export default function UserPostsFeed() {
   const params = useLocalSearchParams();
   const postIdParam = params.postId as string;
   const userIdParam = params.userId as string;
+  const postIndexParam = params.postIndex as string;
   const { soleUserId } = useSoleUserContext();
   const queryClient = useQueryClient();
   const flatListRef = useRef<any>(null);
+  const [flatListReady, setFlatListReady] = useState(false);
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   const insets = useSafeAreaInsets();
 
   // Extract actual post ID from the "postid{id}" format
   const targetPostId = postIdParam?.replace('postid', '') || postIdParam;
   const userId = userIdParam || soleUserId;
+  const targetPostIndex = postIndexParam ? parseInt(postIndexParam) : null;
 
   // Transform backend response to component format
   const transformPost = (backendPost: any) => {
@@ -67,20 +70,57 @@ export default function UserPostsFeed() {
     isRefreshing,
   } = useProfileQueries(userId, soleUserId, false);
 
-  // Find the target post index for scrolling
-  const targetPostIndex = userPosts.findIndex(post => post.id.toString() === targetPostId);
+  // Debug logging
+  console.log('Post.tsx Debug:', {
+    userId,
+    targetPostId,
+    targetPostIndex,
+    userPostsLength: userPosts.length,
+    userPostsLoading,
+  });
 
-  // Scroll to target post when data loads
+  // Determine scroll position: use URL index if available, otherwise find by postId
+  const scrollToIndex = targetPostIndex !== null && targetPostIndex >= 0 && userPosts.length > targetPostIndex
+    ? targetPostIndex
+    : userPosts.findIndex(post => post.id.toString() === targetPostId);
+
+  // Scroll to target post when all conditions are met
   useEffect(() => {
-    if (targetPostIndex >= 0 && flatListRef.current) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToIndex({
-          index: targetPostIndex,
-          animated: true,
-        });
-      }, 500); // Small delay to ensure list is rendered
+    const canScroll = scrollToIndex >= 0 &&
+                     userPosts.length > scrollToIndex &&
+                     !userPostsLoading &&
+                     flatListReady &&
+                     flatListRef.current;
+
+    if (canScroll) {
+      console.log('Attempting to scroll to index:', scrollToIndex, 'Posts length:', userPosts.length);
+
+      // Function to attempt scrolling
+      const attemptScroll = (attemptNumber = 1) => {
+        try {
+          flatListRef.current?.scrollToIndex({
+            index: scrollToIndex,
+            animated: true,
+            viewPosition: 0.5, // Center the item
+          });
+          console.log(`Successfully scrolled to index ${scrollToIndex} on attempt ${attemptNumber}`);
+          return true;
+        } catch (error) {
+          console.warn(`Scroll attempt ${attemptNumber} failed:`, error);
+          return false;
+        }
+      };
+
+      // Try scrolling with progressive delays
+      [50, 200, 500, 1000, 1500].forEach((delay, index) => {
+        setTimeout(() => {
+          if (flatListRef.current && userPosts.length > scrollToIndex) {
+            attemptScroll(index + 1);
+          }
+        }, delay);
+      });
     }
-  }, [targetPostIndex]);
+  }, [scrollToIndex, userPosts.length, userPostsLoading, flatListReady]);
 
   const handleLike = (postId: string) => {
     if (!soleUserId) return;
@@ -136,8 +176,19 @@ export default function UserPostsFeed() {
         />
 
         <Animated.FlatList
-          ref={flatListRef}
+          ref={(ref) => {
+            flatListRef.current = ref;
+            if (ref && !flatListReady) {
+              setFlatListReady(true);
+            }
+          }}
           data={userPosts}
+          onLayout={() => {
+            // Ensure FlatList is fully laid out before scrolling
+            if (!flatListReady) {
+              setFlatListReady(true);
+            }
+          }}
           renderItem={({ item }) => {
             const transformedPost = transformPost(item);
             return (

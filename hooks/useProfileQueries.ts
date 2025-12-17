@@ -39,7 +39,7 @@ export function useProfileQueries(userIdentifier: string | undefined, viewerUser
     error: userError,
     refetch: refetchPosts,
   } = useInfiniteQuery({
-    queryKey: ['profilePagePosts', userIdentifier],
+    queryKey: targetUserId ? ['userPosts', targetUserId] : ['userPosts', userIdentifier], // Use userId when available
     queryFn: async ({ pageParam = 0 }) => {
       const response = await searchPosts({
         soleUserId: targetUserId,

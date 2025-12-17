@@ -25,6 +25,14 @@ export default function UserPosts({
   const { width } = Dimensions.get('window');
   const IMAGE_SIZE = width / 3;
 
+  // Debug logging
+  console.log('UserPosts Debug:', {
+    postsCount: posts.length,
+    userIsLoading,
+    userIsError,
+    firstPostUserId: posts[0]?.soleUserId
+  });
+
   // Error state
   if (userIsError) {
     return (
@@ -69,7 +77,8 @@ export default function UserPosts({
                       pathname: `/(protected)/post` as any,
                       params: {
                         postId: item.id,
-                        userId: posts[0]?.soleUserId // Pass the user ID to fetch all their posts
+                        userId: posts[0]?.soleUserId, // Pass the user ID to fetch all their posts
+                        postIndex: index.toString() // Pass the post index for direct scrolling
                       },
                     })
                   }>
