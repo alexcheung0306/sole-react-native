@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { useUser } from '@clerk/clerk-expo';
-import ProfileScreen from './user/[username]/index';
+import ProfileScreen from '../profile/[username]/index';
 
 export default React.memo(function UserProfileWrapper() {
   const { user } = useUser();
@@ -14,6 +14,6 @@ export default React.memo(function UserProfileWrapper() {
     );
   }
 
-  // Render ProfileScreen - it will use the current user's username as fallback
+  // Render ProfileScreen directly (for swipable container) - it will use the current user's username as fallback
   return <ProfileScreen />;
 });

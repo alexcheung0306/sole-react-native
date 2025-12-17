@@ -189,7 +189,7 @@ export default function UserInfoFormPortalPage() {
         router.back();
 
         if (usernameChanged) {
-          router.replace(`/(protected)/(user)/user/${values.username}` as any);
+          router.replace(`/profile/${values.username}` as any);
         }
       }
     } catch (error) {

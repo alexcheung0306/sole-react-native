@@ -110,7 +110,7 @@ export default function PostDetail() {
 
   const handleUsernamePress = () => {
     if (postData?.soleUserInfo?.username) {
-      router.push(`/(protected)/(user)/user/${postData.soleUserInfo.username}` as any);
+      router.push(`/profile/${postData.soleUserInfo.username}` as any);
     }
   };
 

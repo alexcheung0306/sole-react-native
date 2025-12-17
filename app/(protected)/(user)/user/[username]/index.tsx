@@ -21,7 +21,7 @@ const IMAGE_SIZE = width / 3;
 
 type TabKey = 'posts' | 'talent' | 'jobs';
 
-export default function ProfileScreen() {
+export default function UserProfileScreen() {
   const [imageSize, setImageSize] = useState(Dimensions.get('window').width / 3);
   const [profileTab, setProfileTab] = useState<TabKey>('posts');
   const { user } = useUser();

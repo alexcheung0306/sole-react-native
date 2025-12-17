@@ -144,7 +144,7 @@ export default React.memo(function Explore() {
     setSearchQuery('');
     setShowUserResults(false);
     setShowSearch(false);
-    router.push(`/(protected)/(user)/user/${user.soleUser.username}` as any);
+    router.push(`/profile/${user.soleUser.username}` as any);
   };
 
   // Handle thumbnail press

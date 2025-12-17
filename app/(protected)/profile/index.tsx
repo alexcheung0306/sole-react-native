@@ -14,7 +14,7 @@ export default function ProfileIndex() {
     }
 
     if (user?.username) {
-        return <Redirect href={`/(protected)/(user)/user/${user.username}`} />;
+        return <Redirect href={`/profile/${user.username}`} />;
     }
 
     return <Redirect href="/(protected)/(user)/home" />;

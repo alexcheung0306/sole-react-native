@@ -52,7 +52,7 @@ const FollowList = React.memo(function FollowList({
       console.log('Username:', username);
     }
     const pageType = type === 'follower' ? 'followers' : 'following';
-    const route = `/(protected)/(user)/user/${username}/${pageType}`;
+    const route = `/profile/${username}/${pageType}`;
     if (__DEV__) {
       console.log('Navigating to:', route);
     }

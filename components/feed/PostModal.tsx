@@ -22,7 +22,7 @@ export function PostModal({ visible, post, onClose, onLike, onOpenComments }: Po
 
   const handleUsernamePress = () => {
     onClose();
-    router.push(`/(protected)/(user)/user/${post.soleUserInfo.username}` as any);
+    router.push(`/profile/${post.soleUserInfo.username}` as any);
   };
 
   const renderCaption = () => {

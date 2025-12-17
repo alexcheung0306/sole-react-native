@@ -63,7 +63,7 @@ export function PostCard({
         <View className="flex-row items-center justify-between px-4 py-3">
           <TouchableOpacity
             onPress={() =>
-              router.push(`/(protected)/profile/${post.soleUserInfo.username}` as any)
+              router.push(`/profile/${post.soleUserInfo.username}` as any)
             }
             className="flex-1 flex-row items-center"
             activeOpacity={0.7}>
