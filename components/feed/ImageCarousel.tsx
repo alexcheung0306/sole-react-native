@@ -65,6 +65,8 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
 
   // Load image dimensions and calculate heights
   useEffect(() => {
+    let isMounted = true; // Track if component is still mounted
+
     const loadImageDimensions = async () => {
       const heights: { [key: number]: number } = {};
 
@@ -79,14 +81,26 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
           // Otherwise, fetch image dimensions
           try {
             await new Promise<void>((resolve, reject) => {
+              // Check if component is still mounted before making the request
+              if (!isMounted) {
+                resolve();
+                return;
+              }
+
               Image.getSize(
                 item.mediaUrl,
                 (width, height) => {
+                  // Check again if component is still mounted
+                  if (!isMounted) return;
+
                   const aspectRatio = width / height;
                   heights[i] = SCREEN_WIDTH / aspectRatio;
                   resolve();
                 },
                 (error) => {
+                  // Check if component is still mounted
+                  if (!isMounted) return;
+
                   console.error('Error loading image size:', error);
                   // Fallback to reasonable height if error
                   heights[i] = 300;
@@ -95,21 +109,41 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
               );
             });
           } catch (error) {
+            // Check if component is still mounted
+            if (!isMounted) return;
+
             console.error('Error loading image dimensions:', error);
             heights[i] = 300; // Fallback to reasonable height
           }
         }
       }
 
-      setImageHeights(heights);
-      // Set initial height for first image
-      if (heights[0]) {
-        setCurrentHeight(heights[0]);
+      // Only update state if component is still mounted
+      if (isMounted) {
+        setImageHeights(heights);
+        // Set initial height for first image
+        if (heights[0]) {
+          setCurrentHeight(heights[0]);
+        }
       }
     };
 
     loadImageDimensions();
+
+    // Cleanup function to prevent state updates on unmounted component
+    return () => {
+      isMounted = false;
+    };
   }, [media]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Clear loaded images state when component unmounts
+      setLoadedImages(new Set());
+      setImageHeights({});
+    };
+  }, []);
 
   // Update height when current index changes
   useEffect(() => {
@@ -214,6 +248,11 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
                 }}
                 resizeMode="contain"
                 onLoad={() => handleImageLoad(0)}
+                onError={(error) => {
+                  console.warn('Image failed to load:', media[0].mediaUrl, error);
+                  // Mark as loaded to hide spinner even on error
+                  handleImageLoad(0);
+                }}
               />
             </View>
           }
@@ -301,6 +340,11 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
                     }}
                     resizeMode="contain"
                     onLoad={() => handleImageLoad(index)}
+                    onError={(error) => {
+                      console.warn('Image failed to load:', item.mediaUrl, error);
+                      // Mark as loaded to hide spinner even on error
+                      handleImageLoad(index);
+                    }}
                   />
                 </View>
                 }

@@ -52,7 +52,9 @@ export default React.memo(function UserHome() {
     queryFn: async ({ pageParam = 0 }) => {
       console.log('Fetching posts page:', pageParam);
       const response = await searchPosts({
-        soleUserId: soleUserId || '', // Pass current user ID for like status
+        // Don't filter by soleUserId for home feed - show posts from all users
+        // This will be improved later to only show posts from followed users + own posts
+        viewerUserId: soleUserId, // Pass current user ID for like status calculation
         content: '',
         pageNo: pageParam,
         pageSize: 5, // Fetch 5 posts per page
@@ -82,7 +84,7 @@ export default React.memo(function UserHome() {
       togglePostLike(postId, userId),
     onSuccess: () => {
       // Invalidate and refetch posts to get updated like counts
-      queryClient.invalidateQueries({ queryKey: ['homePagePosts'] });
+      // queryClient.invalidateQueries({ queryKey: ['homePagePosts'] });
     },
   });
 

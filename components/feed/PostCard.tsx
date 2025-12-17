@@ -108,6 +108,7 @@ export function PostCard({
 
         {/* Body: Image/Video */}
         <ImageCarousel
+          key={`carousel-${post.id}`}
           media={post.media}
           onZoomChange={onZoomChange}
           onScaleChange={onScaleChange}

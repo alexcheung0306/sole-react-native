@@ -48,6 +48,7 @@ export interface PageResponse<T> {
 
 export interface SearchPostsParams {
   soleUserId?: string
+  viewerUserId?: string // For calculating isLikedByUser without filtering posts
   content?: string
   postId?: number
   orderBy?: string
@@ -67,6 +68,7 @@ export const searchPosts = async (
     const queryParams = new URLSearchParams()
     
     if (params.soleUserId !== undefined) queryParams.append("soleUserId", params.soleUserId)
+    if (params.viewerUserId !== undefined) queryParams.append("viewerUserId", params.viewerUserId)
     if (params.content) queryParams.append("content", params.content)
     if (params.postId !== undefined) queryParams.append("postId", params.postId.toString())
     if (params.orderBy) queryParams.append("orderBy", params.orderBy)
