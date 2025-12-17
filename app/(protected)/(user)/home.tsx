@@ -23,7 +23,7 @@ import {
   createPostComment,
   PostWithDetailsResponse,
 } from '~/api/apiservice/post_api';
-import { HeartIcon, MessageCircleIcon } from 'lucide-react-native';
+import { BellIcon, HeartIcon, MessageCircleIcon } from 'lucide-react-native';
 
 export default React.memo(function UserHome() {
   const insets = useSafeAreaInsets();
@@ -207,7 +207,7 @@ export default React.memo(function UserHome() {
           }
           headerRight={
           <TouchableOpacity onPress={() => console.log('likes')} style={{ padding: 8 }}>
-            <HeartIcon size={24} color="white" />
+            <BellIcon size={24} color="white" />
           </TouchableOpacity>
           }
           animatedStyle={animatedHeaderStyle}

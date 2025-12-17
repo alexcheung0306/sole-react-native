@@ -1,167 +1,114 @@
-import { View, Text, TouchableOpacity, Image, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import {
-  ArrowLeft,
-  MoreVertical,
-  MapPin,
-  MessageCircle,
-  Heart,
-  ChevronLeft,
-} from 'lucide-react-native';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ChevronLeft } from 'lucide-react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSoleUserContext } from '~/context/SoleUserContext';
-import {
-  getPostWithDetailsById,
-  togglePostLike,
-  getPostComments,
-  createPostComment,
-} from '~/api/apiservice/post_api';
-import { useState, useRef } from 'react';
-import BottomSheet from '@gorhom/bottom-sheet';
-import { CommentSheet } from '~/components/feed/CommentSheet';
-import { ImageCarousel } from '~/components/feed/ImageCarousel';
-import { LikeButton } from '~/components/feed/LikeButton';
+import { useProfileQueries } from '~/hooks/useProfileQueries';
+import { useRef, useEffect } from 'react';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { PostCard } from '~/components/feed/PostCard';
 import { CollapsibleHeader } from '~/components/CollapsibleHeader';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { formatTimeAgo } from '~/utils/time-converts';
+import Animated from 'react-native-reanimated';
 
-export default function PostDetail() {
+export default function UserPostsFeed() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const postIdParam = params.postId as string;
+  const userIdParam = params.userId as string;
   const { soleUserId } = useSoleUserContext();
   const queryClient = useQueryClient();
-  const commentSheetRef = useRef<BottomSheet>(null);
+  const flatListRef = useRef<any>(null);
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   const insets = useSafeAreaInsets();
 
   // Extract actual post ID from the "postid{id}" format
-  const postId = postIdParam?.replace('postid', '') || postIdParam;
+  const targetPostId = postIdParam?.replace('postid', '') || postIdParam;
+  const userId = userIdParam || soleUserId;
 
-  // Fetch post data
+  // Transform backend response to component format
+  const transformPost = (backendPost: any) => {
+    return {
+      id: backendPost.id.toString(),
+      soleUserId: backendPost.soleUserId,
+      content: backendPost.content || '',
+      createdAt: backendPost.createdAt,
+      media: (backendPost.media || []).map((m: any) => ({
+        id: m.id.toString(),
+        mediaUrl: m.mediaUrl,
+        mediaType: (m.mediaType as 'image' | 'video') || 'image',
+        displayOrder: m.displayOrder,
+      })),
+      likeCount: backendPost.likeCount || 0,
+      commentCount: backendPost.commentCount || 0,
+      isLikedByUser: backendPost.isLikedByUser || false,
+      soleUserInfo: {
+        soleUserId: backendPost.soleUserInfo?.soleUserId || backendPost.soleUserId,
+        username: backendPost.soleUserInfo?.username || 'Unknown',
+        name: backendPost.soleUserInfo?.name || 'Unknown',
+        profilePic: backendPost.soleUserInfo?.profilePic || null,
+      },
+    };
+  };
+
+  // Use custom hook for profile posts (no profile data needed)
   const {
-    data: postData,
-    isLoading: postLoading,
-    error: postError,
-  } = useQuery({
-    queryKey: ['postDetail', postId],
-    queryFn: () => getPostWithDetailsById(parseInt(postId)),
-    enabled: !!postId && !isNaN(parseInt(postId)),
-  });
+    userPostsData,
+    posts: userPosts,
+    userFetchNextPage,
+    userHasNextPage,
+    userIsFetchingNextPage,
+    userIsLoading: userPostsLoading,
+    isRefetchingPosts,
+    userIsError: userPostsError,
+    userError: userPostsErrorObj,
+    onRefresh,
+    isRefreshing,
+  } = useProfileQueries(userId, soleUserId, false);
 
-  // Fetch comments
-  const { data: commentsData, isLoading: commentsLoading } = useQuery({
-    queryKey: ['postComments', postId],
-    queryFn: () => getPostComments(parseInt(postId)),
-    enabled: !!postId && !isNaN(parseInt(postId)),
-  });
+  // Find the target post index for scrolling
+  const targetPostIndex = userPosts.findIndex(post => post.id.toString() === targetPostId);
 
-  // Mutation for liking posts
-  const likeMutation = useMutation({
-    mutationFn: ({ postId, userId }: { postId: number; userId: string }) =>
-      togglePostLike(postId, userId),
-    onSuccess: () => {
-      // Invalidate and refetch post to get updated like counts
-      queryClient.invalidateQueries({ queryKey: ['postDetail', postId] });
-    },
-  });
-
-  // Mutation for adding comments
-  const commentMutation = useMutation({
-    mutationFn: ({
-      postId,
-      userId,
-      content,
-    }: {
-      postId: number;
-      userId: string;
-      content: string;
-    }) => createPostComment({ postId, soleUserId: userId, content }),
-    onSuccess: () => {
-      // Invalidate and refetch comments
-      queryClient.invalidateQueries({ queryKey: ['postComments', postId] });
-      queryClient.invalidateQueries({ queryKey: ['postDetail', postId] });
-    },
-  });
-
-  const handleLike = () => {
-    if (!soleUserId || !postData) return;
-
-    likeMutation.mutate({
-      postId: parseInt(postId),
-      userId: soleUserId,
-    });
-  };
-
-  const handleAddComment = (content: string) => {
-    if (!soleUserId || !postData) return;
-
-    commentMutation.mutate({
-      postId: parseInt(postId),
-      userId: soleUserId,
-      content,
-    });
-  };
-
-  const handleOpenComments = () => {
-    commentSheetRef.current?.snapToIndex(0);
-  };
-
-  const handleUsernamePress = () => {
-    if (postData?.soleUserInfo?.username) {
-      router.push(`/profile/${postData.soleUserInfo.username}` as any);
+  // Scroll to target post when data loads
+  useEffect(() => {
+    if (targetPostIndex >= 0 && flatListRef.current) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToIndex({
+          index: targetPostIndex,
+          animated: true,
+        });
+      }, 500); // Small delay to ensure list is rendered
     }
-  };
+  }, [targetPostIndex]);
 
-  const renderCaption = (content: string) => {
-    if (!content) return null;
-
-    // Simple hashtag and mention parsing
-    const parts = content.split(/(\s+)/);
-
-    return (
-      <Text className="text-sm leading-5 text-gray-200">
-        {parts.map((part, index) => {
-          if (part.startsWith('#')) {
-            return (
-              <Text key={index} className="text-blue-400">
-                {part}
-              </Text>
-            );
-          } else if (part.startsWith('@')) {
-            return (
-              <Text key={index} className="text-blue-400">
-                {part}
-              </Text>
-            );
-          }
-          return <Text key={index}>{part}</Text>;
-        })}
-      </Text>
-    );
+  const handleLike = (postId: string) => {
+    if (!soleUserId) return;
+    // Invalidate queries to refresh data
+    queryClient.invalidateQueries({ queryKey: ['homePagePosts'] });
+    queryClient.invalidateQueries({ queryKey: ['userPostsList', userId] });
   };
 
   // Loading state
-  if (postLoading) {
+  if (userPostsLoading && userPosts.length === 0) {
     return (
       <View className="flex-1 items-center justify-center bg-black">
         <ActivityIndicator size="large" color="#3b82f6" />
-        <Text className="mt-4 text-gray-400">Loading post...</Text>
+        <Text className="mt-4 text-gray-400">Loading posts...</Text>
       </View>
     );
   }
 
   // Error state
-  if (postError || !postData) {
+  if (userPostsError) {
     return (
       <View className="flex-1 items-center justify-center bg-black p-4">
-        <Text className="mb-4 text-center text-red-400">Failed to load post</Text>
+        <Text className="mb-4 text-center text-red-400">Failed to load posts</Text>
+        <Text className="mb-4 text-center text-sm text-gray-400">
+          {userPostsErrorObj?.message || 'Please try again'}
+        </Text>
         <TouchableOpacity
-          onPress={() => {
-            console.log('Navigating back from error state');
-            router.replace('/(protected)/(user)/home' as any);
-          }}
+          onPress={() => router.back()}
           className="rounded-lg bg-blue-500 px-6 py-3">
           <Text className="font-semibold text-white">Go Back</Text>
         </TouchableOpacity>
@@ -169,21 +116,12 @@ export default function PostDetail() {
     );
   }
 
-  const post = postData;
-  const comments = commentsData || [];
-
   return (
-    <>
-      <Stack.Screen
-        options={{
-          headerShown: false,
-          headerStyle: { backgroundColor: '#000000' },
-          contentStyle: { backgroundColor: '#000000' },
-        }}
-      />
-      <View className="flex-1 bg-black" style={{ zIndex: 1000 }}>
+    <BottomSheetModalProvider>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View className="flex-1 bg-black">
         <CollapsibleHeader
-          title={'Post'}
+          title="Posts"
           headerLeft={
             <TouchableOpacity
               onPress={() => router.back()}
@@ -197,111 +135,55 @@ export default function PostDetail() {
           isDark={true}
         />
 
-        <ScrollView
-          className="flex-1"
+        <Animated.FlatList
+          ref={flatListRef}
+          data={userPosts}
+          renderItem={({ item }) => {
+            const transformedPost = transformPost(item);
+            return (
+              <PostCard
+                post={transformedPost}
+                onLike={handleLike}
+                onAddComment={(postId, content) => {
+                  // Handle comment if needed
+                }}
+                onZoomChange={() => {}}
+                onScaleChange={() => {}}
+              />
+            );
+          }}
+          keyExtractor={(item) => item.id.toString()}
           showsVerticalScrollIndicator={false}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
           contentContainerStyle={{
             paddingTop: insets.top + 50,
             paddingBottom: insets.bottom + 80,
-            paddingHorizontal: 0,
-          }}>
-          {/* User Info Header */}
-          <View className="flex-row items-center justify-between px-4 py-3">
-            <TouchableOpacity
-              onPress={handleUsernamePress}
-              className="flex-1 flex-row items-center"
-              activeOpacity={0.7}>
-              {/* Avatar */}
-              {post.soleUserInfo?.profilePic ? (
-                <Image
-                  source={{ uri: post.soleUserInfo.profilePic }}
-                  className="mr-3 h-10 w-10 rounded-full"
-                />
-              ) : (
-                <View className="mr-3 h-10 w-10 rounded-full bg-gray-700" />
-              )}
-
-              {/* Username & Time */}
-              <View className="flex-1">
-                <Text className="text-sm font-semibold text-white">
-                  {post.soleUserInfo?.username || 'Unknown User'}
-                </Text>
-                <View className="flex-row items-center">
-                  <Text className="text-xs text-gray-400">{formatTimeAgo(post.createdAt)}</Text>
-                  {/* {post.location && (
-                    <>
-                      <Text className="text-gray-500 text-xs mx-1">•</Text>
-                      <View className="flex-row items-center">
-                        <MapPin size={10} color="#9ca3af" />
-                        <Text className="text-gray-400 text-xs ml-1" numberOfLines={1}>
-                          {post.location}
-                        </Text>
-                      </View>
-                    </>
-                  )} */}
-                </View>
+          }}
+          onEndReached={() => {
+            if (userHasNextPage && !userIsFetchingNextPage) {
+              userFetchNextPage();
+            }
+          }}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            userIsFetchingNextPage ? (
+              <View className="items-center py-4">
+                <ActivityIndicator size="small" color="#3b82f6" />
               </View>
-            </TouchableOpacity>
-          </View>
-
-          {/* Media */}
-          <ImageCarousel media={post.media || []} />
-
-          {/* Actions & Caption */}
-          <View className="px-4 py-3">
-            {/* Action Buttons */}
-            <View className="mb-3 flex-row items-center">
-              <LikeButton
-                isLiked={post.isLikedByUser || false}
-                likeCount={post.likeCount || 0}
-                onPress={handleLike}
-              />
-
-              <TouchableOpacity
-                onPress={handleOpenComments}
-                className="ml-4 flex-row items-center gap-2"
-                activeOpacity={0.7}>
-                <MessageCircle size={24} color="#ffffff" strokeWidth={2} />
-                <Text className="text-sm font-semibold text-white">
-                  {post.commentCount > 0 ? post.commentCount : ''}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Like Count */}
-            {post.likeCount > 0 && (
-              <Text className="mb-2 text-sm font-semibold text-white">
-                {post.likeCount} {post.likeCount === 1 ? 'like' : 'likes'}
-              </Text>
-            )}
-
-            {/* Caption */}
-            {post.content && (
-              <View className="mb-2">
-                <Text className="mb-1 text-sm font-semibold text-white">
-                  {post.soleUserInfo?.username || 'Unknown User'}
-                </Text>
-                {renderCaption(post.content)}
-              </View>
-            )}
-
-            {/* View Comments */}
-            {post.commentCount > 0 && (
-              <TouchableOpacity onPress={handleOpenComments} activeOpacity={0.7}>
-                <Text className="text-sm text-gray-400">View all {post.commentCount} comments</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </ScrollView>
-
-        {/* Comment Sheet */}
-        <CommentSheet
-          bottomSheetRef={commentSheetRef}
-          postId={postId}
-          comments={comments}
-          onAddComment={handleAddComment}
+            ) : null
+          }
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={onRefresh}
+              tintColor="#3b82f6"
+              colors={['#3b82f6']}
+              progressViewOffset={insets.top + 50}
+            />
+          }
         />
       </View>
-    </>
+    </BottomSheetModalProvider>
   );
 }

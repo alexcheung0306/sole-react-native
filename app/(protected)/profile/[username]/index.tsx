@@ -1,14 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { ScrollView, TouchableOpacity, View, Dimensions, RefreshControl, Text } from 'react-native';
 import { useUser } from '@clerk/clerk-expo';
 import { router, Stack, useLocalSearchParams, usePathname } from 'expo-router';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { CollapsibleHeader } from '~/components/CollapsibleHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
-import { getUserProfileByUsername } from '~/api/apiservice/soleUser_api';
-import { searchPosts } from '~/api/apiservice/post_api';
+import { useProfileQueries } from '~/hooks/useProfileQueries';
 import { Grid, User, Briefcase } from 'lucide-react-native';
 import TalentProfile from '~/components/talent-profile/TalentProfile';
 import UserPosts from '~/components/profile/UserPosts';
@@ -29,7 +27,7 @@ export default function ProfileScreen() {
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   const params = useLocalSearchParams<{ username?: string }>();
   const pathname = usePathname();
-  
+
   // Get username from params, or fallback to current user's username (for swipeable container)
   const username = params.username || user?.username;
 
@@ -39,77 +37,33 @@ export default function ProfileScreen() {
   // Check if we're in a profile route (vs. swipable container)
   const isProfileRoute = pathname.includes('/profile/');
 
-  // Fetch user profile data from API
+  // Get viewer user ID safely
+  const viewerUserId = user?.id;
+
+  // Use custom hook for profile queries
   const {
-    data: userProfileData,
-    isLoading: profileLoading,
-    isRefetching: isRefetchingProfile,
-    error: profileError,
-    refetch: refetchProfile,
-  } = useQuery({
-    queryKey: ['userProfile', username],
-    queryFn: async () => {
-      if (!username || typeof username !== 'string') {
-        throw new Error('Username not found');
-      }
-      const result = await getUserProfileByUsername(username);
+    userProfileData,
+    profileLoading,
+    isRefetchingProfile,
+    profileError,
+    refetchProfile,
+    userPostsData,
+    posts,
+    userFetchNextPage,
+    userHasNextPage,
+    userIsFetchingNextPage,
+    userIsLoading,
+    isRefetchingPosts,
+    userIsError,
+    userError,
+    refetchPosts,
+    onRefresh,
+    isRefreshing,
+  } = useProfileQueries(username as string, viewerUserId as string | undefined, true);
 
-      return result;
-    },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    enabled: !!username,
-    refetchOnWindowFocus: false,
-  });
-
-  // Fetch user posts with infinite scroll
-  const {
-    data: userPostsData,
-    fetchNextPage: userFetchNextPage,
-    hasNextPage: userHasNextPage,
-    isFetchingNextPage: userIsFetchingNextPage,
-    isLoading: userIsLoading,
-    isRefetching: isRefetchingPosts,
-    isError: userIsError,
-    error: userError,
-    refetch: refetchPosts,
-  } = useInfiniteQuery({
-    queryKey: ['profilePagePosts', username],
-    queryFn: async ({ pageParam = 0 }) => {
-      const response = await searchPosts({
-        soleUserId: userProfileData?.userInfo?.soleUserId,
-        content: '',
-        pageNo: pageParam,
-        pageSize: 9, // 3x3 grid
-        orderBy: 'createdAt',
-        orderSeq: 'desc',
-      });
-      return response;
-    },
-    enabled: !!userProfileData?.userInfo?.soleUserId,
-    getNextPageParam: (lastPage, allPages) => {
-      const currentPage = allPages.length - 1;
-      const loadedItems = allPages.reduce((sum, page) => sum + page.data.length, 0);
-      // Check if there are more items to load
-      if (loadedItems < lastPage.total) {
-        return currentPage + 1;
-      }
-      return undefined;
-    },
-    initialPageParam: 0,
-  });
-
-  const posts = userPostsData?.pages.flatMap((page) => page.data) ?? [];
   const userInfo = userProfileData?.userInfo;
   const talentInfo = userProfileData?.talentInfo;
   const talentLevel = userProfileData?.talentLevel || null;
-
-  // Pull to refresh
-  const onRefresh = useCallback(() => {
-    refetchProfile();
-    refetchPosts();
-  }, [refetchProfile, refetchPosts]);
-
-  const isRefreshing = isRefetchingProfile || isRefetchingPosts;
 
   // Profile error state
   if (profileError && !profileLoading) {
@@ -147,17 +101,15 @@ export default function ProfileScreen() {
                 progressViewOffset={insets.top + 50}
               />
             }>
-            <Text className="text-red-400 text-center mb-4">
-              Failed to load profile
-            </Text>
-            <Text className="text-gray-400 text-center mb-4 text-sm">
+            <Text className="mb-4 text-center text-red-400">Failed to load profile</Text>
+            <Text className="mb-4 text-center text-sm text-gray-400">
               {profileError?.message || 'Please try again'}
             </Text>
             <TouchableOpacity
               onPress={onRefresh}
-              className="bg-blue-500 px-6 py-3 rounded-lg"
+              className="rounded-lg bg-blue-500 px-6 py-3"
               disabled={isRefreshing}>
-              <Text className="text-white font-semibold">
+              <Text className="font-semibold text-white">
                 {isRefreshing ? 'Refreshing...' : 'Retry'}
               </Text>
             </TouchableOpacity>
@@ -218,10 +170,10 @@ export default function ProfileScreen() {
             />
           }>
           {/* Profile Header - Instagram Style */}
-          <UserInfo 
-            userPostsData={userPostsData} 
-            username={username || ''} 
-            userProfileData={userProfileData} 
+          <UserInfo
+            userPostsData={userPostsData}
+            username={username || ''}
+            userProfileData={userProfileData}
           />
 
           {/* Tab Navigation */}

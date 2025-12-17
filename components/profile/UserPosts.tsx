@@ -67,7 +67,10 @@ export default function UserPosts({
                   onPress={() =>
                     router.push({
                       pathname: `/(protected)/post` as any,
-                      params: { postId: item.id },
+                      params: {
+                        postId: item.id,
+                        userId: posts[0]?.soleUserId // Pass the user ID to fetch all their posts
+                      },
                     })
                   }>
                   {firstMedia && firstMedia.mediaUrl ? (
