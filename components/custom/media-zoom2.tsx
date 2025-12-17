@@ -517,23 +517,13 @@ export function MediaZoom2({
   });
 
   const backdropStyle = useAnimatedStyle(() => {
-    // Backdrop is only visible when zoom is active
-    // Opacity is calculated directly from scale so it follows scale animations (including reset)
     if (!isZoomActive.value) {
       return { opacity: 0 };
     }
-    
-    // Calculate opacity from current scale value
-    // This ensures opacity follows scale during reset animation
-    // Scale 1 = 0% opacity, Scale 2 = 80% opacity
     const currentScale = Math.max(minScale, Math.min(maxScale, scale.value));
-    // Normalize scale: 0 at minScale (1), 1 at scale 2 (target for 80% opacity)
     const targetScale = 2; // Scale at which we want 80% opacity
     const normalizedScale = Math.min(1, (currentScale - minScale) / (targetScale - minScale));
-    // Use power of 1.5 to make opacity increase faster as scale increases
-    // Then multiply by 0.8 to cap at 80% opacity at scale 2
     const opacity = Math.pow(normalizedScale, 1.5) * 0.8;
-    
     return {
       opacity,
     };

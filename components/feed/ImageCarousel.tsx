@@ -7,6 +7,7 @@ import {
   FlatList,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  ActivityIndicator,
 } from 'react-native';
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
@@ -33,7 +34,9 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
   const isLogAvaliable = false;
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageHeights, setImageHeights] = useState<{ [key: number]: number }>({});
-  const [currentHeight, setCurrentHeight] = useState<number>(SCREEN_WIDTH); // Default to square
+  const [currentHeight, setCurrentHeight] = useState<number>(300); // Default to reasonable height to prevent layout shift
+  const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set()); // Track loaded images
+  const [imageRefs, setImageRefs] = useState<{ [key: number]: any }>({}); // Store image refs for blur control
   const [isZooming, setIsZooming] = useState(false);
   const listRef = useRef<FlatList<MediaItem>>(null);
 
@@ -55,8 +58,6 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
       elevation: activeZ,
     };
   });
-
-
 
   if (!media || media.length === 0) {
     return null;
@@ -87,15 +88,15 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
                 },
                 (error) => {
                   console.error('Error loading image size:', error);
-                  // Fallback to square if error
-                  heights[i] = SCREEN_WIDTH;
+                  // Fallback to reasonable height if error
+                  heights[i] = 300;
                   resolve();
                 }
               );
             });
           } catch (error) {
             console.error('Error loading image dimensions:', error);
-            heights[i] = SCREEN_WIDTH; // Fallback to square
+            heights[i] = 300; // Fallback to reasonable height
           }
         }
       }
@@ -134,6 +135,14 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
     const newIndex = Math.round(contentOffset.x / SCREEN_WIDTH);
     if (newIndex !== currentIndex) {
       setCurrentIndex(newIndex);
+    }
+  };
+
+  const handleImageLoad = (index: number) => {
+    setLoadedImages(prev => new Set(prev).add(index));
+    // Remove blur effect after image loads
+    if (imageRefs[index]) {
+      // The blur will be removed through state update
     }
   };
 
@@ -179,11 +188,34 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
         </View>
         <MediaZoom2
           children={
-            <Image
-              source={{ uri: media[0].mediaUrl }}
-              style={{ width: SCREEN_WIDTH, height: singleImageHeight }}
-              resizeMode="contain"
-            />
+            <View style={{ width: SCREEN_WIDTH, height: singleImageHeight }}>
+              {!loadedImages.has(0) && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                  }}
+                >
+                  <ActivityIndicator size="large" color="#666" />
+                </View>
+              )}
+              <Image
+                source={{ uri: media[0].mediaUrl }}
+                style={{
+                  width: SCREEN_WIDTH,
+                  height: singleImageHeight,
+                  opacity: loadedImages.has(0) ? 1 : 0
+                }}
+                resizeMode="contain"
+                onLoad={() => handleImageLoad(0)}
+              />
+            </View>
           }
           width={SCREEN_WIDTH}
           height={singleImageHeight}
@@ -240,22 +272,47 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
           // All items use currentHeight for consistent paging
           const itemHeight = imageHeights[index] || currentHeight;
           return (
-            <MediaZoom2
-              children={
-                <Image
-                  source={{ uri: item.mediaUrl }}
-                  style={{ width: SCREEN_WIDTH, height: itemHeight }}
-                  resizeMode="contain"
-                />
-              }
-              width={SCREEN_WIDTH}
-              height={itemHeight}
-              resetOnRelease={true}
-              minScale={1}
-              maxScale={3}
-              onZoomActiveChange={handleZoomChange}
-              onScaleChange={onScaleChange}
-            />
+            <View style={{ width: SCREEN_WIDTH, height: itemHeight }}>
+              <MediaZoom2
+                children={
+                <View style={{ width: SCREEN_WIDTH, height: itemHeight }}>
+                  {!loadedImages.has(index) && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                      }}
+                    >
+                      <ActivityIndicator size="large" color="#666" />
+                    </View>
+                  )}
+                  <Image
+                    source={{ uri: item.mediaUrl }}
+                    style={{
+                      width: SCREEN_WIDTH,
+                      height: itemHeight,
+                      opacity: loadedImages.has(index) ? 1 : 0
+                    }}
+                    resizeMode="contain"
+                    onLoad={() => handleImageLoad(index)}
+                  />
+                </View>
+                }
+                width={SCREEN_WIDTH}
+                height={itemHeight}
+                resetOnRelease={true}
+                minScale={1}
+                maxScale={3}
+                onZoomActiveChange={handleZoomChange}
+                onScaleChange={onScaleChange}
+              />
+            </View>
           );
         }}
       />

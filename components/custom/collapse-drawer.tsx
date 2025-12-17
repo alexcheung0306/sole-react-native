@@ -1,5 +1,5 @@
 // custom/collapse-drawer.tsx
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Modal,
   View,
@@ -7,9 +7,6 @@ import {
   Pressable,
   Dimensions,
   Platform,
-  ScrollView,
-  KeyboardAvoidingView,
-  LayoutChangeEvent,
   Keyboard,
 } from 'react-native';
 import Animated, {
@@ -20,7 +17,6 @@ import Animated, {
   runOnJS,
   cancelAnimation,
   useAnimatedRef,
-  scrollTo,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -36,7 +32,7 @@ type Props = {
   bottomArea?: React.ReactNode;
 };
 
-export default function CollapseDrawer2({
+export default function CollapseDrawer({
   showDrawer,
   setShowDrawer,
   title = '',
@@ -50,11 +46,11 @@ export default function CollapseDrawer2({
   const translateY = useSharedValue(SCREEN_HEIGHT);
   const keyboardOffset = useSharedValue(0);
   const [isVisible, setIsVisible] = useState(false);
-  const [contentHeight, setContentHeight] = useState(0);
   const scrollViewRef = useAnimatedRef<Animated.ScrollView>();
   const scrollOffset = useSharedValue(0);
   const flingStartY = useSharedValue(0);
   const handlePanOffset = useSharedValue(0);
+  const isLogAvaliable = false;
 
   // Handle height: ~33px (5px handle + 12px paddingBottom + 16px title margin if exists)
   const HANDLE_HEIGHT = title ? 33 : 17;
@@ -94,13 +90,12 @@ export default function CollapseDrawer2({
   // Calculate drawer height: fixed or dynamic
   const getDrawerHeight = () => {
     if (autoHeight) {
-      const calculatedHeight = HANDLE_HEIGHT + contentHeight + 20 + insets.bottom;
+      const calculatedHeight = HANDLE_HEIGHT + 20 + insets.bottom;
       return Math.min(calculatedHeight, MAX_HEIGHT);
     }
     return SCREEN_HEIGHT * height;
   };
 
-  const DRAWER_HEIGHT = getDrawerHeight();
   const [isScrollEnabled, setIsScrollEnabled] = useState(true);
 
   // Handle drawer show/hide with animation
@@ -132,7 +127,9 @@ export default function CollapseDrawer2({
 
   // Logging function for fling trigger
   const logFlingTrigger = (event: string, details?: string) => {
-    console.log(`[FLING TRIGGER] ${event}${details ? ` - ${details}` : ''}`);
+    if (isLogAvaliable) {
+      console.log(`[FLING TRIGGER] ${event}${details ? ` - ${details}` : ''}`);
+    }
   };
 
   // Pan gesture that detects fling-like behavior (high velocity downward swipes)
@@ -257,9 +254,6 @@ export default function CollapseDrawer2({
 
   // Native scroll gesture for ScrollView
   const scrollGesture = Gesture.Native();
-
-  console.log('isScrollEnabled', isScrollEnabled);
-
   // Allow both gestures to work together - fling can trigger even during scroll
   const composedGesture = Gesture.Simultaneous(scrollGesture, flingGesture);
 
