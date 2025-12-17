@@ -178,7 +178,7 @@ export default function FollowingScreen() {
   };
 
   const handleUserPress = (followingUsername: string) => {
-    router.push(`/(protected)/(user)/user/${followingUsername}` as any);
+    router.push(`/profile/${followingUsername}` as any);
   };
 
   const renderFollowing = ({ item }: { item: FollowingUser }) => {
