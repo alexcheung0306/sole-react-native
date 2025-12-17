@@ -63,54 +63,92 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
     return null;
   }
 
-  // Load image dimensions and calculate heights
+  // Load image dimensions and calculate heights with memory management
   useEffect(() => {
     let isMounted = true; // Track if component is still mounted
+    let abortController = new AbortController(); // For cancelling requests
 
     const loadImageDimensions = async () => {
       const heights: { [key: number]: number } = {};
 
-      for (let i = 0; i < media.length; i++) {
+      // Limit to first 10 images to prevent memory issues with large carousels
+      const maxImagesToLoad = Math.min(media.length, 10);
+
+      // Process images one by one with delays to prevent memory pressure
+      for (let i = 0; i < maxImagesToLoad; i++) {
         const item = media[i];
+
+        // Check if component is still mounted and not aborted
+        if (!isMounted || abortController.signal.aborted) {
+          break;
+        }
+
+        // Skip if this image is already loaded
+        if (loadedImages.has(i)) {
+          continue;
+        }
 
         // If dimensions are already provided, use them
         if (item.width && item.height) {
           const aspectRatio = item.width / item.height;
           heights[i] = SCREEN_WIDTH / aspectRatio;
         } else {
-          // Otherwise, fetch image dimensions
+          // Otherwise, fetch image dimensions with timeout and error handling
           try {
             await new Promise<void>((resolve, reject) => {
               // Check if component is still mounted before making the request
-              if (!isMounted) {
+              if (!isMounted || abortController.signal.aborted) {
                 resolve();
                 return;
               }
 
+              // Set a timeout for the image size request
+              const timeoutId = setTimeout(() => {
+                console.warn('Image size request timeout for:', item.mediaUrl);
+                heights[i] = 300; // Fallback height
+                resolve();
+              }, 5000); // 5 second timeout
+
               Image.getSize(
                 item.mediaUrl,
                 (width, height) => {
+                  clearTimeout(timeoutId);
                   // Check again if component is still mounted
-                  if (!isMounted) return;
+                  if (!isMounted || abortController.signal.aborted) return;
 
                   const aspectRatio = width / height;
                   heights[i] = SCREEN_WIDTH / aspectRatio;
                   resolve();
                 },
                 (error) => {
+                  clearTimeout(timeoutId);
                   // Check if component is still mounted
-                  if (!isMounted) return;
+                  if (!isMounted || abortController.signal.aborted) return;
 
-                  console.error('Error loading image size:', error);
+                  // Handle memory pool violations gracefully
+                  if (error?.message?.includes('PoolSizeViolationException')) {
+                    console.warn('Image memory limit reached, using fallback dimensions');
+                    // Add longer delay for memory recovery
+                    setTimeout(() => {}, 1000);
+                  } else {
+                    console.error('Error loading image size:', error);
+                  }
+
                   // Fallback to reasonable height if error
                   heights[i] = 300;
                   resolve();
                 }
               );
             });
+
+            // Small delay between requests to prevent memory pressure
+            if (i < media.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
           } catch (error) {
             // Check if component is still mounted
-            if (!isMounted) return;
+            if (!isMounted || abortController.signal.aborted) return;
 
             console.error('Error loading image dimensions:', error);
             heights[i] = 300; // Fallback to reasonable height
@@ -118,8 +156,8 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
         }
       }
 
-      // Only update state if component is still mounted
-      if (isMounted) {
+      // Only update state if component is still mounted and not aborted
+      if (isMounted && !abortController.signal.aborted) {
         setImageHeights(heights);
         // Set initial height for first image
         if (heights[0]) {
@@ -130,9 +168,10 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
 
     loadImageDimensions();
 
-    // Cleanup function to prevent state updates on unmounted component
+    // Cleanup function to prevent state updates and cancel pending requests
     return () => {
       isMounted = false;
+      abortController.abort();
     };
   }, [media]);
 
@@ -142,6 +181,23 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
       // Clear loaded images state when component unmounts
       setLoadedImages(new Set());
       setImageHeights({});
+    };
+  }, []);
+
+  // Handle app memory warnings
+  useEffect(() => {
+    const memoryWarningHandler = () => {
+      console.warn('Memory warning received, clearing image caches');
+      // Clear any cached image data
+      setLoadedImages(new Set());
+      setImageHeights({});
+    };
+
+    // Note: React Native doesn't have a direct memory warning listener
+    // This is a placeholder for future memory management
+
+    return () => {
+      // Cleanup if needed
     };
   }, []);
 

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { ScrollView, TouchableOpacity, View, Dimensions } from 'react-native';
+import { useState, useCallback } from 'react';
+import { ScrollView, TouchableOpacity, View, Dimensions, RefreshControl, Text } from 'react-native';
 import { useUser } from '@clerk/clerk-expo';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
@@ -27,7 +27,10 @@ export default function ProfileScreen() {
   const { user } = useUser();
   const insets = useSafeAreaInsets();
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
-  const { username } = useLocalSearchParams<{ username: string }>();
+  const params = useLocalSearchParams<{ username?: string }>();
+  
+  // Get username from params, or fallback to current user's username (for swipeable container)
+  const username = params.username || user?.username;
 
   // Check if viewing own profile
   const isOwnProfile = user?.username === username;
@@ -36,7 +39,9 @@ export default function ProfileScreen() {
   const {
     data: userProfileData,
     isLoading: profileLoading,
+    isRefetching: isRefetchingProfile,
     error: profileError,
+    refetch: refetchProfile,
   } = useQuery({
     queryKey: ['userProfile', username],
     queryFn: async () => {
@@ -59,8 +64,10 @@ export default function ProfileScreen() {
     hasNextPage: userHasNextPage,
     isFetchingNextPage: userIsFetchingNextPage,
     isLoading: userIsLoading,
+    isRefetching: isRefetchingPosts,
     isError: userIsError,
     error: userError,
+    refetch: refetchPosts,
   } = useInfiniteQuery({
     queryKey: ['profilePagePosts', username],
     queryFn: async ({ pageParam = 0 }) => {
@@ -92,6 +99,70 @@ export default function ProfileScreen() {
   const talentInfo = userProfileData?.talentInfo;
   const talentLevel = userProfileData?.talentLevel || null;
 
+  // Pull to refresh
+  const onRefresh = useCallback(() => {
+    refetchProfile();
+    refetchPosts();
+  }, [refetchProfile, refetchPosts]);
+
+  const isRefreshing = isRefetchingProfile || isRefetchingPosts;
+
+  // Profile error state
+  if (profileError && !profileLoading) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View className="flex-1 bg-black">
+          <CollapsibleHeader
+            title={isOwnProfile ? 'Talent Profile' : `@${username}`}
+            headerLeft={
+              !isOwnProfile ? (
+                <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+                  <Ionicons name="arrow-back" size={24} color="#fff" />
+                </TouchableOpacity>
+              ) : undefined
+            }
+            animatedStyle={animatedHeaderStyle}
+            onHeightChange={handleHeightChange}
+            isDark={true}
+          />
+          <ScrollView
+            className="flex-1 bg-black"
+            contentContainerStyle={{
+              flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: 16,
+            }}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing || false}
+                onRefresh={onRefresh}
+                tintColor="#3b82f6"
+                colors={['#3b82f6']}
+                progressViewOffset={insets.top + 50}
+              />
+            }>
+            <Text className="text-red-400 text-center mb-4">
+              Failed to load profile
+            </Text>
+            <Text className="text-gray-400 text-center mb-4 text-sm">
+              {profileError?.message || 'Please try again'}
+            </Text>
+            <TouchableOpacity
+              onPress={onRefresh}
+              className="bg-blue-500 px-6 py-3 rounded-lg"
+              disabled={isRefreshing}>
+              <Text className="text-white font-semibold">
+                {isRefreshing ? 'Refreshing...' : 'Retry'}
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </>
+    );
+  }
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -121,6 +192,7 @@ export default function ProfileScreen() {
             ) : undefined
           }
           animatedStyle={animatedHeaderStyle}
+          onHeightChange={handleHeightChange}
           isDark={true}
         />
 
@@ -129,13 +201,22 @@ export default function ProfileScreen() {
           onScroll={onScroll}
           scrollEventThrottle={16}
           contentContainerStyle={{
-            paddingTop: insets.top + 72,
-            paddingBottom: 20,
-          }}>
+            paddingTop: insets.top + 50,
+            paddingBottom: insets.bottom + 80,
+          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing || false}
+              onRefresh={onRefresh}
+              tintColor="#3b82f6"
+              colors={['#3b82f6']}
+              progressViewOffset={insets.top + 50}
+            />
+          }>
           {/* Profile Header - Instagram Style */}
           <UserInfo 
             userPostsData={userPostsData} 
-            username={username} 
+            username={username || ''} 
             userProfileData={userProfileData} 
           />
 
@@ -143,6 +224,7 @@ export default function ProfileScreen() {
           <View className="border-t border-gray-800">
             <View className="flex-row">
               <TouchableOpacity
+                activeOpacity={1}
                 className={`flex-1 items-center border-b-2 py-3 ${
                   profileTab === 'posts' ? 'border-white' : 'border-transparent'
                 }`}
@@ -150,6 +232,7 @@ export default function ProfileScreen() {
                 <Grid size={24} color={profileTab === 'posts' ? '#ffffff' : '#6b7280'} />
               </TouchableOpacity>
               <TouchableOpacity
+                activeOpacity={1}
                 className={`flex-1 items-center border-b-2 py-3 ${
                   profileTab === 'talent' ? 'border-white' : 'border-transparent'
                 }`}
@@ -157,6 +240,7 @@ export default function ProfileScreen() {
                 <User size={24} color={profileTab === 'talent' ? '#ffffff' : '#6b7280'} />
               </TouchableOpacity>
               <TouchableOpacity
+                activeOpacity={1}
                 className={`flex-1 items-center border-b-2 py-3 ${
                   profileTab === 'jobs' ? 'border-white' : 'border-transparent'
                 }`}
@@ -171,10 +255,14 @@ export default function ProfileScreen() {
             {profileTab === 'posts' ? (
               <UserPosts
                 userIsLoading={userIsLoading}
+                userIsError={userIsError}
+                userError={userError}
                 posts={posts}
                 userHasNextPage={userHasNextPage}
                 userIsFetchingNextPage={userIsFetchingNextPage}
                 userFetchNextPage={userFetchNextPage}
+                onRefresh={onRefresh}
+                isRefreshing={isRefreshing}
               />
             ) : profileTab === 'talent' ? (
               <TalentProfile

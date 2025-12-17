@@ -4,7 +4,7 @@ export default function UserLayout() {
   return (
     <Stack>
       <Stack.Screen 
-        name="[username]" 
+        name="index" 
         options={{ 
           headerShown: false 
         }} 

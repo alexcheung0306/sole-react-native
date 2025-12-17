@@ -29,7 +29,6 @@ export default function UserIndex() {
     <UserSwipeableContainer activeIndex={activeIndex}>
       <UserHome />
       <Explore />
-      {/* <CameraScreen /> */}
       <JobIndex />
       <UserProfileWrapper />
     </UserSwipeableContainer>
