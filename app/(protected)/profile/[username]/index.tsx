@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState, useCallback } from 'react';
 import { ScrollView, TouchableOpacity, View, Dimensions, RefreshControl, Text } from 'react-native';
 import { useUser } from '@clerk/clerk-expo';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams, usePathname } from 'expo-router';
 import { useScrollHeader } from '~/hooks/useScrollHeader';
 import { CollapsibleHeader } from '~/components/CollapsibleHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,12 +28,16 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   const params = useLocalSearchParams<{ username?: string }>();
+  const pathname = usePathname();
   
   // Get username from params, or fallback to current user's username (for swipeable container)
   const username = params.username || user?.username;
 
   // Check if viewing own profile
   const isOwnProfile = user?.username === username;
+
+  // Check if we're in a profile route (vs. swipable container)
+  const isProfileRoute = pathname.includes('/profile/');
 
   // Fetch user profile data from API
   const {
@@ -114,9 +118,9 @@ export default function ProfileScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View className="flex-1 bg-black">
           <CollapsibleHeader
-            title={isOwnProfile ? 'Talent Profile' : `@${username}`}
+            title={isOwnProfile ? 'User Profile' : `@${username}`}
             headerLeft={
-              !isOwnProfile ? (
+              isProfileRoute ? (
                 <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
                   <Ionicons name="arrow-back" size={24} color="#fff" />
                 </TouchableOpacity>
@@ -170,7 +174,7 @@ export default function ProfileScreen() {
         <CollapsibleHeader
           title={isOwnProfile ? 'Talent Profile' : `@${username}`}
           headerLeft={
-            !isOwnProfile ? (
+            isProfileRoute && !isOwnProfile ? (
               <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
                 <Ionicons name="arrow-back" size={24} color="#fff" />
               </TouchableOpacity>

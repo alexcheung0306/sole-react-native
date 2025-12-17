@@ -88,31 +88,51 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
           paddingHorizontal: 0,
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'space-between',
           minHeight: 56, // Increased min height for better proportions
           paddingBottom: secondHeader ? 0 : 0, // Reduce bottom padding when secondHeader exists
         }}>
-        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-          {headerLeft}
+        {/* Header Left - Fixed width */}
+        {headerLeft && (
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {headerLeft}
+          </View>
+        )}
+
+        {/* Title - Takes all remaining width */}
+        <View style={{
+          flex: 1,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: headerLeft ? 'flex-start' : 'center',
+          marginLeft: headerLeft ? 8 : 0,
+          marginRight: headerRight ? 8 : 0,
+        }}>
           {typeof title === 'string' ? (
             <Text
               style={{
                 fontSize: 18,
                 fontWeight: '600',
                 color: textColor || defaultText,
-                marginLeft: headerLeft ? 8 : 0,
-                paddingHorizontal: 20,
-              }}>
+                textAlign: headerLeft || headerRight ? 'left' : 'center',
+                flex: 1,
+              }}
+              numberOfLines={1}
+              ellipsizeMode="middle">
               {title}
             </Text>
           ) : (
-            <View
-              style={{ marginLeft: headerLeft ? 8 : 0, flex: 1, marginRight: headerRight ? 8 : 0 }}>
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
               {title}
             </View>
           )}
         </View>
-        {headerRight && <View style={{ flex: 1, alignItems: 'flex-end' }}>{headerRight}</View>}
+
+        {/* Header Right - Fixed width */}
+        {headerRight && (
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {headerRight}
+          </View>
+        )}
       </View>
 
       {/* second header */}

@@ -23,16 +23,12 @@ import {
   createPostComment,
   PostWithDetailsResponse,
 } from '~/api/apiservice/post_api';
+import { HeartIcon, MessageCircleIcon } from 'lucide-react-native';
 
 export default React.memo(function UserHome() {
   const insets = useSafeAreaInsets();
-  const {
-    animatedHeaderStyle,
-    onScroll,
-    handleHeightChange,
-    handleZoomChange,
-    handleScaleChange,
-  } = useScrollHeader();
+  const { animatedHeaderStyle, onScroll, handleHeightChange, handleZoomChange, handleScaleChange } =
+    useScrollHeader();
   const { soleUserId } = useSoleUserContext();
   const queryClient = useQueryClient();
 
@@ -88,7 +84,6 @@ export default React.memo(function UserHome() {
     },
   });
 
-
   // Mutation for adding comments
   const commentMutation = useMutation({
     mutationFn: ({
@@ -110,9 +105,6 @@ export default React.memo(function UserHome() {
   const posts = postsData?.pages.flatMap((page) => page.data) ?? [];
   const totalPosts = postsData?.pages[0]?.total ?? 0;
 
-
-  console.log('postsData', postsData);
-  console.log('posts0', posts[0]);
   // Handle like
   const handleLike = (postId: string) => {
     if (!soleUserId) return;
@@ -204,9 +196,19 @@ export default React.memo(function UserHome() {
       <View className="flex-1 bg-black">
         <CollapsibleHeader
           title={
-            <View className="pb-2">
+            <View className="pb-2  w-full flex  items-center justify-center">
               <SoleLogo />
             </View>
+          }
+          headerLeft={
+          <TouchableOpacity onPress={() => console.log('messages')} style={{ padding: 8 }}>
+            <MessageCircleIcon size={24} color="white" />
+          </TouchableOpacity>
+          }
+          headerRight={
+          <TouchableOpacity onPress={() => console.log('likes')} style={{ padding: 8 }}>
+            <HeartIcon size={24} color="white" />
+          </TouchableOpacity>
           }
           animatedStyle={animatedHeaderStyle}
           onHeightChange={handleHeightChange}
