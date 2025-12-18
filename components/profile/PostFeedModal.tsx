@@ -34,6 +34,7 @@ interface PostFeedModalProps {
   onAddComment?: (postId: string, content: string) => void;
   // For expand animation
   sourceLayout?: { x: number; y: number; width: number; height: number } | null;
+  onCurrentIndexChange?: (index: number) => void;
 }
 
 export function PostFeedModal({
@@ -44,6 +45,7 @@ export function PostFeedModal({
   onLike,
   onAddComment,
   sourceLayout,
+  onCurrentIndexChange,
 }: PostFeedModalProps) {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<any>(null);
@@ -201,6 +203,17 @@ export function PostFeedModal({
     onAddComment?.(postId, content);
   }, [onAddComment]);
 
+  // Track visible items to report current index
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    if (viewableItems.length > 0) {
+      const visibleIndex = viewableItems[0].index;
+      // In phase 1, we slice from currentIndex, so actual index = visibleIndex + currentIndex
+      const actualIndex = showAllPosts ? visibleIndex : visibleIndex + currentIndex;
+      onCurrentIndexChange?.(actualIndex);
+    }
+  }).current;
+
   // Memoized render item - item is already transformed
   const renderItem = useCallback(({ item }: { item: any }) => (
     <PostCard
@@ -261,6 +274,8 @@ export function PostFeedModal({
             maintainVisibleContentPosition={{
               minIndexForVisible: 0,
             }}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
           />
         </Animated.View>
       </GestureDetector>

@@ -181,8 +181,33 @@ export default function ProfileScreen() {
     });
   }, [insets.top]);
 
+  // Track current visible post index in modal
+  const currentVisibleIndex = useRef(selectedPostIndex);
+  
+  // Calculate grid position for a given post index
+  const getGridPositionForIndex = useCallback((index: number) => {
+    const col = index % 3;
+    const row = Math.floor(index / 3);
+    const x = col * IMAGE_SIZE + IMAGE_SIZE / 2;
+    const y = GRID_START_OFFSET + row * IMAGE_SIZE - profileScrollY.current + IMAGE_SIZE / 2;
+    return {
+      x: x - SCREEN_WIDTH / 2,
+      y: y - SCREEN_HEIGHT / 2,
+    };
+  }, [GRID_START_OFFSET]);
+  
+  // Callback when modal scrolls to different post
+  const handleCurrentIndexChange = useCallback((index: number) => {
+    currentVisibleIndex.current = index;
+  }, []);
+
   // Close modal with collapse animation back to thumbnail
   const closePostModal = useCallback(() => {
+    // Update source position to current visible post
+    const pos = getGridPositionForIndex(currentVisibleIndex.current);
+    sourceX.value = pos.x;
+    sourceY.value = pos.y;
+    
     // Reset translate values first for clean animation back to source
     translateX.value = withTiming(0, { duration: 200 });
     translateY.value = withTiming(0, { duration: 200 });
@@ -191,17 +216,22 @@ export default function ProfileScreen() {
     setTimeout(() => {
       setPostModalVisible(false);
     }, 350);
-  }, []);
+  }, [getGridPositionForIndex]);
 
   // Swipe/fling to close gesture - follows finger freely on both axes
   const FLING_VELOCITY_THRESHOLD = 300;
   const translateY = useSharedValue(0);
   
   const handleGestureClose = useCallback(() => {
+    // Update source position to current visible post before closing
+    const pos = getGridPositionForIndex(currentVisibleIndex.current);
+    sourceX.value = pos.x;
+    sourceY.value = pos.y;
+    
     setTimeout(() => {
       setPostModalVisible(false);
     }, 350);
-  }, []);
+  }, [getGridPositionForIndex]);
   
   const panGesture = Gesture.Pan()
     .activeOffsetX(15)
@@ -513,6 +543,12 @@ export default function ProfileScreen() {
                     console.log('FlatList scroll Y:', e.nativeEvent.contentOffset.y);
                   }}
                   scrollEventThrottle={100}
+                  onViewableItemsChanged={({ viewableItems }) => {
+                    if (viewableItems.length > 0 && viewableItems[0].index != null) {
+                      currentVisibleIndex.current = viewableItems[0].index;
+                    }
+                  }}
+                  viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
                 />
               </Animated.View>
             </GestureDetector>
