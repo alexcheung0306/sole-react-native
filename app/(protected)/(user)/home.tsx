@@ -232,6 +232,10 @@ export default React.memo(function UserHome() {
           keyExtractor={(item) => item.id.toString()}
           onScroll={onScroll}
           scrollEventThrottle={16}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={5}
+          windowSize={5}
+          initialNumToRender={5}
           contentContainerStyle={{
             paddingTop: insets.top + 70, // Increased for header space
             paddingBottom: insets.bottom + 80,

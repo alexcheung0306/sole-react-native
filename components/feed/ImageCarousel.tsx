@@ -31,7 +31,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarouselProps) {
 
-  const isLogAvaliable = false;
+  const isLogAvaliable = true;
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set()); // Track loaded images
   const [imageDimensions, setImageDimensions] = useState<{ [key: number]: { width: number; height: number } }>({}); // Store image dimensions
@@ -236,6 +236,10 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
           showsHorizontalScrollIndicator={false}
           keyExtractor={(_, index) => `${index}`}
           onMomentumScrollEnd={handleMomentumEnd}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={3}
+          windowSize={3}
+          initialNumToRender={1}
           renderItem={({ item, index }) => {
             const aspectRatio = getAspectRatio(item, index);
             const calculatedHeight = SCREEN_WIDTH / aspectRatio;

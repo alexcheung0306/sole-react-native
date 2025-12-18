@@ -34,7 +34,7 @@ export function MediaZoom2({
   onScaleChange,
 }: MediaZoom2Props) {
   const pinchSensitivity = 1.0;
-  const isLogAvaliable =false;
+  const isLogAvaliable =true;
   
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);

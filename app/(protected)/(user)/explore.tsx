@@ -483,6 +483,10 @@ export default React.memo(function Explore() {
             key={`${viewMode}-${EXPLORE_COLUMNS}`}
             onScroll={onScroll}
             scrollEventThrottle={16}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            initialNumToRender={12}
             contentContainerStyle={{
               paddingHorizontal: 4,
               paddingTop: showSearch ? 0 : insets.top + 72,

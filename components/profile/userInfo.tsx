@@ -29,13 +29,7 @@ export const UserInfo = React.memo(function UserInfo({
     userInfo?.category?.split(',').filter((item: string) => item !== '') || [];
   const isOwnProfile = user?.username === username;
 
-  // Only log in development mode
-  if (__DEV__) {
-    React.useEffect(() => {
-      console.log('UserInfo - soleUser:', soleUser);
-      console.log('UserInfo - userInfo:', userInfo);
-    }, [soleUser, userInfo]);
-  }
+
 
   return (
     <View className="px-4 py-4">

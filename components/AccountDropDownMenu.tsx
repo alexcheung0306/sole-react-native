@@ -132,7 +132,6 @@ export function AccountDropDownMenu({
   const userInfoData = Array.isArray(userInfo) ? userInfo[0] : userInfo;
   const profilePic = userInfoData?.profilePic || soleUser?.image;
 
-  console.log('userInfo', userInfo);
 
   return (
     <>
