@@ -82,15 +82,7 @@ export default function ProfileScreen() {
   } = useProfileQueries(username as string, viewerUserId as string | undefined, true);
 
   // Debug logging
-  console.log('Profile Debug:', {
-    username,
-    viewerUserId,
-    profileLoading,
-    userIsLoading,
-    postsCount: posts.length,
-    hasProfileData: !!userProfileData,
-    targetUserId: userProfileData?.userInfo?.soleUserId
-  });
+
 
   const userInfo = userProfileData?.userInfo;
   const talentInfo = userProfileData?.talentInfo;
@@ -154,32 +146,24 @@ export default function ProfileScreen() {
 
   // Open modal with Instagram-like expand animation
   const openPostModal = useCallback((index: number, layout?: { x: number; y: number; width: number; height: number; col?: number; row?: number }) => {
-    console.log('openPostModal called - index:', index);
-    console.log('openPostModal layout:', JSON.stringify(layout));
-    console.log('profileScrollY:', profileScrollY.current, 'GRID_START_OFFSET:', GRID_START_OFFSET);
+    // Set current visible index when post card is pressed
+    currentVisibleIndex.current = index;
     setSelectedPostIndex(index);
-
-    // Set source position for animation origin
     if (layout) {
+      console.log('Layout of grid ', layout);
       // Calculate screen position: grid position + grid start offset - scroll offset
       const screenX = layout.x + layout.width / 2;
       const screenY = GRID_START_OFFSET + layout.y - profileScrollY.current + layout.height / 2;
-
       const calcX = screenX - SCREEN_WIDTH / 2;
       const calcY = screenY - SCREEN_HEIGHT / 2;
-      console.log('Screen position - screenX:', screenX, 'screenY:', screenY);
-      console.log('Calculated sourceX:', calcX, 'sourceY:', calcY);
       sourceX.value = calcX;
       sourceY.value = calcY;
     } else {
-      console.log('No layout provided, using center');
-      // Fallback to center
       sourceX.value = 0;
       sourceY.value = 0;
     }
 
     // Show modal and start expand animation
-    currentVisibleIndex.current = index;
     setPostModalVisible(true);
     expandProgress.value = 0;
     translateX.value = 0;
@@ -188,19 +172,32 @@ export default function ProfileScreen() {
     const offset = getOffsetForIndex(index);
     console.log('openPostModal - setting modalScrollOffset:', offset, 'for index:', index);
     setModalScrollOffset(offset);
+    // Reset the ref to ensure fresh ScrollView state
+    if (postListRef.current) {
+      postListRef.current = null;
+    }
     setModalKey(k => k + 1); // Force ScrollView remount
-
+console.log('postListReffdfffffffffffffffffffffff', postListRef);
     // Start animation
     expandProgress.value = withTiming(1, { duration: 300 });
     modalOpacity.value = withTiming(1, { duration: 200 });
   }, [insets.top, getOffsetForIndex]);
+
+  // Cleanup function for modal close (used by both arrow and gesture close)
+  const cleanupModalState = useCallback(() => {
+    setModalScrollOffset(0);
+    if (postListRef.current) {
+      postListRef.current.scrollTo({ x: 0, y: 0, animated: false });
+      postListRef.current = null;
+    }
+  }, []);
+
   // Close modal with collapse animation back to thumbnail
   const closePostModal = useCallback(() => {
     // Use currentVisibleIndex (the last viewed post) for close position
     const pos = getGridPositionForIndex(currentVisibleIndex.current);
     sourceX.value = pos.x;
     sourceY.value = pos.y;
-
     // Reset translate values first for clean animation back to source
     translateX.value = withTiming(0, { duration: 200 });
     translateY.value = withTiming(0, { duration: 200 });
@@ -208,8 +205,9 @@ export default function ProfileScreen() {
     modalOpacity.value = withTiming(0, { duration: 300 });
     setTimeout(() => {
       setPostModalVisible(false);
+      cleanupModalState();
     }, 350);
-  }, [getGridPositionForIndex, selectedPostIndex]);
+  }, [getGridPositionForIndex, selectedPostIndex, cleanupModalState]);
 
   // Swipe/fling to close gesture - follows finger freely on both axes
   const translateY = useSharedValue(0);
@@ -373,16 +371,18 @@ export default function ProfileScreen() {
 
           <PostFeedModal
             postModalVisible={postModalVisible}
+            setPostModalVisible={setPostModalVisible}
             insets={insets}
             closePostModal={closePostModal}
+            cleanupModalState={cleanupModalState}
             postListRef={postListRef}
             transformedPosts={transformedPosts}
             modalScrollOffset={modalScrollOffset}
             handleItemLayout={handleItemLayout}
             selectedPostIndex={selectedPostIndex}
-            setPostModalVisible={setPostModalVisible}
             getGridPositionForIndex={getGridPositionForIndex}
             itemHeights={itemHeights}
+            currentVisibleIndex={currentVisibleIndex}
             expandProgress={expandProgress}
             sourceX={sourceX}
             sourceY={sourceY}

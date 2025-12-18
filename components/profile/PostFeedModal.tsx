@@ -10,6 +10,7 @@ export function PostFeedModal({
   postModalVisible,
   insets,
   closePostModal,
+  cleanupModalState,
   postListRef,
   transformedPosts,
   modalScrollOffset,
@@ -18,6 +19,7 @@ export function PostFeedModal({
   setPostModalVisible,
   getGridPositionForIndex,
   itemHeights,
+  currentVisibleIndex,
   expandProgress,
   sourceX,
   sourceY,
@@ -26,6 +28,7 @@ export function PostFeedModal({
   postModalVisible: boolean,
   insets: any,
   closePostModal: () => void,
+  cleanupModalState: () => void,
   postListRef: any,
   transformedPosts: any,
   modalScrollOffset: number,
@@ -34,6 +37,7 @@ export function PostFeedModal({
   setPostModalVisible: (visible: boolean) => void,
   getGridPositionForIndex: (index: number) => { x: number, y: number },
   itemHeights: any,
+  currentVisibleIndex: any,
   expandProgress: SharedValue<number>,
   sourceX: SharedValue<number>,
   sourceY: SharedValue<number>,
@@ -43,13 +47,10 @@ export function PostFeedModal({
   const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
   const MODAL_BORDER_RADIUS = 40;
 
-  const currentVisibleIndex = useRef(0);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
 
   const [zoomingIndex, setZoomingIndex] = useState<number | null>(null);
-
-
 
   const modalAnimatedStyle = useAnimatedStyle(() => {
     const scale = interpolate(expandProgress.value, [0, 1], [0.333, 1], Extrapolation.CLAMP);
@@ -58,7 +59,6 @@ export function PostFeedModal({
     // Animate from source position to center
     const animatedX = interpolate(expandProgress.value, [0, 1], [sourceX.value, 0], Extrapolation.CLAMP);
     const animatedY = interpolate(expandProgress.value, [0, 1], [sourceY.value, 0], Extrapolation.CLAMP);
-
     return {
       transform: [
         { translateX: translateX.value + animatedX },
@@ -96,11 +96,17 @@ export function PostFeedModal({
     const pos = getGridPositionForIndex(currentVisibleIndex.current);
     sourceX.value = pos.x;
     sourceY.value = pos.y;
-
+    // Start close animation (same as arrow close)
+    translateX.value = withTiming(0, { duration: 200 });
+    translateY.value = withTiming(0, { duration: 200 });
+    expandProgress.value = withTiming(0, { duration: 300 });
+    modalOpacity.value = withTiming(0, { duration: 300 });
+    // Delay hiding modal and cleanup to let animation complete
     setTimeout(() => {
       setPostModalVisible(false);
+      cleanupModalState();
     }, 350);
-  }, [getGridPositionForIndex, selectedPostIndex]);
+  }, [getGridPositionForIndex, selectedPostIndex, cleanupModalState]);
 
   const panGesture = Gesture.Pan()
     .activeOffsetX(15)
