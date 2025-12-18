@@ -1,6 +1,5 @@
-import { router } from 'expo-router';
-import { View, ActivityIndicator, Text, TouchableOpacity, Dimensions,Image  } from 'react-native';
-// import { Image } from 'expo-image';
+import { View, ActivityIndicator, Text, TouchableOpacity, Dimensions, Image } from 'react-native';
+
 export default function UserPosts({
   userIsLoading,
   userIsError,
@@ -11,6 +10,7 @@ export default function UserPosts({
   userFetchNextPage,
   onRefresh,
   isRefreshing,
+  onPostPress,
 }: {
   userIsLoading: boolean;
   userIsError?: boolean;
@@ -21,6 +21,7 @@ export default function UserPosts({
   userFetchNextPage: () => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  onPostPress?: (index: number) => void;
 }) {
   const { width } = Dimensions.get('window');
   const IMAGE_SIZE = width / 3;
@@ -72,16 +73,8 @@ export default function UserPosts({
                   key={item.id}
                   className="aspect-square bg-gray-800"
                   style={{ width: IMAGE_SIZE, height: IMAGE_SIZE }}
-                  onPress={() =>
-                    router.push({
-                      pathname: `/(protected)/post` as any,
-                      params: {
-                        postId: item.id,
-                        userId: posts[0]?.soleUserId, // Pass the user ID to fetch all their posts
-                        postIndex: index.toString() // Pass the post index for direct scrolling
-                      },
-                    })
-                  }>
+                  onPress={() => onPostPress?.(index)}
+                  activeOpacity={0.9}>
                   {firstMedia && firstMedia.mediaUrl ? (
                     <Image
                       source={{ uri: firstMedia.mediaUrl }}

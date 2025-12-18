@@ -31,7 +31,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarouselProps) {
 
-  const isLogAvaliable = true;
+  const isLogAvaliable = false;
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set()); // Track loaded images
   const [imageDimensions, setImageDimensions] = useState<{ [key: number]: { width: number; height: number } }>({}); // Store image dimensions

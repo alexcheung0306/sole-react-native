@@ -207,10 +207,6 @@ export default function UserPostsFeed() {
           showsVerticalScrollIndicator={false}
           onScroll={onScroll}
           scrollEventThrottle={16}
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={5}
-          windowSize={5}
-          initialNumToRender={5}
           contentContainerStyle={{
             paddingTop: insets.top + 50,
             paddingBottom: insets.bottom + 80,

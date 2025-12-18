@@ -13,6 +13,7 @@ import UserPosts from '~/components/profile/UserPosts';
 import JobHistory from '~/components/profile/JobHistory';
 import ProfileSettings from '~/components/profile/profile-settings';
 import { UserInfo } from '~/components/profile/userInfo';
+import { PostFeedModal } from '~/components/profile/PostFeedModal';
 
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = width / 3;
@@ -20,8 +21,9 @@ const IMAGE_SIZE = width / 3;
 type TabKey = 'posts' | 'talent' | 'jobs';
 
 export default function ProfileScreen() {
-  const [imageSize, setImageSize] = useState(Dimensions.get('window').width / 3);
   const [profileTab, setProfileTab] = useState<TabKey>('posts');
+  const [postModalVisible, setPostModalVisible] = useState(false);
+  const [selectedPostIndex, setSelectedPostIndex] = useState(0);
   const { user } = useUser();
   const insets = useSafeAreaInsets();
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
@@ -230,6 +232,10 @@ export default function ProfileScreen() {
                 userFetchNextPage={userFetchNextPage}
                 onRefresh={onRefresh}
                 isRefreshing={isRefreshing}
+                onPostPress={(index: number) => {
+                  setSelectedPostIndex(index);
+                  setPostModalVisible(true);
+                }}
               />
             ) : profileTab === 'talent' ? (
               <TalentProfile
@@ -243,6 +249,14 @@ export default function ProfileScreen() {
             ) : null}
           </View>
         </ScrollView>
+
+        {/* Post Feed Modal - Outside ScrollView */}
+        <PostFeedModal
+          visible={postModalVisible}
+          posts={posts}
+          initialIndex={selectedPostIndex}
+          onClose={() => setPostModalVisible(false)}
+        />
       </View>
     </>
   );
