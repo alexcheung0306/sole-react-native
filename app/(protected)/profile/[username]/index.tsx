@@ -24,11 +24,10 @@ import Animated, {
   Extrapolation,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { PostFeedModal } from '~/components/profile/PostFeedModal';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const IMAGE_SIZE = SCREEN_WIDTH / 3;
-const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
-const MODAL_BORDER_RADIUS = 40;
 
 type TabKey = 'posts' | 'talent' | 'jobs';
 
@@ -36,7 +35,6 @@ export default function ProfileScreen() {
   const [profileTab, setProfileTab] = useState<TabKey>('posts');
   const [postModalVisible, setPostModalVisible] = useState(false);
   const [selectedPostIndex, setSelectedPostIndex] = useState(0);
-  const [zoomingIndex, setZoomingIndex] = useState<number | null>(null);
   const [modalScrollOffset, setModalScrollOffset] = useState(0);
   const [modalKey, setModalKey] = useState(0);
   const { user } = useUser();
@@ -44,30 +42,21 @@ export default function ProfileScreen() {
   const postListRef = useRef<any>(null);
   const itemHeights = useRef<{ [key: string]: number }>({});
   const profileScrollY = useRef(0);
-  const userPostsGridY = useRef(0);
 
   // Animation values for modal - Instagram-like expand animation
   const expandProgress = useSharedValue(0);
   const translateX = useSharedValue(0);
   const modalOpacity = useSharedValue(0);
-  
+
   // Source thumbnail position for expand animation (shared values for worklet access)
   const sourceX = useSharedValue(SCREEN_WIDTH / 2 - IMAGE_SIZE / 2);
   const sourceY = useSharedValue(SCREEN_HEIGHT / 2 - IMAGE_SIZE / 2);
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   const params = useLocalSearchParams<{ username?: string }>();
   const pathname = usePathname();
-
-  // Get username from params, or fallback to current user's username (for swipeable container)
   const username = params.username || user?.username;
-
-  // Check if viewing own profile
   const isOwnProfile = user?.username === username;
-
-  // Check if we're in a profile route (vs. swipable container)
   const isProfileRoute = pathname.includes('/profile/');
-
-  // Get viewer user ID safely
   const viewerUserId = user?.id;
 
   // Use custom hook for profile queries
@@ -144,20 +133,37 @@ export default function ProfileScreen() {
 
   // Estimate grid start position (UserInfo ~200px + tabs ~50px + paddingTop)
   const GRID_START_OFFSET = 250 + insets.top + 50;
-  
-  // Open modal with Instagram-like expand animation
-  const openPostModal = useCallback((index: number, layout?: { x: number; y: number; width: number; height: number; col?: number; row?: number }) => {
+
+
+
+  // Track current visible post index in modal
+  const currentVisibleIndex = useRef(selectedPostIndex);
+
+  // Calculate grid position for a given post index
+  const getGridPositionForIndex = useCallback((index: number) => {
+    const col = index % 3;
+    const row = Math.floor(index / 3);
+    const x = col * IMAGE_SIZE + IMAGE_SIZE / 2;
+    const y = GRID_START_OFFSET + row * IMAGE_SIZE - profileScrollY.current + IMAGE_SIZE / 2;
+    return {
+      x: x - SCREEN_WIDTH / 2,
+      y: y - SCREEN_HEIGHT / 2,
+    };
+  }, [GRID_START_OFFSET]);
+
+   // Open modal with Instagram-like expand animation
+   const openPostModal = useCallback((index: number, layout?: { x: number; y: number; width: number; height: number; col?: number; row?: number }) => {
     console.log('openPostModal called - index:', index);
     console.log('openPostModal layout:', JSON.stringify(layout));
     console.log('profileScrollY:', profileScrollY.current, 'GRID_START_OFFSET:', GRID_START_OFFSET);
     setSelectedPostIndex(index);
-    
+
     // Set source position for animation origin
     if (layout) {
       // Calculate screen position: grid position + grid start offset - scroll offset
       const screenX = layout.x + layout.width / 2;
       const screenY = GRID_START_OFFSET + layout.y - profileScrollY.current + layout.height / 2;
-      
+
       const calcX = screenX - SCREEN_WIDTH / 2;
       const calcY = screenY - SCREEN_HEIGHT / 2;
       console.log('Screen position - screenX:', screenX, 'screenY:', screenY);
@@ -170,7 +176,7 @@ export default function ProfileScreen() {
       sourceX.value = 0;
       sourceY.value = 0;
     }
-    
+
     // Show modal and start expand animation
     currentVisibleIndex.current = index;
     setPostModalVisible(true);
@@ -182,53 +188,18 @@ export default function ProfileScreen() {
     console.log('openPostModal - setting modalScrollOffset:', offset, 'for index:', index);
     setModalScrollOffset(offset);
     setModalKey(k => k + 1); // Force ScrollView remount
-    
+
     // Start animation
     expandProgress.value = withTiming(1, { duration: 300 });
     modalOpacity.value = withTiming(1, { duration: 200 });
   }, [insets.top, getOffsetForIndex]);
-
-  // Track current visible post index in modal
-  const currentVisibleIndex = useRef(selectedPostIndex);
-  
-  // Calculate grid position for a given post index
-  const getGridPositionForIndex = useCallback((index: number) => {
-    const col = index % 3;
-    const row = Math.floor(index / 3);
-    const x = col * IMAGE_SIZE + IMAGE_SIZE / 2;
-    const y = GRID_START_OFFSET + row * IMAGE_SIZE - profileScrollY.current + IMAGE_SIZE / 2;
-    return {
-      x: x - SCREEN_WIDTH / 2,
-      y: y - SCREEN_HEIGHT / 2,
-    };
-  }, [GRID_START_OFFSET]);
-  
-  // Handle scroll to track visible post
-  const handleModalScroll = useCallback((event: any) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    // Calculate which post is currently most visible based on scroll position
-    let cumulativeHeight = 0;
-    const posts = transformedPosts;
-    for (let i = 0; i < posts.length; i++) {
-      const postHeight = itemHeights.current[posts[i].id] || 400; // fallback height
-      if (offsetY < cumulativeHeight + postHeight / 2) {
-        currentVisibleIndex.current = i;
-        break;
-      }
-      cumulativeHeight += postHeight;
-      if (i === posts.length - 1) {
-        currentVisibleIndex.current = i;
-      }
-    }
-  }, [transformedPosts]);
-
   // Close modal with collapse animation back to thumbnail
   const closePostModal = useCallback(() => {
     // Use currentVisibleIndex (the last viewed post) for close position
     const pos = getGridPositionForIndex(currentVisibleIndex.current);
     sourceX.value = pos.x;
     sourceY.value = pos.y;
-    
+
     // Reset translate values first for clean animation back to source
     translateX.value = withTiming(0, { duration: 200 });
     translateY.value = withTiming(0, { duration: 200 });
@@ -240,79 +211,7 @@ export default function ProfileScreen() {
   }, [getGridPositionForIndex, selectedPostIndex]);
 
   // Swipe/fling to close gesture - follows finger freely on both axes
-  const FLING_VELOCITY_THRESHOLD = 300;
   const translateY = useSharedValue(0);
-  
-  const handleGestureClose = useCallback(() => {
-    // Use currentVisibleIndex (the last viewed post) for close position
-    const pos = getGridPositionForIndex(currentVisibleIndex.current);
-    sourceX.value = pos.x;
-    sourceY.value = pos.y;
-    
-    setTimeout(() => {
-      setPostModalVisible(false);
-    }, 350);
-  }, [getGridPositionForIndex, selectedPostIndex]);
-  
-  const panGesture = Gesture.Pan()
-    .activeOffsetX(15)
-    .onUpdate((event) => {
-      // Follow finger freely on both axes
-      translateX.value = event.translationX;
-      translateY.value = event.translationY;
-      
-      // Scale down based on distance from center
-      const distance = Math.sqrt(event.translationX ** 2 + event.translationY ** 2);
-      const swipeProgress = interpolate(
-        distance,
-        [0, SCREEN_WIDTH * 0.5],
-        [1, 0.85],
-        Extrapolation.CLAMP
-      );
-      expandProgress.value = swipeProgress;
-    })
-    .onEnd((event) => {
-      const isFlingRight = event.velocityX > FLING_VELOCITY_THRESHOLD;
-      const isFlingDown = event.velocityY > FLING_VELOCITY_THRESHOLD;
-      const isPastThreshold = event.translationX > SWIPE_THRESHOLD;
-      
-      if (isFlingRight || isFlingDown || isPastThreshold) {
-        // Shrink back to source position (thumbnail)
-        translateX.value = withTiming(0, { duration: 250 });
-        translateY.value = withTiming(0, { duration: 250 });
-        expandProgress.value = withTiming(0, { duration: 300 });
-        modalOpacity.value = withTiming(0, { duration: 300 });
-        runOnJS(handleGestureClose)();
-      } else {
-        // Snap back to full screen
-        translateX.value = withTiming(0, { duration: 200 });
-        translateY.value = withTiming(0, { duration: 200 });
-        expandProgress.value = withTiming(1, { duration: 200 });
-      }
-    });
-
-  // Animated styles - Instagram-like expand/collapse from source position
-  const modalAnimatedStyle = useAnimatedStyle(() => {
-    const scale = interpolate(expandProgress.value, [0, 1], [0.333, 1], Extrapolation.CLAMP);
-    const borderRadius = interpolate(expandProgress.value, [0, 1], [20, MODAL_BORDER_RADIUS], Extrapolation.CLAMP);
-    
-    // Animate from source position to center
-    const animatedX = interpolate(expandProgress.value, [0, 1], [sourceX.value, 0], Extrapolation.CLAMP);
-    const animatedY = interpolate(expandProgress.value, [0, 1], [sourceY.value, 0], Extrapolation.CLAMP);
-    
-    return {
-      transform: [
-        { translateX: translateX.value + animatedX },
-        { translateY: translateY.value + animatedY },
-        { scale },
-      ],
-      borderRadius,
-    };
-  });
-
-  const backdropStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(expandProgress.value, [0, 1], [0, 1], Extrapolation.CLAMP),
-  }));
 
   // Track item height on layout
   const handleItemLayout = useCallback((postId: string, height: number) => {
@@ -321,7 +220,6 @@ export default function ProfileScreen() {
       console.log('Item height captured:', postId, height, 'All heights:', JSON.stringify(itemHeights.current));
     }
   }, []);
-
 
   // Profile error state
   if (profileError && !profileLoading) {
@@ -409,7 +307,6 @@ export default function ProfileScreen() {
           onHeightChange={handleHeightChange}
           isDark={true}
         />
-
         <ScrollView
           className="flex-1 bg-black"
           onScroll={(e) => {
@@ -442,25 +339,22 @@ export default function ProfileScreen() {
             <View className="flex-row">
               <TouchableOpacity
                 activeOpacity={1}
-                className={`flex-1 items-center border-b-2 py-3 ${
-                  profileTab === 'posts' ? 'border-white' : 'border-transparent'
-                }`}
+                className={`flex-1 items-center border-b-2 py-3 ${profileTab === 'posts' ? 'border-white' : 'border-transparent'
+                  }`}
                 onPress={() => setProfileTab('posts')}>
                 <Grid size={24} color={profileTab === 'posts' ? '#ffffff' : '#6b7280'} />
               </TouchableOpacity>
               <TouchableOpacity
                 activeOpacity={1}
-                className={`flex-1 items-center border-b-2 py-3 ${
-                  profileTab === 'talent' ? 'border-white' : 'border-transparent'
-                }`}
+                className={`flex-1 items-center border-b-2 py-3 ${profileTab === 'talent' ? 'border-white' : 'border-transparent'
+                  }`}
                 onPress={() => setProfileTab('talent')}>
                 <User size={24} color={profileTab === 'talent' ? '#ffffff' : '#6b7280'} />
               </TouchableOpacity>
               <TouchableOpacity
                 activeOpacity={1}
-                className={`flex-1 items-center border-b-2 py-3 ${
-                  profileTab === 'jobs' ? 'border-white' : 'border-transparent'
-                }`}
+                className={`flex-1 items-center border-b-2 py-3 ${profileTab === 'jobs' ? 'border-white' : 'border-transparent'
+                  }`}
                 onPress={() => setProfileTab('jobs')}>
                 <Briefcase size={24} color={profileTab === 'jobs' ? '#ffffff' : '#6b7280'} />
               </TouchableOpacity>
@@ -497,84 +391,25 @@ export default function ProfileScreen() {
 
         {/* Post Feed - Always mounted, visibility controlled by modal state */}
         {transformedPosts.length > 0 && (
-          <View 
-            style={[
-              StyleSheet.absoluteFill, 
-              { zIndex: postModalVisible ? 99999 : -1, elevation: postModalVisible ? 99999 : -1 }
-            ]} 
-            pointerEvents={postModalVisible ? 'auto' : 'none'}
-          >
-            {/* Backdrop */}
-            <Animated.View 
-              style={[
-                StyleSheet.absoluteFill, 
-                { backgroundColor: 'rgba(0,0,0,0.95)' }, 
-                backdropStyle
-              ]} 
-            />
 
-            {/* Modal Content */}
-            <GestureDetector gesture={panGesture}>
-              <Animated.View style={[{ flex: 1, backgroundColor: '#000', overflow: zoomingIndex !== null ? 'visible' : 'hidden' }, modalAnimatedStyle]}>
-                {/* Header */}
-                <View style={{ 
-                  flexDirection: 'row', 
-                  alignItems: 'center', 
-                  paddingTop: insets.top, 
-                  paddingHorizontal: 16, 
-                  paddingBottom: 12,
-                  backgroundColor: '#000',
-                  borderBottomWidth: 1,
-                  borderBottomColor: '#1f2937',
-                }}>
-                  <TouchableOpacity onPress={closePostModal} style={{ padding: 8 }}>
-                    <ChevronLeft color="#93c5fd" size={24} />
-                  </TouchableOpacity>
-                  <Text style={{ flex: 1, color: '#fff', fontSize: 18, fontWeight: '600', textAlign: 'center', marginRight: 40 }}>
-                    Posts
-                  </Text>
-                </View>
-
-                {/* Posts List - Using ScrollView to allow zoom overflow */}
-                <Animated.ScrollView
-                  key={modalKey}
-                  ref={postListRef}
-                  showsVerticalScrollIndicator={false}
-                  scrollEnabled={zoomingIndex === null}
-                  style={{ flex: 1 }}
-                  contentContainerStyle={{
-                    paddingTop: 10,
-                    paddingBottom: insets.bottom + 20,
-                  }}
-                  contentOffset={{ x: 0, y: modalScrollOffset }}
-                  scrollEventThrottle={100}
-                  onScroll={handleModalScroll}
-                >
-                  {transformedPosts.map((item, index) => {
-                    const isThisItemZooming = zoomingIndex === index;
-                    return (
-                      <View 
-                        key={item.id}
-                        onLayout={(e) => handleItemLayout(item.id, e.nativeEvent.layout.height)}
-                        style={{ 
-                          zIndex: isThisItemZooming ? 9999 : 0,
-                          elevation: isThisItemZooming ? 9999 : 0,
-                        }}
-                      >
-                        <PostCard
-                          post={item}
-                          onLike={() => {}}
-                          onAddComment={() => {}}
-                          onZoomChange={(isZooming) => setZoomingIndex(isZooming ? index : null)}
-                          onScaleChange={() => {}}
-                        />
-                      </View>
-                    );
-                  })}
-                </Animated.ScrollView>
-              </Animated.View>
-            </GestureDetector>
-          </View>
+          <PostFeedModal
+            postModalVisible={postModalVisible}
+            insets={insets}
+            closePostModal={closePostModal}
+            postListRef={postListRef}
+            transformedPosts={transformedPosts}
+            modalScrollOffset={modalScrollOffset}
+            handleItemLayout={handleItemLayout}
+            selectedPostIndex={selectedPostIndex}
+            profileScrollY={profileScrollY}
+            setPostModalVisible={setPostModalVisible}
+            getGridPositionForIndex={getGridPositionForIndex}
+            itemHeights={itemHeights}
+            expandProgress={expandProgress}
+            sourceX={sourceX}
+            sourceY={sourceY}
+            modalOpacity={modalOpacity}
+          />
         )}
       </View>
     </>
