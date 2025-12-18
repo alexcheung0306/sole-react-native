@@ -25,6 +25,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { PostFeedModal } from '~/components/profile/PostFeedModal';
+import { ProfileTabNav } from '~/components/profile/profile-tab-nav';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const IMAGE_SIZE = SCREEN_WIDTH / 3;
@@ -151,8 +152,8 @@ export default function ProfileScreen() {
     };
   }, [GRID_START_OFFSET]);
 
-   // Open modal with Instagram-like expand animation
-   const openPostModal = useCallback((index: number, layout?: { x: number; y: number; width: number; height: number; col?: number; row?: number }) => {
+  // Open modal with Instagram-like expand animation
+  const openPostModal = useCallback((index: number, layout?: { x: number; y: number; width: number; height: number; col?: number; row?: number }) => {
     console.log('openPostModal called - index:', index);
     console.log('openPostModal layout:', JSON.stringify(layout));
     console.log('profileScrollY:', profileScrollY.current, 'GRID_START_OFFSET:', GRID_START_OFFSET);
@@ -335,31 +336,9 @@ export default function ProfileScreen() {
           />
 
           {/* Tab Navigation */}
-          <View className="border-t border-gray-800">
-            <View className="flex-row">
-              <TouchableOpacity
-                activeOpacity={1}
-                className={`flex-1 items-center border-b-2 py-3 ${profileTab === 'posts' ? 'border-white' : 'border-transparent'
-                  }`}
-                onPress={() => setProfileTab('posts')}>
-                <Grid size={24} color={profileTab === 'posts' ? '#ffffff' : '#6b7280'} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                activeOpacity={1}
-                className={`flex-1 items-center border-b-2 py-3 ${profileTab === 'talent' ? 'border-white' : 'border-transparent'
-                  }`}
-                onPress={() => setProfileTab('talent')}>
-                <User size={24} color={profileTab === 'talent' ? '#ffffff' : '#6b7280'} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                activeOpacity={1}
-                className={`flex-1 items-center border-b-2 py-3 ${profileTab === 'jobs' ? 'border-white' : 'border-transparent'
-                  }`}
-                onPress={() => setProfileTab('jobs')}>
-                <Briefcase size={24} color={profileTab === 'jobs' ? '#ffffff' : '#6b7280'} />
-              </TouchableOpacity>
-            </View>
-          </View>
+          <ProfileTabNav
+            profileTab={profileTab}
+            setProfileTab={(tab: string) => setProfileTab(tab as TabKey)} />
 
           {/* Tab Content */}
           <View className="flex-1" style={{ minHeight: 400 }}>
@@ -401,7 +380,6 @@ export default function ProfileScreen() {
             modalScrollOffset={modalScrollOffset}
             handleItemLayout={handleItemLayout}
             selectedPostIndex={selectedPostIndex}
-            profileScrollY={profileScrollY}
             setPostModalVisible={setPostModalVisible}
             getGridPositionForIndex={getGridPositionForIndex}
             itemHeights={itemHeights}
