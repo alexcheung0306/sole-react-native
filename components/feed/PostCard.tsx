@@ -1,12 +1,11 @@
+import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { MessageCircle, MoreVertical, MapPin } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
-import BottomSheet from '@gorhom/bottom-sheet';
+import { useState } from 'react';
 import { Post, Comment } from '~/types/post';
 import { ImageCarousel } from './ImageCarousel';
 import { LikeButton } from './LikeButton';
-import { CommentSheet } from './CommentSheet';
 import { PostDrawer } from './PostDrawer';
 import CommentModal from './CommentModal';
 import { formatTimeAgo } from '~/utils/time-converts';
@@ -19,7 +18,7 @@ interface PostCardProps {
   onScaleChange?: (scale: number) => void;
 }
 
-export function PostCard({
+export const PostCard = memo(function PostCard({
   post,
   onLike,
   onAddComment,
@@ -143,4 +142,12 @@ export function PostCard({
       <PostDrawer post={post} isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
     </>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison - only re-render if these change
+  return (
+    prevProps.post.id === nextProps.post.id &&
+    prevProps.post.likeCount === nextProps.post.likeCount &&
+    prevProps.post.isLikedByUser === nextProps.post.isLikedByUser &&
+    prevProps.post.commentCount === nextProps.post.commentCount
+  );
+});

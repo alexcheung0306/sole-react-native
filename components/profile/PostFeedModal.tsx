@@ -110,17 +110,22 @@ export function PostFeedModal({
     }
   }, [visible, showAllPosts, currentIndex]);
 
+  // Memoize transformed posts to prevent re-creating objects
+  const transformedPosts = useMemo(() => {
+    return posts.map(post => transformPost(post));
+  }, [posts]);
+
   // Compute displayed posts based on phase
   const displayedPosts = useMemo(() => {
-    if (posts.length === 0) return [];
+    if (transformedPosts.length === 0) return [];
     
     if (!showAllPosts && currentIndex > 0) {
       // Phase 1: Only posts from selected index onwards
-      return posts.slice(currentIndex);
+      return transformedPosts.slice(currentIndex);
     }
     // Phase 2 or index is 0: All posts
-    return posts;
-  }, [posts, showAllPosts, currentIndex]);
+    return transformedPosts;
+  }, [transformedPosts, showAllPosts, currentIndex]);
 
   // Open/close animation
   useEffect(() => {
@@ -188,13 +193,24 @@ export function PostFeedModal({
     opacity: interpolate(expandProgress.value, [0, 1], [0, 1]),
   }));
 
-  const handleLike = (postId: string) => {
+  const handleLike = useCallback((postId: string) => {
     onLike?.(postId);
-  };
+  }, [onLike]);
 
-  const handleAddComment = (postId: string, content: string) => {
+  const handleAddComment = useCallback((postId: string, content: string) => {
     onAddComment?.(postId, content);
-  };
+  }, [onAddComment]);
+
+  // Memoized render item - item is already transformed
+  const renderItem = useCallback(({ item }: { item: any }) => (
+    <PostCard
+      post={item}
+      onLike={handleLike}
+      onAddComment={handleAddComment}
+      onZoomChange={() => {}}
+      onScaleChange={() => {}}
+    />
+  ), [handleLike, handleAddComment]);
 
   // Always render but hide when not visible - keeps posts rendered
   if (!visible) {
@@ -226,16 +242,8 @@ export function PostFeedModal({
           <Animated.FlatList
             ref={flatListRef}
             data={displayedPosts}
-            renderItem={({ item }) => (
-              <PostCard
-                post={transformPost(item)}
-                onLike={handleLike}
-                onAddComment={handleAddComment}
-                onZoomChange={() => {}}
-                onScaleChange={() => {}}
-              />
-            )}
-            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{
               paddingTop: 10,
