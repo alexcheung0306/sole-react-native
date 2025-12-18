@@ -197,15 +197,29 @@ export default function ProfileScreen() {
     };
   }, [GRID_START_OFFSET]);
   
-  // Callback when modal scrolls to different post
-  const handleCurrentIndexChange = useCallback((index: number) => {
-    currentVisibleIndex.current = index;
-  }, []);
+  // Handle scroll to track visible post
+  const handleModalScroll = useCallback((event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    // Calculate which post is currently most visible based on scroll position
+    let cumulativeHeight = 0;
+    const posts = transformedPosts;
+    for (let i = 0; i < posts.length; i++) {
+      const postHeight = itemHeights.current[posts[i].id] || 400; // fallback height
+      if (offsetY < cumulativeHeight + postHeight / 2) {
+        currentVisibleIndex.current = i;
+        break;
+      }
+      cumulativeHeight += postHeight;
+      if (i === posts.length - 1) {
+        currentVisibleIndex.current = i;
+      }
+    }
+  }, [transformedPosts]);
 
   // Close modal with collapse animation back to thumbnail
   const closePostModal = useCallback(() => {
-    // Use selectedPostIndex (the originally tapped post) for close position
-    const pos = getGridPositionForIndex(selectedPostIndex);
+    // Use currentVisibleIndex (the last viewed post) for close position
+    const pos = getGridPositionForIndex(currentVisibleIndex.current);
     sourceX.value = pos.x;
     sourceY.value = pos.y;
     
@@ -224,8 +238,8 @@ export default function ProfileScreen() {
   const translateY = useSharedValue(0);
   
   const handleGestureClose = useCallback(() => {
-    // Use selectedPostIndex (the originally tapped post) for close position
-    const pos = getGridPositionForIndex(selectedPostIndex);
+    // Use currentVisibleIndex (the last viewed post) for close position
+    const pos = getGridPositionForIndex(currentVisibleIndex.current);
     sourceX.value = pos.x;
     sourceY.value = pos.y;
     
@@ -527,6 +541,7 @@ export default function ProfileScreen() {
                   }}
                   contentOffset={{ x: 0, y: getOffsetForIndex(selectedPostIndex) }}
                   scrollEventThrottle={100}
+                  onScroll={handleModalScroll}
                 >
                   {transformedPosts.map((item, index) => {
                     const isThisItemZooming = zoomingIndex === index;
