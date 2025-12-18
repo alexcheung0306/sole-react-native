@@ -73,7 +73,10 @@ export default function UserPosts({
                   key={item.id}
                   className="aspect-square bg-gray-800"
                   style={{ width: IMAGE_SIZE, height: IMAGE_SIZE }}
-                  onPress={() => onPostPress?.(index)}
+                  onPress={() => {
+                    console.log('UserPosts: Tapped post at index:', index);
+                    onPostPress?.(index);
+                  }}
                   activeOpacity={0.9}>
                   {firstMedia && firstMedia.mediaUrl ? (
                     <Image

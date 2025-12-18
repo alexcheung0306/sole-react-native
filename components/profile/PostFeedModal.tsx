@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -79,29 +79,63 @@ export function PostFeedModal({
     },
   });
 
+
+  // Two-phase rendering: first show posts from selected index, then prepend earlier posts
+  const [showAllPosts, setShowAllPosts] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+
+  // Reset state when modal opens with new index
+  useEffect(() => {
+    if (visible) {
+      setCurrentIndex(initialIndex);
+      setShowAllPosts(false);
+    }
+  }, [visible, initialIndex]);
+
+  // Phase 2: Prepend earlier posts after initial render
+  useEffect(() => {
+    if (visible && !showAllPosts && currentIndex > 0) {
+      const timer = setTimeout(() => {
+        setShowAllPosts(true);
+        // After prepending, scroll to the selected post (now at its original index)
+        setTimeout(() => {
+          flatListRef.current?.scrollToIndex({
+            index: currentIndex,
+            animated: false,
+            viewPosition: 0,
+          });
+        }, 50);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [visible, showAllPosts, currentIndex]);
+
+  // Compute displayed posts based on phase
+  const displayedPosts = useMemo(() => {
+    if (posts.length === 0) return [];
+    
+    if (!showAllPosts && currentIndex > 0) {
+      // Phase 1: Only posts from selected index onwards
+      return posts.slice(currentIndex);
+    }
+    // Phase 2 or index is 0: All posts
+    return posts;
+  }, [posts, showAllPosts, currentIndex]);
+
   // Open/close animation
   useEffect(() => {
     if (visible) {
-      // Expand animation
       expandProgress.value = withSpring(1, { damping: 20, stiffness: 200 });
       opacity.value = withTiming(1, { duration: 200 });
       scale.value = withSpring(1, { damping: 20, stiffness: 200 });
-      
-      // Scroll to initial index after animation
-      setTimeout(() => {
-        if (flatListRef.current && initialIndex > 0) {
-          flatListRef.current.scrollToIndex({
-            index: initialIndex,
-            animated: false,
-          });
-        }
-      }, 100);
     } else {
       expandProgress.value = withTiming(0, { duration: 200 });
       opacity.value = withTiming(0, { duration: 200 });
       scale.value = withTiming(0.8, { duration: 200 });
+      // Reset state when closing
+      setShowAllPosts(false);
     }
-  }, [visible, initialIndex]);
+  }, [visible]);
 
   const closeModal = useCallback(() => {
     translateX.value = withTiming(SCREEN_WIDTH, { duration: 250 });
@@ -162,12 +196,13 @@ export function PostFeedModal({
     onAddComment?.(postId, content);
   };
 
-  if (!visible && expandProgress.value === 0) {
+  // Always render but hide when not visible - keeps posts rendered
+  if (!visible) {
     return null;
   }
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents={visible ? 'auto' : 'none'}>
+    <View style={[StyleSheet.absoluteFill, { zIndex: 99999, elevation: 99999 }]} pointerEvents={visible ? 'auto' : 'none'}>
       {/* Backdrop */}
       <Animated.View style={[styles.backdrop, backdropStyle]} />
 
@@ -190,7 +225,7 @@ export function PostFeedModal({
           {/* Posts List */}
           <Animated.FlatList
             ref={flatListRef}
-            data={posts}
+            data={displayedPosts}
             renderItem={({ item }) => (
               <PostCard
                 post={transformPost(item)}
@@ -206,12 +241,8 @@ export function PostFeedModal({
               paddingTop: 10,
               paddingBottom: insets.bottom + 20,
             }}
-            getItemLayout={(_, index) => ({
-              length: 500,
-              offset: 500 * index,
-              index,
-            })}
             onScrollToIndexFailed={(info) => {
+              // Fallback: wait for items to render then retry
               setTimeout(() => {
                 flatListRef.current?.scrollToIndex({
                   index: info.index,
@@ -219,10 +250,9 @@ export function PostFeedModal({
                 });
               }, 100);
             }}
-            initialNumToRender={3}
-            maxToRenderPerBatch={5}
-            windowSize={5}
-            removeClippedSubviews={true}
+            maintainVisibleContentPosition={{
+              minIndexForVisible: 0,
+            }}
           />
         </Animated.View>
       </GestureDetector>
