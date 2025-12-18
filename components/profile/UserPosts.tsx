@@ -29,14 +29,6 @@ export default function UserPosts({
   const { width } = Dimensions.get('window');
   const IMAGE_SIZE = width / 3;
 
-  // Debug logging
-  console.log('UserPosts Debug:', {
-    postsCount: posts.length,
-    userIsLoading,
-    userIsError,
-    firstPostUserId: posts[0]?.soleUserId
-  });
-
   // Error state
   if (userIsError) {
     return (

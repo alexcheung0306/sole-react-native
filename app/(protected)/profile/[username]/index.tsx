@@ -183,12 +183,13 @@ export default function ProfileScreen() {
 
   // Close modal with collapse animation back to thumbnail
   const closePostModal = useCallback(() => {
-    expandProgress.value = withTiming(0, { duration: 250 });
-    modalOpacity.value = withTiming(0, { duration: 250 });
+    // Reset translateX first for clean animation back to source
+    translateX.value = withTiming(0, { duration: 200 });
+    expandProgress.value = withTiming(0, { duration: 300 });
+    modalOpacity.value = withTiming(0, { duration: 300 });
     setTimeout(() => {
       setPostModalVisible(false);
-      translateX.value = 0;
-    }, 300);
+    }, 350);
   }, []);
 
   // Swipe right to close gesture
