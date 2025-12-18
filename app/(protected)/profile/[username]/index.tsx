@@ -204,8 +204,8 @@ export default function ProfileScreen() {
 
   // Close modal with collapse animation back to thumbnail
   const closePostModal = useCallback(() => {
-    // Update source position to current visible post
-    const pos = getGridPositionForIndex(currentVisibleIndex.current);
+    // Use selectedPostIndex (the originally tapped post) for close position
+    const pos = getGridPositionForIndex(selectedPostIndex);
     sourceX.value = pos.x;
     sourceY.value = pos.y;
     
@@ -217,22 +217,22 @@ export default function ProfileScreen() {
     setTimeout(() => {
       setPostModalVisible(false);
     }, 350);
-  }, [getGridPositionForIndex]);
+  }, [getGridPositionForIndex, selectedPostIndex]);
 
   // Swipe/fling to close gesture - follows finger freely on both axes
   const FLING_VELOCITY_THRESHOLD = 300;
   const translateY = useSharedValue(0);
   
   const handleGestureClose = useCallback(() => {
-    // Update source position to current visible post before closing
-    const pos = getGridPositionForIndex(currentVisibleIndex.current);
+    // Use selectedPostIndex (the originally tapped post) for close position
+    const pos = getGridPositionForIndex(selectedPostIndex);
     sourceX.value = pos.x;
     sourceY.value = pos.y;
     
     setTimeout(() => {
       setPostModalVisible(false);
     }, 350);
-  }, [getGridPositionForIndex]);
+  }, [getGridPositionForIndex, selectedPostIndex]);
   
   const panGesture = Gesture.Pan()
     .activeOffsetX(15)
@@ -273,7 +273,6 @@ export default function ProfileScreen() {
 
   // Animated styles - Instagram-like expand/collapse from source position
   const modalAnimatedStyle = useAnimatedStyle(() => {
-    const height = interpolate(expandProgress.value, [0, 1], [SCREEN_WIDTH, SCREEN_WIDTH], Extrapolation.CLAMP);
     const scale = interpolate(expandProgress.value, [0, 1], [0.333, 1], Extrapolation.CLAMP);
     const borderRadius = interpolate(expandProgress.value, [0, 1], [20, MODAL_BORDER_RADIUS], Extrapolation.CLAMP);
     
@@ -287,9 +286,7 @@ export default function ProfileScreen() {
         { translateY: translateY.value + animatedY },
         { scale },
       ],
-      height,
       borderRadius,
-      overflow: 'hidden' as const,
     };
   });
 
@@ -498,7 +495,7 @@ export default function ProfileScreen() {
 
             {/* Modal Content */}
             <GestureDetector gesture={panGesture}>
-              <Animated.View style={[{ flex: 1, backgroundColor: '#000', overflow: 'visible' }, modalAnimatedStyle]}>
+              <Animated.View style={[{ flex: 1, backgroundColor: '#000', overflow: zoomingIndex !== null ? 'visible' : 'hidden' }, modalAnimatedStyle]}>
                 {/* Header */}
                 <View style={{ 
                   flexDirection: 'row', 
