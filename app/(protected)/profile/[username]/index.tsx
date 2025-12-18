@@ -183,8 +183,9 @@ export default function ProfileScreen() {
 
   // Close modal with collapse animation back to thumbnail
   const closePostModal = useCallback(() => {
-    // Reset translateX first for clean animation back to source
+    // Reset translate values first for clean animation back to source
     translateX.value = withTiming(0, { duration: 200 });
+    translateY.value = withTiming(0, { duration: 200 });
     expandProgress.value = withTiming(0, { duration: 300 });
     modalOpacity.value = withTiming(0, { duration: 300 });
     setTimeout(() => {
@@ -192,28 +193,49 @@ export default function ProfileScreen() {
     }, 350);
   }, []);
 
-  // Swipe right to close gesture
+  // Swipe/fling to close gesture - follows finger freely on both axes
+  const FLING_VELOCITY_THRESHOLD = 300;
+  const translateY = useSharedValue(0);
+  
+  const handleGestureClose = useCallback(() => {
+    setTimeout(() => {
+      setPostModalVisible(false);
+    }, 350);
+  }, []);
+  
   const panGesture = Gesture.Pan()
-    .activeOffsetX(20)
-    .failOffsetY([-20, 20])
+    .activeOffsetX(15)
     .onUpdate((event) => {
-      if (event.translationX > 0) {
-        translateX.value = event.translationX;
-        // Map swipe to expand progress for smooth shrink effect
-        const swipeProgress = interpolate(
-          event.translationX,
-          [0, SCREEN_WIDTH],
-          [1, 0.5],
-          Extrapolation.CLAMP
-        );
-        expandProgress.value = swipeProgress;
-      }
+      // Follow finger freely on both axes
+      translateX.value = event.translationX;
+      translateY.value = event.translationY;
+      
+      // Scale down based on distance from center
+      const distance = Math.sqrt(event.translationX ** 2 + event.translationY ** 2);
+      const swipeProgress = interpolate(
+        distance,
+        [0, SCREEN_WIDTH * 0.5],
+        [1, 0.85],
+        Extrapolation.CLAMP
+      );
+      expandProgress.value = swipeProgress;
     })
     .onEnd((event) => {
-      if (event.translationX > SWIPE_THRESHOLD) {
-        runOnJS(closePostModal)();
+      const isFlingRight = event.velocityX > FLING_VELOCITY_THRESHOLD;
+      const isFlingDown = event.velocityY > FLING_VELOCITY_THRESHOLD;
+      const isPastThreshold = event.translationX > SWIPE_THRESHOLD;
+      
+      if (isFlingRight || isFlingDown || isPastThreshold) {
+        // Shrink back to source position (thumbnail)
+        translateX.value = withTiming(0, { duration: 250 });
+        translateY.value = withTiming(0, { duration: 250 });
+        expandProgress.value = withTiming(0, { duration: 300 });
+        modalOpacity.value = withTiming(0, { duration: 300 });
+        runOnJS(handleGestureClose)();
       } else {
+        // Snap back to full screen
         translateX.value = withTiming(0, { duration: 200 });
+        translateY.value = withTiming(0, { duration: 200 });
         expandProgress.value = withTiming(1, { duration: 200 });
       }
     });
@@ -230,7 +252,7 @@ export default function ProfileScreen() {
     return {
       transform: [
         { translateX: translateX.value + animatedX },
-        { translateY: animatedY },
+        { translateY: translateY.value + animatedY },
         { scale },
       ],
       borderRadius,
