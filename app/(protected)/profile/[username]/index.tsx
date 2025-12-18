@@ -25,9 +25,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const IMAGE_SIZE = SCREEN_WIDTH / 3;
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
+const MODAL_BORDER_RADIUS = 40;
 
 type TabKey = 'posts' | 'talent' | 'jobs';
 
@@ -39,10 +40,17 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const postListRef = useRef<any>(null);
   const itemHeights = useRef<{ [key: string]: number }>({});
+  const profileScrollY = useRef(0);
+  const userPostsGridY = useRef(0);
 
-  // Animation values for modal
-  const translateX = useSharedValue(SCREEN_WIDTH);
+  // Animation values for modal - Instagram-like expand animation
+  const expandProgress = useSharedValue(0);
+  const translateX = useSharedValue(0);
   const modalOpacity = useSharedValue(0);
+  
+  // Source thumbnail position for expand animation (shared values for worklet access)
+  const sourceX = useSharedValue(SCREEN_WIDTH / 2 - IMAGE_SIZE / 2);
+  const sourceY = useSharedValue(SCREEN_HEIGHT / 2 - IMAGE_SIZE / 2);
   const { animatedHeaderStyle, onScroll, handleHeightChange } = useScrollHeader();
   const params = useLocalSearchParams<{ username?: string }>();
   const pathname = usePathname();
@@ -131,50 +139,56 @@ export default function ProfileScreen() {
     return offset;
   }, [transformedPosts]);
 
-  // Open modal with animation - scroll instantly, then animate in
-  const openPostModal = useCallback((index: number) => {
-    console.log('Tapped post at index:', index);
+  // Estimate grid start position (UserInfo ~200px + tabs ~50px + paddingTop)
+  const GRID_START_OFFSET = 250 + insets.top + 50;
+  
+  // Open modal with Instagram-like expand animation
+  const openPostModal = useCallback((index: number, layout?: { x: number; y: number; width: number; height: number; col?: number; row?: number }) => {
+    console.log('openPostModal called - index:', index);
+    console.log('openPostModal layout:', JSON.stringify(layout));
+    console.log('profileScrollY:', profileScrollY.current, 'GRID_START_OFFSET:', GRID_START_OFFSET);
     setSelectedPostIndex(index);
     
-    // Show modal first
+    // Set source position for animation origin
+    if (layout) {
+      // Calculate screen position: grid position + grid start offset - scroll offset
+      const screenX = layout.x + layout.width / 2;
+      const screenY = GRID_START_OFFSET + layout.y - profileScrollY.current + layout.height / 2;
+      
+      const calcX = screenX - SCREEN_WIDTH / 2;
+      const calcY = screenY - SCREEN_HEIGHT / 2;
+      console.log('Screen position - screenX:', screenX, 'screenY:', screenY);
+      console.log('Calculated sourceX:', calcX, 'sourceY:', calcY);
+      sourceX.value = calcX;
+      sourceY.value = calcY;
+    } else {
+      console.log('No layout provided, using center');
+      // Fallback to center
+      sourceX.value = 0;
+      sourceY.value = 0;
+    }
+    
+    // Show modal and start expand animation
     setPostModalVisible(true);
-    translateX.value = SCREEN_WIDTH;
+    expandProgress.value = 0;
+    translateX.value = 0;
     modalOpacity.value = 0;
     
-    // Calculate offset and scroll
-    const offset = getOffsetForIndex(index);
-    console.log('Scrolling to offset:', offset, 'for index:', index);
-    
-    setTimeout(() => {
-      console.log('postListRef.current:', !!postListRef.current);
-      if (postListRef.current) {
-        postListRef.current.scrollToOffset({
-          offset,
-          animated: false,
-        });
-        // Double-check with another call after a tick
-        requestAnimationFrame(() => {
-          postListRef.current?.scrollToOffset({
-            offset,
-            animated: false,
-          });
-          console.log('scrollToOffset called again with offset:', offset);
-        });
-      }
-      
-      // Animate in after scroll
-      translateX.value = withTiming(0, { duration: 250 });
+    // Animate expand from thumbnail to fullscreen
+    requestAnimationFrame(() => {
+      expandProgress.value = withTiming(1, { duration: 300 });
       modalOpacity.value = withTiming(1, { duration: 200 });
-    }, 100);
-  }, [getOffsetForIndex]);
+    });
+  }, [insets.top]);
 
-  // Close modal with animation
+  // Close modal with collapse animation back to thumbnail
   const closePostModal = useCallback(() => {
-    translateX.value = withTiming(SCREEN_WIDTH, { duration: 250 });
-    modalOpacity.value = withTiming(0, { duration: 200 });
+    expandProgress.value = withTiming(0, { duration: 250 });
+    modalOpacity.value = withTiming(0, { duration: 250 });
     setTimeout(() => {
       setPostModalVisible(false);
-    }, 250);
+      translateX.value = 0;
+    }, 300);
   }, []);
 
   // Swipe right to close gesture
@@ -184,12 +198,14 @@ export default function ProfileScreen() {
     .onUpdate((event) => {
       if (event.translationX > 0) {
         translateX.value = event.translationX;
-        modalOpacity.value = interpolate(
+        // Map swipe to expand progress for smooth shrink effect
+        const swipeProgress = interpolate(
           event.translationX,
           [0, SCREEN_WIDTH],
-          [1, 0.3],
+          [1, 0.5],
           Extrapolation.CLAMP
         );
+        expandProgress.value = swipeProgress;
       }
     })
     .onEnd((event) => {
@@ -197,17 +213,32 @@ export default function ProfileScreen() {
         runOnJS(closePostModal)();
       } else {
         translateX.value = withTiming(0, { duration: 200 });
-        modalOpacity.value = withTiming(1, { duration: 150 });
+        expandProgress.value = withTiming(1, { duration: 200 });
       }
     });
 
-  // Animated styles
-  const modalAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-  }));
+  // Animated styles - Instagram-like expand/collapse from source position
+  const modalAnimatedStyle = useAnimatedStyle(() => {
+    const scale = interpolate(expandProgress.value, [0, 1], [0.3, 1], Extrapolation.CLAMP);
+    const borderRadius = interpolate(expandProgress.value, [0, 1], [20, MODAL_BORDER_RADIUS], Extrapolation.CLAMP);
+    
+    // Animate from source position to center
+    const animatedX = interpolate(expandProgress.value, [0, 1], [sourceX.value, 0], Extrapolation.CLAMP);
+    const animatedY = interpolate(expandProgress.value, [0, 1], [sourceY.value, 0], Extrapolation.CLAMP);
+    
+    return {
+      transform: [
+        { translateX: translateX.value + animatedX },
+        { translateY: animatedY },
+        { scale },
+      ],
+      borderRadius,
+      overflow: 'hidden' as const,
+    };
+  });
 
   const backdropStyle = useAnimatedStyle(() => ({
-    opacity: modalOpacity.value,
+    opacity: interpolate(expandProgress.value, [0, 1], [0, 1], Extrapolation.CLAMP),
   }));
 
   // Track item height on layout
@@ -320,7 +351,10 @@ export default function ProfileScreen() {
 
         <ScrollView
           className="flex-1 bg-black"
-          onScroll={onScroll}
+          onScroll={(e) => {
+            profileScrollY.current = e.nativeEvent.contentOffset.y;
+            onScroll?.(e);
+          }}
           scrollEventThrottle={16}
           contentContainerStyle={{
             paddingTop: insets.top + 50,

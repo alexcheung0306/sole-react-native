@@ -1,4 +1,5 @@
 import { View, ActivityIndicator, Text, TouchableOpacity, Dimensions, Image } from 'react-native';
+import { useRef } from 'react';
 
 export default function UserPosts({
   userIsLoading,
@@ -11,6 +12,7 @@ export default function UserPosts({
   onRefresh,
   isRefreshing,
   onPostPress,
+  gridOffsetY = 0,
 }: {
   userIsLoading: boolean;
   userIsError?: boolean;
@@ -21,7 +23,8 @@ export default function UserPosts({
   userFetchNextPage: () => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
-  onPostPress?: (index: number) => void;
+  onPostPress?: (index: number, layout?: { x: number; y: number; width: number; height: number }) => void;
+  gridOffsetY?: number;
 }) {
   const { width } = Dimensions.get('window');
   const IMAGE_SIZE = width / 3;
@@ -68,16 +71,28 @@ export default function UserPosts({
           <View className="flex-row flex-wrap">
             {posts.map((item, index) => {
               const firstMedia = item.media && item.media.length > 0 ? item.media[0] : null;
+              const col = index % 3;
+              const row = Math.floor(index / 3);
+              
               return (
-                <TouchableOpacity
-                  key={item.id}
-                  className="aspect-square bg-gray-800"
-                  style={{ width: IMAGE_SIZE, height: IMAGE_SIZE }}
-                  onPress={() => {
-                    console.log('UserPosts: Tapped post at index:', index);
-                    onPostPress?.(index);
-                  }}
-                  activeOpacity={0.9}>
+                  <TouchableOpacity
+                    key={item.id}
+                    className="aspect-square bg-gray-800"
+                    style={{ width: IMAGE_SIZE, height: IMAGE_SIZE }}
+                    onPress={() => {
+                      // Pass grid-relative position - the parent will need to account for scroll
+                      const layout = {
+                        x: col * IMAGE_SIZE,
+                        y: row * IMAGE_SIZE,
+                        width: IMAGE_SIZE,
+                        height: IMAGE_SIZE,
+                        col,
+                        row,
+                      };
+                      console.log('UserPosts: Tapped index:', index, 'layout:', layout);
+                      onPostPress?.(index, layout as any);
+                    }}
+                    activeOpacity={0.9}>
                   {firstMedia && firstMedia.mediaUrl ? (
                     <Image
                       source={{ uri: firstMedia.mediaUrl }}
@@ -89,7 +104,7 @@ export default function UserPosts({
                       <Text className="text-xs text-gray-400">No Image</Text>
                     </View>
                   )}
-                </TouchableOpacity>
+                  </TouchableOpacity>
               );
             })}
           </View>
