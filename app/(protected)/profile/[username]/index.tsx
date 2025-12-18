@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { ScrollView, TouchableOpacity, View, Dimensions, RefreshControl, Text, StyleSheet } from 'react-native';
 import { useUser } from '@clerk/clerk-expo';
 import { router, Stack, useLocalSearchParams, usePathname } from 'expo-router';
@@ -37,6 +37,8 @@ export default function ProfileScreen() {
   const [postModalVisible, setPostModalVisible] = useState(false);
   const [selectedPostIndex, setSelectedPostIndex] = useState(0);
   const [zoomingIndex, setZoomingIndex] = useState<number | null>(null);
+  const [modalScrollOffset, setModalScrollOffset] = useState(0);
+  const [modalKey, setModalKey] = useState(0);
   const { user } = useUser();
   const insets = useSafeAreaInsets();
   const postListRef = useRef<any>(null);
@@ -170,17 +172,21 @@ export default function ProfileScreen() {
     }
     
     // Show modal and start expand animation
+    currentVisibleIndex.current = index;
     setPostModalVisible(true);
     expandProgress.value = 0;
     translateX.value = 0;
     modalOpacity.value = 0;
+    // Calculate scroll offset and set state - contentOffset prop will handle positioning
+    const offset = getOffsetForIndex(index);
+    console.log('openPostModal - setting modalScrollOffset:', offset, 'for index:', index);
+    setModalScrollOffset(offset);
+    setModalKey(k => k + 1); // Force ScrollView remount
     
-    // Animate expand from thumbnail to fullscreen
-    requestAnimationFrame(() => {
-      expandProgress.value = withTiming(1, { duration: 300 });
-      modalOpacity.value = withTiming(1, { duration: 200 });
-    });
-  }, [insets.top]);
+    // Start animation
+    expandProgress.value = withTiming(1, { duration: 300 });
+    modalOpacity.value = withTiming(1, { duration: 200 });
+  }, [insets.top, getOffsetForIndex]);
 
   // Track current visible post index in modal
   const currentVisibleIndex = useRef(selectedPostIndex);
@@ -531,6 +537,7 @@ export default function ProfileScreen() {
 
                 {/* Posts List - Using ScrollView to allow zoom overflow */}
                 <Animated.ScrollView
+                  key={modalKey}
                   ref={postListRef}
                   showsVerticalScrollIndicator={false}
                   scrollEnabled={zoomingIndex === null}
@@ -539,7 +546,7 @@ export default function ProfileScreen() {
                     paddingTop: 10,
                     paddingBottom: insets.bottom + 20,
                   }}
-                  contentOffset={{ x: 0, y: getOffsetForIndex(selectedPostIndex) }}
+                  contentOffset={{ x: 0, y: modalScrollOffset }}
                   scrollEventThrottle={100}
                   onScroll={handleModalScroll}
                 >
