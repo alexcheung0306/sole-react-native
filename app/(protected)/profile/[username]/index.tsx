@@ -36,6 +36,7 @@ export default function ProfileScreen() {
   const [profileTab, setProfileTab] = useState<TabKey>('posts');
   const [postModalVisible, setPostModalVisible] = useState(false);
   const [selectedPostIndex, setSelectedPostIndex] = useState(0);
+  const [zoomingIndex, setZoomingIndex] = useState<number | null>(null);
   const { user } = useUser();
   const insets = useSafeAreaInsets();
   const postListRef = useRef<any>(null);
@@ -304,18 +305,6 @@ export default function ProfileScreen() {
     }
   }, []);
 
-  // Memoized render item with height tracking
-  const renderPostItem = useCallback(({ item }: { item: any }) => (
-    <View onLayout={(e) => handleItemLayout(item.id, e.nativeEvent.layout.height)}>
-      <PostCard
-        post={item}
-        onLike={() => {}}
-        onAddComment={() => {}}
-        onZoomChange={() => {}}
-        onScaleChange={() => {}}
-      />
-    </View>
-  ), [handleItemLayout]);
 
   // Profile error state
   if (profileError && !profileLoading) {
@@ -509,7 +498,7 @@ export default function ProfileScreen() {
 
             {/* Modal Content */}
             <GestureDetector gesture={panGesture}>
-              <Animated.View style={[{ flex: 1, backgroundColor: '#000' }, modalAnimatedStyle]}>
+              <Animated.View style={[{ flex: 1, backgroundColor: '#000', overflow: 'visible' }, modalAnimatedStyle]}>
                 {/* Header */}
                 <View style={{ 
                   flexDirection: 'row', 
@@ -529,29 +518,41 @@ export default function ProfileScreen() {
                   </Text>
                 </View>
 
-                {/* Posts List - Always mounted */}
-                <Animated.FlatList
+                {/* Posts List - Using ScrollView to allow zoom overflow */}
+                <Animated.ScrollView
                   ref={postListRef}
-                  data={transformedPosts}
-                  renderItem={renderPostItem}
-                  keyExtractor={(item) => item.id}
                   showsVerticalScrollIndicator={false}
+                  scrollEnabled={zoomingIndex === null}
+                  style={{ flex: 1 }}
                   contentContainerStyle={{
                     paddingTop: 10,
                     paddingBottom: insets.bottom + 20,
                   }}
                   contentOffset={{ x: 0, y: getOffsetForIndex(selectedPostIndex) }}
-                  onScroll={(e) => {
-                    console.log('FlatList scroll Y:', e.nativeEvent.contentOffset.y);
-                  }}
                   scrollEventThrottle={100}
-                  onViewableItemsChanged={({ viewableItems }) => {
-                    if (viewableItems.length > 0 && viewableItems[0].index != null) {
-                      currentVisibleIndex.current = viewableItems[0].index;
-                    }
-                  }}
-                  viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
-                />
+                >
+                  {transformedPosts.map((item, index) => {
+                    const isThisItemZooming = zoomingIndex === index;
+                    return (
+                      <View 
+                        key={item.id}
+                        onLayout={(e) => handleItemLayout(item.id, e.nativeEvent.layout.height)}
+                        style={{ 
+                          zIndex: isThisItemZooming ? 9999 : 0,
+                          elevation: isThisItemZooming ? 9999 : 0,
+                        }}
+                      >
+                        <PostCard
+                          post={item}
+                          onLike={() => {}}
+                          onAddComment={() => {}}
+                          onZoomChange={(isZooming) => setZoomingIndex(isZooming ? index : null)}
+                          onScaleChange={() => {}}
+                        />
+                      </View>
+                    );
+                  })}
+                </Animated.ScrollView>
               </Animated.View>
             </GestureDetector>
           </View>

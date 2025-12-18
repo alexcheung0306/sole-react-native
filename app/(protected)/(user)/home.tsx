@@ -191,7 +191,7 @@ export default React.memo(function UserHome() {
   }
 
   return (
-    <BottomSheetModalProvider>
+    <>
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-black">
         <CollapsibleHeader
@@ -275,6 +275,6 @@ export default React.memo(function UserHome() {
           showsVerticalScrollIndicator={false}
         />
       </View>
-    </BottomSheetModalProvider>
+    </>
   );
 });

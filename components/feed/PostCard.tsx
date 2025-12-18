@@ -148,6 +148,7 @@ export const PostCard = memo(function PostCard({
     prevProps.post.id === nextProps.post.id &&
     prevProps.post.likeCount === nextProps.post.likeCount &&
     prevProps.post.isLikedByUser === nextProps.post.isLikedByUser &&
-    prevProps.post.commentCount === nextProps.post.commentCount
+    prevProps.post.commentCount === nextProps.post.commentCount &&
+    prevProps.onZoomChange === nextProps.onZoomChange
   );
 });
