@@ -1,3 +1,4 @@
+import React from 'react';
 import { Layers, Trash2 } from 'lucide-react-native';
 import { View, TouchableOpacity, Alert } from 'react-native';
 import { AspectRatioWheel } from './AspectRatioWheel';
@@ -15,6 +16,7 @@ export default function CropControls({
   setIsMultiSelect,
   isMultiSelect,
   isAspectRatioLocked = false,
+  onAspectRatioPress,
 }: {
   selectedAspectRatio: number;
   setSelectedAspectRatio: (ratio: number) => void;
@@ -24,14 +26,32 @@ export default function CropControls({
   setIsMultiSelect: (isMultiSelect: boolean) => void;
   isMultiSelect: boolean;
   isAspectRatioLocked?: boolean;
+  onAspectRatioPress?: () => void;
 }) {
   const { selectedMedia, setSelectedMedia, removeMedia } = useCameraContext();
+
+  // Optimize multi-select toggle with useCallback
+  const handleMultiSelectToggle = React.useCallback(() => {
+    const newIsMultiSelect = !isMultiSelect;
+    setIsMultiSelect(newIsMultiSelect);
+
+    // If switching to single mode, keep only the current/last selected item
+    if (isMultiSelect && selectedMedia.length > 1) {
+      // Keep the currently viewed item (currentIndex) or last item if currentIndex is invalid
+      const itemToKeep = selectedMedia[Math.min(currentIndex, selectedMedia.length - 1)] || selectedMedia[selectedMedia.length - 1];
+      setSelectedMedia([itemToKeep]);
+      setCurrentIndex(0);
+    }
+  }, [isMultiSelect, setIsMultiSelect, selectedMedia, currentIndex, setSelectedMedia, setCurrentIndex]);
 
   const handleAspectRatioChange = (ratio: number) => {
     // Don't allow changes if locked
     if (isAspectRatioLocked) {
       return;
     }
+
+    // Prevent collapse when aspect ratio is pressed
+    onAspectRatioPress?.();
 
     setSelectedAspectRatio(ratio);
 
@@ -82,16 +102,8 @@ export default function CropControls({
         {/* Multi-select toggle button - Right */}
         {multipleSelection === 'true' && (
           <TouchableOpacity
-            activeOpacity={1}
-            onPress={() => {
-              setIsMultiSelect(!isMultiSelect);
-              // If switching to single mode, keep only the last selected item
-              if (isMultiSelect && selectedMedia.length > 1) {
-                const lastItem = selectedMedia[selectedMedia.length - 1];
-                setSelectedMedia([lastItem]);
-                setCurrentIndex(0);
-              }
-            }}
+            activeOpacity={0.8}
+            onPress={handleMultiSelectToggle}
             style={{
               backgroundColor: isMultiSelect ? 'rgb(0, 140, 255)' : 'rgba(0,0,0,0.6)',
               borderRadius: 20,

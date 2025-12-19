@@ -9,8 +9,8 @@ import MediaGridItem from './MediaGridItem';
 import NativeScrollHandle from './NativeScrollHandle';
 
 const { width } = require('react-native').Dimensions.get('window');
-const ITEM_SIZE = width / 3;
 const galleryGridColumns = 4;
+const ITEM_SIZE = width / galleryGridColumns;
 
 interface CameraGalleryProps {
   mediaItems: (MediaItem | { id: 'camera' })[];

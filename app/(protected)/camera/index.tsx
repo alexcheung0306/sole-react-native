@@ -211,6 +211,14 @@ export default React.memo(function CameraScreen() {
     });
   }, [resetExpandingFlag]);
 
+  // Prevent collapse when aspect ratio is pressed
+  const handleAspectRatioPress = useCallback(() => {
+    // If media is collapsed, expand it when aspect ratio is pressed
+    if (mediaCollapseProgress.value > 0.5) {
+      expandMedia();
+    }
+  }, [mediaCollapseProgress, expandMedia]);
+
   // Function to collapse media (called from drag gesture)
   const collapseMedia = useCallback(() => {
     mediaCollapseProgress.value = withTiming(1, { duration: 300 });
@@ -926,6 +934,7 @@ export default React.memo(function CameraScreen() {
               setIsMultiSelect={setIsMultiSelect}
               isMultiSelect={isMultiSelect}
               isAspectRatioLocked={isAspectRatioLocked}
+              onAspectRatioPress={handleAspectRatioPress}
             />
 
             <CameraThumbnailStrip

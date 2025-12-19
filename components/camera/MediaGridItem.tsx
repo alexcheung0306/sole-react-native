@@ -5,7 +5,8 @@ import { VideoIcon } from 'lucide-react-native';
 import { MediaItem } from '~/context/CameraContext';
 
 const { width } = require('react-native').Dimensions.get('window');
-const ITEM_SIZE = width / 3;
+const galleryGridColumns = 4;
+const ITEM_SIZE = width / galleryGridColumns;
 
 interface MediaGridItemProps {
   item: MediaItem;

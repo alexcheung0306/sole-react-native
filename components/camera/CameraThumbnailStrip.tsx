@@ -18,7 +18,7 @@ const CameraThumbnailStrip = React.memo(({
   setCurrentIndex,
   removeFromSelection,
 }: CameraThumbnailStripProps) => {
-  if (selectedMedia.length <= 1) {
+  if (selectedMedia.length === 0) {
     return null;
   }
 
