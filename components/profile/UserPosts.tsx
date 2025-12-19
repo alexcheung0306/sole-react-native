@@ -96,7 +96,7 @@ export default function UserPosts({
                       />
                       {hasMultipleMedia && (
                         <View style={styles.stackIconContainer}>
-                          <Layers size={16} color="#9caf3af" fill="#ffffff" strokeWidth={2} style={{ opacity: 0.9 }} />
+                          <Layers size={16} color="#f5f5f5" fill="#ffffff" strokeWidth={2} style={{ opacity: 0.9 }} />
                         </View>
                       )}
                     </View>

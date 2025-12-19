@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, Dimensions, Alert, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -68,7 +68,7 @@ export default React.memo(function CameraScreen() {
   const [layoutHeight, setLayoutHeight] = useState(0);
   const [scrollPosition, setScrollPosition] = useState(0);
   const flatListRef = useRef<FlatList | null>(null);
-console.log('flatListRef', flatListRef.current);
+
   const { functionParam, multipleSelection, aspectRatio, mask } = useLocalSearchParams<{
     functionParam: FunctionParam;
     multipleSelection?: string;
@@ -113,17 +113,33 @@ console.log('flatListRef', flatListRef.current);
   const flingStartY = useSharedValue(0);
   const isExpandingFromFling = useSharedValue(false);
 
+  // Track previous scroll position for direction detection
+  const prevScrollYRef = useRef(0);
+
   // Combined scroll handler that handles both header and media collapse
   const handleScroll = useCallback((event: any) => {
     const currentScrollY = event.nativeEvent.contentOffset.y;
+    const prevScrollY = prevScrollYRef.current;
+    const scrollDelta = currentScrollY - prevScrollY;
+
+    // Update scroll position
     scrollY.value = currentScrollY;
     setScrollPosition(currentScrollY);
+
+    // Collapse crop area when scrolling down (finger up)
+    if (scrollDelta > 10 && currentScrollY > 20 && mediaCollapseProgress.value < 0.5) {
+      cancelAnimation(mediaCollapseProgress);
+      mediaCollapseProgress.value = withTiming(1, { duration: 300 });
+    }
+
+    // Update previous scroll position
+    prevScrollYRef.current = currentScrollY;
 
     // Call the original header scroll handler
     if (onScrollRef.current) {
       onScrollRef.current(event);
     }
-  }, []);
+  }, [mediaCollapseProgress]);
 
 
   // React to scroll changes for media collapse
@@ -692,9 +708,6 @@ console.log('flatListRef', flatListRef.current);
     }
   };
 
-  // Initialize crop data for selected media
-  useCropDataInitialization(selectedMedia, selectedAspectRatio, setSelectedMedia);
-
   // Update currentIndex when selection changes to ensure it's valid
   useEffect(() => {
     if (selectedMedia.length === 0) {
@@ -734,55 +747,96 @@ console.log('flatListRef', flatListRef.current);
     }
   };
 
-  // Optimized selection handlers to reduce computations in renderItem
+  // Stable refs to avoid callback recreation
+  const selectedMediaRef = useRef(selectedMedia);
+  const isMultiSelectRef = useRef(isMultiSelect);
+  const setManualPreviewRef = useRef(setManualPreview);
+  const setSelectedMediaRef = useRef(setSelectedMedia);
+  const setCurrentIndexRef = useRef(setCurrentIndex);
+  const toggleSelectionRef = useRef(toggleSelection);
+
+  // Update refs when values change
+  selectedMediaRef.current = selectedMedia;
+  isMultiSelectRef.current = isMultiSelect;
+  setManualPreviewRef.current = setManualPreview;
+  setSelectedMediaRef.current = setSelectedMedia;
+  setCurrentIndexRef.current = setCurrentIndex;
+  toggleSelectionRef.current = toggleSelection;
+
+  // Initialize crop data for selected media (moved before early returns to ensure consistent hook order)
+  useEffect(() => {
+    // Only initialize if photos don't have cropData yet
+    const needsInitialization = selectedMedia.some(
+      (item: MediaItem) => item.mediaType === 'photo' && !item.cropData
+    );
+
+    if (!needsInitialization) return;
+
+    const updatedMedia = selectedMedia.map((item: MediaItem) => {
+      if (item.mediaType !== 'photo' || item.cropData) return item;
+
+      const newCropData = calculateCenterCrop(item, selectedAspectRatio);
+      if (!newCropData) return item;
+
+      const originalUri = item.originalUri ?? item.uri;
+
+      return {
+        ...item,
+        cropData: newCropData,
+        originalUri: originalUri,
+      };
+    });
+
+    setSelectedMedia(updatedMedia);
+  }, [selectedMedia, selectedAspectRatio, setSelectedMedia]);
+
+  // Optimized selection handlers with stable refs
   const handleImagePress = useCallback(
     (item: MediaItem, isSelected: boolean) => {
-      if (isMultiSelect) {
+      // Always expand the crop area when pressing grid images
+      if (mediaCollapseProgress.value > 0.5) {
+        expandMedia();
+      }
+
+      if (isMultiSelectRef.current) {
         // In multi-select mode:
         // 1. Set preview
-        setManualPreview(item);
+        setManualPreviewRef.current(item);
         // 2. Select (add) if not already selected
         // 3. If already selected, just update current index to show it
         if (!isSelected) {
-          if (selectedMedia.length >= MAX_SELECTION) {
+          if (selectedMediaRef.current.length >= MAX_SELECTION) {
             Alert.alert('Maximum Reached', `You can select up to ${MAX_SELECTION} items`);
           } else {
-            setSelectedMedia([...selectedMedia, item]);
-            setCurrentIndex(selectedMedia.length); // Focus on new item
+            setSelectedMediaRef.current([...selectedMediaRef.current, item]);
+            setCurrentIndexRef.current(selectedMediaRef.current.length); // Focus on new item
           }
         } else {
           // Already selected - find its index in selectedMedia and focus it
-          const index = selectedMedia.findIndex((m: MediaItem) => m.id === item.id);
+          const index = selectedMediaRef.current.findIndex((m: MediaItem) => m.id === item.id);
           if (index !== -1) {
-            setCurrentIndex(index);
+            setCurrentIndexRef.current(index);
           }
         }
       } else {
         // In single mode, selecting sets preview automatically via selection
-        toggleSelection(item);
-        setCurrentIndex(0); // Single item is always index 0
+        toggleSelectionRef.current(item);
+        setCurrentIndexRef.current(0); // Single item is always index 0
       }
     },
-    [
-      isMultiSelect,
-      selectedMedia,
-      setManualPreview,
-      setSelectedMedia,
-      setCurrentIndex,
-      toggleSelection,
-    ]
+    [mediaCollapseProgress, expandMedia] // Need these dependencies for the collapse check
   );
 
   const handleSelectionToggle = useCallback(
     (item: MediaItem) => {
-      if (isMultiSelect) {
-        toggleSelection(item);
+      if (isMultiSelectRef.current) {
+        toggleSelectionRef.current(item);
       } else {
         // In single mode, pressing number also toggles selection (standard behavior)
-        toggleSelection(item);
+        toggleSelectionRef.current(item);
       }
     },
-    [isMultiSelect, toggleSelection]
+    [] // No dependencies - callback is now stable
   );
 
   if (hasPermission === null) {
@@ -823,6 +877,12 @@ console.log('flatListRef', flatListRef.current);
       : photos.length > 0
         ? photos[0]
         : null);
+
+  // Create selection map for efficient lookups
+  const selectionMap: Record<string, number> = {};
+  selectedMedia.forEach((media, index) => {
+    selectionMap[media.id] = index + 1; // 1-based selection number
+  });
 
   return (
     <>
@@ -879,14 +939,12 @@ console.log('flatListRef', flatListRef.current);
 
         <CameraGallery
           mediaItems={mediaItems}
-          selectedMedia={selectedMedia}
+          selectionMap={selectionMap}
           isLoading={isLoading}
           isMultiSelect={isMultiSelect}
           composedGesture={composedGesture}
           onScroll={handleScroll}
           openCamera={openCamera}
-          toggleSelection={toggleSelection}
-          getSelectionNumber={getSelectionNumber}
           handleImagePress={handleImagePress}
           handleSelectionToggle={handleSelectionToggle}
           contentHeight={contentHeight}
@@ -901,35 +959,3 @@ console.log('flatListRef', flatListRef.current);
   );
 });
 
-// Memoized crop data initialization to avoid unnecessary computations
-const useCropDataInitialization = (
-  selectedMedia: MediaItem[],
-  selectedAspectRatio: number,
-  setSelectedMedia: (media: MediaItem[]) => void
-) => {
-  useEffect(() => {
-    // Only initialize if photos don't have cropData yet
-    const needsInitialization = selectedMedia.some(
-      (item: MediaItem) => item.mediaType === 'photo' && !item.cropData
-    );
-
-    if (!needsInitialization) return;
-
-    const updatedMedia = selectedMedia.map((item: MediaItem) => {
-      if (item.mediaType !== 'photo' || item.cropData) return item;
-
-      const newCropData = calculateCenterCrop(item, selectedAspectRatio);
-      if (!newCropData) return item;
-
-      const originalUri = item.originalUri ?? item.uri;
-
-      return {
-        ...item,
-        cropData: newCropData,
-        originalUri: originalUri,
-      };
-    });
-
-    setSelectedMedia(updatedMedia);
-  }, [selectedMedia, selectedAspectRatio, setSelectedMedia]);
-};

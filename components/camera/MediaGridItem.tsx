@@ -16,6 +16,20 @@ interface MediaGridItemProps {
   onSelectionToggle: (item: MediaItem) => void;
 }
 
+// Custom comparison function for MediaGridItem to optimize re-renders
+const arePropsEqual = (prevProps: MediaGridItemProps, nextProps: MediaGridItemProps) => {
+  // Only re-render if these specific props changed
+  return (
+    prevProps.item.id === nextProps.item.id &&
+    prevProps.item.uri === nextProps.item.uri &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.selectionNumber === nextProps.selectionNumber &&
+    prevProps.isMultiSelect === nextProps.isMultiSelect &&
+    prevProps.onImagePress === nextProps.onImagePress &&
+    prevProps.onSelectionToggle === nextProps.onSelectionToggle
+  );
+};
+
 const MediaGridItem = React.memo(
   ({
     item,
@@ -24,57 +38,60 @@ const MediaGridItem = React.memo(
     isMultiSelect,
     onImagePress,
     onSelectionToggle,
-  }: MediaGridItemProps) => (
-    <View style={{ width: ITEM_SIZE, height: ITEM_SIZE }} className="relative border-gray-900">
-      <TouchableOpacity
-        style={{ width: '100%', height: '100%' }}
-        onPress={() => onImagePress(item, isSelected)}
-        activeOpacity={0.9}>
-        <ExpoImage
-          source={{ uri: item.uri }}
-          style={{ width: ITEM_SIZE, height: ITEM_SIZE }}
-          contentFit="cover"
-        />
+  }: MediaGridItemProps) => {
+    return (
+      <View style={{ width: ITEM_SIZE, height: ITEM_SIZE }} className="relative border-gray-900">
+        <TouchableOpacity
+          style={{ width: '100%', height: '100%' }}
+          onPress={() => onImagePress(item, isSelected)}
+          activeOpacity={0.9}>
+          <ExpoImage
+            source={{ uri: item.uri }}
+            style={{ width: ITEM_SIZE, height: ITEM_SIZE }}
+            contentFit="cover"
+          />
 
-        {/* Video indicator */}
-        {item.mediaType === 'video' && (
-          <View className="absolute left-2 top-2 flex-row items-center rounded bg-black/70 px-2 py-1">
-            <VideoIcon size={12} color="#ffffff" />
-            <Text className="ml-1 text-xs text-white">
-              {item.duration ? `${Math.floor(item.duration)}s` : ''}
-            </Text>
-          </View>
-        )}
-
-        {/* Selection overlay */}
-        {isSelected && (
-          <View className="absolute inset-0 border-2 border-blue-500 bg-blue-500/30" />
-        )}
-      </TouchableOpacity>
-
-      {/* Selection number / Touch target */}
-      <TouchableOpacity
-        onPress={() => onSelectionToggle(item)}
-        style={{
-          position: 'absolute',
-          right: 2,
-          top: 2,
-          width: 40, // Larger hit slop area
-          height: 40,
-          alignItems: 'flex-end', // Align circle to top-right visually
-          justifyContent: 'flex-start',
-        }}>
-        {isMultiSelect &&
-          (isSelected && selectionNumber ? (
-            <View className="h-6 w-6 items-center justify-center rounded-full bg-blue-500">
-              <Text className="text-xs font-bold text-white">{selectionNumber}</Text>
+          {/* Video indicator */}
+          {item.mediaType === 'video' && (
+            <View className="absolute left-2 top-2 flex-row items-center rounded bg-black/70 px-2 py-1">
+              <VideoIcon size={12} color="#ffffff" />
+              <Text className="ml-1 text-xs text-white">
+                {item.duration ? `${Math.floor(item.duration)}s` : ''}
+              </Text>
             </View>
-          ) : (
-            <View className="h-6 w-6 rounded-full border-2 border-white bg-white/80" />
-          ))}
-      </TouchableOpacity>
-    </View>
-  )
+          )}
+
+          {/* Selection overlay */}
+          {isSelected && (
+            <View className="absolute inset-0 border-2 border-blue-500 bg-blue-500/30" />
+          )}
+        </TouchableOpacity>
+
+        {/* Selection number / Touch target */}
+        <TouchableOpacity
+          onPress={() => onSelectionToggle(item)}
+          style={{
+            position: 'absolute',
+            right: 2,
+            top: 2,
+            width: 40, // Larger hit slop area
+            height: 40,
+            alignItems: 'flex-end', // Align circle to top-right visually
+            justifyContent: 'flex-start',
+          }}>
+          {isMultiSelect &&
+            (isSelected && selectionNumber ? (
+              <View className="h-6 w-6 items-center justify-center rounded-full bg-blue-500">
+                <Text className="text-xs font-bold text-white">{selectionNumber}</Text>
+              </View>
+            ) : (
+              <View className="h-6 w-6 rounded-full border-2 border-white bg-white/80" />
+            ))}
+        </TouchableOpacity>
+      </View>
+    );
+  },
+  arePropsEqual
 );
 
 export default MediaGridItem;

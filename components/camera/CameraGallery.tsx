@@ -14,14 +14,12 @@ const galleryGridColumns = 4;
 
 interface CameraGalleryProps {
   mediaItems: (MediaItem | { id: 'camera' })[];
-  selectedMedia: MediaItem[];
+  selectionMap: Record<string, number>;
   isLoading: boolean;
   isMultiSelect: boolean;
   composedGesture: any;
   onScroll: (event: any) => void;
   openCamera: () => void;
-  toggleSelection: (media: MediaItem) => void;
-  getSelectionNumber: (mediaId: string) => number | null;
   handleImagePress: (item: MediaItem, isSelected: boolean) => void;
   handleSelectionToggle: (item: MediaItem) => void;
   contentHeight: number;
@@ -34,14 +32,12 @@ interface CameraGalleryProps {
 
 const CameraGallery = React.memo(({
   mediaItems,
-  selectedMedia,
+  selectionMap,
   isLoading,
   isMultiSelect,
   composedGesture,
   onScroll,
   openCamera,
-  toggleSelection,
-  getSelectionNumber,
   handleImagePress,
   handleSelectionToggle,
   contentHeight,
@@ -62,6 +58,7 @@ const CameraGallery = React.memo(({
     [insets.bottom]
   );
 
+
   // Memoized renderItem for FlatList to prevent unnecessary re-renders
   const renderItem = useCallback(
     ({ item, index }: any) => {
@@ -78,8 +75,8 @@ const CameraGallery = React.memo(({
           </TouchableOpacity>
         );
       }
-      const isSelected = selectedMedia.some((m: MediaItem) => m.id === item.id);
-      const selectionNumber = getSelectionNumber(item.id);
+      const selectionNumber = selectionMap[item.id] || null;
+      const isSelected = selectionNumber !== null;
       return (
         <MediaGridItem
           item={item}
@@ -93,8 +90,7 @@ const CameraGallery = React.memo(({
     },
     [
       openCamera,
-      selectedMedia,
-      getSelectionNumber,
+      selectionMap,
       isMultiSelect,
       handleImagePress,
       handleSelectionToggle,
