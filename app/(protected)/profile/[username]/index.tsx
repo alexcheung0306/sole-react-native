@@ -167,7 +167,6 @@ export default function ProfileScreen() {
     setPostModalVisible(true);
     expandProgress.value = 0;
     translateX.value = 0;
-    modalOpacity.value = 0;
     // Calculate scroll offset and set state - contentOffset prop will handle positioning
     const offset = getOffsetForIndex(index);
     console.log('openPostModal - setting modalScrollOffset:', offset, 'for index:', index);
@@ -178,9 +177,8 @@ export default function ProfileScreen() {
     }
     setModalKey(k => k + 1); // Force ScrollView remount
 console.log('postListReffdfffffffffffffffffffffff', postListRef);
-    // Start animation
+    // Start animation - opacity is now tied to expandProgress (0-0, 1-1)
     expandProgress.value = withTiming(1, { duration: 300 });
-    modalOpacity.value = withTiming(1, { duration: 200 });
   }, [insets.top, getOffsetForIndex]);
 
   // Cleanup function for modal close (used by both arrow and gesture close)
@@ -201,8 +199,8 @@ console.log('postListReffdfffffffffffffffffffffff', postListRef);
     // Reset translate values first for clean animation back to source
     translateX.value = withTiming(0, { duration: 200 });
     translateY.value = withTiming(0, { duration: 200 });
+    // Opacity is now tied to expandProgress (0-0, 1-1)
     expandProgress.value = withTiming(0, { duration: 300 });
-    modalOpacity.value = withTiming(0, { duration: 300 });
     setTimeout(() => {
       setPostModalVisible(false);
       cleanupModalState();

@@ -22,7 +22,7 @@ import { getDeviceScreenRadius } from '~/utils/device-screen-radius';
 type TabConfig = {
   name: string;
   tab: UserTab | ClientTab;
-  icon: React.ComponentType<{ color: string; size: number }>;
+  icon: React.ComponentType<{ color: string; size: number; fill?: string }>;
   onPress: () => void;
 };
 
@@ -325,7 +325,11 @@ export default function AppTabBar({ showTabBar = true }: AppTabBarProps) {
                   justifyContent: 'center',
                   paddingVertical: 4,
                 }}>
-                <Icon color={active ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)'} size={24} />
+                <Icon 
+                  color={active ? 'rgb(164, 164, 164)' : 'rgb(164, 164, 164)'} 
+                  fill={active ? '#ffffff' : 'none'} 
+                  size={24} 
+                />
                 <Text
                   style={{
                     color: active ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)',

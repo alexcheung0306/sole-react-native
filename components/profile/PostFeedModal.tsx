@@ -1,10 +1,18 @@
-import { ChevronLeft } from "lucide-react-native";
-import { View, TouchableOpacity, StyleSheet, Text } from "react-native";
-import Animated, { Extrapolation, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withTiming, SharedValue } from "react-native-reanimated";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { PostCard } from "../feed/PostCard";
-import { SCREEN_HEIGHT, SCREEN_WIDTH } from "@gorhom/bottom-sheet";
-import { useCallback, useRef, useState } from "react";
+import { ChevronLeft } from 'lucide-react-native';
+import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
+import Animated, {
+  Extrapolation,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  SharedValue,
+} from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { PostCard } from '../feed/PostCard';
+import { SCREEN_HEIGHT, SCREEN_WIDTH } from '@gorhom/bottom-sheet';
+import { useCallback, useRef, useState } from 'react';
 
 export function PostFeedModal({
   postModalVisible,
@@ -25,23 +33,23 @@ export function PostFeedModal({
   sourceY,
   modalOpacity,
 }: {
-  postModalVisible: boolean,
-  insets: any,
-  closePostModal: () => void,
-  cleanupModalState: () => void,
-  postListRef: any,
-  transformedPosts: any,
-  modalScrollOffset: number,
-  handleItemLayout: (id: string, height: number) => void,
-  selectedPostIndex: number,
-  setPostModalVisible: (visible: boolean) => void,
-  getGridPositionForIndex: (index: number) => { x: number, y: number },
-  itemHeights: any,
-  currentVisibleIndex: any,
-  expandProgress: SharedValue<number>,
-  sourceX: SharedValue<number>,
-  sourceY: SharedValue<number>,
-  modalOpacity: SharedValue<number>,
+  postModalVisible: boolean;
+  insets: any;
+  closePostModal: () => void;
+  cleanupModalState: () => void;
+  postListRef: any;
+  transformedPosts: any;
+  modalScrollOffset: number;
+  handleItemLayout: (id: string, height: number) => void;
+  selectedPostIndex: number;
+  setPostModalVisible: (visible: boolean) => void;
+  getGridPositionForIndex: (index: number) => { x: number; y: number };
+  itemHeights: any;
+  currentVisibleIndex: any;
+  expandProgress: SharedValue<number>;
+  sourceX: SharedValue<number>;
+  sourceY: SharedValue<number>;
+  modalOpacity: SharedValue<number>;
 }) {
   const FLING_VELOCITY_THRESHOLD = 300;
   const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
@@ -53,12 +61,30 @@ export function PostFeedModal({
   const [zoomingIndex, setZoomingIndex] = useState<number | null>(null);
 
   const modalAnimatedStyle = useAnimatedStyle(() => {
-    const scale = interpolate(expandProgress.value, [0, 1], [0.333, 1], Extrapolation.CLAMP);
-    const borderRadius = interpolate(expandProgress.value, [0, 1], [20, MODAL_BORDER_RADIUS], Extrapolation.CLAMP);
+    // Calculate square scale: min dimension / max dimension to make it square
+    const squareScale = Math.min(SCREEN_WIDTH, SCREEN_HEIGHT) / Math.max(SCREEN_WIDTH, SCREEN_HEIGHT);
+    // Scale from square (at 0) to full screen (at 1)
+    const scale = interpolate(expandProgress.value, [0, 1], [squareScale, 1], Extrapolation.CLAMP);
+    const borderRadius = interpolate(
+      expandProgress.value,
+      [0, 1],
+      [20, MODAL_BORDER_RADIUS],
+      Extrapolation.CLAMP
+    );
 
     // Animate from source position to center
-    const animatedX = interpolate(expandProgress.value, [0, 1], [sourceX.value, 0], Extrapolation.CLAMP);
-    const animatedY = interpolate(expandProgress.value, [0, 1], [sourceY.value, 0], Extrapolation.CLAMP);
+    const animatedX = interpolate(
+      expandProgress.value,
+      [0, 1],
+      [sourceX.value, 0],
+      Extrapolation.CLAMP
+    );
+    const animatedY = interpolate(
+      expandProgress.value,
+      [0, 1],
+      [sourceY.value, 0],
+      Extrapolation.CLAMP
+    );
     return {
       transform: [
         { translateX: translateX.value + animatedX },
@@ -66,30 +92,33 @@ export function PostFeedModal({
         { scale },
       ],
       borderRadius,
+      opacity: expandProgress.value, 
     };
   });
   const backdropStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(expandProgress.value, [0, 1], [0, 1], Extrapolation.CLAMP),
+    opacity: expandProgress.value, 
   }));
 
-
-  const handleModalScroll = useCallback((event: any) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    // Calculate which post is currently most visible based on scroll position
-    let cumulativeHeight = 0;
-    const posts = transformedPosts;
-    for (let i = 0; i < posts.length; i++) {
-      const postHeight = itemHeights.current[posts[i].id] || 400; // fallback height
-      if (offsetY < cumulativeHeight + postHeight / 2) {
-        currentVisibleIndex.current = i;
-        break;
+  const handleModalScroll = useCallback(
+    (event: any) => {
+      const offsetY = event.nativeEvent.contentOffset.y;
+      // Calculate which post is currently most visible based on scroll position
+      let cumulativeHeight = 0;
+      const posts = transformedPosts;
+      for (let i = 0; i < posts.length; i++) {
+        const postHeight = itemHeights.current[posts[i].id] || 400; // fallback height
+        if (offsetY < cumulativeHeight + postHeight / 2) {
+          currentVisibleIndex.current = i;
+          break;
+        }
+        cumulativeHeight += postHeight;
+        if (i === posts.length - 1) {
+          currentVisibleIndex.current = i;
+        }
       }
-      cumulativeHeight += postHeight;
-      if (i === posts.length - 1) {
-        currentVisibleIndex.current = i;
-      }
-    }
-  }, [transformedPosts]);
+    },
+    [transformedPosts]
+  );
 
   const handleGestureClose = useCallback(() => {
     // Use currentVisibleIndex (the last viewed post) for close position
@@ -97,10 +126,10 @@ export function PostFeedModal({
     sourceX.value = pos.x;
     sourceY.value = pos.y;
     // Start close animation (same as arrow close)
+    // Opacity is now tied to expandProgress (0-0, 1-1)
     translateX.value = withTiming(0, { duration: 200 });
     translateY.value = withTiming(0, { duration: 200 });
     expandProgress.value = withTiming(0, { duration: 300 });
-    modalOpacity.value = withTiming(0, { duration: 300 });
     // Delay hiding modal and cleanup to let animation complete
     setTimeout(() => {
       setPostModalVisible(false);
@@ -132,10 +161,10 @@ export function PostFeedModal({
 
       if (isFlingRight || isFlingDown || isPastThreshold) {
         // Shrink back to source position (thumbnail)
+        // Opacity is now tied to expandProgress (0-0, 1-1)
         translateX.value = withTiming(0, { duration: 250 });
         translateY.value = withTiming(0, { duration: 250 });
         expandProgress.value = withTiming(0, { duration: 300 });
-        modalOpacity.value = withTiming(0, { duration: 300 });
         runOnJS(handleGestureClose)();
       } else {
         // Snap back to full screen
@@ -145,43 +174,53 @@ export function PostFeedModal({
       }
     });
 
-
-
   return (
     <View
       style={[
         StyleSheet.absoluteFill,
-        { zIndex: postModalVisible ? 99999 : -1, elevation: postModalVisible ? 99999 : -1 }
+        { zIndex: postModalVisible ? 99999 : -1, elevation: postModalVisible ? 99999 : -1 },
       ]}
-      pointerEvents={postModalVisible ? 'auto' : 'none'}
-    >
+      pointerEvents={postModalVisible ? 'auto' : 'none'}>
       {/* Backdrop */}
       <Animated.View
-        style={[
-          StyleSheet.absoluteFill,
-          { backgroundColor: 'rgba(0,0,0,0.95)' },
-          backdropStyle
-        ]}
+        style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.95)' }, backdropStyle]}
       />
 
       {/* Modal Content */}
       <GestureDetector gesture={panGesture}>
-        <Animated.View style={[{ flex: 1, backgroundColor: '#000', overflow: zoomingIndex !== null ? 'visible' : 'hidden' }, modalAnimatedStyle]}>
+        <Animated.View
+          style={[
+            {
+              flex: 1,
+              backgroundColor: '#000',
+              overflow: zoomingIndex !== null ? 'visible' : 'hidden',
+            },
+            modalAnimatedStyle,
+          ]}>
           {/* Header */}
-          <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingTop: insets.top,
-            paddingHorizontal: 16,
-            paddingBottom: 12,
-            backgroundColor: '#000',
-            borderBottomWidth: 1,
-            borderBottomColor: '#1f2937',
-          }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingTop: insets.top,
+              paddingHorizontal: 16,
+              paddingBottom: 12,
+              backgroundColor: '#000',
+              borderBottomWidth: 1,
+              borderBottomColor: '#1f2937',
+            }}>
             <TouchableOpacity onPress={closePostModal} style={{ padding: 8 }}>
               <ChevronLeft color="#93c5fd" size={24} />
             </TouchableOpacity>
-            <Text style={{ flex: 1, color: '#fff', fontSize: 18, fontWeight: '600', textAlign: 'center', marginRight: 40 }}>
+            <Text
+              style={{
+                flex: 1,
+                color: '#fff',
+                fontSize: 18,
+                fontWeight: '600',
+                textAlign: 'center',
+                marginRight: 40,
+              }}>
               Posts
             </Text>
           </View>
@@ -198,8 +237,7 @@ export function PostFeedModal({
             }}
             contentOffset={{ x: 0, y: modalScrollOffset }}
             scrollEventThrottle={100}
-            onScroll={handleModalScroll}
-          >
+            onScroll={handleModalScroll}>
             {transformedPosts.map((item: any, index: number) => {
               const isThisItemZooming = zoomingIndex === index;
               return (
@@ -209,14 +247,13 @@ export function PostFeedModal({
                   style={{
                     zIndex: isThisItemZooming ? 9999 : 0,
                     elevation: isThisItemZooming ? 9999 : 0,
-                  }}
-                >
+                  }}>
                   <PostCard
                     post={item}
-                    onLike={() => { }}
-                    onAddComment={() => { }}
+                    onLike={() => {}}
+                    onAddComment={() => {}}
                     onZoomChange={(isZooming) => setZoomingIndex(isZooming ? index : null)}
-                    onScaleChange={() => { }}
+                    onScaleChange={() => {}}
                   />
                 </View>
               );

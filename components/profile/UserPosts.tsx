@@ -1,5 +1,6 @@
-import { View, ActivityIndicator, Text, TouchableOpacity, Dimensions, Image } from 'react-native';
+import { View, ActivityIndicator, Text, TouchableOpacity, Dimensions, Image, StyleSheet } from 'react-native';
 import { useRef } from 'react';
+import { Layers } from 'lucide-react-native';
 
 export default function UserPosts({
   userIsLoading,
@@ -63,6 +64,7 @@ export default function UserPosts({
           <View className="flex-row flex-wrap">
             {posts.map((item, index) => {
               const firstMedia = item.media && item.media.length > 0 ? item.media[0] : null;
+              const hasMultipleMedia = item.media && item.media.length > 1;
               const col = index % 3;
               const row = Math.floor(index / 3);
               
@@ -86,11 +88,18 @@ export default function UserPosts({
                     }}
                     activeOpacity={0.9}>
                   {firstMedia && firstMedia.mediaUrl ? (
-                    <Image
-                      source={{ uri: firstMedia.mediaUrl }}
-                      className="h-full w-full"
-                    //   contentFit="cover"
-                    />
+                    <View style={{ width: '100%', height: '100%', position: 'relative' }}>
+                      <Image
+                        source={{ uri: firstMedia.mediaUrl }}
+                        className="h-full w-full"
+                        style={{ resizeMode: 'cover' }}
+                      />
+                      {hasMultipleMedia && (
+                        <View style={styles.stackIconContainer}>
+                          <Layers size={16} color="#9caf3af" fill="#ffffff" strokeWidth={2} style={{ opacity: 0.9 }} />
+                        </View>
+                      )}
+                    </View>
                   ) : (
                     <View className="h-full w-full items-center justify-center bg-gray-700">
                       <Text className="text-xs text-gray-400">No Image</Text>
@@ -124,3 +133,11 @@ export default function UserPosts({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  stackIconContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+});
