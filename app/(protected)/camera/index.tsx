@@ -62,7 +62,7 @@ export default React.memo(function CameraScreen() {
   const [manualPreview, setManualPreview] = useState<MediaItem | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<number>(1);
-  const [showThumbnailStrip, setShowThumbnailStrip] = useState(true);
+  const [showThumbnailStrip, setShowThumbnailStrip] = useState(false);
 
   // Scroll bar state
   const [contentHeight, setContentHeight] = useState(0);

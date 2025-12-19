@@ -116,7 +116,7 @@ export default function CropControls({
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         {/* Thumbnail Strip Toggle - Center */}
-        {setShowThumbnailStrip && selectedCount && selectedCount > 0 && (
+        {setShowThumbnailStrip && selectedCount && selectedCount > 0 ? (
           <TouchableOpacity
             onPress={() => setShowThumbnailStrip(!showThumbnailStrip)}
             activeOpacity={0.8}
@@ -139,7 +139,7 @@ export default function CropControls({
               {selectedCount}
             </Text>
           </TouchableOpacity>
-        )}
+        ) : null}
 
         {/* Multi-select toggle button - Right */}
         {multipleSelection === 'true' && (
