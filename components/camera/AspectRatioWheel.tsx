@@ -40,14 +40,14 @@ export function AspectRatioWheel({
       disabled={isLocked}
       activeOpacity={1}
       style={{
-        backgroundColor: 'rgba(0,0,0,0.6)',
+        backgroundColor: isLocked ? 'rgba(113, 113, 113, 0.6)' : 'rgba(0,0,0,0.6)',
         borderRadius: 20,
         padding: 8,
         flexDirection: 'row',
         alignItems: 'center',
       }}>
-      <Icon size={12} color="#ffffff" />
-      <Text style={{ color: '#ffffff', fontSize: 8, fontWeight: 'bold' }}>{currentItem.label}</Text>
+      <Icon size={12} color={isLocked ? '#666666' : '#ffffff'} />
+      <Text style={{ color: isLocked ? '#666666' : '#ffffff', fontSize: 8, fontWeight: 'bold' }}>{currentItem.label}</Text>
     </TouchableOpacity>
   );
 }

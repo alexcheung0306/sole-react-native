@@ -62,6 +62,7 @@ export default React.memo(function CameraScreen() {
   const [manualPreview, setManualPreview] = useState<MediaItem | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<number>(1);
+  const [showThumbnailStrip, setShowThumbnailStrip] = useState(true);
 
   // Scroll bar state
   const [contentHeight, setContentHeight] = useState(0);
@@ -693,11 +694,6 @@ export default React.memo(function CameraScreen() {
   };
 
   const removeFromSelection = (mediaId: string) => {
-    // Prevent removing if it's the last remaining photo
-    if (selectedMedia.length <= 1) {
-      return;
-    }
-
     const removedIndex = selectedMedia.findIndex((m) => m.id === mediaId);
     if (removedIndex === -1) return;
 
@@ -706,7 +702,10 @@ export default React.memo(function CameraScreen() {
     setSelectedMedia(updated);
 
     // Adjust currentIndex if needed
-    if (removedIndex <= currentIndex) {
+    if (updated.length === 0) {
+      // If no items left, reset to 0
+      setCurrentIndex(0);
+    } else if (removedIndex <= currentIndex) {
       // If we removed an item at or before currentIndex, adjust it
       const newIndex = Math.max(0, currentIndex - 1);
       setCurrentIndex(newIndex);
@@ -935,6 +934,9 @@ export default React.memo(function CameraScreen() {
               isMultiSelect={isMultiSelect}
               isAspectRatioLocked={isAspectRatioLocked}
               onAspectRatioPress={handleAspectRatioPress}
+              showThumbnailStrip={showThumbnailStrip}
+              setShowThumbnailStrip={setShowThumbnailStrip}
+              selectedCount={selectedMedia.length}
             />
 
             <CameraThumbnailStrip
@@ -942,6 +944,7 @@ export default React.memo(function CameraScreen() {
               currentIndex={currentIndex}
               setCurrentIndex={setCurrentIndex}
               removeFromSelection={removeFromSelection}
+              isVisible={showThumbnailStrip}
             />
           </View>
         </GestureDetector>

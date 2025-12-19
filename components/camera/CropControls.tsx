@@ -1,6 +1,6 @@
 import React from 'react';
 import { Layers, Trash2 } from 'lucide-react-native';
-import { View, TouchableOpacity, Alert } from 'react-native';
+import { View, TouchableOpacity, Alert, Text } from 'react-native';
 import { AspectRatioWheel } from './AspectRatioWheel';
 import { MediaItem, useCameraContext } from '~/context/CameraContext';
 import { router } from 'expo-router';
@@ -17,6 +17,9 @@ export default function CropControls({
   isMultiSelect,
   isAspectRatioLocked = false,
   onAspectRatioPress,
+  showThumbnailStrip,
+  setShowThumbnailStrip,
+  selectedCount,
 }: {
   selectedAspectRatio: number;
   setSelectedAspectRatio: (ratio: number) => void;
@@ -27,6 +30,9 @@ export default function CropControls({
   isMultiSelect: boolean;
   isAspectRatioLocked?: boolean;
   onAspectRatioPress?: () => void;
+  showThumbnailStrip?: boolean;
+  setShowThumbnailStrip?: (show: boolean) => void;
+  selectedCount?: number;
 }) {
   const { selectedMedia, setSelectedMedia, removeMedia } = useCameraContext();
 
@@ -38,11 +44,20 @@ export default function CropControls({
     // If switching to single mode, keep only the current/last selected item
     if (isMultiSelect && selectedMedia.length > 1) {
       // Keep the currently viewed item (currentIndex) or last item if currentIndex is invalid
-      const itemToKeep = selectedMedia[Math.min(currentIndex, selectedMedia.length - 1)] || selectedMedia[selectedMedia.length - 1];
+      const itemToKeep =
+        selectedMedia[Math.min(currentIndex, selectedMedia.length - 1)] ||
+        selectedMedia[selectedMedia.length - 1];
       setSelectedMedia([itemToKeep]);
       setCurrentIndex(0);
     }
-  }, [isMultiSelect, setIsMultiSelect, selectedMedia, currentIndex, setSelectedMedia, setCurrentIndex]);
+  }, [
+    isMultiSelect,
+    setIsMultiSelect,
+    selectedMedia,
+    currentIndex,
+    setSelectedMedia,
+    setCurrentIndex,
+  ]);
 
   const handleAspectRatioChange = (ratio: number) => {
     // Don't allow changes if locked
@@ -90,14 +105,41 @@ export default function CropControls({
   };
 
   return (
-      <View className="flex flex-row items-center justify-between p-4">
-        <GlassOverlay intensity={80} tint="dark" />
-        {/* Aspect Ratio Toggle - Left */}
-        <AspectRatioWheel
-          selectedRatio={selectedAspectRatio}
-          onRatioChange={handleAspectRatioChange}
-          isLocked={isAspectRatioLocked}
-        />
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 }}>
+      <GlassOverlay intensity={80} tint="dark" />
+      {/* Aspect Ratio Toggle - Left */}
+      <AspectRatioWheel
+        selectedRatio={selectedAspectRatio}
+        onRatioChange={handleAspectRatioChange}
+        isLocked={isAspectRatioLocked}
+      />
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        {/* Thumbnail Strip Toggle - Center */}
+        {setShowThumbnailStrip && selectedCount && selectedCount > 0 && (
+          <TouchableOpacity
+            onPress={() => setShowThumbnailStrip(!showThumbnailStrip)}
+            activeOpacity={0.8}
+            style={{
+              backgroundColor: showThumbnailStrip ? 'rgb(255, 255, 255)' : 'rgba(113, 113, 113, 0.6)',
+              borderRadius: 20,
+              paddingHorizontal: 6,
+              paddingVertical: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}>
+            <Text
+              style={{
+                color: showThumbnailStrip ? '#000000' : '#ffffff',
+                fontSize: 10,
+                fontWeight: 'bold',
+                minWidth: 16,
+                textAlign: 'center',
+              }}>
+              {selectedCount}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* Multi-select toggle button - Right */}
         {multipleSelection === 'true' && (
@@ -105,16 +147,17 @@ export default function CropControls({
             activeOpacity={0.8}
             onPress={handleMultiSelectToggle}
             style={{
-              backgroundColor: isMultiSelect ? 'rgb(0, 140, 255)' : 'rgba(0,0,0,0.6)',
+              backgroundColor: isMultiSelect ? 'rgb(255, 255, 255)' : 'rgba(113, 113, 113, 0.6)',
               borderRadius: 20,
               padding: 8,
               flexDirection: 'row',
               alignItems: 'center',
               gap: 6,
             }}>
-            <Layers size={12} color="#ffffff" />
+            <Layers size={12} color={isMultiSelect ? '#000000' : '#ffffff'} />
           </TouchableOpacity>
         )}
       </View>
+    </View>
   );
 }

@@ -10,6 +10,7 @@ interface CameraThumbnailStripProps {
   currentIndex: number;
   setCurrentIndex: (index: number) => void;
   removeFromSelection: (mediaId: string) => void;
+  isVisible?: boolean;
 }
 
 const CameraThumbnailStrip = React.memo(({
@@ -17,8 +18,9 @@ const CameraThumbnailStrip = React.memo(({
   currentIndex,
   setCurrentIndex,
   removeFromSelection,
+  isVisible = true,
 }: CameraThumbnailStripProps) => {
-  if (selectedMedia.length === 0) {
+  if (selectedMedia.length === 0 || !isVisible) {
     return null;
   }
 
