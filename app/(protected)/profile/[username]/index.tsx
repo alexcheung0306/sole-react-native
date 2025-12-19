@@ -127,8 +127,6 @@ export default function ProfileScreen() {
   // Estimate grid start position (UserInfo ~200px + tabs ~50px + paddingTop)
   const GRID_START_OFFSET = 250 + insets.top + 50;
 
-
-
   // Track current visible post index in modal
   const currentVisibleIndex = useRef(selectedPostIndex);
 
@@ -337,7 +335,7 @@ console.log('postListReffdfffffffffffffffffffffff', postListRef);
             setProfileTab={(tab: string) => setProfileTab(tab as TabKey)} />
 
           {/* Tab Content */}
-          <View className="flex-1" style={{ minHeight: 400 }}>
+          <View className="flex-1" style={{ minHeight: 400, backgroundColor: 'red' }}>
             {profileTab === 'posts' ? (
               <UserPosts
                 userIsLoading={userIsLoading}

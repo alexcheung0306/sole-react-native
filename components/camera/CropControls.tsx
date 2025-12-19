@@ -4,6 +4,7 @@ import { AspectRatioWheel } from './AspectRatioWheel';
 import { MediaItem, useCameraContext } from '~/context/CameraContext';
 import { router } from 'expo-router';
 import { GlassOverlay } from '../custom/GlassView';
+import { calculateCenterCrop } from '~/utils/cameraUtils';
 
 export default function CropControls({
   selectedAspectRatio,
@@ -19,42 +20,13 @@ export default function CropControls({
   setSelectedAspectRatio: (ratio: number) => void;
   currentIndex: number;
   setCurrentIndex: (index: number) => void;
-  multipleSelection: string;
+  multipleSelection?: string;
   setIsMultiSelect: (isMultiSelect: boolean) => void;
   isMultiSelect: boolean;
   isAspectRatioLocked?: boolean;
 }) {
   const { selectedMedia, setSelectedMedia, removeMedia } = useCameraContext();
 
-
-  const calculateCenterCrop = (media: MediaItem, targetRatio: number) => {
-    const naturalWidth = media.cropData?.naturalWidth ?? media.width;
-    const naturalHeight = media.cropData?.naturalHeight ?? media.height;
-
-    // If we don't have dimensions, return null or default
-    if (!naturalWidth || !naturalHeight) return null;
-
-    let cropWidth = naturalWidth;
-    let cropHeight = cropWidth / targetRatio;
-
-    if (cropHeight > naturalHeight) {
-      cropHeight = naturalHeight;
-      cropWidth = cropHeight * targetRatio;
-    }
-
-    const x = (naturalWidth - cropWidth) / 2;
-    const y = (naturalHeight - cropHeight) / 2;
-
-    return {
-      x,
-      y,
-      width: cropWidth,
-      height: cropHeight,
-      zoom: 1,
-      naturalWidth,
-      naturalHeight,
-    };
-  };
   const handleAspectRatioChange = (ratio: number) => {
     // Don't allow changes if locked
     if (isAspectRatioLocked) {
