@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "sole-native",
+    "name": "sole.",
     "slug": "sole-native",
     "version": "1.0.0",
     "scheme": "sole-native",
@@ -29,7 +29,8 @@
           "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera."
         }
       ],
-      "react-native-date-picker"
+      "react-native-date-picker",
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true,

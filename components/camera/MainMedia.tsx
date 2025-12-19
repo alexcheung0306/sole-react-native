@@ -1,5 +1,6 @@
 import { View } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
+import { useMemo } from 'react';
 import { MediaItem, useCameraContext } from '~/context/CameraContext';
 import { EditableImage } from '~/components/camera/EditableImage';
 import GlassView, { GlassOverlay } from '../custom/GlassView';
@@ -64,23 +65,30 @@ export default function MainMedia({
   const circleSize = mask === 'circle' ? Math.min(renderWidth, renderHeight) : null;
   const circleRadius = circleSize ? circleSize / 2 : null;
 
+  // Create video player - always call hook to maintain order
+  const player = useVideoPlayer(item.mediaType === 'video' ? item.uri : '', player => {
+    if (item.mediaType === 'video') {
+      player.loop = true;
+      player.muted = true;
+    }
+  });
+
   return (
     <View
       style={{ width, height: fixedContainerHeight, }}
       className="relative items-center justify-center overflow-hidden bg-black">
-      {item.mediaType === 'video' ? (
-        <Video
-          source={{ uri: item.uri }}
-          style={{ 
-            width: renderWidth, 
-            height: renderHeight,
-            borderRadius: mask === 'circle' ? circleRadius || 0 : 0,
-          }}
-          resizeMode={ResizeMode.COVER}
-          shouldPlay={false}
-          useNativeControls
-        />
-      ) : (
+        {item.mediaType === 'video' ? (
+          <VideoView
+            player={player}
+            style={{
+              width: renderWidth,
+              height: renderHeight,
+              borderRadius: mask === 'circle' ? circleRadius || 0 : 0,
+            }}
+          contentFit="cover"
+          allowsPictureInPicture={false}
+          />
+        ) : (
         <View 
           style={{ 
             width: renderWidth, 
