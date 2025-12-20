@@ -59,7 +59,8 @@ module.exports = ({ config }) => {
       "expo-router",
       "expo-web-browser",
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      "expo-video"
     ],
     experiments: {
       typedRoutes: true,
