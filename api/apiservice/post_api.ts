@@ -310,13 +310,23 @@ export const createPost = async (postData: CreatePostRequest): Promise<PostWithD
         // Trim and ensure no whitespace
         mimeType = mimeType.trim().toLowerCase();
         
-        console.log(`Uploading media ${index}: fileName=${fileName}, mimeType=${mimeType}, isVideo=${media.isVideo}`);
+        console.log(`Uploading media ${index}: fileName=${fileName}, mimeType=${mimeType}, isVideo=${media.isVideo}, uri=${sanitizedUri.substring(0, 80)}...`);
 
-        formData.append(`postMedias[${index}].file`, {
+        // React Native FormData file format
+        const fileObject: any = {
           uri: sanitizedUri,
           name: fileName,
           type: mimeType,
-        } as any);
+        };
+
+        // For React Native, we might need to ensure the URI is properly formatted
+        // Check if URI needs file:// prefix (it should already have it for local files)
+        if (!sanitizedUri.startsWith('http://') && !sanitizedUri.startsWith('https://') && !sanitizedUri.startsWith('file://')) {
+          console.warn(`[post_api] URI missing protocol, adding file://: ${sanitizedUri.substring(0, 50)}`);
+          fileObject.uri = `file://${sanitizedUri}`;
+        }
+
+        formData.append(`postMedias[${index}].file`, fileObject);
         
         formData.append(
           `postMedias[${index}].fileIndex`,
@@ -329,15 +339,27 @@ export const createPost = async (postData: CreatePostRequest): Promise<PostWithD
     console.log(`Creating post with ${mediaFileIndex} media files`)
 
     // 4. Send to backend
+    console.log(`[post_api] Sending POST request to ${API_BASE_URL}/post with ${mediaFileIndex} media files`);
+    
     const response = await fetch(`${API_BASE_URL}/post`, {
       method: "POST",
       body: formData,
+      // Don't set Content-Type header - let fetch set it with boundary for multipart/form-data
     })
+
+    console.log(`[post_api] Response status: ${response.status} ${response.statusText}`);
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('Create post error:', errorText)
-      throw new Error(`Failed to create post: ${response.statusText}`)
+      console.error('[post_api] Create post error:', errorText)
+      
+      // Try to parse as JSON for better error message
+      try {
+        const errorJson = JSON.parse(errorText);
+        throw new Error(`Failed to create post: ${errorJson.message || errorJson.error || response.statusText}`)
+      } catch {
+        throw new Error(`Failed to create post: ${errorText || response.statusText}`)
+      }
     }
 
     const result = await response.json()

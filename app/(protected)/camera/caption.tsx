@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
-import { X, MapPin, AtSign, Smile, User as UserIcon, ChevronLeft } from 'lucide-react-native';
+import { X, MapPin, AtSign, Smile, User as UserIcon, ChevronLeft, AlertTriangle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPost, CreatePostRequest, PostMedia } from '~/api/apiservice/post_api';
@@ -20,6 +20,7 @@ import { useSoleUserContext } from '~/context/SoleUserContext';
 import { useUser } from '@clerk/clerk-expo';
 import { useCameraContext, MediaItem } from '~/context/CameraContext';
 import * as MediaLibrary from 'expo-media-library';
+import * as FileSystem from 'expo-file-system';
 import { useAppTabContext } from '~/context/AppTabContext';
 
 // Server accepts: image/png, image/gif, video/mp4, image/jpg, image/jpeg, video/mpeg, video/webm
@@ -51,6 +52,11 @@ export default function CaptionScreen() {
   const [caption, setCaption] = useState('');
   const [location, setLocation] = useState('');
   const [taggedUsers, setTaggedUsers] = useState<string[]>([]);
+  const [fileSizeWarning, setFileSizeWarning] = useState<{
+    hasWarning: boolean;
+    message: string;
+    fileCount: number;
+  }>({ hasWarning: false, message: '', fileCount: 0 });
 
   const {
     selectedMedia,
@@ -61,10 +67,94 @@ export default function CaptionScreen() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const firstMediaUri = selectedMedia[0]?.uri;
 
+  // Check file sizes when selectedMedia changes
+  useEffect(() => {
+    const checkFileSizes = async () => {
+      if (selectedMedia.length === 0) {
+        setFileSizeWarning({ hasWarning: false, message: '', fileCount: 0 });
+        return;
+      }
+
+      const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
+      const MAX_PHOTO_SIZE = 10 * 1024 * 1024; // 10MB
+      let oversizedFiles: Array<{ type: string; sizeMB: number }> = [];
+
+      for (const media of selectedMedia) {
+        let fileSize: number | undefined;
+
+        // Try to get file size from MediaLibrary or FileSystem
+        if (media.id && !media.id.startsWith('camera_')) {
+          try {
+            const assetInfo = await MediaLibrary.getAssetInfoAsync(media.id);
+            // AssetInfo doesn't have size property, try to get it from the file URI
+            const fileUri = assetInfo.localUri || assetInfo.uri;
+            if (fileUri) {
+              try {
+                const fileInfo = await FileSystem.getInfoAsync(fileUri);
+                if (fileInfo.exists && 'size' in fileInfo) {
+                  fileSize = fileInfo.size;
+                }
+              } catch (fileError) {
+                console.warn('Could not get file size from FileSystem:', fileError);
+              }
+            }
+          } catch (error) {
+            // If we can't get size, skip this file
+            console.warn('Could not get file size from MediaLibrary:', error);
+            continue;
+          }
+        }
+
+        if (fileSize !== undefined) {
+          const maxSize = media.mediaType === 'video' ? MAX_VIDEO_SIZE : MAX_PHOTO_SIZE;
+          const maxSizeMB = maxSize / (1024 * 1024);
+          const fileSizeMB = fileSize / (1024 * 1024);
+
+          if (fileSize > maxSize) {
+            const mediaType = media.mediaType === 'video' ? 'video' : 'photo';
+            oversizedFiles.push({ type: mediaType, sizeMB: fileSizeMB });
+          }
+        }
+      }
+
+      if (oversizedFiles.length > 0) {
+        const videoCount = oversizedFiles.filter(f => f.type === 'video').length;
+        const photoCount = oversizedFiles.filter(f => f.type === 'photo').length;
+        
+        let message = '';
+        if (videoCount > 0 && photoCount > 0) {
+          message = `${videoCount} video${videoCount > 1 ? 's' : ''} and ${photoCount} photo${photoCount > 1 ? 's' : ''} exceed size limit`;
+        } else if (videoCount > 0) {
+          message = `${videoCount} video${videoCount > 1 ? 's' : ''} exceed${videoCount > 1 ? '' : 's'} the 100MB limit`;
+        } else {
+          message = `${photoCount} photo${photoCount > 1 ? 's' : ''} exceed${photoCount > 1 ? '' : 's'} the 10MB limit`;
+        }
+
+        setFileSizeWarning({
+          hasWarning: true,
+          message,
+          fileCount: oversizedFiles.length,
+        });
+      } else {
+        setFileSizeWarning({ hasWarning: false, message: '', fileCount: 0 });
+      }
+    };
+
+    checkFileSizes();
+  }, [selectedMedia]);
+
   // Create post mutation
   const createPostMutation = useMutation({
     mutationFn: async (postData: CreatePostRequest) => {
-      return await createPost(postData);
+      console.log('[caption] Mutation function called, postMedias count:', postData.postMedias?.length);
+      try {
+        const result = await createPost(postData);
+        console.log('[caption] createPost returned successfully');
+        return result;
+      } catch (error) {
+        console.error('[caption] Error in createPost:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       console.log('Post created successfully');
@@ -87,9 +177,20 @@ export default function CaptionScreen() {
         },
       ]);
     },
-    onError: (error) => {
-      console.error('Error creating post:', error);
-      Alert.alert('Error', 'Failed to create post. Please try again.');
+    onError: (error: any) => {
+      console.error('[caption] Error creating post:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      console.error('[caption] Full error details:', JSON.stringify(error, null, 2));
+      
+      // Check for file size error
+      if (errorMessage.includes('File size exceeds') || errorMessage.includes('100MB')) {
+        Alert.alert(
+          'File Too Large',
+          'The video file exceeds the 100MB limit. Please select a smaller video or compress it before uploading.'
+        );
+      } else {
+        Alert.alert('Error', `Failed to create post: ${errorMessage}`);
+      }
     },
   });
 
@@ -135,6 +236,7 @@ export default function CaptionScreen() {
         .split('/')
         .pop()
         ?.split('?')[0];
+    // Always convert extension to lowercase for consistent lookup
     let extension =
       filenameCandidate &&
         filenameCandidate.includes('.')
@@ -144,6 +246,9 @@ export default function CaptionScreen() {
     if (!extension || extension.length > 5) {
       extension = fallbackExtension;
     }
+
+    // Normalize extension to lowercase for all comparisons
+    extension = extension.toLowerCase();
 
     // Check for unsupported video formats
     const unsupportedVideoExtensions = ['m4v', 'avi', 'mkv', 'flv', 'wmv'];
@@ -158,7 +263,12 @@ export default function CaptionScreen() {
     // Server accepts: image/png, image/gif, video/mp4, image/jpg, image/jpeg, video/mpeg, video/webm, video/quicktime
     let mimeType: string;
     if (media.mediaType === 'video') {
+      // Lookup with lowercase extension (handles .MOV, .mov, .MP4, .mp4, etc.)
       mimeType = VIDEO_MIME_TYPES[extension] || 'video/mp4';
+      
+      // Debug logging for video format detection
+      console.log(`[deriveFileMeta] Video detected - extension: ${extension}, mimeType: ${mimeType}, filename: ${filenameCandidate}`);
+      
       // Validate against server-accepted video types
       if (!['video/mp4', 'video/mpeg', 'video/webm', 'video/quicktime'].includes(mimeType)) {
         // If extension is not supported, this is an error
@@ -195,7 +305,56 @@ export default function CaptionScreen() {
       Alert.alert('Error', 'User not found. Please sign in again.');
       return;
     }
+    
+    // Validate file sizes before upload
+    const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
+    const MAX_PHOTO_SIZE = 10 * 1024 * 1024; // 10MB
+    
     try {
+      // Check file sizes first
+      for (const media of selectedMedia) {
+        let fileSize: number | undefined;
+        
+        // Try to get file size from MediaLibrary or FileSystem
+        if (media.id && !media.id.startsWith('camera_')) {
+          try {
+            const assetInfo = await MediaLibrary.getAssetInfoAsync(media.id);
+            // AssetInfo doesn't have size property, try to get it from the file URI
+            const fileUri = assetInfo.localUri || assetInfo.uri;
+            if (fileUri) {
+              try {
+                const fileInfo = await FileSystem.getInfoAsync(fileUri);
+                if (fileInfo.exists && 'size' in fileInfo) {
+                  fileSize = fileInfo.size;
+                }
+              } catch (fileError) {
+                console.warn('Could not get file size from FileSystem:', fileError);
+              }
+            }
+          } catch (error) {
+            console.warn('Could not get file size from MediaLibrary:', error);
+          }
+        }
+        
+        // If we have file size, validate it
+        if (fileSize !== undefined) {
+          const maxSize = media.mediaType === 'video' ? MAX_VIDEO_SIZE : MAX_PHOTO_SIZE;
+          const maxSizeMB = maxSize / (1024 * 1024);
+          const fileSizeMB = fileSize / (1024 * 1024);
+          const mediaType = media.mediaType === 'video' ? 'video' : 'photo';
+          
+          if (fileSize > maxSize) {
+            Alert.alert(
+              'File Too Large',
+              `The selected ${mediaType} is ${fileSizeMB.toFixed(1)}MB, which exceeds the maximum limit of ${maxSizeMB}MB. Please select a smaller file or compress it.`
+            );
+            return;
+          }
+          
+          console.log(`[handleShare] File size check: ${mediaType} = ${fileSizeMB.toFixed(1)}MB (max: ${maxSizeMB}MB) ✓`);
+        }
+      }
+      
       const postMedias: PostMedia[] = await Promise.all(
         selectedMedia.map(async (media, index) => {
           // Apply crop using the context function
@@ -211,10 +370,16 @@ export default function CaptionScreen() {
             throw new Error('Unable to access selected media file');
           }
 
+          // Validate URI format for React Native FormData
+          if (!uploadUri.startsWith('file://') && !uploadUri.startsWith('http://') && !uploadUri.startsWith('https://') && !uploadUri.startsWith('content://')) {
+            console.warn(`[caption] URI missing protocol, adding file://: ${uploadUri.substring(0, 50)}`);
+            // Don't modify - let it fail naturally so we can see the actual error
+          }
+
           const { fileName, mimeType } = deriveFileMeta(media, uploadUri, index);
 
           // Debug logging for mimeType
-          console.log(`Media ${index}: type=${media.mediaType}, fileName=${fileName}, mimeType=${mimeType}, uri=${uploadUri.substring(0, 50)}...`);
+          console.log(`Media ${index}: type=${media.mediaType}, fileName=${fileName}, mimeType=${mimeType}, uri=${uploadUri.substring(0, 80)}...`);
 
           // Use actual crop data if available, otherwise use default (no crop)
           const cropData = croppedMedia.cropData || {
@@ -358,6 +523,16 @@ export default function CaptionScreen() {
             <AtSign size={24} color="#ffffff" />
             <Text className="text-white ml-3 flex-1">Tag People</Text>
           </TouchableOpacity>
+
+          {/* File Size Warning */}
+          {fileSizeWarning.hasWarning && (
+            <View className="mx-4 mt-2 mb-2 px-4 py-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg flex-row items-center">
+              <AlertTriangle size={20} color="#fbbf24" />
+              <Text className="text-yellow-400 ml-3 flex-1 text-sm">
+                {fileSizeWarning.message}. Upload may fail.
+              </Text>
+            </View>
+          )}
 
           {/* Media Count Info */}
           <View className="px-4 py-3 bg-gray-800/30">
