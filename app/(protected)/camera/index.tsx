@@ -58,6 +58,9 @@ export default React.memo(function CameraScreen() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [photos, setPhotos] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMorePhotos, setHasMorePhotos] = useState(true);
+  const [paginationAfter, setPaginationAfter] = useState<string | undefined>(undefined);
   const [isMultiSelect, setIsMultiSelect] = useState(true);
   const [manualPreview, setManualPreview] = useState<MediaItem | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -447,20 +450,25 @@ export default React.memo(function CameraScreen() {
       if (!forceReload && photosCache) {
         const cacheAge = Date.now() - photosCache.timestamp;
         if (cacheAge < CACHE_DURATION && photosCache.photos.length > 0) {
-          // Use cached photos
-          setPhotos(photosCache.photos);
-          console.log(`[GALLERY] Loaded ${photosCache.photos.length} photos from cache`);
+          // Use cached photos - but only load first batch for performance
+          const initialBatch = photosCache.photos.slice(0, galleryLoadQuantity);
+          setPhotos(initialBatch);
+          setHasMorePhotos(photosCache.photos.length > galleryLoadQuantity);
+          setPaginationAfter(initialBatch.length > 0 ? initialBatch[initialBatch.length - 1].id : undefined);
+          console.log(`[GALLERY] Loaded ${initialBatch.length} photos from cache (of ${photosCache.photos.length} total)`);
           setIsLoading(false);
 
           // Automatically select the first photo if nothing is selected yet
-          if (retryCount === 0 && photosCache.photos.length > 0 && selectedMedia.length === 0) {
-            setSelectedMedia([photosCache.photos[0]]);
+          if (retryCount === 0 && initialBatch.length > 0 && selectedMedia.length === 0) {
+            setSelectedMedia([initialBatch[0]]);
           }
           return;
         }
       }
 
       setIsLoading(true);
+      setHasMorePhotos(true);
+      setPaginationAfter(undefined);
 
       // Re-check permissions before accessing media library
       // This helps with emulator permission issues
@@ -517,53 +525,46 @@ export default React.memo(function CameraScreen() {
         return;
       }
 
-      // Load all assets using pagination
-      const allAssets: MediaItem[] = [];
-      let hasNextPage = true;
-      let after: string | undefined = undefined;
-      const pageSize = galleryLoadQuantity; // Load 100 at a time for better performance
+      // Load only the first batch initially for better performance
+      const pageSize = galleryLoadQuantity;
+      const media = await MediaLibrary.getAssetsAsync({
+        first: pageSize,
+        after: undefined,
+        mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
+        sortBy: MediaLibrary.SortBy.creationTime,
+      });
 
-      while (hasNextPage) {
-        const media = await MediaLibrary.getAssetsAsync({
-          first: pageSize,
-          after: after,
-          mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
-          sortBy: MediaLibrary.SortBy.creationTime,
-        });
+      const pageAssets: MediaItem[] = media.assets.map((asset) => ({
+        id: asset.id,
+        uri: asset.uri,
+        mediaType: asset.mediaType === MediaLibrary.MediaType.video ? 'video' : 'photo',
+        duration: asset.duration,
+        width: asset.width,
+        height: asset.height,
+        filename: asset.filename,
+      }));
 
-        const pageAssets: MediaItem[] = media.assets.map((asset) => ({
-          id: asset.id,
-          uri: asset.uri,
-          mediaType: asset.mediaType === MediaLibrary.MediaType.video ? 'video' : 'photo',
-          duration: asset.duration,
-          width: asset.width,
-          height: asset.height,
-          filename: asset.filename,
-        }));
-
-        allAssets.push(...pageAssets);
-
-        // Check if there are more pages
-        hasNextPage = media.hasNextPage;
-        if (media.assets.length > 0) {
-          after = media.assets[media.assets.length - 1].id;
-        } else {
-          hasNextPage = false;
-        }
+      setPhotos(pageAssets);
+      setHasMorePhotos(media.hasNextPage);
+      if (pageAssets.length > 0) {
+        setPaginationAfter(pageAssets[pageAssets.length - 1].id);
+      } else {
+        setPaginationAfter(undefined);
       }
 
-      setPhotos(allAssets);
-      console.log(`[GALLERY] Loaded ${allAssets.length} photos from media library`);
+      console.log(`[GALLERY] Loaded initial batch of ${pageAssets.length} photos (hasMore: ${media.hasNextPage})`);
 
-      // Update cache
+      // Update cache with all photos if we have them, otherwise just the first batch
+      // Note: We're not loading all photos into cache anymore for performance
+      // Cache will be updated incrementally as user scrolls
       setPhotosCache({
-        photos: allAssets,
+        photos: pageAssets,
         timestamp: Date.now(),
       });
 
       // Automatically select the first photo (most recent) if nothing is selected yet
-      if (retryCount === 0 && allAssets.length > 0 && selectedMedia.length === 0) {
-        setSelectedMedia([allAssets[0]]);
+      if (retryCount === 0 && pageAssets.length > 0 && selectedMedia.length === 0) {
+        setSelectedMedia([pageAssets[0]]);
       }
     } catch (error) {
       // Suppress AUDIO permission error logging on emulator
@@ -612,6 +613,53 @@ export default React.memo(function CameraScreen() {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadMorePhotos = async () => {
+    // Prevent multiple simultaneous loads
+    if (isLoadingMore || !hasMorePhotos || !paginationAfter) {
+      return;
+    }
+
+    try {
+      setIsLoadingMore(true);
+
+      const pageSize = galleryLoadQuantity;
+      const media = await MediaLibrary.getAssetsAsync({
+        first: pageSize,
+        after: paginationAfter,
+        mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
+        sortBy: MediaLibrary.SortBy.creationTime,
+      });
+
+      const pageAssets: MediaItem[] = media.assets.map((asset) => ({
+        id: asset.id,
+        uri: asset.uri,
+        mediaType: asset.mediaType === MediaLibrary.MediaType.video ? 'video' : 'photo',
+        duration: asset.duration,
+        width: asset.width,
+        height: asset.height,
+        filename: asset.filename,
+      }));
+
+      // Append new photos to existing list
+      setPhotos((prevPhotos) => [...prevPhotos, ...pageAssets]);
+      setHasMorePhotos(media.hasNextPage);
+      
+      if (pageAssets.length > 0) {
+        setPaginationAfter(pageAssets[pageAssets.length - 1].id);
+      } else {
+        setHasMorePhotos(false);
+      }
+
+      console.log(`[GALLERY] Loaded ${pageAssets.length} more photos (hasMore: ${media.hasNextPage})`);
+    } catch (error) {
+      console.error('Error loading more photos:', error);
+      // Don't show alert for pagination errors, just stop loading more
+      setHasMorePhotos(false);
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -952,7 +1000,7 @@ export default React.memo(function CameraScreen() {
         <CameraGallery
           mediaItems={mediaItems}
           selectionMap={selectionMap}
-          isLoading={isLoading}
+          isLoading={isLoading}   
           isMultiSelect={isMultiSelect}
           composedGesture={composedGesture}
           onScroll={handleScroll}
