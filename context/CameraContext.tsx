@@ -83,11 +83,29 @@ export function CameraProvider({ children }: { children: ReactNode }) {
 
   /**
    * Crops a media item based on its cropData.
+   * For photos: applies actual crop using ImageManipulator
+   * For videos: stores crop data for server-side processing
    * Returns the original media item if cropping is not needed or fails.
    */
   const cropMedia = useCallback(async (media: MediaItem): Promise<MediaItem> => {
-    // Only crop photos with crop data
-    if (media.mediaType !== 'photo' || !media.cropData) {
+    // If no crop data, return original
+    if (!media.cropData) {
+      return media;
+    }
+
+    // Handle videos - store crop data for server-side processing
+    if (media.mediaType === 'video') {
+      // For videos, we store the crop data with the media item
+      // The actual cropping will be done server-side or using a video processing library
+      // For now, we return the media with crop data attached
+      return {
+        ...media,
+        cropData: media.cropData,
+      };
+    }
+
+    // Handle photos with crop data
+    if (media.mediaType !== 'photo') {
       return media;
     }
 

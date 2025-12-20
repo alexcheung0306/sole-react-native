@@ -1,8 +1,8 @@
 import { View } from 'react-native';
-import { VideoView, useVideoPlayer } from 'expo-video';
 import { useMemo } from 'react';
 import { MediaItem, useCameraContext } from '~/context/CameraContext';
 import { EditableImage } from '~/components/camera/EditableImage';
+import { EditableVideo } from '~/components/camera/EditableVideo';
 import GlassView, { GlassOverlay } from '../custom/GlassView';
 
 export default function MainMedia({
@@ -65,29 +65,28 @@ export default function MainMedia({
   const circleSize = mask === 'circle' ? Math.min(renderWidth, renderHeight) : null;
   const circleRadius = circleSize ? circleSize / 2 : null;
 
-  // Create video player - always call hook to maintain order
-  const player = useVideoPlayer(item.mediaType === 'video' ? item.uri : '', player => {
-    if (item.mediaType === 'video') {
-      player.loop = true;
-      player.muted = true;
-    }
-  });
-
   return (
     <View
       style={{ width, height: fixedContainerHeight, }}
       className="relative items-center justify-center overflow-hidden bg-black">
         {item.mediaType === 'video' ? (
-          <VideoView
-            player={player}
-            style={{
-              width: renderWidth,
-              height: renderHeight,
+          <View 
+            style={{ 
+              width: renderWidth, 
+              height: renderHeight, 
+              overflow: 'hidden',
               borderRadius: mask === 'circle' ? circleRadius || 0 : 0,
-            }}
-          contentFit="cover"
-          allowsPictureInPicture={false}
-          />
+            }}>
+            <EditableVideo
+              uri={item.originalUri ?? item.uri}
+              containerWidth={renderWidth}
+              containerHeight={renderHeight}
+              naturalWidth={item.cropData?.naturalWidth ?? item.width ?? 1920}
+              naturalHeight={item.cropData?.naturalHeight ?? item.height ?? 1080}
+              cropData={item.cropData}
+              onUpdate={handleCropUpdate}
+            />
+          </View>
         ) : (
         <View 
           style={{ 

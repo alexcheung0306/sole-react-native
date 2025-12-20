@@ -22,21 +22,21 @@ import { useCameraContext, MediaItem } from '~/context/CameraContext';
 import * as MediaLibrary from 'expo-media-library';
 import { useAppTabContext } from '~/context/AppTabContext';
 
+// Server accepts: image/png, image/gif, video/mp4, image/jpg, image/jpeg, video/mpeg, video/webm
 const IMAGE_MIME_TYPES: Record<string, string> = {
-  jpg: 'image/jpeg',
+  jpg: 'image/jpg',  // Server accepts 'image/jpg' specifically
   jpeg: 'image/jpeg',
   png: 'image/png',
-  heic: 'image/heic',
-  heif: 'image/heif',
-  webp: 'image/webp',
+  gif: 'image/gif',
+  // Removed unsupported types: heic, heif, webp
 };
 
 const VIDEO_MIME_TYPES: Record<string, string> = {
   mp4: 'video/mp4',
-  mov: 'video/quicktime',
-  m4v: 'video/x-m4v',
-  avi: 'video/x-msvideo',
-  mkv: 'video/x-matroska',
+  mpeg: 'video/mpeg',
+  webm: 'video/webm',
+  mov: 'video/quicktime', // QuickTime format - now supported by backend
+  // Removed unsupported types: m4v, avi, mkv
 };
 
 const MAX_CAPTION_LENGTH = 256;
@@ -145,10 +145,38 @@ export default function CaptionScreen() {
       extension = fallbackExtension;
     }
 
-    const mimeType =
-      media.mediaType === 'video'
-        ? VIDEO_MIME_TYPES[extension] || 'video/mp4'
-        : IMAGE_MIME_TYPES[extension] || 'image/jpeg';
+    // Check for unsupported video formats
+    const unsupportedVideoExtensions = ['m4v', 'avi', 'mkv', 'flv', 'wmv'];
+    if (media.mediaType === 'video' && extension && unsupportedVideoExtensions.includes(extension)) {
+      const errorMsg = `Video format .${extension.toUpperCase()} is not supported. Please use MP4, MPEG, WebM, or MOV format.`;
+      console.error(errorMsg);
+      Alert.alert('Unsupported Video Format', errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    // Ensure mimeType matches server-accepted types
+    // Server accepts: image/png, image/gif, video/mp4, image/jpg, image/jpeg, video/mpeg, video/webm, video/quicktime
+    let mimeType: string;
+    if (media.mediaType === 'video') {
+      mimeType = VIDEO_MIME_TYPES[extension] || 'video/mp4';
+      // Validate against server-accepted video types
+      if (!['video/mp4', 'video/mpeg', 'video/webm', 'video/quicktime'].includes(mimeType)) {
+        // If extension is not supported, this is an error
+        if (extension && !['mp4', 'mpeg', 'webm', 'mov'].includes(extension)) {
+          const errorMsg = `Video format .${extension.toUpperCase()} is not supported. Please convert to MP4, MPEG, WebM, or MOV format.`;
+          console.error(errorMsg);
+          Alert.alert('Unsupported Video Format', errorMsg);
+          throw new Error(errorMsg);
+        }
+        mimeType = 'video/mp4'; // Fallback to accepted type
+      }
+    } else {
+      mimeType = IMAGE_MIME_TYPES[extension] || 'image/jpeg';
+      // Validate against server-accepted image types
+      if (!['image/png', 'image/gif', 'image/jpg', 'image/jpeg'].includes(mimeType)) {
+        mimeType = 'image/jpeg'; // Fallback to accepted type
+      }
+    }
 
     const fileName =
       filenameCandidate && filenameCandidate.includes('.')
@@ -185,20 +213,26 @@ export default function CaptionScreen() {
 
           const { fileName, mimeType } = deriveFileMeta(media, uploadUri, index);
 
+          // Debug logging for mimeType
+          console.log(`Media ${index}: type=${media.mediaType}, fileName=${fileName}, mimeType=${mimeType}, uri=${uploadUri.substring(0, 50)}...`);
+
+          // Use actual crop data if available, otherwise use default (no crop)
+          const cropData = croppedMedia.cropData || {
+            x: 0,
+            y: 0,
+            width: finalWidth,
+            height: finalHeight,
+            zoom: 1,
+            naturalWidth: croppedMedia.width || finalWidth,
+            naturalHeight: croppedMedia.height || finalHeight,
+          };
+
           return {
             uri: uploadUri,
             isVideo: media.mediaType === 'video',
             fileName,
             mimeType,
-            cropData: {
-              x: 0,
-              y: 0,
-              width: finalWidth,
-              height: finalHeight,
-              zoom: 1,
-              naturalWidth: finalWidth,
-              naturalHeight: finalHeight,
-            },
+            cropData,
           };
         })
       );

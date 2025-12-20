@@ -293,8 +293,24 @@ export const createPost = async (postData: CreatePostRequest): Promise<PostWithD
         const sanitizedUri = media.uri;
         const fallbackName = `post_${index}.${media.isVideo ? 'mp4' : 'jpg'}`;
         const fileName = media.fileName || fallbackName;
-        const mimeType =
-          media.mimeType || (media.isVideo ? 'video/mp4' : 'image/jpeg');
+        // Server accepts: image/png, image/gif, video/mp4, image/jpg, image/jpeg, video/mpeg, video/webm
+        let mimeType = media.mimeType || (media.isVideo ? 'video/mp4' : 'image/jpg');
+        
+        // Ensure mimeType is valid and matches server requirements
+        // Server accepts: image/png, image/gif, video/mp4, image/jpg, image/jpeg, video/mpeg, video/webm, video/quicktime
+        const allowedTypes = media.isVideo 
+          ? ['video/mp4', 'video/mpeg', 'video/webm', 'video/quicktime']
+          : ['image/png', 'image/gif', 'image/jpg', 'image/jpeg'];
+        
+        if (!allowedTypes.includes(mimeType)) {
+          console.warn(`Invalid mimeType ${mimeType} for media ${index}, using fallback`);
+          mimeType = media.isVideo ? 'video/mp4' : 'image/jpg';
+        }
+        
+        // Trim and ensure no whitespace
+        mimeType = mimeType.trim().toLowerCase();
+        
+        console.log(`Uploading media ${index}: fileName=${fileName}, mimeType=${mimeType}, isVideo=${media.isVideo}`);
 
         formData.append(`postMedias[${index}].file`, {
           uri: sanitizedUri,

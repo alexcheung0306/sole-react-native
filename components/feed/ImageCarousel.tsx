@@ -14,11 +14,13 @@ import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 // import { ReactNativeZoomableView } from '@openspacelabs/react-native-zoomable-view';
 import { MediaZoom2 } from '@/components/custom/media-zoom2';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import { VideoPlayer } from '~/components/video/VideoPlayer';
 
 interface MediaItem {
   mediaUrl: string;
   width?: number;
   height?: number;
+  mediaType?: 'image' | 'video' | string; // Can be 'image'/'video' or MIME type like 'video/mp4', 'image/jpeg'
 }
 
 interface ImageCarouselProps {
@@ -60,6 +62,37 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
   if (!media || media.length === 0) {
     return null;
   }
+
+  console.log('media', media);
+
+  // Helper to detect if media is a video
+  const isVideo = (item: MediaItem): boolean => {
+    if (!item.mediaType) {
+      // Fallback: check file extension if no mediaType provided
+      const url = item.mediaUrl.toLowerCase();
+      return url.endsWith('.mp4') || url.endsWith('.mov') || url.endsWith('.avi') || 
+             url.endsWith('.webm') || url.endsWith('.m4v') || url.endsWith('.mpeg') ||
+             url.includes('/video/');
+    }
+    
+    // Check if mediaType is 'video' or starts with 'video/'
+    const isVideoType = item.mediaType === 'video' || item.mediaType.startsWith('video/');
+    if (isVideoType) {
+      console.log(`[ImageCarousel] Detected video: ${item.mediaUrl.substring(0, 50)}... (mediaType: ${item.mediaType})`);
+      return true;
+    }
+    
+    // Check if mediaType is 'image' or starts with 'image/'
+    if (item.mediaType === 'image' || item.mediaType.startsWith('image/')) {
+      return false;
+    }
+    
+    // Fallback: check file extension
+    const url = item.mediaUrl.toLowerCase();
+    return url.endsWith('.mp4') || url.endsWith('.mov') || url.endsWith('.avi') || 
+           url.endsWith('.webm') || url.endsWith('.m4v') || url.endsWith('.mpeg') ||
+           url.includes('/video/');
+  };
 
   // Simple helper to get aspect ratio from media item or loaded dimensions
   const getAspectRatio = (item: MediaItem, index: number): number => {
@@ -152,36 +185,54 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
         <MediaZoom2
           children={
             <View style={{ width: '100%', height: '100%' }}>
-              {!loadedImages.has(0) && (
-                <View
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                  }}
-                >
-                  <ActivityIndicator size="large" color="#666" />
+              {isVideo(media[0]) ? (
+                <View style={{ width: '100%', height: '100%' }}>
+                  <VideoPlayer
+                    uri={media[0].mediaUrl}
+                    width={SCREEN_WIDTH}
+                    height={calculatedHeight}
+                    aspectRatio={getAspectRatio(media[0], 0)}
+                    autoPlay={false}
+                    loop={false}
+                    muted={false}
+                    showControls={true}
+                    style={{ width: '100%', height: '100%' }}
+                  />
                 </View>
+              ) : (
+                <>
+                  {!loadedImages.has(0) && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                      }}
+                    >
+                      <ActivityIndicator size="large" color="#666" />
+                    </View>
+                  )}
+                  <Image
+                    source={{ uri: media[0].mediaUrl }}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      opacity: loadedImages.has(0) ? 1 : 0
+                    }}
+                    resizeMode="contain"
+                    onLoad={(event) => handleImageLoad(0, event)}
+                    onError={(error) => {
+                      console.warn('Image failed to load:', media[0].mediaUrl, error);
+                      handleImageLoad(0);
+                    }}
+                  />
+                </>
               )}
-              <Image
-                source={{ uri: media[0].mediaUrl }}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  opacity: loadedImages.has(0) ? 1 : 0
-                }}
-                resizeMode="contain"
-                onLoad={(event) => handleImageLoad(0, event)}
-                onError={(error) => {
-                  console.warn('Image failed to load:', media[0].mediaUrl, error);
-                  handleImageLoad(0);
-                }}
-              />
             </View>
           }
           width={SCREEN_WIDTH}
@@ -249,36 +300,54 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
                 <MediaZoom2
                   children={
                     <View style={{ width: SCREEN_WIDTH, height: '100%' }}>
-                      {!loadedImages.has(index) && (
-                        <View
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                          }}
-                        >
-                          <ActivityIndicator size="large" color="#666" />
+                      {isVideo(item) ? (
+                        <View style={{ width: '100%', height: '100%' }}>
+                          <VideoPlayer
+                            uri={item.mediaUrl}
+                            width={SCREEN_WIDTH}
+                            height={calculatedHeight}
+                            aspectRatio={aspectRatio}
+                            autoPlay={false}
+                            loop={false}
+                            muted={false}
+                            showControls={true}
+                            style={{ width: '100%', height: '100%' }}
+                          />
                         </View>
+                      ) : (
+                        <>
+                          {!loadedImages.has(index) && (
+                            <View
+                              style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                              }}
+                            >
+                              <ActivityIndicator size="large" color="#666" />
+                            </View>
+                          )}
+                          <Image
+                            source={{ uri: item.mediaUrl }}
+                            style={{
+                              width: SCREEN_WIDTH,
+                              height: '100%',
+                              opacity: loadedImages.has(index) ? 1 : 0
+                            }}
+                            resizeMode="contain"
+                            onLoad={(event) => handleImageLoad(index, event)}
+                            onError={(error) => {
+                              console.warn('Image failed to load:', item.mediaUrl, error);
+                              handleImageLoad(index);
+                            }}
+                          />
+                        </>
                       )}
-                      <Image
-                        source={{ uri: item.mediaUrl }}
-                        style={{
-                          width: SCREEN_WIDTH,
-                          height: '100%',
-                          opacity: loadedImages.has(index) ? 1 : 0
-                        }}
-                        resizeMode="contain"
-                        onLoad={(event) => handleImageLoad(index, event)}
-                        onError={(error) => {
-                          console.warn('Image failed to load:', item.mediaUrl, error);
-                          handleImageLoad(index);
-                        }}
-                      />
                     </View>
                   }
                   width={SCREEN_WIDTH}
