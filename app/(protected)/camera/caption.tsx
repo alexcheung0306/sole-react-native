@@ -163,6 +163,11 @@ export default function CaptionScreen() {
       queryClient.invalidateQueries({ queryKey: ['homePagePosts'] });
       queryClient.invalidateQueries({ queryKey: ['explorePagePosts'] });
       queryClient.invalidateQueries({ queryKey: ['clientProfilePosts'] });
+      
+      // Invalidate useProfileQueries queries - invalidate all user profiles and user posts
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+      queryClient.invalidateQueries({ queryKey: ['userPosts'] });
+      
       router.push('/(protected)/(user)' as any);
       setActiveTab('home');
       Alert.alert('Success', 'Your post has been shared!', [

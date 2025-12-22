@@ -28,6 +28,10 @@ export function PostDrawer({ post, isOpen, onClose }: PostDrawerProps) {
       queryClient.invalidateQueries({ queryKey: ['profilePagePosts'] });
       queryClient.invalidateQueries({ queryKey: ['posts'] });
       
+      // Invalidate useProfileQueries queries - invalidate all user profiles and user posts
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+      queryClient.invalidateQueries({ queryKey: ['userPosts'] });
+      
       // Close drawer
       onClose();
     },
