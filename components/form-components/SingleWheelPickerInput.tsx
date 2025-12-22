@@ -264,7 +264,7 @@ export function SingleWheelPickerInput({
                 <Text className="mt-1 text-xs text-red-400">{error}</Text>
             )}
 
-            <CollapseDrawer showDrawer={showDrawer} setShowDrawer={setShowDrawer} title={title} autoHeight>
+            <CollapseDrawer showDrawer={showDrawer} setShowDrawer={setShowDrawer} title={title} >
                 {/* Header */}
                 <View className="flex-row justify-between items-center px-4 pb-4 border-b border-white/10">
                     <TouchableOpacity onPress={handleClose}>

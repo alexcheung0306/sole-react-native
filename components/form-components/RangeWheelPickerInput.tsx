@@ -306,7 +306,7 @@ export function RangeWheelPickerInput({
                 </View>
             </TouchableOpacity>
 
-            <CollapseDrawer showDrawer={showDrawer} setShowDrawer={setShowDrawer} title={sliderLabel} autoHeight>
+            <CollapseDrawer showDrawer={showDrawer} setShowDrawer={setShowDrawer} title={sliderLabel}  >
                 {/* Header */}
                 <View className="flex-row justify-between items-center px-4 pb-4 border-b border-white/10">
                     <TouchableOpacity onPress={handleClose}>
