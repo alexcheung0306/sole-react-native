@@ -89,6 +89,7 @@ module.exports = ({ config }) => {
       }
     },
     extra: {
+      ...config.extra,
       // Make environment variables available via expo-constants
       EXPO_PUBLIC_API_URL,
       EXPO_PUBLIC_APP_URL,

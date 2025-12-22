@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import * as Print from 'expo-print';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { TalentFormValues } from './TalentInfoFormPortal';
 
 interface ComcardTemplatePdfProps {
@@ -238,12 +238,12 @@ export const ComcardTemplatePdf = ({
       try {
         const html = generateHtml();
         const { uri } = await Print.printToFileAsync({ html });
-        
+
         // Read the PDF file and convert to base64 using expo-file-system
         const base64data = await FileSystem.readAsStringAsync(uri, {
           encoding: 'base64' as any,
         });
-        
+
         // Convert to data URL format
         const pdfDataUrl = `data:application/pdf;base64,${base64data}`;
         setFieldValue('pdf', pdfDataUrl);

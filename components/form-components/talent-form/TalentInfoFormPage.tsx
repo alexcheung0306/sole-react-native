@@ -12,6 +12,8 @@ import {
 import { Camera, Plus } from 'lucide-react-native';
 import { FormPage } from '@/components/custom/form-page';
 import { Image as ExpoImage } from 'expo-image';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Formik } from 'formik';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -257,6 +259,36 @@ export default function TalentInfoFormPortalPage() {
     }
   };
 
+  const handleDownloadPdf = async (values: TalentFormValues) => {
+    if (!values.pdf) {
+      Alert.alert('Error', 'No PDF generated yet. Please fill in the required fields.');
+      return;
+    }
+
+    try {
+      // Create a temporary file path
+      const filename = `${values.talentName || 'comcard'}.pdf`;
+      const fileUri = `${FileSystem.documentDirectory}${filename}`;
+
+      // Write the base64 string to the file
+      // Remove the data URL prefix if present
+      const base64Data = values.pdf.replace(/^data:application\/pdf;base64,/, '');
+      await FileSystem.writeAsStringAsync(fileUri, base64Data, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      // Share the file
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri);
+      } else {
+        Alert.alert('Error', 'Sharing is not available on this device');
+      }
+    } catch (error) {
+      console.error('Error sharing PDF:', error);
+      Alert.alert('Error', 'Failed to share PDF');
+    }
+  };
+
   const pageTitle = method === 'POST' ? 'Create Talent Profile' : 'Edit Talent Profile';
 
   return (
@@ -310,7 +342,7 @@ export default function TalentInfoFormPortalPage() {
               submitButtonText="Loading..."
               isSubmitting={true}
               hasErrors={false}
-              onSubmit={() => {}}
+              onSubmit={() => { }}
               headerClassName="border-b border-white/10 px-4 pb-3 pt-12"
               contentClassName="flex-1">
               <View className="flex-1 items-center justify-center">
@@ -338,7 +370,7 @@ export default function TalentInfoFormPortalPage() {
           snapshotFullBodyError;
 
 
-          console.log('values', values);
+        console.log('values', values);
         return (
           <FormPage
             title={pageTitle}
@@ -380,6 +412,14 @@ export default function TalentInfoFormPortalPage() {
                 setFieldValue={setFieldValue}
                 hasErrors={hasErrors}
               />
+
+              {/* Temp PDF Download Button */}
+              <TouchableOpacity
+                testID="tempPdfButton"
+                className="mb-8 flex-row items-center justify-center rounded-lg bg-zinc-700 px-4 py-3"
+                onPress={() => handleDownloadPdf(values)}>
+                <Text className="font-bold text-white">Download PDF</Text>
+              </TouchableOpacity>
 
               {/* Personal Information */}
               <Text className="mb-4 text-xl font-bold text-white">Personal Information</Text>
@@ -717,6 +757,8 @@ export default function TalentInfoFormPortalPage() {
                   <Text className="mt-1 text-sm text-red-400">Full-body snapshot is required</Text>
                 )}
               </View>
+
+
             </ScrollView>
           </FormPage>
         );
