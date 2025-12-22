@@ -20,9 +20,8 @@ export function ComcardTemplate({ values, setFieldValue, onPhotoPress }: Comcard
       onPhotoPress(index);
     }
   };
-console.log('values.photoConfig', values.photoConfig);
   // Use screen width for responsive design, maintaining aspect ratio
-  const cardWidth = screenWidth * 0.9;
+  const cardWidth = screenWidth * 1;
   const aspectRatio = 297 / 210; // Same as web version
   const cardHeight = cardWidth / aspectRatio;
 
@@ -32,7 +31,7 @@ console.log('values.photoConfig', values.photoConfig);
 
       {/* Main Card Container */}
       <View
-        className="flex-row justify-between border border-white/20 bg-white p-2 gap-2"
+        className="flex-row justify-between border border-white/20 bg-white p-1 gap-1"
         style={{
           width: cardWidth,
           height: cardHeight,
@@ -44,14 +43,14 @@ console.log('values.photoConfig', values.photoConfig);
           {/* Main Photo */}
           <View className="relative" style={{ aspectRatio: 4 / 5 }}>
             <TouchableOpacity
-              className="h-full w-full overflow-hidden rounded-lg border border-gray-200"
+              className="h-full w-full overflow-hidden rounded-none border border-gray-200"
               onPress={() => handlePhotoPress(0)}
             >
               {values.photoConfig?.[0] ? (
                 <Image
                   key={values.photoConfig[0]}
                   source={{ uri: values.photoConfig[0] }}
-                  className="h-full w-full"
+                  className="h-full w-full rounded-none"
                   resizeMode="cover"
                 />
               ) : (
@@ -63,7 +62,7 @@ console.log('values.photoConfig', values.photoConfig);
             </TouchableOpacity>
 
             {/* Talent Name Overlay */}
-            <View className="absolute bottom-2 left-2 rounded bg-black/70 p-1">
+            <View className="absolute bottom-2 left-2 rounded  p-1">
               <Text
                 className="text-sm font-semibold"
                 style={{ color: values.talentNameColor || 'black' }}
@@ -75,7 +74,7 @@ console.log('values.photoConfig', values.photoConfig);
 
           {/* Logo Section */}
           <View className="flex-1 items-center justify-center">
-            <View className="h-16 w-12 items-center justify-end">
+            <View className=" w-12 items-center justify-end">
               <SoleLogo width={48} height={24} fill="black" />
             </View>
           </View>
@@ -91,12 +90,12 @@ console.log('values.photoConfig', values.photoConfig);
             {[1, 2, 3, 4].map((index) => (
               <TouchableOpacity
                 key={index}
-                className="overflow-hidden rounded border border-gray-200"
+                className="overflow-hidden   border border-gray-200 rounded-none"
                 style={{ 
-                  width: '48%',
+                  width: '49.5%',
                   aspectRatio: 4 / 5,
-                  marginRight: index % 2 === 0 ? 0 : '4%',
-                  marginBottom: index <= 2 ? 8 : 0,
+                  marginRight: index % 2 === 0 ? 0 : '0.5%',
+                  marginBottom: index <= 2 ? 2 : 0,
                 }}
                 onPress={() => handlePhotoPress(index)}
               >
@@ -117,28 +116,36 @@ console.log('values.photoConfig', values.photoConfig);
           </View>
 
           {/* Measurements Section */}
-          {/* <View className="flex-1 justify-center">
-            <View className="grid grid-cols-4 gap-1">
+          <View className="flex-1  justify-center">
+            {/* First Row: Gender, Hair, Eyes, Shoes */}
+            <View className="flex-row justify-between mb-1">
               {[
                 { label: "Gender", value: values.gender },
                 { label: "Hair", value: values.hairColor },
                 { label: "Eyes", value: values.eyeColor },
                 { label: "Shoes", value: values.shoes },
+              ].map((item, index) => (
+                <View key={index} className="flex flex-row flex-start  gap-1">
+                  <Text style={{ fontSize: 6 }}>{item.label}</Text>
+                  <Text style={{ fontSize: 6 }}>{item.value || '-'}</Text>
+                </View>
+              ))}
+            </View>
+            {/* Second Row: Height, Chest, Waist, Hip */}
+            <View className="flex-row justify-between">
+              {[
                 { label: "Height", value: values.height },
                 { label: "Chest", value: values.chest },
                 { label: "Waist", value: values.waist },
                 { label: "Hip", value: values.hip },
               ].map((item, index) => (
-                <View
-                  key={index}
-                  className="col-span-2 grid grid-cols-2"
-                >
-                  <Text className="text-[8px] text-black">{item.label}</Text>
-                  <Text className="text-[8px] text-black">{item.value || '-'}</Text>
+                <View key={index} className="flex flex-row flex-start  gap-1">
+                  <Text style={{ fontSize: 6 }}>{item.label}</Text>
+                  <Text style={{ fontSize: 6 }}>{item.value || '-'}</Text>
                 </View>
               ))}
             </View>
-          </View> */}
+          </View>
         </View>
       </View>
 
