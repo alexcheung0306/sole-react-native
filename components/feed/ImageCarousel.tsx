@@ -184,21 +184,15 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
         </View>
         <MediaZoom2
           children={
-            <View style={{ width: '100%', height: '100%' }}>
+            <View style={{ width: '100%', height: '100%' ,borderWidth:1,borderColor:'blue',flex:1}}>
               {isVideo(media[0]) ? (
-                <View style={{ width: '100%', height: '100%' }}>
                   <VideoPlayer
                     uri={media[0].mediaUrl}
-                    width={SCREEN_WIDTH}
-                    height={calculatedHeight}
-                    aspectRatio={getAspectRatio(media[0], 0)}
-                    autoPlay={false}
                     loop={false}
                     muted={false}
                     showControls={true}
                     style={{ width: '100%', height: '100%' }}
                   />
-                </View>
               ) : (
                 <>
                   {!loadedImages.has(0) && (
@@ -304,10 +298,6 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
                         <View style={{ width: '100%', height: '100%' }}>
                           <VideoPlayer
                             uri={item.mediaUrl}
-                            width={SCREEN_WIDTH}
-                            height={calculatedHeight}
-                            aspectRatio={aspectRatio}
-                            autoPlay={false}
                             loop={false}
                             muted={false}
                             showControls={true}
