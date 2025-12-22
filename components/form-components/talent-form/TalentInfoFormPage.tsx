@@ -1,5 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal, Image } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  Modal,
+  Image,
+} from 'react-native';
 import { Camera, Plus } from 'lucide-react-native';
 import { FormPage } from '@/components/custom/form-page';
 import { Image as ExpoImage } from 'expo-image';
@@ -16,8 +25,10 @@ import {
   updateTalentInfoWithComcardBySoleUserId,
   createTalentInfoWithComcard,
 } from '~/api/apiservice/talentInfo_api';
+import { getUserProfileByUsername } from '~/api/apiservice/soleUser_api';
 import { updateTalentLevelBySoleUserId } from '~/api/apiservice';
 import { TalentFormValues } from '~/components/form-components/talent-form/TalentInfoFormPortal';
+import { ComcardTemplate } from '~/components/form-components/talent-form/ComcardTemplate';
 
 const GENDER_OPTIONS = [
   { value: 'Male', label: 'Male' },
@@ -43,14 +54,13 @@ const HAIR_COLOR_OPTIONS = [
   { value: 'Other', label: 'Other' },
 ];
 // Flatten ethnicGroups for wheel picker - combine all specific ethnic groups with category info
-const ETHNIC_OPTIONS = ethnicGroups.flatMap(category =>
-  category.groups.map(group => ({
+const ETHNIC_OPTIONS = ethnicGroups.flatMap((category) =>
+  category.groups.map((group) => ({
     value: group.key,
     label: group.label,
     category: category.category,
   }))
 );
-
 
 // Temporarily remove EthnicitySelector to fix syntax error
 
@@ -60,7 +70,12 @@ export default function TalentInfoFormPortalPage() {
   const { selectedMedia, clearMedia } = useCameraContext();
   const isFocused = useIsFocused();
   const [isWaitingForCamera, setIsWaitingForCamera] = useState(false);
-  const [currentSnapshotField, setCurrentSnapshotField] = useState<'halfBody' | 'fullBody' | null>(null);
+  const [currentSnapshotField, setCurrentSnapshotField] = useState<'halfBody' | 'fullBody' | null>(
+    null
+  );
+  const [currentComcardPhotoIndex, setCurrentComcardPhotoIndex] = useState<number | null>(null);
+  const [fetchedTalentData, setFetchedTalentData] = useState<any>(null);
+  const [isLoadingData, setIsLoadingData] = useState(false);
   const params = useLocalSearchParams<{
     formType: string;
     soleUserId?: string;
@@ -80,29 +95,90 @@ export default function TalentInfoFormPortalPage() {
     experience?: string;
     snapshotHalfBody?: string;
     snapshotFullBody?: string;
+    // Comcard related parameters
+    configId?: string;
+    talentNameColor?: string;
+    comcardId?: string;
+    length?: string;
   }>();
-
 
   const soleUserId = params.soleUserId || '';
   const talentLevel = params.talentLevel ? Number(params.talentLevel) : null;
   const method = talentLevel !== null && talentLevel > 0 ? 'PUT' : 'POST';
 
+  console.log('TalentInfoFormPage - params:', { soleUserId, talentLevel: params.talentLevel, method });
+
+  // Fetch talent data for edit forms
+  useEffect(() => {
+    const fetchTalentData = async () => {
+      if (method === 'PUT' && soleUser?.username) {
+        setIsLoadingData(true);
+        try {
+          const data = await getUserProfileByUsername(soleUser.username);
+          console.log('Fetched user profile data for edit form:', data);
+          setFetchedTalentData(data);
+        } catch (error) {
+          console.error('Error fetching user profile data:', error);
+        } finally {
+          setIsLoadingData(false);
+        }
+      }
+    };
+
+    fetchTalentData();
+  }, [method, soleUser?.username]);
+
+  // Extract comcard and talent info from fetched data
+  const comcard = fetchedTalentData?.comcardWithPhotosResponse;
+  const talentInfo = fetchedTalentData?.talentInfo;
+
+
+  // Function to get photo config from comcard data
+  const getPhotoConfig = () => {
+    const length = comcard?.length || 5;
+    const emptyPhotos = Array(length).fill(null);
+
+    if (comcard?.comcardPhotoList && comcard.comcardPhotoList.length > 0) {
+      // Replace empty photos at specific indices based on displayOrder
+      comcard.comcardPhotoList.forEach((photo: any) => {
+        if (
+          photo.displayOrder !== null &&
+          photo.displayOrder !== undefined &&
+          photo.displayOrder < length
+        ) {
+          emptyPhotos[photo.displayOrder] = photo.photoUrl;
+        }
+      });
+    }
+
+    console.log('getPhotoConfig result:', emptyPhotos);
+    return emptyPhotos;
+  };
+
   const initialValues: TalentFormValues = {
-    talentName: params.talentName || '',
-    gender: params.gender || '',
-    eyeColor: params.eyeColor || '',
-    hairColor: params.hairColor || '',
-    age: params.age || '',
-    height: params.height || '',
-    chest: params.chest || '',
-    waist: params.waist || '',
-    hip: params.hip || '',
-    shoes: params.shoes || '',
-    ethnic: params.ethnic || '',
-    region: params.region || '',
-    experience: params.experience || '',
-    snapshotHalfBody: params.snapshotHalfBody || null,
-    snapshotFullBody: params.snapshotFullBody || null,
+    talentName: talentInfo?.talentName || params.talentName || '',
+    gender: talentInfo?.gender || params.gender || '',
+    eyeColor: talentInfo?.eyeColor || params.eyeColor || '',
+    hairColor: talentInfo?.hairColor || params.hairColor || '',
+    age: talentInfo?.age?.toString() || params.age || '',
+    height: talentInfo?.height?.toString() || params.height || '',
+    chest: talentInfo?.chest?.toString() || params.chest || '',
+    waist: talentInfo?.waist?.toString() || params.waist || '',
+    hip: talentInfo?.hip?.toString() || params.hip || '',
+    shoes: talentInfo?.shoes?.toString() || params.shoes || '',
+    ethnic: talentInfo?.ethnic || params.ethnic || '',
+    region: talentInfo?.region || params.region || '',
+    experience: talentInfo?.experience || params.experience || '',
+    snapshotHalfBody: talentInfo?.snapshotHalfBody || params.snapshotHalfBody || null,
+    snapshotFullBody: talentInfo?.snapshotFullBody || params.snapshotFullBody || null,
+    // Comcard related initial values
+    configId: comcard?.configId || (params.configId ? Number(params.configId) : 1),
+    talentNameColor: comcard?.talentNameColor || params.talentNameColor || 'black',
+    photoConfig: method === 'PUT' ? getPhotoConfig() : [],
+    pdf: '',
+    length: comcard?.length || (params.length ? Number(params.length) : 5),
+    soleUserId: params.soleUserId || '',
+    comcardId: comcard?.id?.toString() || params.comcardId || '',
   };
 
   const handleSubmit = async (values: TalentFormValues) => {
@@ -127,15 +203,16 @@ export default function TalentInfoFormPortalPage() {
     };
 
     const comcardData = {
-      configId: '1',
-      photoConfig: [],
+      ...(values.comcardId ? { id: values.comcardId } : {}),
+      configId: String(values.configId),
+      photoConfig: values.photoConfig,
       isActive: 'true',
-      soleUserId: soleUserId || '',
-      pdf: '',
+      soleUserId: values.soleUserId || '',
+      pdf: values.pdf || '',
       bucket: 'comcards',
-      comcardImageName: soleUserId || '',
-      length: 5,
-      talentNameColor: 'black',
+      comcardImageName: values.soleUserId || '',
+      length: values.length,
+      talentNameColor: values.talentNameColor || 'black',
     };
 
     try {
@@ -179,39 +256,68 @@ export default function TalentInfoFormPortalPage() {
     }
   };
 
-
   const pageTitle = method === 'POST' ? 'Create Talent Profile' : 'Edit Talent Profile';
 
   return (
     <Formik
-      key={`talent-form-${params.soleUserId || 'new'}`}
+      key={`talent-form-${params.soleUserId || 'new'}-${fetchedTalentData ? 'loaded' : 'loading'}`}
       initialValues={initialValues}
       onSubmit={handleSubmit}
       enableReinitialize
       validateOnMount={false}
       validateOnChange={true}>
-      {({
-        values,
-        setFieldValue,
-        errors,
-        touched,
-        setFieldTouched,
-        submitForm,
-        isSubmitting,
-      }) => {
-        // Effect to update snapshots when selectedMedia changes (returned from camera)
+      {({ values, setFieldValue, errors, touched, setFieldTouched, submitForm, isSubmitting }) => {
+        // Effect to update snapshots and comcard photos when selectedMedia changes (returned from camera)
         useEffect(() => {
-          if (isFocused && isWaitingForCamera && selectedMedia.length > 0 && currentSnapshotField) {
+          if (isFocused && isWaitingForCamera && selectedMedia.length > 0) {
             const mediaItem = selectedMedia[0];
-            console.log(`Setting ${currentSnapshotField} snapshot image to:`, mediaItem.uri);
 
-            const fieldName = currentSnapshotField === 'halfBody' ? 'snapshotHalfBody' : 'snapshotFullBody';
-            setFieldValue(fieldName, mediaItem.uri);
+            if (currentSnapshotField) {
+              console.log(`Setting ${currentSnapshotField} snapshot image to:`, mediaItem.uri);
+              const fieldName =
+                currentSnapshotField === 'halfBody' ? 'snapshotHalfBody' : 'snapshotFullBody';
+              setFieldValue(fieldName, mediaItem.uri);
+              setCurrentSnapshotField(null);
+            } else if (currentComcardPhotoIndex !== null) {
+              console.log(
+                `Setting comcard photo at index ${currentComcardPhotoIndex} to:`,
+                mediaItem.uri
+              );
+              const updatedPhotoConfig = [...(values.photoConfig || [])];
+              updatedPhotoConfig[currentComcardPhotoIndex] = mediaItem.uri;
+              setFieldValue('photoConfig', updatedPhotoConfig);
+              setCurrentComcardPhotoIndex(null);
+            }
 
             setIsWaitingForCamera(false);
-            setCurrentSnapshotField(null);
           }
-        }, [isFocused, isWaitingForCamera, selectedMedia, currentSnapshotField, setFieldValue]);
+        }, [
+          isFocused,
+          isWaitingForCamera,
+          selectedMedia,
+          currentSnapshotField,
+          currentComcardPhotoIndex,
+          values.photoConfig,
+          setFieldValue,
+        ]);
+
+        // Show loading indicator while fetching data for edit forms
+        if (isLoadingData) {
+          return (
+            <FormPage
+              title={pageTitle}
+              submitButtonText="Loading..."
+              isSubmitting={true}
+              hasErrors={false}
+              onSubmit={() => {}}
+              headerClassName="border-b border-white/10 px-4 pb-3 pt-12"
+              contentClassName="flex-1">
+              <View className="flex-1 items-center justify-center">
+                <Text className="text-white">Loading talent information...</Text>
+              </View>
+            </FormPage>
+          );
+        }
 
         // Validate required fields
         const talentNameError = !values.talentName?.trim();
@@ -221,9 +327,17 @@ export default function TalentInfoFormPortalPage() {
         const ethnicError = !values.ethnic;
         const snapshotHalfBodyError = !values.snapshotHalfBody;
         const snapshotFullBodyError = !values.snapshotFullBody;
-        const hasErrors = talentNameError || genderError || eyeColorError || hairColorError || ethnicError || snapshotHalfBodyError || snapshotFullBodyError;
+        const hasErrors =
+          talentNameError ||
+          genderError ||
+          eyeColorError ||
+          hairColorError ||
+          ethnicError ||
+          snapshotHalfBodyError ||
+          snapshotFullBodyError;
 
 
+          console.log('values', values);
         return (
           <FormPage
             title={pageTitle}
@@ -239,6 +353,26 @@ export default function TalentInfoFormPortalPage() {
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="interactive"
               contentContainerStyle={{ paddingBottom: 100 }}>
+              {/* Comcard Template */}
+              <Text className="mb-4 mt-6 text-xl font-bold text-white">Comcard Design</Text>
+              <ComcardTemplate
+                values={values}
+                setFieldValue={setFieldValue}
+                onPhotoPress={(index) => {
+                  clearMedia();
+                  setCurrentComcardPhotoIndex(index);
+                  setIsWaitingForCamera(true);
+                  router.push({
+                    pathname: '/(protected)/camera' as any,
+                    params: {
+                      functionParam: 'userProfile',
+                      multipleSelection: 'false',
+                      aspectRatio: '4:5',
+                    },
+                  });
+                }}
+              />
+
               {/* Personal Information */}
               <Text className="mb-4 text-xl font-bold text-white">Personal Information</Text>
 
@@ -319,9 +453,7 @@ export default function TalentInfoFormPortalPage() {
               </View>
 
               {/* Physical Measurements */}
-              <Text className="mb-4 mt-6 text-xl font-bold text-white">
-                Physical Measurements
-              </Text>
+              <Text className="mb-4 mt-6 text-xl font-bold text-white">Physical Measurements</Text>
 
               {/* Age */}
               <View className="mb-4">
@@ -499,9 +631,7 @@ export default function TalentInfoFormPortalPage() {
               </View>
 
               {/* Portfolio Snapshots */}
-              <Text className="mb-4 mt-6 text-xl font-bold text-white">
-                Portfolio Snapshots
-              </Text>
+              <Text className="mb-4 mt-6 text-xl font-bold text-white">Portfolio Snapshots</Text>
               {/* Half-Body Snapshot */}
               <View className="mb-4">
                 <View className="mb-2 flex-row items-center gap-2">
@@ -583,8 +713,6 @@ export default function TalentInfoFormPortalPage() {
           </FormPage>
         );
       }}
-
     </Formik>
   );
 }
-

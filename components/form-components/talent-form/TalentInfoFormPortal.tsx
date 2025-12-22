@@ -25,6 +25,14 @@ export interface TalentFormValues {
   experience: string;
   snapshotHalfBody?: string | null;
   snapshotFullBody?: string | null;
+  // Comcard related fields
+  configId: number;
+  talentNameColor: string;
+  photoConfig: string[];
+  pdf: string;
+  length: number;
+  soleUserId: string;
+  comcardId?: string;
 }
 
 const GENDER_OPTIONS = ['Male', 'Female', 'Non-binary', 'Other'];
@@ -68,6 +76,8 @@ export function TalentInfoFormPortal({ userProfileData, talentLevel, talentInfo 
       talentLevel: String(talentLevel),
     };
 
+    console.log('TalentInfoFormPortal - Opening form with params:', params);
+
     if (talentInfo) {
       if (talentInfo.talentName) params.talentName = talentInfo.talentName;
       if (talentInfo.gender) params.gender = talentInfo.gender;
@@ -84,6 +94,16 @@ export function TalentInfoFormPortal({ userProfileData, talentLevel, talentInfo 
       if (talentInfo.experience) params.experience = talentInfo.experience;
       if (talentInfo.snapshotHalfBody) params.snapshotHalfBody = talentInfo.snapshotHalfBody;
       if (talentInfo.snapshotFullBody) params.snapshotFullBody = talentInfo.snapshotFullBody;
+    }
+
+    // Add comcard data if available
+    if (userProfileData?.comcardWithPhotosResponse) {
+      const comcard = userProfileData.comcardWithPhotosResponse;
+      if (comcard.configId) params.configId = String(comcard.configId);
+      if (comcard.talentNameColor) params.talentNameColor = comcard.talentNameColor;
+      if (comcard.id) params.comcardId = comcard.id;
+      if (comcard.length) params.length = String(comcard.length);
+      // photoConfig will be handled in the form page
     }
 
     router.push({
