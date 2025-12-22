@@ -15,7 +15,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import CollapseDrawer from '../custom/collapse-drawer';
 
-const ITEM_HEIGHT = 50;
+const ITEM_HEIGHT = 60;
 const CONTAINER_HEIGHT = 215;
 const VISIBLE_ITEMS = 5;
 const CENTER_OFFSET = (CONTAINER_HEIGHT - ITEM_HEIGHT) / 2;
@@ -24,19 +24,19 @@ interface SingleWheelPickerInputProps {
     title: string;
     value: string | null;
     onChange: (value: string) => void;
-    options: Array<{ value: string; label: string }>;
+    options: Array<{ value: string; label: string; category?: string }>;
     placeholder?: string;
     error?: string;
 }
 
-const WheelItem = ({ 
-    item, 
-    index, 
-    translateY, 
-    onPress 
-}: { 
-    item: { value: string; label: string }; 
-    index: number; 
+const WheelItem = ({
+    item,
+    index,
+    translateY,
+    onPress
+}: {
+    item: { value: string; label: string; category?: string };
+    index: number;
     translateY: SharedValue<number>;
     onPress: (index: number) => void;
 }) => {
@@ -82,6 +82,11 @@ const WheelItem = ({
     return (
         <TouchableOpacity activeOpacity={1} onPress={() => onPress(index)}>
             <Animated.View style={[styles.pickerItem, animatedStyle]}>
+                {item.category && (
+                    <Text style={styles.categoryText}>
+                        {item.category}
+                    </Text>
+                )}
                 <Text style={styles.pickerText}>
                     {item.label}
                 </Text>
@@ -303,7 +308,7 @@ export function SingleWheelPickerInput({
 
 const styles = StyleSheet.create({
     pickerContainer: {
-        width: 200,
+        width: 280,
         height: 215,
         backgroundColor: 'transparent',
         position: 'relative',
@@ -314,18 +319,27 @@ const styles = StyleSheet.create({
         minHeight: '100%',
     },
     pickerItem: {
-        height: 50,
+        height: 60,
         justifyContent: 'center',
         alignItems: 'center',
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
+        paddingHorizontal: 8,
+    },
+    categoryText: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.6)',
+        textAlign: 'center',
+        marginBottom: 2,
+        fontWeight: '500',
     },
     pickerText: {
-        fontSize: 22,
+        fontSize: 18,
         color: '#ffffff',
         textAlign: 'center',
+        fontWeight: '600',
     },
     pickerIndicator: {
         position: 'absolute',

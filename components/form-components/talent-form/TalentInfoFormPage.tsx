@@ -1,51 +1,66 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
-import { Camera } from 'lucide-react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal, Image } from 'react-native';
+import { Camera, Plus } from 'lucide-react-native';
 import { FormPage } from '@/components/custom/form-page';
 import { Image as ExpoImage } from 'expo-image';
-import * as ImagePicker from 'expo-image-picker';
 import { Formik } from 'formik';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 import { useSoleUserContext } from '~/context/SoleUserContext';
+import { useCameraContext } from '~/context/CameraContext';
+import { SingleWheelPickerInput } from '~/components/form-components/SingleWheelPickerInput';
+import { ethnicGroups } from '~/components/form-components/options-to-use';
+
 import {
   updateTalentInfoWithComcardBySoleUserId,
   createTalentInfoWithComcard,
 } from '~/api/apiservice/talentInfo_api';
 import { updateTalentLevelBySoleUserId } from '~/api/apiservice';
-import {
-  validateTalentName,
-  validateGender,
-  validateEyeColor,
-  validateHairColor,
-  validateAge,
-  validateHeight,
-  validateChest,
-  validateWaist,
-  validateHip,
-  validateShoes,
-  validateEthnic,
-  validateRegion,
-} from '~/lib/validations/talentInfo-validations';
-import { validateImageField } from '~/lib/validations/form-field-validations';
 import { TalentFormValues } from '~/components/form-components/talent-form/TalentInfoFormPortal';
 
-const GENDER_OPTIONS = ['Male', 'Female', 'Non-binary', 'Other'];
-const EYE_COLOR_OPTIONS = ['Brown', 'Blue', 'Green', 'Hazel', 'Gray', 'Amber'];
-const HAIR_COLOR_OPTIONS = ['Black', 'Brown', 'Blonde', 'Red', 'Gray', 'White', 'Other'];
-const ETHNIC_OPTIONS = [
-  'Asian',
-  'Caucasian',
-  'African',
-  'Hispanic',
-  'Middle Eastern',
-  'Pacific Islander',
-  'Mixed',
+const GENDER_OPTIONS = [
+  { value: 'Male', label: 'Male' },
+  { value: 'Female', label: 'Female' },
+  { value: 'Non-binary', label: 'Non-binary' },
+  { value: 'Other', label: 'Other' },
 ];
+const EYE_COLOR_OPTIONS = [
+  { value: 'Brown', label: 'Brown' },
+  { value: 'Blue', label: 'Blue' },
+  { value: 'Green', label: 'Green' },
+  { value: 'Hazel', label: 'Hazel' },
+  { value: 'Gray', label: 'Gray' },
+  { value: 'Amber', label: 'Amber' },
+];
+const HAIR_COLOR_OPTIONS = [
+  { value: 'Black', label: 'Black' },
+  { value: 'Brown', label: 'Brown' },
+  { value: 'Blonde', label: 'Blonde' },
+  { value: 'Red', label: 'Red' },
+  { value: 'Gray', label: 'Gray' },
+  { value: 'White', label: 'White' },
+  { value: 'Other', label: 'Other' },
+];
+// Flatten ethnicGroups for wheel picker - combine all specific ethnic groups with category info
+const ETHNIC_OPTIONS = ethnicGroups.flatMap(category =>
+  category.groups.map(group => ({
+    value: group.key,
+    label: group.label,
+    category: category.category,
+  }))
+);
+
+
+// Temporarily remove EthnicitySelector to fix syntax error
 
 export default function TalentInfoFormPortalPage() {
   const queryClient = useQueryClient();
   const { soleUser } = useSoleUserContext();
+  const { selectedMedia, clearMedia } = useCameraContext();
+  const isFocused = useIsFocused();
+  const [isWaitingForCamera, setIsWaitingForCamera] = useState(false);
+  const [currentSnapshotField, setCurrentSnapshotField] = useState<'halfBody' | 'fullBody' | null>(null);
   const params = useLocalSearchParams<{
     formType: string;
     soleUserId?: string;
@@ -66,6 +81,7 @@ export default function TalentInfoFormPortalPage() {
     snapshotHalfBody?: string;
     snapshotFullBody?: string;
   }>();
+
 
   const soleUserId = params.soleUserId || '';
   const talentLevel = params.talentLevel ? Number(params.talentLevel) : null;
@@ -163,180 +179,57 @@ export default function TalentInfoFormPortalPage() {
     }
   };
 
-  const pickImage = async (type: 'halfBody' | 'fullBody', setFieldValue: any) => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please grant photo library access to upload photos');
-        return;
-      }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: type === 'halfBody' ? [3, 4] : [9, 16],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        console.log(`${type} image selected:`, result.assets[0].uri);
-        const fieldName = type === 'halfBody' ? 'snapshotHalfBody' : 'snapshotFullBody';
-        setFieldValue(fieldName, result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image');
-    }
-  };
-
-  const renderField = (
-    label: string,
-    key: keyof TalentFormValues,
-    placeholder: string,
-    value: any,
-    setFieldValue: any,
-    setFieldTouched: any,
-    touched: any,
-    validator?: (val: string) => string | undefined,
-    keyboardType: 'default' | 'numeric' | 'decimal-pad' = 'default'
-  ) => {
-    const error = touched[key] && validator ? validator(value) : undefined;
-
-    return (
-      <View className="mb-4">
-        <View className="mb-2 flex-row items-center gap-2">
-          <Text className="text-white">{label}</Text>
-          <Text className="text-red-500">*</Text>
-        </View>
-        <TextInput
-          className="rounded-lg border border-white/20 bg-zinc-800 p-3 text-white"
-          value={value?.toString() || ''}
-          onChangeText={(text) => {
-            setFieldValue(key, text);
-            setFieldTouched(key, true);
-          }}
-          placeholder={placeholder}
-          placeholderTextColor="#6b7280"
-          keyboardType={keyboardType}
-        />
-        {error && <Text className="mt-1 text-sm text-red-400">{error}</Text>}
-      </View>
-    );
-  };
-
-  const renderSelectField = (
-    label: string,
-    key: keyof TalentFormValues,
-    options: string[],
-    value: any,
-    setFieldValue: any,
-    setFieldTouched: any,
-    touched: any,
-    validator?: (val: string) => string | undefined
-  ) => {
-    const error = touched[key] && validator ? validator(value) : undefined;
-
-    return (
-      <View className="mb-4">
-        <View className="mb-2 flex-row items-center gap-2">
-          <Text className="text-white">{label}</Text>
-          <Text className="text-red-500">*</Text>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
-          {options.map((option) => (
-            <TouchableOpacity
-              key={option}
-              onPress={() => {
-                setFieldValue(key, option);
-                setFieldTouched(key, true);
-              }}
-              className={`mr-2 rounded-full border px-4 py-2 ${
-                value === option ? 'border-blue-500 bg-blue-500' : 'border-white/20 bg-zinc-800'
-              }`}>
-              <Text
-                className={`text-sm ${
-                  value === option ? 'font-semibold text-white' : 'text-gray-400'
-                }`}>
-                {option}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        {error && <Text className="mt-1 text-sm text-red-400">{error}</Text>}
-      </View>
-    );
-  };
-
-  const renderImagePicker = (
-    label: string,
-    type: 'halfBody' | 'fullBody',
-    imageUri: string | null | undefined,
-    setFieldValue: any,
-    touched: any,
-    validator?: (val: any, fieldname: string) => string | null
-  ) => {
-    const fieldName = type === 'halfBody' ? 'snapshotHalfBody' : 'snapshotFullBody';
-    const error = touched[fieldName] && validator ? validator(imageUri, label) : null;
-
-    return (
-      <View className="mb-4">
-        <View className="mb-2 flex-row items-center gap-2">
-          <Text className="text-white">{label}</Text>
-          <Text className="text-red-500">*</Text>
-        </View>
-        <TouchableOpacity
-          onPress={() => pickImage(type, setFieldValue)}
-          className="overflow-hidden rounded-lg border border-white/20 bg-zinc-800"
-          style={{ height: 200 }}>
-          {imageUri ? (
-            <ExpoImage source={{ uri: imageUri }} className="h-full w-full" contentFit="cover" />
-          ) : (
-            <View className="h-full w-full items-center justify-center">
-              <Camera size={32} color="#6b7280" />
-              <Text className="mt-2 text-sm text-gray-400">Tap to upload</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-        {error && <Text className="mt-1 text-sm text-red-400">{error}</Text>}
-      </View>
-    );
-  };
-
-  const modalTitle = method === 'PUT' ? 'Edit Talent Profile' : 'Create Talent Profile';
+  const pageTitle = method === 'POST' ? 'Create Talent Profile' : 'Edit Talent Profile';
 
   return (
-    <Formik initialValues={initialValues} onSubmit={handleSubmit} enableReinitialize>
+    <Formik
+      key={`talent-form-${params.soleUserId || 'new'}`}
+      initialValues={initialValues}
+      onSubmit={handleSubmit}
+      enableReinitialize
+      validateOnMount={false}
+      validateOnChange={true}>
       {({
         values,
         setFieldValue,
-        setFieldTouched,
+        errors,
         touched,
+        setFieldTouched,
         submitForm,
         isSubmitting,
       }) => {
-        const talentInfoHasErrors = [
-          validateTalentName(values.talentName),
-          validateGender(values.gender),
-          validateEyeColor(values.eyeColor),
-          validateHairColor(values.hairColor),
-          validateAge(values.age),
-          validateHeight(values.height),
-          validateChest(values.chest),
-          validateWaist(values.waist),
-          validateHip(values.hip),
-          validateShoes(values.shoes),
-          validateEthnic(values.ethnic),
-          validateRegion(values.region),
-          validateImageField(values.snapshotHalfBody, 'Half Body Photo'),
-          validateImageField(values.snapshotFullBody, 'Full Body Photo'),
-        ].some((error) => error);
+        // Effect to update snapshots when selectedMedia changes (returned from camera)
+        useEffect(() => {
+          if (isFocused && isWaitingForCamera && selectedMedia.length > 0 && currentSnapshotField) {
+            const mediaItem = selectedMedia[0];
+            console.log(`Setting ${currentSnapshotField} snapshot image to:`, mediaItem.uri);
+
+            const fieldName = currentSnapshotField === 'halfBody' ? 'snapshotHalfBody' : 'snapshotFullBody';
+            setFieldValue(fieldName, mediaItem.uri);
+
+            setIsWaitingForCamera(false);
+            setCurrentSnapshotField(null);
+          }
+        }, [isFocused, isWaitingForCamera, selectedMedia, currentSnapshotField, setFieldValue]);
+
+        // Validate required fields
+        const talentNameError = !values.talentName?.trim();
+        const genderError = !values.gender;
+        const eyeColorError = !values.eyeColor;
+        const hairColorError = !values.hairColor;
+        const ethnicError = !values.ethnic;
+        const snapshotHalfBodyError = !values.snapshotHalfBody;
+        const snapshotFullBodyError = !values.snapshotFullBody;
+        const hasErrors = talentNameError || genderError || eyeColorError || hairColorError || ethnicError || snapshotHalfBodyError || snapshotFullBodyError;
+
 
         return (
           <FormPage
-            title={modalTitle}
-            submitButtonText={talentInfoHasErrors ? 'Invalid' : 'Save'}
+            title={pageTitle}
+            submitButtonText={isSubmitting ? 'Saving...' : method === 'POST' ? 'Create' : 'Save'}
             isSubmitting={isSubmitting}
-            hasErrors={talentInfoHasErrors}
+            hasErrors={hasErrors}
             onSubmit={submitForm}
             headerClassName="border-b border-white/10 px-4 pb-3 pt-12"
             contentClassName="flex-1">
@@ -348,155 +241,259 @@ export default function TalentInfoFormPortalPage() {
               contentContainerStyle={{ paddingBottom: 100 }}>
               {/* Personal Information */}
               <Text className="mb-4 text-xl font-bold text-white">Personal Information</Text>
-              {renderField(
-                'Talent Name',
-                'talentName',
-                'Enter talent name',
-                values.talentName,
-                setFieldValue,
-                setFieldTouched,
-                touched,
-                validateTalentName
-              )}
-              {renderSelectField(
-                'Gender',
-                'gender',
-                GENDER_OPTIONS,
-                values.gender,
-                setFieldValue,
-                setFieldTouched,
-                touched,
-                validateGender
-              )}
-              {renderSelectField(
-                'Eye Color',
-                'eyeColor',
-                EYE_COLOR_OPTIONS,
-                values.eyeColor,
-                setFieldValue,
-                setFieldTouched,
-                touched,
-                validateEyeColor
-              )}
-              {renderSelectField(
-                'Hair Color',
-                'hairColor',
-                HAIR_COLOR_OPTIONS,
-                values.hairColor,
-                setFieldValue,
-                setFieldTouched,
-                touched,
-                validateHairColor
-              )}
+
+              {/* Talent Name */}
+              <View className="mb-4">
+                <View className="mb-2 flex-row items-center gap-2">
+                  <Text className="text-white">Talent Name</Text>
+                  <Text className="text-red-500">*</Text>
+                </View>
+                <TextInput
+                  className="rounded-lg border border-white/20 bg-zinc-800 px-4 py-3 text-white"
+                  placeholder="Enter talent name"
+                  placeholderTextColor="#9ca3af"
+                  value={values.talentName}
+                  onChangeText={(text) => setFieldValue('talentName', text)}
+                  onBlur={() => setFieldTouched('talentName', true)}
+                />
+                {touched.talentName && talentNameError && (
+                  <Text className="mt-1 text-sm text-red-400">Talent name is required</Text>
+                )}
+              </View>
+              {/* Gender */}
+              <View className="mb-4">
+                <View className="mb-2 flex-row items-center gap-2">
+                  <Text className="text-white">Gender</Text>
+                  <Text className="text-red-500">*</Text>
+                </View>
+                <SingleWheelPickerInput
+                  title="Gender"
+                  value={values.gender || null}
+                  options={GENDER_OPTIONS}
+                  onChange={(value: string) => {
+                    setFieldValue('gender', value);
+                    setFieldTouched('gender', true);
+                  }}
+                />
+                {touched.gender && genderError && (
+                  <Text className="mt-1 text-sm text-red-400">Gender is required</Text>
+                )}
+              </View>
+              {/* Eye Color */}
+              <View className="mb-4">
+                <View className="mb-2 flex-row items-center gap-2">
+                  <Text className="text-white">Eye Color</Text>
+                  <Text className="text-red-500">*</Text>
+                </View>
+                <SingleWheelPickerInput
+                  title="Eye Color"
+                  value={values.eyeColor || null}
+                  options={EYE_COLOR_OPTIONS}
+                  onChange={(value: string) => {
+                    setFieldValue('eyeColor', value);
+                    setFieldTouched('eyeColor', true);
+                  }}
+                />
+                {touched.eyeColor && eyeColorError && (
+                  <Text className="mt-1 text-sm text-red-400">Eye color is required</Text>
+                )}
+              </View>
+              {/* Hair Color */}
+              <View className="mb-4">
+                <View className="mb-2 flex-row items-center gap-2">
+                  <Text className="text-white">Hair Color</Text>
+                  <Text className="text-red-500">*</Text>
+                </View>
+                <SingleWheelPickerInput
+                  title="Hair Color"
+                  value={values.hairColor || null}
+                  options={HAIR_COLOR_OPTIONS}
+                  onChange={(value: string) => {
+                    setFieldValue('hairColor', value);
+                    setFieldTouched('hairColor', true);
+                  }}
+                />
+                {touched.hairColor && hairColorError && (
+                  <Text className="mt-1 text-sm text-red-400">Hair color is required</Text>
+                )}
+              </View>
 
               {/* Physical Measurements */}
               <Text className="mb-4 mt-6 text-xl font-bold text-white">
                 Physical Measurements
               </Text>
-              {renderField(
-                'Age',
-                'age',
-                'Enter age',
-                values.age,
-                setFieldValue,
-                setFieldTouched,
-                touched,
-                validateAge,
-                'numeric'
-              )}
-              {renderField(
-                'Height (cm)',
-                'height',
-                'Enter height in cm',
-                values.height,
-                setFieldValue,
-                setFieldTouched,
-                touched,
-                validateHeight,
-                'decimal-pad'
-              )}
-              {renderField(
-                'Chest (cm)',
-                'chest',
-                'Enter chest measurement',
-                values.chest,
-                setFieldValue,
-                setFieldTouched,
-                touched,
-                validateChest,
-                'decimal-pad'
-              )}
-              {renderField(
-                'Waist (cm)',
-                'waist',
-                'Enter waist measurement',
-                values.waist,
-                setFieldValue,
-                setFieldTouched,
-                touched,
-                validateWaist,
-                'decimal-pad'
-              )}
-              {renderField(
-                'Hip (cm)',
-                'hip',
-                'Enter hip measurement',
-                values.hip,
-                setFieldValue,
-                setFieldTouched,
-                touched,
-                validateHip,
-                'decimal-pad'
-              )}
-              {renderField(
-                'Shoes (EU Size)',
-                'shoes',
-                'Enter shoe size',
-                values.shoes,
-                setFieldValue,
-                setFieldTouched,
-                touched,
-                validateShoes,
-                'numeric'
-              )}
+
+              {/* Age */}
+              <View className="mb-4">
+                <View className="mb-2 flex-row items-center gap-2">
+                  <Text className="text-white">Age</Text>
+                </View>
+                <TextInput
+                  className="rounded-lg border border-white/20 bg-zinc-800 px-4 py-3 text-white"
+                  placeholder="Enter age"
+                  placeholderTextColor="#9ca3af"
+                  value={values.age}
+                  onChangeText={(text) => {
+                    // Only allow digits
+                    const numericText = text.replace(/[^0-9]/g, '');
+                    setFieldValue('age', numericText);
+                  }}
+                  onBlur={() => setFieldTouched('age', true)}
+                  keyboardType="numeric"
+                />
+              </View>
+              {/* Height */}
+              <View className="mb-4">
+                <View className="mb-2 flex-row items-center gap-2">
+                  <Text className="text-white">Height (cm)</Text>
+                </View>
+                <TextInput
+                  className="rounded-lg border border-white/20 bg-zinc-800 px-4 py-3 text-white"
+                  placeholder="Enter height in cm"
+                  placeholderTextColor="#9ca3af"
+                  value={values.height}
+                  onChangeText={(text) => {
+                    // Allow digits and one decimal point
+                    const decimalText = text.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                    setFieldValue('height', decimalText);
+                  }}
+                  onBlur={() => setFieldTouched('height', true)}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+              {/* Chest */}
+              <View className="mb-4">
+                <View className="mb-2 flex-row items-center gap-2">
+                  <Text className="text-white">Chest (cm)</Text>
+                </View>
+                <TextInput
+                  className="rounded-lg border border-white/20 bg-zinc-800 px-4 py-3 text-white"
+                  placeholder="Enter chest measurement"
+                  placeholderTextColor="#9ca3af"
+                  value={values.chest}
+                  onChangeText={(text) => {
+                    // Allow digits and one decimal point
+                    const decimalText = text.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                    setFieldValue('chest', decimalText);
+                  }}
+                  onBlur={() => setFieldTouched('chest', true)}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+
+              {/* Waist */}
+              <View className="mb-4">
+                <View className="mb-2 flex-row items-center gap-2">
+                  <Text className="text-white">Waist (cm)</Text>
+                </View>
+                <TextInput
+                  className="rounded-lg border border-white/20 bg-zinc-800 px-4 py-3 text-white"
+                  placeholder="Enter waist measurement"
+                  placeholderTextColor="#9ca3af"
+                  value={values.waist}
+                  onChangeText={(text) => {
+                    // Allow digits and one decimal point
+                    const decimalText = text.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                    setFieldValue('waist', decimalText);
+                  }}
+                  onBlur={() => setFieldTouched('waist', true)}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+
+              {/* Hip */}
+              <View className="mb-4">
+                <View className="mb-2 flex-row items-center gap-2">
+                  <Text className="text-white">Hip (cm)</Text>
+                </View>
+                <TextInput
+                  className="rounded-lg border border-white/20 bg-zinc-800 px-4 py-3 text-white"
+                  placeholder="Enter hip measurement"
+                  placeholderTextColor="#9ca3af"
+                  value={values.hip}
+                  onChangeText={(text) => {
+                    // Allow digits and one decimal point
+                    const decimalText = text.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                    setFieldValue('hip', decimalText);
+                  }}
+                  onBlur={() => setFieldTouched('hip', true)}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+              {/* Shoes */}
+              <View className="mb-4">
+                <View className="mb-2 flex-row items-center gap-2">
+                  <Text className="text-white">Shoes (EU Size)</Text>
+                </View>
+                <TextInput
+                  className="rounded-lg border border-white/20 bg-zinc-800 px-4 py-3 text-white"
+                  placeholder="Enter shoe size"
+                  placeholderTextColor="#9ca3af"
+                  value={values.shoes}
+                  onChangeText={(text) => {
+                    // Only allow digits
+                    const numericText = text.replace(/[^0-9]/g, '');
+                    setFieldValue('shoes', numericText);
+                  }}
+                  onBlur={() => setFieldTouched('shoes', true)}
+                  keyboardType="numeric"
+                />
+              </View>
 
               {/* Background Information */}
               <Text className="mb-4 mt-6 text-xl font-bold text-white">Background</Text>
-              {renderSelectField(
-                'Ethnicity',
-                'ethnic',
-                ETHNIC_OPTIONS,
-                values.ethnic,
-                setFieldValue,
-                setFieldTouched,
-                touched,
-                validateEthnic
-              )}
-              {renderField(
-                'Region',
-                'region',
-                'Enter region (e.g., North America)',
-                values.region,
-                setFieldValue,
-                setFieldTouched,
-                touched,
-                validateRegion
-              )}
+              {/* Ethnicity */}
+              <View className="mb-4">
+                <View className="mb-2 flex-row items-center gap-2">
+                  <Text className="text-white">Ethnicity</Text>
+                  <Text className="text-red-500">*</Text>
+                </View>
+                <SingleWheelPickerInput
+                  title="Ethnicity"
+                  value={values.ethnic || null}
+                  options={ETHNIC_OPTIONS}
+                  onChange={(value: string) => {
+                    setFieldValue('ethnic', value);
+                    setFieldTouched('ethnic', true);
+                  }}
+                />
+                {touched.ethnic && ethnicError && (
+                  <Text className="mt-1 text-sm text-red-400">Ethnicity is required</Text>
+                )}
+              </View>
+              {/* Region */}
+              <View className="mb-4">
+                <View className="mb-2 flex-row items-center gap-2">
+                  <Text className="text-white">Region</Text>
+                </View>
+                <TextInput
+                  className="rounded-lg border border-white/20 bg-zinc-800 px-4 py-3 text-white"
+                  placeholder="Enter region (e.g., North America)"
+                  placeholderTextColor="#9ca3af"
+                  value={values.region}
+                  onChangeText={(text) => setFieldValue('region', text)}
+                  onBlur={() => setFieldTouched('region', true)}
+                />
+              </View>
 
               {/* Professional Experience */}
               <Text className="mb-4 mt-6 text-xl font-bold text-white">
                 Professional Experience
               </Text>
+              {/* Experience */}
               <View className="mb-4">
-                <Text className="mb-2 text-white">Experience</Text>
+                <View className="mb-2 flex-row items-center gap-2">
+                  <Text className="text-white">Experience</Text>
+                </View>
                 <TextInput
-                  className="min-h-[80px] rounded-lg border border-white/20 bg-zinc-800 p-3 text-white"
-                  style={{ textAlignVertical: 'top', color: '#ffffff' }}
+                  className="min-h-[80px] rounded-lg border border-white/20 bg-zinc-800 px-4 py-3 text-white"
+                  placeholder="Describe your professional experience..."
+                  placeholderTextColor="#9ca3af"
                   value={values.experience}
                   onChangeText={(text) => setFieldValue('experience', text)}
-                  placeholder="Describe your professional experience..."
-                  placeholderTextColor="#6b7280"
+                  onBlur={() => setFieldTouched('experience', true)}
                   multiline
+                  textAlignVertical="top"
                   numberOfLines={6}
                 />
               </View>
@@ -505,26 +502,88 @@ export default function TalentInfoFormPortalPage() {
               <Text className="mb-4 mt-6 text-xl font-bold text-white">
                 Portfolio Snapshots
               </Text>
-              {renderImagePicker(
-                'Half-Body Snapshot',
-                'halfBody',
-                values.snapshotHalfBody,
-                setFieldValue,
-                touched,
-                validateImageField
-              )}
-              {renderImagePicker(
-                'Full-Body Snapshot',
-                'fullBody',
-                values.snapshotFullBody,
-                setFieldValue,
-                touched,
-                validateImageField
-              )}
+              {/* Half-Body Snapshot */}
+              <View className="mb-4">
+                <View className="mb-2 flex-row items-center gap-2">
+                  <Text className="text-white">Half-Body Snapshot</Text>
+                  <Text className="text-red-500">*</Text>
+                </View>
+                <TouchableOpacity
+                  className="aspect-[4/5] w-full overflow-hidden rounded-xl border border-white/20 bg-zinc-800"
+                  onPress={() => {
+                    clearMedia();
+                    setCurrentSnapshotField('halfBody');
+                    setIsWaitingForCamera(true);
+                    router.push({
+                      pathname: '/(protected)/camera' as any,
+                      params: {
+                        functionParam: 'userProfile',
+                        multipleSelection: 'false',
+                        aspectRatio: '4:5',
+                      },
+                    });
+                  }}>
+                  {values.snapshotHalfBody ? (
+                    <Image
+                      key={values.snapshotHalfBody}
+                      source={{ uri: values.snapshotHalfBody }}
+                      className="h-full w-full"
+                    />
+                  ) : (
+                    <View className="flex-1 items-center justify-center">
+                      <Plus color="#6b7280" size={32} />
+                      <Text className="mt-2 text-sm text-gray-500">Add Half-Body Photo</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+                {touched.snapshotHalfBody && snapshotHalfBodyError && (
+                  <Text className="mt-1 text-sm text-red-400">Half-body snapshot is required</Text>
+                )}
+              </View>
+
+              {/* Full-Body Snapshot */}
+              <View className="mb-4">
+                <View className="mb-2 flex-row items-center gap-2">
+                  <Text className="text-white">Full-Body Snapshot</Text>
+                  <Text className="text-red-500">*</Text>
+                </View>
+                <TouchableOpacity
+                  className="aspect-[4/5] w-full overflow-hidden rounded-xl border border-white/20 bg-zinc-800"
+                  onPress={() => {
+                    clearMedia();
+                    setCurrentSnapshotField('fullBody');
+                    setIsWaitingForCamera(true);
+                    router.push({
+                      pathname: '/(protected)/camera' as any,
+                      params: {
+                        functionParam: 'userProfile',
+                        multipleSelection: 'false',
+                        aspectRatio: '4:5',
+                      },
+                    });
+                  }}>
+                  {values.snapshotFullBody ? (
+                    <Image
+                      key={values.snapshotFullBody}
+                      source={{ uri: values.snapshotFullBody }}
+                      className="h-full w-full"
+                    />
+                  ) : (
+                    <View className="flex-1 items-center justify-center">
+                      <Plus color="#6b7280" size={32} />
+                      <Text className="mt-2 text-sm text-gray-500">Add Full-Body Photo</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+                {touched.snapshotFullBody && snapshotFullBodyError && (
+                  <Text className="mt-1 text-sm text-red-400">Full-body snapshot is required</Text>
+                )}
+              </View>
             </ScrollView>
           </FormPage>
         );
       }}
+
     </Formik>
   );
 }
