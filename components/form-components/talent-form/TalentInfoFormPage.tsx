@@ -29,6 +29,7 @@ import { getUserProfileByUsername } from '~/api/apiservice/soleUser_api';
 import { updateTalentLevelBySoleUserId } from '~/api/apiservice';
 import { TalentFormValues } from '~/components/form-components/talent-form/TalentInfoFormPortal';
 import { ComcardTemplate } from '~/components/form-components/talent-form/ComcardTemplate';
+import { ComcardTemplatePdf } from '~/components/form-components/talent-form/ComcardTemplatePdf';
 
 const GENDER_OPTIONS = [
   { value: 'Male', label: 'Male' },
@@ -371,6 +372,13 @@ export default function TalentInfoFormPortalPage() {
                     },
                   });
                 }}
+              />
+
+              {/* PDF Generation - Hidden component that generates PDF */}
+              <ComcardTemplatePdf
+                values={values}
+                setFieldValue={setFieldValue}
+                hasErrors={hasErrors}
               />
 
               {/* Personal Information */}
