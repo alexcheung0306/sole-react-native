@@ -111,7 +111,7 @@ console.log('videoHeight',videoAspectRatio,containerWidth, videoHeight);
         }}
         contentFit="contain"
         allowsPictureInPicture={false}
-        nativeControls={false}
+        nativeControls={true}
       />
     </View>
   );
