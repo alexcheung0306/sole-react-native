@@ -7,6 +7,8 @@ import FollowList from '../follow/follow-list';
 import { useUser } from '@clerk/clerk-expo';
 import { User } from 'lucide-react-native';
 import { UserInfoFormPortal } from '../form-components/userInfo-form/UserInfoFormPortal';
+import { FollowButton } from '../follow/follow-button';
+import { useSoleUserContext } from '@/context/SoleUserContext';
 
 export const UserInfo = React.memo(function UserInfo({
   userPostsData,
@@ -18,6 +20,7 @@ export const UserInfo = React.memo(function UserInfo({
   userProfileData: any;
 }) {
   const { user } = useUser();
+  const { soleUserId } = useSoleUserContext();
   const userInfo = userProfileData?.userInfo;
   const soleUser = userProfileData?.soleUser;
   
@@ -83,9 +86,12 @@ export const UserInfo = React.memo(function UserInfo({
           <UserInfoFormPortal userProfileData={userProfileData} />
         ) : (
           <View className="flex-row gap-2">
-            <TouchableOpacity className="flex-1 rounded-lg bg-gray-700 px-4 py-2">
-              <Text className="text-center font-semibold text-white">Follow</Text>
-            </TouchableOpacity>
+            <FollowButton 
+              soleUserId={soleUserId} 
+              size="md" 
+              username={username} 
+              isUser={isOwnProfile} 
+            />
             <TouchableOpacity className="flex-1 rounded-lg bg-gray-700 px-4 py-2">
               <Text className="text-center font-semibold text-white">Message</Text>
             </TouchableOpacity>

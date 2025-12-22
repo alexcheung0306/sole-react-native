@@ -101,6 +101,8 @@ export default function FollowersScreen() {
     onSuccess: (data, follower) => {
       setRemovedFollowers((prev) => new Set(prev).add(follower.username));
       queryClient.invalidateQueries({ queryKey: ['FollowerList', username] });
+      // Invalidate the follow status query for the removed follower (if they navigate to your profile)
+      queryClient.invalidateQueries({ queryKey: ['singleFollowData', username] });
       Alert.alert('Success', 'Follower removed');
     },
     onError: (error) => {
@@ -143,6 +145,10 @@ export default function FollowersScreen() {
       setFollowedBackUsers((prev) => new Set(prev).add(targetUser.username));
       queryClient.invalidateQueries({ queryKey: ['FollowingList', username] });
       queryClient.invalidateQueries({ queryKey: ['FollowerList', username] });
+      // Invalidate the follow status query so the FollowButton on the target user's profile updates
+      queryClient.invalidateQueries({ queryKey: ['singleFollowData', targetUser.username] });
+      // Also invalidate the target user's follower list (they gained a follower)
+      queryClient.invalidateQueries({ queryKey: ['FollowerList', targetUser.username] });
     },
     onError: (error) => {
       console.error('Error following user:', error);

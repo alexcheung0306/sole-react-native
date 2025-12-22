@@ -107,6 +107,10 @@ export default function FollowingScreen() {
       setUnfollowedUsers((prev) => new Set(prev).add(targetUsername));
       queryClient.invalidateQueries({ queryKey: ['FollowingList', username] });
       queryClient.invalidateQueries({ queryKey: ['FollowerList', username] });
+      // Invalidate the follow status query so the FollowButton on the target user's profile updates
+      queryClient.invalidateQueries({ queryKey: ['singleFollowData', targetUsername] });
+      // Also invalidate the target user's follower list (they lost a follower)
+      queryClient.invalidateQueries({ queryKey: ['FollowerList', targetUsername] });
     },
     onError: (error) => {
       console.error('Error unfollowing user:', error);
@@ -151,6 +155,10 @@ export default function FollowingScreen() {
       });
       queryClient.invalidateQueries({ queryKey: ['FollowingList', username] });
       queryClient.invalidateQueries({ queryKey: ['FollowerList', username] });
+      // Invalidate the follow status query so the FollowButton on the target user's profile updates
+      queryClient.invalidateQueries({ queryKey: ['singleFollowData', targetUser.username] });
+      // Also invalidate the target user's follower list (they gained a follower)
+      queryClient.invalidateQueries({ queryKey: ['FollowerList', targetUser.username] });
     },
     onError: (error) => {
       console.error('Error following user:', error);
