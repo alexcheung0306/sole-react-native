@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
 import * as ImageManipulator from 'expo-image-manipulator';
+import { Platform } from 'react-native';
 
 export interface MediaItem {
   id: string;
@@ -84,7 +85,8 @@ export function CameraProvider({ children }: { children: ReactNode }) {
   /**
    * Crops a media item based on its cropData.
    * For photos: applies actual crop using ImageManipulator
-   * For videos: stores crop data for server-side processing
+   * For videos: stores crop data for server-side processing using FFmpeg
+   * (Native video processing libraries have compatibility issues with Expo managed workflow)
    * Returns the original media item if cropping is not needed or fails.
    */
   const cropMedia = useCallback(async (media: MediaItem): Promise<MediaItem> => {
@@ -93,11 +95,29 @@ export function CameraProvider({ children }: { children: ReactNode }) {
       return media;
     }
 
-    // Handle videos - store crop data for server-side processing
+    // Handle videos with server-side processing
+    // TODO: Upgrade to native video processing when compatible Expo libraries become available
+    // Current options to explore:
+    // - expo-video with FFmpeg integration
+    // - Custom native module using Expo Modules API
+    // - Third-party services like Cloudinary or Mux
     if (media.mediaType === 'video') {
-      // For videos, we store the crop data with the media item
-      // The actual cropping will be done server-side or using a video processing library
-      // For now, we return the media with crop data attached
+      console.log('[VideoCropping] Video cropping will be processed server-side:', {
+        mediaUri: media.uri.substring(0, 50) + '...',
+        cropData: media.cropData,
+        platform: Platform.OS,
+        note: 'Native video processing libraries have compatibility issues with Expo managed workflow'
+      });
+
+      // Validate crop data before sending to server
+      if (!media.cropData.width || !media.cropData.height ||
+          media.cropData.width <= 0 || media.cropData.height <= 0) {
+        console.warn('[VideoCropping] Invalid crop data for video:', media.cropData);
+      }
+
+      // Return media with crop data for server-side processing
+      // The server should use FFmpeg with commands like:
+      // ffmpeg -i input.mp4 -vf crop=w:h:x:y -c:a copy output.mp4
       return {
         ...media,
         cropData: media.cropData,

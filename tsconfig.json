@@ -24,6 +24,7 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
     "app-env.d.ts",
-    "nativewind-env.d.ts"
+    "nativewind-env.d.ts",
+    "types/**/*.d.ts"
   ]
 }

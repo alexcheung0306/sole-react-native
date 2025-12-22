@@ -49,7 +49,7 @@ export default function MainMedia({
   const handleCropUpdate = (cropData: any) => {
     const updated = selectedMedia.map((item, index) => {
       if (index !== currentIndex) return item;
-
+      console.log('handleCropUpdate', cropData);
       return {
         ...item,
         cropData,
@@ -67,31 +67,31 @@ export default function MainMedia({
 
   return (
     <View
-      style={{ width, height: fixedContainerHeight, }}
+      style={{ width, height: fixedContainerHeight }}
       className="relative items-center justify-center overflow-hidden bg-black">
-        {item.mediaType === 'video' ? (
-          <View 
-            style={{ 
-              width: renderWidth, 
-              height: renderHeight, 
-              overflow: 'hidden',
-              borderRadius: mask === 'circle' ? circleRadius || 0 : 0,
-            }}>
-            <EditableVideo
-              uri={item.originalUri ?? item.uri}
-              containerWidth={renderWidth}
-              containerHeight={renderHeight}
-              naturalWidth={item.cropData?.naturalWidth ?? item.width ?? 1920}
-              naturalHeight={item.cropData?.naturalHeight ?? item.height ?? 1080}
-              cropData={item.cropData}
-              onUpdate={handleCropUpdate}
-            />
-          </View>
-        ) : (
-        <View 
-          style={{ 
-            width: renderWidth, 
-            height: renderHeight, 
+      {item.mediaType === 'video' ? (
+        <View
+          style={{
+            width: renderWidth,
+            height: renderHeight,
+            overflow: 'hidden',
+            borderRadius: mask === 'circle' ? circleRadius || 0 : 0,
+          }}>
+          <EditableVideo
+            uri={item.originalUri ?? item.uri}
+            containerWidth={renderWidth}
+            containerHeight={renderHeight}
+            naturalWidth={item.cropData?.naturalWidth ?? item.width ?? 1920}
+            naturalHeight={item.cropData?.naturalHeight ?? item.height ?? 1080}
+            cropData={item.cropData}
+            onUpdate={handleCropUpdate}
+          />
+        </View>
+      ) : (
+        <View
+          style={{
+            width: renderWidth,
+            height: renderHeight,
             overflow: 'hidden',
             borderRadius: mask === 'circle' ? circleRadius || 0 : 0,
           }}>

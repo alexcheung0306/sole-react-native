@@ -38,10 +38,17 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set()); // Track loaded images
   const [imageDimensions, setImageDimensions] = useState<{ [key: number]: { width: number; height: number } }>({}); // Store image dimensions
   const [isZooming, setIsZooming] = useState(false);
+  const [videoHeight, setVideoHeight] = useState<number | null>(null);
   const listRef = useRef<FlatList<MediaItem>>(null);
 
   // Shared value for z-index - updates instantly on UI thread
   const isZoomingShared = useSharedValue(false);
+
+  // Handle video height changes from VideoPlayer (called when video starts playing)
+  const handleVideoHeightChange = useCallback((height: number) => {
+    console.log('[ImageCarousel] Received video height change on play:', height);
+    setVideoHeight(height);
+  }, []);
 
   // Handle zoom state changes - update both React state and shared value
   const handleZoomChange = useCallback((isZooming: boolean) => {
@@ -142,15 +149,20 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
     }
   };
 
+
   // Single image - no carousel needed
   if (media.length === 1) {
     const aspectRatio = getAspectRatio(media[0], 0);
     const calculatedHeight = SCREEN_WIDTH / aspectRatio;
+    console.log('calculatedHeight', calculatedHeight);
     return (
       <Animated.View
         style={[
           {
             width: SCREEN_WIDTH,
+            height: videoHeight,
+            borderWidth:1,
+            borderColor:'yellow',
             overflow: 'visible',
             position: 'relative',
           },
@@ -171,20 +183,11 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
             Carousel z-index: {isZooming ? 8888 : 100}
           </Text>
         </View>}
-        <View
-          style={{
-            position: 'absolute',
-            top: 10,
-            left: 10,
-            padding: 8,
-            borderRadius: 4,
-            zIndex: 99999,
-          }}>
 
-        </View>
+        {/* single */}
         <MediaZoom2
           children={
-            <View style={{ width: '100%', height: '100%' ,borderWidth:1,borderColor:'blue',flex:1}}>
+            <View style={{ width: '100%', height: '100%' ,borderWidth:1,borderColor:'blue',flex:1,overflow:'hidden'}}>
               {isVideo(media[0]) ? (
                   <VideoPlayer
                     uri={media[0].mediaUrl}
@@ -192,6 +195,7 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
                     muted={false}
                     showControls={true}
                     style={{ width: '100%', height: '100%' }}
+                    onHeightChange={handleVideoHeightChange}
                   />
               ) : (
                 <>
@@ -230,7 +234,7 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
             </View>
           }
           width={SCREEN_WIDTH}
-          height={calculatedHeight}
+          height={ videoHeight||calculatedHeight}
           resetOnRelease={true}
           minScale={1}
           maxScale={3}
@@ -239,7 +243,6 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
         />
       </Animated.View>
     );
-    // multiple images
   } else if (media.length > 1) {
     // Use first image's aspect ratio for FlatList height (or default)
     const firstAspectRatio = getAspectRatio(media[0], 0);
@@ -291,18 +294,20 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
 
             return (
               <View style={{ width: SCREEN_WIDTH, height: calculatedHeight }}>
+
+                {/* multiple */}
                 <MediaZoom2
                   children={
                     <View style={{ width: SCREEN_WIDTH, height: '100%' }}>
                       {isVideo(item) ? (
                         <View style={{ width: '100%', height: '100%' }}>
-                          <VideoPlayer
-                            uri={item.mediaUrl}
-                            loop={false}
-                            muted={false}
-                            showControls={true}
-                            style={{ width: '100%', height: '100%' }}
-                          />
+                        <VideoPlayer
+                          uri={item.mediaUrl}
+                          loop={false}
+                          muted={false}
+                          showControls={true}
+                          style={{ width: '100%', height: '100%' }}
+                        />
                         </View>
                       ) : (
                         <>
@@ -341,7 +346,7 @@ export function ImageCarousel({ media, onZoomChange, onScaleChange }: ImageCarou
                     </View>
                   }
                   width={SCREEN_WIDTH}
-                  height={calculatedHeight}
+                  height={videoHeight||calculatedHeight}
                   resetOnRelease={true}
                   minScale={1}
                   maxScale={3}

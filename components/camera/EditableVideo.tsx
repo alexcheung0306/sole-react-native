@@ -193,16 +193,22 @@ export function EditableVideo({
 
     return (
         <View style={{ width: containerWidth, height: containerHeight, overflow: 'hidden', backgroundColor: 'black' }}>
+            <Animated.View style={animatedStyle} collapsable={false}>
+                <VideoView
+                    player={player}
+                    style={{ width: '100%', height: '100%' }}
+                    contentFit="cover"
+                    allowsPictureInPicture={false}
+                    nativeControls={false}
+                />
+            </Animated.View>
+            
+            {/* Gesture overlay - captures all gestures */}
             <GestureDetector gesture={composedGesture}>
-                <Animated.View style={animatedStyle}>
-                    <VideoView
-                        player={player}
-                        style={{ width: '100%', height: '100%' }}
-                        contentFit="cover"
-                        allowsPictureInPicture={false}
-                        nativeControls={false}
-                    />
-                </Animated.View>
+                <Animated.View 
+                    style={StyleSheet.absoluteFill}
+                    pointerEvents="box-only"
+                />
             </GestureDetector>
 
             {/* Grid Overlay - Only visible during pan/pinch gestures */}

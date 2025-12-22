@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View, Dimensions } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useEvent } from 'expo';
@@ -12,8 +12,10 @@ export function VideoPlayer({
   showControls: initialShowControls = true,
   className = '',
   style,
+  onHeightChange,
 }: any) {
   const containerWidth = SCREEN_WIDTH;
+  const [videoAspectRatio, setVideoAspectRatio] = useState<number | null>(null);
 
   // Log video URI for debugging
   useEffect(() => {
@@ -29,6 +31,19 @@ export function VideoPlayer({
     videoTrack: player.videoTrack,
   });
 
+  // Calculate aspect ratio when video track becomes available (for VideoPlayer internal use)
+  useEffect(() => {
+    if (videoTrack && videoTrack.size) {
+      const { width, height } = videoTrack.size;
+      const aspectRatio = width / height;
+      const aspectRatioString = `${width}:${height} (${aspectRatio.toFixed(2)}:1)`;
+      console.log('[VideoPlayer] 📐 Aspect ratio:', aspectRatioString);
+
+      // Store aspect ratio for dynamic sizing
+      setVideoAspectRatio(aspectRatio);
+    }
+  }, [videoTrack]);
+
   // Monitor video playback state - log when video starts playing
   const wasPlayingRef = useRef(false);
   useEffect(() => {
@@ -42,8 +57,16 @@ export function VideoPlayer({
         console.log('[VideoPlayer] Current time:', player.currentTime);
         console.log('[VideoPlayer] Duration:', player.duration);
         console.log('[VideoPlayer] Status:', player.status);
+
         if (videoTrack) {
           console.log('[VideoPlayer] videoTrack', JSON.stringify(videoTrack, null, 2));
+
+          // Notify parent of height change when video starts playing
+          if (videoAspectRatio) {
+            const calculatedHeight = containerWidth / videoAspectRatio;
+            console.log('[VideoPlayer] Notifying parent of height change on play:', calculatedHeight);
+            onHeightChange?.(calculatedHeight);
+          }
         }
       } else if (!isPlaying && wasPlaying) {
         // Video just paused/stopped
@@ -59,15 +82,18 @@ export function VideoPlayer({
     const interval = setInterval(checkPlayingState, 100);
 
     return () => clearInterval(interval);
-  }, [player,videoTrack]);
+  }, [player, videoTrack]);
 
+  // Calculate video height based on aspect ratio
+  const videoHeight = videoAspectRatio ? containerWidth / videoAspectRatio : containerWidth;
+console.log('videoHeight',videoAspectRatio,containerWidth, videoHeight);
   return (
     <View
       className={`overflow-auto rounded-lg bg-black ${className}`}
       style={[
         {
           width: containerWidth,
-          height: containerWidth,
+          height: videoHeight,
           borderWidth: 1,
           borderColor: 'yellow',
           display: 'flex',
@@ -80,13 +106,12 @@ export function VideoPlayer({
         player={player}
         style={{
           width: containerWidth,
-          height: containerWidth,
-          borderWidth: 1,
-          borderColor: 'green',
+          height: videoHeight,
+    
         }}
         contentFit="contain"
         allowsPictureInPicture={false}
-        nativeControls={true}
+        nativeControls={false}
       />
     </View>
   );
