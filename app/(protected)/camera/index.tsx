@@ -66,6 +66,7 @@ export default React.memo(function CameraScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<number>(1);
   const [showThumbnailStrip, setShowThumbnailStrip] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // Scroll bar state
   const [contentHeight, setContentHeight] = useState(0);
@@ -773,10 +774,17 @@ export default React.memo(function CameraScreen() {
   }, [selectedMedia.length, currentIndex, setCurrentIndex]);
 
   const handleNext = async () => {
+    // Prevent multiple navigations
+    if (isNavigating) {
+      return;
+    }
+
     if (selectedMedia.length === 0) {
       Alert.alert('No Media Selected', 'Please select at least one photo or video');
       return;
     }
+
+    setIsNavigating(true);
     preserveSelectionRef.current = true;
 
     if (functionParam === 'post') {
@@ -800,6 +808,11 @@ export default React.memo(function CameraScreen() {
     } else {
       router.push('/(protected)/projects' as any);
     }
+
+    // Reset navigation state after a delay to allow navigation to complete
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 1000);
   };
 
   // Stable refs to avoid callback recreation
@@ -948,6 +961,7 @@ export default React.memo(function CameraScreen() {
           animatedHeaderStyle={animatedHeaderStyle}
           onHeightChange={handleHeightChange}
           handleNext={handleNext}
+          isNavigating={isNavigating}
         />
 
         <CameraPreview

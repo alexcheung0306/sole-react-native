@@ -10,6 +10,7 @@ interface CameraHeaderProps {
   animatedHeaderStyle: any;
   onHeightChange: (height: number) => void;
   handleNext: () => void;
+  isNavigating: boolean;
 }
 
 const CameraHeader = React.memo(({
@@ -18,6 +19,7 @@ const CameraHeader = React.memo(({
   animatedHeaderStyle,
   onHeightChange,
   handleNext,
+  isNavigating,
 }: CameraHeaderProps) => {
   return (
     <CollapsibleHeader
@@ -40,11 +42,11 @@ const CameraHeader = React.memo(({
       headerRight={
         <TouchableOpacity
           onPress={handleNext}
-          disabled={selectedMedia.length === 0}
+          disabled={selectedMedia.length === 0 || isNavigating}
           className="p-2">
           <Text
             className={`font-semibold ${
-              selectedMedia.length > 0 ? 'text-blue-500' : 'text-gray-600'
+              selectedMedia.length > 0 && !isNavigating ? 'text-blue-500' : 'text-gray-600'
             }`}>
             Next
           </Text>

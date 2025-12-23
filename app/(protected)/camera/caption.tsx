@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
 import { X, MapPin, AtSign, Smile, User as UserIcon, ChevronLeft, AlertTriangle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -48,6 +48,7 @@ export default function CaptionScreen() {
   const { soleUserId } = useSoleUserContext();
   const {setActiveTab} = useAppTabContext();
   const queryClient = useQueryClient();
+  const { returnTab } = useLocalSearchParams<{ returnTab?: string }>();
 
   const [caption, setCaption] = useState('');
   const [location, setLocation] = useState('');
@@ -163,21 +164,23 @@ export default function CaptionScreen() {
       queryClient.invalidateQueries({ queryKey: ['homePagePosts'] });
       queryClient.invalidateQueries({ queryKey: ['explorePagePosts'] });
       queryClient.invalidateQueries({ queryKey: ['clientProfilePosts'] });
-      
+
       // Invalidate useProfileQueries queries - invalidate all user profiles and user posts
       queryClient.invalidateQueries({ queryKey: ['userProfile'] });
       queryClient.invalidateQueries({ queryKey: ['userPosts'] });
-      
-      router.push('/(protected)/(user)' as any);
-      setActiveTab('home');
+
       Alert.alert('Success', 'Your post has been shared!', [
         {
           text: 'OK',
           onPress: () => {
             // Reset post data
             resetPostData();
-            // Navigate to home
-           
+            // Navigate back to where user came from before camera
+            // Go back twice: caption -> camera -> original screen
+            router.back();
+            setTimeout(() => {
+              router.back();
+            }, 100);
           },
         },
       ]);

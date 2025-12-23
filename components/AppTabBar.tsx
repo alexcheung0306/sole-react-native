@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, Animated as RNAnimated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTabContext, UserTab, ClientTab } from '~/context/AppTabContext';
@@ -36,6 +36,7 @@ export default function AppTabBar({ showTabBar = true }: AppTabBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const [isNavigating, setIsNavigating] = useState(false);
   const { animatedTabBarStyle, handleHeightChange, collapseTabBar, showTabBar: scrollShowTabBar, setTabBarPositionByScale, getTabBarTranslateY } = useScrollAppTabBar();
   const radius = getDeviceScreenRadius();
   // Simple fade animation for mode transitions
@@ -156,10 +157,27 @@ export default function AppTabBar({ showTabBar = true }: AppTabBarProps) {
   };
 
   const handleUserCameraPress = () => {
+    // Prevent multiple navigations
+    if (isNavigating) {
+      return;
+    }
+
+    setIsNavigating(true);
+
     router.push({
       pathname: '/(protected)/camera' as any,
-      params: { functionParam: 'post', multipleSelection: 'true', aspectRatio: 'free' },
+      params: {
+        functionParam: 'post',
+        multipleSelection: 'true',
+        aspectRatio: 'free',
+        returnTab: activeTab
+      },
     });
+
+    // Reset navigation state after a delay to allow navigation to complete
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 1000);
   };
 
   const handleUserJobPress = () => {
@@ -319,20 +337,21 @@ export default function AppTabBar({ showTabBar = true }: AppTabBarProps) {
                 key={tab.name}
                 activeOpacity={0.7}
                 onPress={tab.onPress}
+                disabled={tab.name === 'Camera' && isNavigating}
                 style={{
                   flex: 1,
                   alignItems: 'center',
                   justifyContent: 'center',
                   paddingVertical: 4,
                 }}>
-                <Icon 
-                  color={active ? 'rgb(164, 164, 164)' : 'rgb(164, 164, 164)'} 
-                  fill={active ? '#ffffff' : 'none'} 
-                  size={24} 
+                <Icon
+                  color={tab.name === 'Camera' && isNavigating ? 'rgb(100, 100, 100)' : active ? 'rgb(164, 164, 164)' : 'rgb(164, 164, 164)'}
+                  fill={active ? '#ffffff' : 'none'}
+                  size={24}
                 />
                 <Text
                   style={{
-                    color: active ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)',
+                    color: tab.name === 'Camera' && isNavigating ? 'rgb(100, 100, 100)' : active ? 'rgb(255, 255, 255)' : 'rgb(164, 164, 164)',
                     fontSize: 10,
                     marginTop: 4,
                   }}>
