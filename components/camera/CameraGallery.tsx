@@ -28,6 +28,9 @@ interface CameraGalleryProps {
   setContentHeight: (height: number) => void;
   setLayoutHeight: (height: number) => void;
   flatListRef: React.RefObject<FlatList | null>;
+  onEndReached?: () => void;
+  isLoadingMore?: boolean;
+  shouldShowVideos?: boolean;
 }
 
 const CameraGallery = React.memo(({
@@ -46,8 +49,20 @@ const CameraGallery = React.memo(({
   setContentHeight,
   setLayoutHeight,
   flatListRef,
+  onEndReached,
+  isLoadingMore,
+  shouldShowVideos = false,
 }: CameraGalleryProps) => {
   const insets = useSafeAreaInsets();
+
+  // Filter media items based on shouldShowVideos setting
+  const filteredMediaItems = React.useMemo(() => {
+    if (shouldShowVideos) {
+      return mediaItems; // Show all media including videos
+    }
+    // Filter out videos when shouldShowVideos is false
+    return mediaItems.filter(item => item.id === 'camera' || (item as MediaItem).mediaType === 'photo');
+  }, [mediaItems, shouldShowVideos]);
 
   // Memoized styles to prevent recreation on every render
   const flatListStyle = useMemo(() => ({ paddingTop: 0 }), []);
@@ -115,7 +130,7 @@ const CameraGallery = React.memo(({
           ref={flatListRef}
           bounces={false}
           style={flatListStyle}
-          data={mediaItems}
+          data={filteredMediaItems}
           keyExtractor={(item: any) => item.id}
           numColumns={galleryGridColumns}
           onScroll={onScroll}
@@ -129,6 +144,15 @@ const CameraGallery = React.memo(({
           onContentSizeChange={(width, height) => {
             setContentHeight(height);
           }}
+          onEndReached={onEndReached}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            isLoadingMore ? (
+              <View className="py-4 items-center">
+                <ActivityIndicator size="small" color="#3b82f6" />
+              </View>
+            ) : null
+          }
         />
       {/* </GestureDetector> */}
 

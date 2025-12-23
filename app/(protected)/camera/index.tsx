@@ -74,11 +74,12 @@ export default React.memo(function CameraScreen() {
   const [scrollPosition, setScrollPosition] = useState(0);
   const flatListRef = useRef<FlatList | null>(null);
 
-  const { functionParam, multipleSelection, aspectRatio, mask } = useLocalSearchParams<{
+  const { functionParam, multipleSelection, aspectRatio, mask, showVideos } = useLocalSearchParams<{
     functionParam: FunctionParam;
     multipleSelection?: string;
     aspectRatio?: AspectRatio;
     mask?: Mask;
+    showVideos?: string;
   }>();
 
   // Parse aspectRatio param and determine if it's locked
@@ -106,6 +107,9 @@ export default React.memo(function CameraScreen() {
   useEffect(() => {
     setSelectedAspectRatio(initialAspectRatio);
   }, [initialAspectRatio]);
+
+  // Determine if videos should be shown (default: false, only images)
+  const shouldShowVideos = showVideos === 'true';
 
   // Update onScroll ref when it changes
   useEffect(() => {
@@ -1014,7 +1018,7 @@ export default React.memo(function CameraScreen() {
         <CameraGallery
           mediaItems={mediaItems}
           selectionMap={selectionMap}
-          isLoading={isLoading}   
+          isLoading={isLoading}
           isMultiSelect={isMultiSelect}
           composedGesture={composedGesture}
           onScroll={handleScroll}
@@ -1027,6 +1031,9 @@ export default React.memo(function CameraScreen() {
           setContentHeight={setContentHeight}
           setLayoutHeight={setLayoutHeight}
           flatListRef={flatListRef}
+          onEndReached={loadMorePhotos}
+          isLoadingMore={isLoadingMore}
+          shouldShowVideos={shouldShowVideos}
         />
       </View>
     </>

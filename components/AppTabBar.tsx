@@ -170,7 +170,8 @@ export default function AppTabBar({ showTabBar = true }: AppTabBarProps) {
         functionParam: 'post',
         multipleSelection: 'true',
         aspectRatio: 'free',
-        returnTab: activeTab
+        returnTab: activeTab,
+        showVideos: 'true', // Show both images and videos for create post
       },
     });
 
