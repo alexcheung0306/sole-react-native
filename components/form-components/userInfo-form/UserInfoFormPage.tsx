@@ -263,10 +263,15 @@ export default function UserInfoFormPortalPage() {
                       key={values.profilePic}
                       source={{ uri: values.profilePic }}
                       className="h-full w-full"
+                      onError={() => {
+                        // If image fails to load, we'll show the icon as fallback
+                        console.log('Profile image failed to load',values.profilePic);
+                      }}
                     />
-                  ) : (
-                    <View className="h-full w-full items-center justify-center">
-                      <UserIcon size={32} color="#6b7280" />
+                  ) : null}
+                  {(!values.profilePic || !values.profilePic.trim()) && (
+                    <View className="absolute inset-0 h-full w-full items-center justify-center bg-zinc-700 rounded-full">
+                      <UserIcon size={40} color="#9ca3af" />
                     </View>
                   )}
                 </TouchableOpacity>
