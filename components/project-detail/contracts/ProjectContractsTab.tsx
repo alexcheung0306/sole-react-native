@@ -1,8 +1,7 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { useMemo, useState } from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { Formik } from 'formik';
 
 import {
   searchJobContracts,
@@ -10,12 +9,6 @@ import {
 } from '@/api/apiservice/jobContracts_api';
 import PaginationControl from '~/components/projects/PaginationControl';
 import FilterSearch from '~/components/custom/filter-search';
-import CollapseDrawer from ' ~/components/custom/collapse-drawer';
-import { FormModal } from '@/components/custom/form-modal';
-import { RoleScheduleListInputs } from '@/components/form-components/role-form/RoleScheduleListInputs';
-import { DateTimePickerInput } from '@/components/form-components/DateTimePickerInput';
-import { SingleWheelPickerInput } from '@/components/form-components/SingleWheelPickerInput';
-import { RangeWheelPickerInput } from '@/components/form-components/RangeWheelPickerInput';
 import BatchSendConditionFormPortal from '~/components/form-components/batch-send-condition-form/BatchSendConditionFormPortal';
 import ContractsTable from './ContractsTable';
 
@@ -93,6 +86,7 @@ export function ProjectContractsTab({
   const [pageSize] = useState(10);
   const [viewMode, setViewMode] = useState<'view' | 'select'>('view');
   const [selectedContracts, setSelectedContracts] = useState<Set<string>>(new Set());
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const handleSearch = () => {
     setPage(0);
@@ -338,6 +332,10 @@ export function ProjectContractsTab({
           handleSelectAll={handleSelectAll}
           setSelectedContracts={setSelectedContracts}
           onDeleteContract={handleDeleteContract}
+          sharedNavigationState={{
+            isNavigating,
+            setIsNavigating,
+          }}
         />
 
         {totalPages > 1 && (

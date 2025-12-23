@@ -36,6 +36,20 @@ const parsePaymentAmount = (paymentString: string) => {
 
 // Get status color
 
+type ContractsTableProps = {
+  viewMode: string;
+  selectedContracts: any;
+  disabledContractIds: string[];
+  tableRows: any[];
+  handleSelectAll: () => void;
+  setSelectedContracts: (contracts: any) => void;
+  onDeleteContract?: (contractId: number) => void;
+  sharedNavigationState?: {
+    isNavigating: boolean;
+    setIsNavigating: (navigating: boolean) => void;
+  };
+};
+
 export default function ContractsTable({
   viewMode,
   selectedContracts,
@@ -44,15 +58,8 @@ export default function ContractsTable({
   handleSelectAll,
   setSelectedContracts,
   onDeleteContract,
-}: {
-  viewMode: string;
-  selectedContracts: any;
-  disabledContractIds: string[];
-  tableRows: any[];
-  handleSelectAll: () => void;
-  setSelectedContracts: (contracts: any) => void;
-  onDeleteContract?: (contractId: number) => void;
-}) {
+  sharedNavigationState,
+}: ContractsTableProps) {
   const toggleContractSelection = (contractId: string) => {
     if (disabledContractIds.includes(contractId)) return;
 
@@ -148,13 +155,25 @@ export default function ContractsTable({
                     if (viewMode === 'select' && !isDisabled) {
                       toggleContractSelection(row.key);
                     } else {
+                      // Prevent multiple navigations
+                      if (sharedNavigationState?.isNavigating) {
+                        return;
+                      }
+
+                      sharedNavigationState?.setIsNavigating(true);
+
                       router.push({
                         pathname: '/(protected)/(client)/projects/contract-detail',
                         params: { id: row.key },
                       });
+
+                      // Reset navigation state after a delay to allow navigation to complete
+                      setTimeout(() => {
+                        sharedNavigationState?.setIsNavigating(false);
+                      }, 1000);
                     }
                   }}
-                  disabled={isDisabled && viewMode === 'select'}>
+                  disabled={(isDisabled && viewMode === 'select') || (sharedNavigationState?.isNavigating && viewMode !== 'select')}>
                 {/* Checkbox (only in select mode) */}
                 {viewMode === 'select' && !isDisabled && (
                   <View className="justify-start pt-1">
