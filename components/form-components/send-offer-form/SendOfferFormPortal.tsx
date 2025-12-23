@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { router } from 'expo-router';
 import { PrimaryButton } from '@/components/custom/primary-button';
 import { useSoleUserContext } from '@/context/SoleUserContext';
@@ -13,6 +13,7 @@ type SendOfferFormPortalProps = {
 };
 
 export function SendOfferFormPortal({ applicant, projectData, roleWithSchedules, onSuccess, open, onOpenChange }: SendOfferFormPortalProps) {
+  const [isNavigating, setIsNavigating] = useState(false);
   const { soleUserId: currentUserSoleUserId } = useSoleUserContext();
   const jobApplicant = applicant?.jobApplicant || applicant || {};
   const role = roleWithSchedules?.role || {};
@@ -66,6 +67,13 @@ export function SendOfferFormPortal({ applicant, projectData, roleWithSchedules,
   ];
 
   const handleOpen = () => {
+    // Prevent multiple navigations
+    if (isNavigating) {
+      return;
+    }
+
+    setIsNavigating(true);
+
     const params: Record<string, string> = {
       formType: 'sendOffer',
     };
@@ -94,6 +102,11 @@ export function SendOfferFormPortal({ applicant, projectData, roleWithSchedules,
       pathname: '/(protected)/form/[formType]' as any,
       params,
     });
+
+    // Reset navigation state after a delay to allow navigation to complete
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 1000);
   };
 
   // If controlled (open prop provided), handle it differently
@@ -111,7 +124,7 @@ export function SendOfferFormPortal({ applicant, projectData, roleWithSchedules,
   // If uncontrolled, show trigger button
   if (open === undefined) {
     return (
-      <PrimaryButton className="w-full bg-blue-500" onPress={handleOpen}>
+      <PrimaryButton className="w-full bg-blue-500" onPress={handleOpen} disabled={isNavigating}>
         Send Offer
       </PrimaryButton>
     );

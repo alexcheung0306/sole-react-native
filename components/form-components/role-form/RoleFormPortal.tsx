@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Plus, Pencil } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { PrimaryButton } from '@/components/custom/primary-button';
@@ -22,14 +22,23 @@ export function RoleFormPortal({
   refetchRoles,
   onOpen,
 }: RoleFormPortalProps) {
+  const [isNavigating, setIsNavigating] = useState(false);
+
   // Handle both old format (fetchedValues directly) and new format (roleWithSchedules with nested role)
   const roleData = fetchedValues?.role ? fetchedValues.role : fetchedValues;
   const activitiesData = fetchedValues?.activities ? fetchedValues.activities : [];
 
   const handleOpen = () => {
+    // Prevent multiple navigations
+    if (isNavigating) {
+      return;
+    }
+
+    setIsNavigating(true);
+
     // Close drawer or perform any pre-navigation actions
     onOpen?.();
-    
+
     const params: Record<string, string> = {
       formType: 'role',
       projectId: String(projectId),
@@ -68,12 +77,17 @@ export function RoleFormPortal({
       pathname: '/(protected)/form/[formType]' as any,
       params,
     });
+
+    // Reset navigation state after a delay to allow navigation to complete
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 1000);
   };
 
   return (
     <PrimaryButton
       variant={method === 'POST' ? 'create' : 'edit'}
-      disabled={isDisabled}
+      disabled={isDisabled || isNavigating}
       icon={
         method === 'POST' ? (
           <Plus size={20} color="#000000" />

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Pencil, Plus } from 'lucide-react-native';
 import { PrimaryButton } from '~/components/custom/primary-button';
 import { router } from 'expo-router';
@@ -32,10 +32,19 @@ export default function ProjectInfoFormPortal({
   onOpen,
   renderTrigger,
 }: ProjectInfoFormPortalProps) {
+  const [isNavigating, setIsNavigating] = useState(false);
+
   const handleOpen = () => {
+    // Prevent multiple navigations
+    if (isNavigating) {
+      return;
+    }
+
+    setIsNavigating(true);
+
     // Close drawer or perform any pre-navigation actions
     onOpen?.();
-    
+
     const params: Record<string, string> = {
       formType: 'project',
       method,
@@ -56,6 +65,11 @@ export default function ProjectInfoFormPortal({
       pathname: '/(protected)/form/[formType]' as any,
       params,
     });
+
+    // Reset navigation state after a delay to allow navigation to complete
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 1000);
   };
 
   if (renderTrigger) {
@@ -73,7 +87,7 @@ export default function ProjectInfoFormPortal({
   return (
     <PrimaryButton
       variant={method === 'POST' ? 'create' : 'edit'}
-      disabled={false}
+      disabled={isNavigating}
       icon={
         method === 'POST' ? (
           <Plus size={20} color="#000000" />

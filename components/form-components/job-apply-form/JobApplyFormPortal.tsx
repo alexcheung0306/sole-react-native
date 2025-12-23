@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { router } from 'expo-router';
 import { PrimaryButton } from '@/components/custom/primary-button';
 
@@ -21,11 +21,20 @@ export default function JobApplyFormPortal({
   triggerClassName,
   renderTrigger,
 }: JobApplyFormPortalProps) {
+  const [isNavigating, setIsNavigating] = useState(false);
+
   const handleOpen = () => {
     if (!soleUserId) {
       // Handle sign in requirement - could show alert or navigate to sign in
       return;
     }
+
+    // Prevent multiple navigations
+    if (isNavigating) {
+      return;
+    }
+
+    setIsNavigating(true);
 
     const params: Record<string, string> = {
       formType: 'jobApply',
@@ -38,6 +47,11 @@ export default function JobApplyFormPortal({
       pathname: '/(protected)/form/[formType]' as any,
       params,
     });
+
+    // Reset navigation state after a delay to allow navigation to complete
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 1000);
   };
 
   if (renderTrigger) {
@@ -56,7 +70,7 @@ export default function JobApplyFormPortal({
     <PrimaryButton
       className={triggerClassName || 'mt-4 w-full bg-blue-500'}
       onPress={handleOpen}
-      disabled={!soleUserId}>
+      disabled={!soleUserId || isNavigating}>
       {!soleUserId ? 'Sign in to apply' : 'Open apply form'}
     </PrimaryButton>
   );

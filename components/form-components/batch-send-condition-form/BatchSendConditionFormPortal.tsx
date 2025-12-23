@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ChevronRight } from 'lucide-react-native';
 import { TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
@@ -20,7 +20,16 @@ export default function BatchSendConditionFormPortal({
   triggerClassName,
   renderTrigger,
 }: BatchSendConditionFormPortalProps) {
+  const [isNavigating, setIsNavigating] = useState(false);
+
   const handleOpen = () => {
+    // Prevent multiple navigations
+    if (isNavigating) {
+      return;
+    }
+
+    setIsNavigating(true);
+
     const params: Record<string, string> = {
       formType: 'batchSendCondition',
       projectId: String(projectId),
@@ -31,6 +40,11 @@ export default function BatchSendConditionFormPortal({
       pathname: '/(protected)/form/[formType]' as any,
       params,
     });
+
+    // Reset navigation state after a delay to allow navigation to complete
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 1000);
   };
 
   if (renderTrigger) {
@@ -49,7 +63,8 @@ export default function BatchSendConditionFormPortal({
     <View className={triggerClassName || 'mb-0'}>
       <TouchableOpacity
         className="bg-blue-500 rounded-xl px-3.5 py-1 items-center"
-        onPress={handleOpen}>
+        onPress={handleOpen}
+        disabled={isNavigating}>
         <ChevronRight size={16} color="#ffffff" />
       </TouchableOpacity>
     </View>

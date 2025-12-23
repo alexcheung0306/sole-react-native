@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { Edit2 } from 'lucide-react-native';
 import { router } from 'expo-router';
@@ -49,6 +49,7 @@ const ETHNIC_OPTIONS = [
 ];
 
 export function TalentInfoFormPortal({ userProfileData, talentLevel, talentInfo }: TalentInfoFormPortalProps) {
+  const [isNavigating, setIsNavigating] = useState(false);
   const soleUserId = userProfileData?.userInfo?.soleUserId;
 
   // Handle talent level logic (matching web pattern)
@@ -70,6 +71,13 @@ export function TalentInfoFormPortal({ userProfileData, talentLevel, talentInfo 
   }
 
   const handleOpen = () => {
+    // Prevent multiple navigations
+    if (isNavigating) {
+      return;
+    }
+
+    setIsNavigating(true);
+
     const params: Record<string, string> = {
       formType: 'talentInfo',
       soleUserId: soleUserId || '',
@@ -110,25 +118,32 @@ export function TalentInfoFormPortal({ userProfileData, talentLevel, talentInfo 
       pathname: '/(protected)/form/[formType]' as any,
       params,
     });
+
+    // Reset navigation state after a delay to allow navigation to complete
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 1000);
   };
 
   return (
     <>
       {talentLevel === 0 ? (
         <View className="items-center">
-          <TouchableOpacity
-            className="w-full mb-6 flex-row items-center justify-center 
+        <TouchableOpacity
+          className="w-full mb-6 flex-row items-center justify-center
             rounded-lg bg-white px-4 py-2 text-black shadow-md"
-            onPress={handleOpen}>
+            onPress={handleOpen}
+            disabled={isNavigating}>
             <Text className="font-semibold text-black">Create Talent Profile</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <View className="items-center px-2">
           <TouchableOpacity
-            className="w-full mb-6 flex-row items-center justify-center 
+            className="w-full mb-6 flex-row items-center justify-center
             rounded-lg bg-white px-4 py-2 text-black shadow-md"
-            onPress={handleOpen}>
+            onPress={handleOpen}
+            disabled={isNavigating}>
             <Edit2 size={18} color="#000000" style={{ marginRight: 8 }} />
             <Text className="font-semibold">Edit Talent Profile</Text>
           </TouchableOpacity>
