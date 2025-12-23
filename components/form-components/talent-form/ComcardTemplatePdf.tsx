@@ -237,7 +237,11 @@ export const ComcardTemplatePdf = ({
 
       try {
         const html = generateHtml();
-        const { uri } = await Print.printToFileAsync({ html });
+        const { uri } = await Print.printToFileAsync({
+          html,
+          width: 1684,
+          height: 1190,
+        });
 
         // Read the PDF file and convert to base64 using expo-file-system
         const base64data = await FileSystem.readAsStringAsync(uri, {
