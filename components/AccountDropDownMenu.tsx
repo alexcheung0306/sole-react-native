@@ -28,29 +28,67 @@ export function AccountDropDownMenu({
   profileLabel,
 }: AccountDropDownMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const router = useRouter();
   const { signOut } = useAuth();
   const { user, isLoaded } = useUser();
   const { soleUser, userInfo } = useSoleUserContext();
 
   const handleSettings = (close: () => void) => {
+    // Prevent multiple navigations
+    if (isNavigating) {
+      return;
+    }
+
+    setIsNavigating(true);
     close();
+
     router.push('/settings' as any);
+
+    // Reset navigation state after a delay to allow navigation to complete
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 1000);
   };
 
   const handleSwitchAccount = (close: () => void) => {
+    // Prevent multiple navigations
+    if (isNavigating) {
+      return;
+    }
+
+    setIsNavigating(true);
     close();
+
     router.push('/account' as any);
+
+    // Reset navigation state after a delay to allow navigation to complete
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 1000);
   };
 
   const handleSignOut = async (close: () => void) => {
+    // Prevent multiple navigations
+    if (isNavigating) {
+      return;
+    }
+
+    setIsNavigating(true);
     close();
+
     try {
       await signOut();
       router.replace('/sign-in' as any);
     } catch (error) {
       console.error('Sign out error:', error);
+      setIsNavigating(false); // Reset on error
     }
+
+    // Reset navigation state after a delay to allow navigation to complete
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 1000);
   };
 
   const menuItems = [
@@ -58,8 +96,20 @@ export function AccountDropDownMenu({
       icon: User,
       label: 'View Profile',
       onPress: (close: () => void) => {
+        // Prevent multiple navigations
+        if (isNavigating) {
+          return;
+        }
+
+        setIsNavigating(true);
         close();
+
         onPress(); // Navigate to profile
+
+        // Reset navigation state after a delay to allow navigation to complete
+        setTimeout(() => {
+          setIsNavigating(false);
+        }, 1000);
       },
     },
     {
@@ -75,7 +125,22 @@ export function AccountDropDownMenu({
     {
       icon: Wallet,
       label: 'Wallet',
-      onPress: () => router.push('/wallet' as any),
+      onPress: (close: () => void) => {
+        // Prevent multiple navigations
+        if (isNavigating) {
+          return;
+        }
+
+        setIsNavigating(true);
+        close();
+
+        router.push('/wallet' as any);
+
+        // Reset navigation state after a delay to allow navigation to complete
+        setTimeout(() => {
+          setIsNavigating(false);
+        }, 1000);
+      },
     },
     {
       icon: LogOut,
@@ -212,6 +277,7 @@ export function AccountDropDownMenu({
                 <TouchableOpacity
                   key={index}
                   onPress={() => item.onPress(() => setIsOpen(false))}
+                  disabled={isNavigating}
                   className={`flex-row items-center gap-3 rounded-2xl border px-4 py-2 ${
                     item.danger ? 'border-rose-500/30 bg-rose-500/10' : 'border-white/10 bg-white/5'
                   }`}

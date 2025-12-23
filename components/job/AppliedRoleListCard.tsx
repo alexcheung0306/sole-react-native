@@ -1,12 +1,25 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { router } from "expo-router";
 import { Briefcase, FileText, Calendar } from "lucide-react-native";
 import { TouchableOpacity, View, Text, Animated } from "react-native";
 import { formatDateTime } from "~/lib/datetime";
 import { getStatusColorObject } from "~/utils/get-status-color";
 
-export  function AppliedRoleListCard({ item }: { item: any }) {
-    const translateX = useRef(new Animated.Value(0)).current;
+type AppliedRoleListCardProps = {
+  item: any;
+  sharedNavigationState?: {
+    isNavigating: boolean;
+    setIsNavigating: (navigating: boolean) => void;
+  };
+};
+
+export function AppliedRoleListCard({ item, sharedNavigationState }: AppliedRoleListCardProps) {
+  const [localIsNavigating, setLocalIsNavigating] = useState(false);
+  const translateX = useRef(new Animated.Value(0)).current;
+
+  // Use shared navigation state if provided, otherwise use local state
+  const isNavigating = sharedNavigationState ? sharedNavigationState.isNavigating : localIsNavigating;
+  const setIsNavigating = sharedNavigationState ? sharedNavigationState.setIsNavigating : setLocalIsNavigating;
     
     // Extract nested data to match the logged structure
     const jobApplicant = item?.jobApplicant || {};
@@ -31,33 +44,49 @@ export  function AppliedRoleListCard({ item }: { item: any }) {
     
     const statusColor = getStatusColorObject(applicationProcess || applicationStatus);
     const handleApplicationPress = (application: any) => {
-        // Gentle translate animation
-        Animated.sequence([
-          Animated.timing(translateX, {
-            toValue: 4,
-            duration: 100,
-            useNativeDriver: true,
-          }),
-          Animated.timing(translateX, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-        ]).start(() => {
-          const projectId = application?.project?.id || application?.jobApplicant?.projectId;
-          const roleId = application?.role?.id || application?.jobApplicant?.roleId;
-          if (projectId) {
-            router.push({
-              pathname: `/(protected)/(user)/job/job-detail` as any,
-              params: { id: projectId, roleId: roleId },
-            });
-          }
-        });
-      };
+      // Prevent multiple navigations
+      if (isNavigating) {
+        return;
+      }
+
+      setIsNavigating(true);
+
+      // Gentle translate animation
+      Animated.sequence([
+        Animated.timing(translateX, {
+          toValue: 4,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateX, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        const projectId = application?.project?.id || application?.jobApplicant?.projectId;
+        const roleId = application?.role?.id || application?.jobApplicant?.roleId;
+        if (projectId) {
+          router.push({
+            pathname: `/(protected)/(user)/job/job-detail` as any,
+            params: { id: projectId, roleId: roleId },
+          });
+
+          // Reset navigation state after a delay to allow navigation to complete
+          setTimeout(() => {
+            setIsNavigating(false);
+          }, 1000);
+        } else {
+          // Reset if no projectId
+          setIsNavigating(false);
+        }
+      });
+    };
     return (
       <Animated.View style={{ transform: [{ translateX }] }}>
         <TouchableOpacity
           onPress={() => handleApplicationPress(item)}
+          disabled={isNavigating}
           className="bg-zinc-800/60 rounded-2xl p-4 mb-3 border border-white/10"
           activeOpacity={0.7}
         >

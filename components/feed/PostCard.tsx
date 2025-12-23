@@ -27,6 +27,7 @@ export const PostCard = memo(function PostCard({
 }: PostCardProps) {
   const router = useRouter();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const renderCaption = () => {
     if (!post.content) return null;
@@ -61,11 +62,24 @@ export const PostCard = memo(function PostCard({
         {/* Header: User Info */}
         <View className="flex-row items-center justify-between px-4 py-3">
           <TouchableOpacity
-            onPress={() =>
-              router.push(`/profile/${post.soleUserInfo.username}` as any)
-            }
+            onPress={() => {
+              // Prevent multiple navigations
+              if (isNavigating) {
+                return;
+              }
+
+              setIsNavigating(true);
+
+              router.push(`/profile/${post.soleUserInfo.username}` as any);
+
+              // Reset navigation state after a delay to allow navigation to complete
+              setTimeout(() => {
+                setIsNavigating(false);
+              }, 1000);
+            }}
             className="flex-1 flex-row items-center"
-            activeOpacity={0.7}>
+            activeOpacity={0.7}
+            disabled={isNavigating}>
             {/* Avatar */}
             {post.soleUserInfo.profilePic ? (
               <Image

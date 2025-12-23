@@ -18,6 +18,7 @@ export default function JobPosts({ scrollHandler }: JobPostsProps) {
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   
   const {
     projects,
@@ -122,7 +123,13 @@ export default function JobPosts({ scrollHandler }: JobPostsProps) {
           }
           renderItem={({ item }) => (
             <View style={{ width: '48%' }}>
-              <JobListCard item={item} />
+              <JobListCard
+                item={item}
+                sharedNavigationState={{
+                  isNavigating,
+                  setIsNavigating,
+                }}
+              />
             </View>
           )}
           ListFooterComponent={

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Stack } from 'expo-router';
 import { View, Text, FlatList } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,6 +17,7 @@ type ManageContractsProps = {
 export default function ManageContractsPage({ scrollHandler }: ManageContractsProps) {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
   const {
     contracts,
     contractResults,
@@ -111,7 +112,13 @@ export default function ManageContractsPage({ scrollHandler }: ManageContractsPr
             }
             renderItem={({ item }) => (
               <View style={{ width: '48%' }}>
-                <ContractListCard item={item} />
+                <ContractListCard
+                  item={item}
+                  sharedNavigationState={{
+                    isNavigating,
+                    setIsNavigating,
+                  }}
+                />
               </View>
             )}
             ListFooterComponent={

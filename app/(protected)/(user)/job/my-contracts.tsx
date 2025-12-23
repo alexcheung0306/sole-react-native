@@ -16,6 +16,7 @@ export default function MyContracts({ scrollHandler }: MyContractsProps) {
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   
   const {
     contracts,
@@ -118,7 +119,15 @@ export default function MyContracts({ scrollHandler }: MyContractsProps) {
               </View>
             </View>
           }
-          renderItem={({ item }) => <MyContractListCard item={item} />}
+          renderItem={({ item }) => (
+            <MyContractListCard
+              item={item}
+              sharedNavigationState={{
+                isNavigating,
+                setIsNavigating,
+              }}
+            />
+          )}
           ListFooterComponent={
             <PaginationControl
               totalPages={totalPages}

@@ -18,6 +18,7 @@ export default function AppliedRoles({ scrollHandler }: AppliedRolesProps) {
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   
   const {
     appliedRoles,
@@ -117,7 +118,15 @@ export default function AppliedRoles({ scrollHandler }: AppliedRolesProps) {
               </View>
             </View>
           }
-          renderItem={({ item }) => <AppliedRoleListCard item={item} />}
+          renderItem={({ item }) => (
+            <AppliedRoleListCard
+              item={item}
+              sharedNavigationState={{
+                isNavigating,
+                setIsNavigating,
+              }}
+            />
+          )}
           ListFooterComponent={
             <PaginationControl
               totalPages={totalPages}

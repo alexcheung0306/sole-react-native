@@ -7,11 +7,23 @@ import { formatDateTime } from '~/utils/time-converts';
 import { getStatusColor } from '@/utils/get-status-color';
 import { useSoleUserContext } from '~/context/SoleUserContext';
 
-export default function JobListCard({ item }: { item: any }) {
+type JobListCardProps = {
+  item: any;
+  sharedNavigationState?: {
+    isNavigating: boolean;
+    setIsNavigating: (navigating: boolean) => void;
+  };
+};
+
+export default function JobListCard({ item, sharedNavigationState }: JobListCardProps) {
   const { soleUserId } = useSoleUserContext();
-  const [isNavigating, setIsNavigating] = useState(false);
+  const [localIsNavigating, setLocalIsNavigating] = useState(false);
   const [isProfileNavigating, setIsProfileNavigating] = useState(false);
   const translateX = useRef(new Animated.Value(0)).current;
+
+  // Use shared navigation state if provided, otherwise use local state
+  const isNavigating = sharedNavigationState ? sharedNavigationState.isNavigating : localIsNavigating;
+  const setIsNavigating = sharedNavigationState ? sharedNavigationState.setIsNavigating : setLocalIsNavigating;
   const project = item?.project || item;
 
   if (!project) {

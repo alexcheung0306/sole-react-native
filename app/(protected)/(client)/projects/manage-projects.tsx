@@ -19,6 +19,7 @@ export default function ManageProjectsPage({ scrollHandler }: ManageProjectsProp
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const {
     projects,
     projectResults,
@@ -127,7 +128,13 @@ export default function ManageProjectsPage({ scrollHandler }: ManageProjectsProp
             }
             renderItem={({ item }) => (
               <View style={{ width: '48%' }}>
-                <ProjectListCard item={item} />
+                <ProjectListCard
+                  item={item}
+                  sharedNavigationState={{
+                    isNavigating,
+                    setIsNavigating,
+                  }}
+                />
               </View>
             )}
             ListFooterComponent={

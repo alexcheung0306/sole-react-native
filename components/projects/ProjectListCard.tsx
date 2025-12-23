@@ -6,9 +6,21 @@ import GlassView from '@/components/custom/GlassView';
 import { formatDateTime } from '~/utils/time-converts';
 import { getStatusColor } from '@/utils/get-status-color';
 
-export default function ProjectListCard({ item }: { item: any }) {
-  const [isNavigating, setIsNavigating] = useState(false);
+type ProjectListCardProps = {
+  item: any;
+  sharedNavigationState?: {
+    isNavigating: boolean;
+    setIsNavigating: (navigating: boolean) => void;
+  };
+};
+
+export default function ProjectListCard({ item, sharedNavigationState }: ProjectListCardProps) {
+  const [localIsNavigating, setLocalIsNavigating] = useState(false);
   const translateX = useRef(new Animated.Value(0)).current;
+
+  // Use shared navigation state if provided, otherwise use local state
+  const isNavigating = sharedNavigationState ? sharedNavigationState.isNavigating : localIsNavigating;
+  const setIsNavigating = sharedNavigationState ? sharedNavigationState.setIsNavigating : setLocalIsNavigating;
 
   const handleProjectPress = (projectId: number) => {
     // Prevent multiple navigations
