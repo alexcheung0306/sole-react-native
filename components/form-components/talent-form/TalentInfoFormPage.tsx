@@ -109,7 +109,6 @@ export default function TalentInfoFormPortalPage() {
   const talentLevel = params.talentLevel ? Number(params.talentLevel) : null;
   const method = talentLevel !== null && talentLevel > 0 ? 'PUT' : 'POST';
 
-  console.log('TalentInfoFormPage - params:', { soleUserId, talentLevel: params.talentLevel, method });
 
   // Fetch talent data for edit forms
   useEffect(() => {
@@ -118,10 +117,8 @@ export default function TalentInfoFormPortalPage() {
         setIsLoadingData(true);
         try {
           const data = await getUserProfileByUsername(soleUser.username);
-          console.log('Fetched user profile data for edit form:', data);
           setFetchedTalentData(data);
         } catch (error) {
-          console.error('Error fetching user profile data:', error);
         } finally {
           setIsLoadingData(false);
         }
@@ -154,7 +151,6 @@ export default function TalentInfoFormPortalPage() {
       });
     }
 
-    console.log('getPhotoConfig result:', emptyPhotos);
     return emptyPhotos;
   };
 
@@ -243,7 +239,6 @@ export default function TalentInfoFormPortalPage() {
             const talentLevelResult = await updateTalentLevelBySoleUserId(soleUserId, {
               talentLevel: '1',
             });
-            console.log('Talent level updated:', talentLevelResult);
           } catch (error) {
             console.error('Error updating talent level:', error);
           }
@@ -370,7 +365,6 @@ export default function TalentInfoFormPortalPage() {
           snapshotFullBodyError;
 
 
-        console.log('values', values);
         return (
           <FormPage
             title={pageTitle}
