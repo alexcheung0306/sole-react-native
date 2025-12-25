@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -57,6 +57,33 @@ export default function FollowingScreen() {
     enabled: !!username,
   });
 
+  // Clear unfollowed users when the component unmounts or when followingData changes
+  // This ensures that when you navigate away and come back, unfollowed users are cleared
+  useEffect(() => {
+    return () => {
+      // Clear unfollowed users when component unmounts
+      setUnfollowedUsers(new Set());
+    };
+  }, []);
+
+  // When followingData refetches (e.g., after navigating back), clear unfollowed users
+  // that are no longer in the following list
+  useEffect(() => {
+    if (followingData) {
+      const followingUsernames = new Set(followingData.map(u => u.username));
+      setUnfollowedUsers((prev) => {
+        const filtered = new Set<string>();
+        prev.forEach((username) => {
+          // Only keep unfollowed users that are still in the following list
+          if (followingUsernames.has(username)) {
+            filtered.add(username);
+          }
+        });
+        return filtered;
+      });
+    }
+  }, [followingData]);
+
   // Fetch followers list to check mutual follows
   const { data: myFollowersData } = useQuery({
     queryKey: ['FollowerList', user?.username],
@@ -104,7 +131,10 @@ export default function FollowingScreen() {
     },
     onSuccess: (data, targetUsername) => {
       console.log('Unfollow successful');
+      // Add to unfollowed users set to show "Follow" button instead of "Following"
       setUnfollowedUsers((prev) => new Set(prev).add(targetUsername));
+      // Invalidate FollowingList but don't refetch immediately - it will refetch when user navigates back
+      // This way the user stays visible in current view but disappears when they come back
       queryClient.invalidateQueries({ queryKey: ['FollowingList', username] });
       queryClient.invalidateQueries({ queryKey: ['FollowerList', username] });
       // Invalidate the follow status query so the FollowButton on the target user's profile updates
