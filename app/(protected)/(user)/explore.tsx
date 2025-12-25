@@ -420,7 +420,7 @@ export default React.memo(function Explore() {
           {showSearch && (
             <View 
               ref={searchContainerRef} 
-              className="relative px-4 pb-4 bg-black"
+              className="px-4 pb-4 bg-black"
               style={{ paddingTop: insets.top + 72 }}
             >
               <View className="flex-row items-center bg-gray-800/50 rounded-xl px-4 py-3">
@@ -449,9 +449,9 @@ export default React.memo(function Explore() {
                 )}
               </View>
 
-              {/* User Search Results Dropdown */}
+              {/* User Search Results Dropdown - positioned below search bar */}
               {showUserResults && (
-                <View className="absolute top-full left-4 right-4 mt-2 bg-gray-900 rounded-xl overflow-hidden z-50 max-h-64">
+                <View className="mt-2 bg-gray-900 rounded-xl overflow-hidden max-h-64">
                   <ScrollView 
                     nestedScrollEnabled
                     showsVerticalScrollIndicator={false}
